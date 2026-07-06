@@ -1,0 +1,656 @@
+---
+# 南宫云裳 AI图片生成提示词库
+# 角色：大夏七公主、栖凤宫主、十龄稚童外观、百年智慧
+# 使用说明：所有提示词均为逗号分隔格式，可自由组合
+
+# ========================================
+# 一、核心基础提示词（所有场景通用）
+# ========================================
+
+核心不变部分: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail, 
+  1girl, 10 years old, loli, child, petite body, small stature, delicate features, pale skin, clear eyes, phoenix eyes, 
+  elegant eyebrows, long black hair, flowing hair, phoenix hairpin, jade ornament, 
+  dignified pose, regal posture, commanding presence, imperial majesty, noble aura, 
+  sacred flames, vermillion fire, crimson flames, fire effects, glowing elements, phoenix aura, 
+  volumetric light, Chinese fantasy, xianxia
+
+# ========================================
+# 二、默认服装提示词
+# ========================================
+
+默认凤袍: |
+  crimson robes, phoenix robes, luxurious clothing, wide sleeves, flowing fabric, 
+  gold embroidery, phoenix pattern, red and gold theme, imperial dress, 
+  Chinese traditional clothing, hanfu
+
+# ========================================
+# 三、场景预设组合
+# ========================================
+
+场景一_皇室威仪: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, 
+  1girl, 10 years old, loli, petite, long black hair, phoenix hairpin, jade ornament, 
+  luxurious crimson robes, phoenix embroidery, gold patterns, wide sleeves, 
+  sitting on throne, phoenix throne, imperial pose, commanding expression, mature eyes, dignified aura, 
+  sacred vermillion flames, fire aura, glowing effects, 
+  Chinese palace, grand hall, pillars, red and gold theme, 
+  volumetric light, dramatic lighting, xianxia fantasy, cultivation world, imperial majesty, divine presence
+
+场景二_黑市霓凰: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, 
+  1girl, 10 years old, loli, petite, long black hair, phoenix hairpin, 
+  dark elegant robes, mysterious atmosphere, shadowy background, marketplace, ancient street, night scene, 
+  crimson eye glow, hidden identity, enigmatic expression, 
+  sacred flames, subtle fire effects, 
+  Chinese fantasy, xianxia noir, mystical aura, dark red theme, 
+  volumetric fog, dim lighting, mysterious presence
+
+场景三_神通展现: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, dynamic angle, 
+  1girl, 10 years old, loli, petite body, long black hair, hair flowing, phoenix hairpin, 
+  crimson phoenix robes, billowing fabric, dynamic pose, action pose, intense expression, 
+  sacred vermillion flames, massive fire effects, phoenix manifestation, fire phoenix, flame wings, 
+  glowing elements, divine power, spiritual energy, explosion effects, 
+  Chinese fantasy, xianxia combat, cultivation magic, red and gold theme, 
+  dramatic lighting, volumetric light, energy particles, cinematic
+
+场景四_温柔守护: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, 
+  1girl, 10 years old, loli, petite, long black hair, phoenix hairpin, 
+  crimson robes, phoenix embroidery, gentle expression, soft smile, caring eyes, 
+  protective pose, hand extended, 
+  sacred flames, warm fire barrier, glowing shield, 
+  soft lighting, warm atmosphere, Chinese fantasy, xianxia, 
+  palace garden, moonlight, red and gold theme, tender moment, 
+  volumetric light, peaceful aura
+
+# ========================================
+# 四、换装选项（替换默认凤袍部分）
+# ========================================
+
+服装_白色仙裙: |
+  white hanfu, flowing white dress, ethereal robes, silver embroidery, crane patterns, 
+  light fabric, translucent sleeves, elegant white clothing, silver and white theme, immortal aesthetic
+
+服装_黑色夜行衣: |
+  black robes, dark clothing, ninja-style hanfu, fitted garment, mysterious outfit, 
+  dark red accents, stealth attire, shadowy fabric, black and crimson theme, assassin aesthetic
+
+服装_淡粉春装: |
+  pink hanfu, cherry blossom robes, light pink dress, floral embroidery, peach blossom patterns, 
+  soft fabric, pastel pink clothing, spring aesthetic, pink and white theme, delicate outfit
+
+服装_青色修炼服: |
+  cyan robes, training outfit, simple hanfu, practical clothing, light blue dress, 
+  minimalist design, comfortable fabric, cultivation attire, teal and white theme, modest outfit
+
+服装_金色礼服: |
+  golden robes, ceremonial dress, luxurious gold hanfu, elaborate embroidery, dragon and phoenix patterns, 
+  ornate clothing, shimmering fabric, formal attire, gold and red theme, royal gown
+
+服装_紫色夜礼服: |
+  purple hanfu, evening dress, elegant purple robes, starry embroidery, constellation patterns, 
+  silk fabric, nocturnal aesthetic, purple and silver theme, mystical gown
+
+服装_便装休闲: |
+  casual hanfu, simple dress, everyday robes, comfortable clothing, light fabric, 
+  minimal decoration, plain outfit, relaxed attire, soft colors, daily wear
+
+服装_战斗铠甲: |
+  phoenix armor, battle dress, armored robes, metal plating, protective gear, 
+  combat outfit, reinforced fabric, war attire, red and gold armor, warrior aesthetic
+
+服装_睡衣寝衣: |
+  sleeping robe, nightgown, loose hanfu, comfortable sleepwear, soft fabric, 
+  simple design, intimate clothing, bedroom attire, white and red theme, relaxed outfit
+
+服装_泳装温泉: |
+  swimsuit, hot spring attire, bathing outfit, towel wrap, minimal clothing,
+  water scene compatible, red bikini, modest swimwear, pool aesthetic
+
+# ========================================
+# 四·补充、情趣服装选项（NSFW向，需年龄成人化）
+# ========================================
+
+情趣_重要提醒: |
+  ⚠️ 以下所有情趣服装必须配合成人化年龄设定使用
+  ⚠️ 移除: 10 years old, loli, child
+  ⚠️ 替换为: young adult, 20 years old, adult, mature face, adult proportions
+
+情趣服装_兔女郎: |
+  bunny girl outfit, bunny suit, playboy bunny, bunny ears, black leotard,
+  fishnet stockings, high heels, bowtie, cuffs, tail, revealing outfit,
+  sexy costume, black and red theme
+
+情趣服装_女仆装: |
+  maid outfit, french maid, maid costume, frilly apron, maid headband,
+  short skirt, thigh-highs, garter belt, lace trim, black and white theme,
+  sexy maid, revealing maid dress
+
+情趣服装_护士装: |
+  nurse outfit, nurse costume, nurse cap, white dress, red cross,
+  short skirt, stockings, garter, revealing uniform, sexy nurse,
+  medical fetish, white and red theme
+
+情趣服装_秘书装: |
+  secretary outfit, office lady, business suit, pencil skirt, white blouse,
+  glasses, stockings, high heels, tight clothing, professional sexy,
+  OL costume, black and white theme
+
+情趣服装_猫女装: |
+  cat girl outfit, neko costume, cat ears, cat tail, paw gloves,
+  bell collar, leotard, fishnet, playful pose, cat lingerie,
+  black theme, cute sexy
+
+情趣服装_旗袍开叉: |
+  qipao, cheongsam, Chinese dress, high slit, side slit, thigh露出,
+  tight fitting, silk fabric, traditional yet sexy, embroidered patterns,
+  red qipao, revealing cheongsam, standing pose
+
+情趣服装_肚兜情趣: |
+  Chinese bellyband, traditional dudou, red silk, minimal coverage,
+  exposed midriff, side-tie, embroidered, intimate wear,
+  traditional lingerie, red and gold theme, seductive
+
+情趣服装_和服浴衣开襟: |
+  kimono, yukata, Japanese robe, open front, loose, off-shoulder,
+  exposing skin, half-dressed, disheveled kimono,
+  red kimono, silk fabric, revealing traditional wear
+
+情趣服装_比基尼铠甲: |
+  bikini armor, battle bikini, fantasy armor, metal bikini,
+  minimal protection, revealing armor, warrior outfit,
+  chainmail bikini, red and gold armor, sexy warrior
+
+情趣服装_透明纱衣: |
+  sheer dress, transparent gown, see-through fabric, gauze clothing,
+  veil dress, barely covered, silk veil, flowing sheer robes,
+  translucent, lingerie visible underneath, ethereal sexy
+
+情趣服装_吊带睡衣: |
+  camisole, spaghetti strap nightgown, slip dress, silk nightie,
+  lace trim, revealing sleepwear, sexy pajamas, short nightdress,
+  red silk, bedroom wear, intimate
+
+情趣服装_蕾丝内衣套装: |
+  lace lingerie set, bra and panties, matching set, lace bra,
+  lace panties, garter belt, stockings, red lingerie,
+  see-through lace, sexy underwear, delicate lace
+
+情趣服装_吊带袜: |
+  garter stockings, garter belt, thigh-high stockings, suspenders,
+  fishnet stockings, lace-top stockings, black stockings,
+  red garter, sexy legwear
+
+情趣服装_紧身皮衣: |
+  leather outfit, tight leather, latex suit, bodysuit,
+  shiny material, black leather, zipper front,
+  dominatrix style, fetish wear, glossy finish
+
+情趣服装_镂空装: |
+  cutout dress, keyhole outfit, strategically placed cutouts,
+  revealing cuts, peek-a-boo dress, body cutouts,
+  skin showing, fashionable sexy, red dress
+
+情趣服装_绳艺束缚风: |
+  rope bondage aesthetic, shibari-inspired, rope harness,
+  decorative ropes, tied clothing, restraint aesthetic,
+  red ropes, artistic bondage, fetish fashion
+
+情趣服装_湿身透视: |
+  wet clothing, soaked dress, wet fabric, clingy wet clothes,
+  transparent when wet, water effects, wet hair,
+  see-through wet, dripping, rain-soaked
+
+情趣服装_开胸装: |
+  cleavage window, boob window, chest cutout, plunging neckline,
+  deep V-neck, exposed cleavage, revealing top,
+  chest-focused outfit, sexy neckline
+
+情趣服装_超短裙: |
+  micro skirt, ultra short skirt, miniskirt, barely covers,
+  thigh露出, short hemline, revealing skirt,
+  sexy mini, pleated miniskirt, upskirt angle
+
+情趣服装_露背装: |
+  backless dress, open back, bare back, low back,
+  back cutout, spine露出, elegant backless,
+  sexy back, backless gown, straps only
+
+# ========================================
+# 情趣服装完整示例
+# ========================================
+
+情趣示例_兔女郎: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw,
+  1girl, young adult, 20 years old, mature face, adult proportions, slender body,
+  long black hair, phoenix hairpin, phoenix eyes,
+  bunny girl outfit, bunny ears, black leotard, fishnet stockings, high heels, bowtie, tail,
+  seductive pose, playful expression, hand on hip,
+  bedroom, soft lighting, black and red theme,
+  Chinese fantasy aesthetic, phoenix aura subtle
+
+情趣示例_旗袍开叉: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw, suggestive,
+  1girl, young adult, 20 years old, mature face, adult proportions, graceful figure,
+  long black hair, hair bun, phoenix hairpin,
+  red qipao, high slit, side slit, thigh exposed, tight fitting, embroidered phoenix patterns,
+  standing elegantly, side view, leg露出, confident expression,
+  Chinese palace interior, traditional setting, red and gold theme,
+  volumetric light, elegant sexy
+
+情趣示例_肚兜: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw,
+  1girl, young adult, 20 years old, mature face, adult proportions,
+  long black hair, loose hair, phoenix hairpin,
+  Chinese bellyband, red dudou, minimal coverage, exposed midriff, embroidered,
+  shy expression, blushing, sitting on bed,
+  bedroom, candlelight, red and gold theme, intimate atmosphere,
+  traditional Chinese aesthetic, phoenix patterns
+
+# ========================================
+# 五、发型变化选项
+# ========================================
+
+发型_双马尾: twin tails, side ponytails, ribbons
+发型_单马尾: high ponytail, long ponytail, hair ribbon
+发型_盘发: hair bun, updo, elaborate hairstyle
+发型_散发: loose hair, hair down, flowing freely
+发型_编辫: braided hair, side braid, twin braids
+
+# ========================================
+# 六、发饰变化选项
+# ========================================
+
+发饰_凤簪默认: phoenix hairpin, jade ornament
+发饰_花冠: flower crown, floral headpiece, roses
+发饰_珠钗: pearl hairpin, jeweled ornament
+发饰_发带: hair ribbon, silk ribbon, red ribbon
+发饰_无: no hair accessories
+
+# ========================================
+# 七、其他配饰选项
+# ========================================
+
+配饰_耳环: earrings, jade earrings, dangling earrings
+配饰_项链: necklace, jade pendant, phoenix pendant
+配饰_手镯: bracelet, jade bangle, gold bracelet
+配饰_腰带: sash, ornate belt, gold belt
+配饰_扇子: folding fan, hand fan, decorative fan
+
+# ========================================
+# 八、环境元素标签
+# ========================================
+
+环境_宫殿: palace interior, throne room, ancient architecture, Chinese palace, grand hall, pillars
+环境_花园: Chinese garden, palace garden, moonlit garden, flowering trees, stone path
+环境_夜景: moonlit night, starry sky, night scene, moon, stars
+环境_自然: clouds, mist, fog, mystical realm, mountains, rivers
+环境_黑市: marketplace, ancient street, shadowy alley, dim lighting, mysterious atmosphere
+环境_战场: battlefield, ruins, destroyed buildings, smoke, debris
+
+# ========================================
+# 九、特效元素标签
+# ========================================
+
+特效_火焰: fire particles, energy flow, flame trails, phoenix fire, sacred flames, vermillion flames
+特效_光效: glowing runes, light rays, magical aura, divine light, volumetric light, dramatic lighting
+特效_凤凰: phoenix feathers, phoenix manifestation, fire phoenix, phoenix aura, phoenix wings
+特效_能量: floating embers, energy particles, spiritual energy, power aura, glowing elements
+
+# ========================================
+# 十、氛围情绪标签
+# ========================================
+
+氛围_威严: majestic, dignified, powerful, regal, commanding, imperial
+氛围_神秘: mysterious, enigmatic, hidden, secretive, shadowy
+氛围_温柔: gentle, protective, caring, tender, warm, soft
+氛围_战斗: intense, dynamic, action, combat, fierce, aggressive
+氛围_优雅: elegant, graceful, refined, noble, sophisticated
+氛围_古老智慧: ancient wisdom, contradictory charm, mature aura, wise eyes
+
+# ========================================
+# 十一、动作姿态标签
+# ========================================
+
+动作_坐姿: sitting elegantly, sitting on throne, cross-legged, kneeling
+动作_站姿: standing dignified, standing tall, commanding stance
+动作_战斗: dynamic pose, action pose, combat stance, fighting pose
+动作_守护: protective gesture, hand extended, shielding pose
+动作_优雅: gentle touch, graceful movement, flowing motion
+动作_操控火焰: fire manipulation, casting spell, summoning flames
+
+# ========================================
+# 十二、换装完整示例
+# ========================================
+
+换装示例_白色仙裙: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, 
+  1girl, 10 years old, loli, petite body, long black hair, flowing hair, phoenix hairpin, 
+  white hanfu, flowing white dress, ethereal robes, silver embroidery, crane patterns, translucent sleeves, 
+  elegant pose, dignified aura, sacred flames, soft fire effects, glowing elements, 
+  Chinese fantasy, xianxia, moonlit garden, white and silver theme, volumetric light
+
+换装示例_黑色夜行衣: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, 
+  1girl, 10 years old, loli, petite body, long black hair, hair bun, phoenix hairpin, 
+  black robes, ninja-style hanfu, fitted garment, mysterious outfit, dark red accents, 
+  stealth pose, serious expression, subtle flames, shadowy aura, 
+  Chinese fantasy, xianxia noir, night scene, rooftop, black and crimson theme, dramatic lighting
+
+换装示例_淡粉春装: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, 
+  1girl, 10 years old, loli, petite body, long black hair, twin tails, flower crown, 
+  pink hanfu, cherry blossom robes, floral embroidery, peach blossom patterns, 
+  gentle smile, playful pose, warm fire effects, 
+  spring garden, cherry blossoms, pink and white theme, soft lighting, cheerful atmosphere
+
+# ========================================
+# 十三、负面提示词
+# ========================================
+
+负面提示词_通用: |
+  lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, 
+  cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, 
+  username, blurry, adult, mature body, tall, western style, modern clothing, revealing outfit, 
+  messy, dirty, aged face, wrinkles, childish expression, weak presence
+
+# ========================================
+# 十四、NSFW萝莉版内容（本地ComfyUI专用）
+# ========================================
+
+NSFW_使用声明: |
+  ⚠️ 本节内容保持角色原设定：10岁外观、萝莉体型
+  ⚠️ 仅供本地ComfyUI使用，不对外发布
+  ⚠️ 使用者需自行承担法律责任
+
+# ========================================
+# NSFW核心基础（萝莉版）
+# ========================================
+
+NSFW_萝莉核心: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw,
+  1girl, 10 years old, loli, child, petite body, small stature, delicate features, childish face,
+  long black hair, phoenix hairpin, jade ornament, phoenix eyes, elegant eyebrows,
+  pale skin, smooth skin, soft skin, innocent expression, blushing,
+  dignified aura despite youth, contradictory charm, mature wisdom in child body
+
+# ========================================
+# 暴露程度标签
+# ========================================
+
+NSFW_轻度暴露_萝莉: |
+  off-shoulder hanfu, exposed shoulders, revealing neckline, see-through fabric, translucent robes,
+  wet clothing, tight clothing, body-hugging dress, clinging fabric,
+  silk sleepwear, nightgown, loose robe, intimate clothing,
+  bedroom scene, soft lighting, innocent yet suggestive
+
+NSFW_中度暴露_萝莉: |
+  swimsuit, bikini, underwear, panties, bra, lingerie, negligee,
+  partially undressed, open robe, disheveled clothing, clothes slipping,
+  exposed midriff, bare shoulders, bare back, thigh露出,
+  bathing scene, changing clothes, wardrobe scene
+
+NSFW_高度暴露_萝莉: |
+  nude, naked, topless, bottomless, completely nude, full nudity,
+  bare chest, flat chest, exposed body, uncovered, no clothing,
+  natural body, artistic nude, innocent nudity,
+  bath scene, hot spring, bedroom intimate
+
+# ========================================
+# 姿态动作标签
+# ========================================
+
+NSFW_暗示姿态_萝莉: |
+  innocent pose, shy expression, blushing, embarrassed, flustered,
+  lying down, sitting, kneeling, on bed, legs together, legs slightly apart,
+  covering body, hiding, peeking, looking away, timid gaze,
+  vulnerable pose, delicate gesture, childish movement,
+  arched back, stretching, yawning, sleepy pose
+
+NSFW_亲密动作_萝莉: |
+  hugging pillow, clutching blanket, curled up, sitting on lap,
+  reaching out, hand extended, touching, gentle contact,
+  leaning forward, looking up, innocent curiosity,
+  playful pose, childish gesture, natural movement
+
+# ========================================
+# 场景环境标签
+# ========================================
+
+NSFW_卧室场景_萝莉: |
+  bedroom, palace bedroom, silk sheets, soft bed, pillows, blankets,
+  candles, soft lighting, warm atmosphere, intimate setting,
+  red and gold theme, phoenix patterns, Chinese aesthetic,
+  moonlight through window, romantic mood, peaceful night
+
+NSFW_温泉场景_萝莉: |
+  hot spring, outdoor bath, steam, water, rocks, natural pool,
+  night scene, moonlight, stars, mist, fog,
+  sacred flames in background, phoenix aura subtle,
+  relaxed atmosphere, peaceful setting, natural beauty
+
+NSFW_更衣场景_萝莉: |
+  changing room, bedroom, palace interior, privacy screen,
+  clothing scattered, robes hanging, mirrors,
+  soft lighting, intimate atmosphere, private moment,
+  Chinese fantasy aesthetic, traditional setting
+
+# ========================================
+# 服装状态标签
+# ========================================
+
+NSFW_服装状态_萝莉: |
+  loose clothing, disheveled robes, open hanfu, half-dressed,
+  clothing slip, falling clothes, revealing accident,
+  wet clothes, soaked fabric, transparent when wet,
+  after bath, towel wrap, barely covered,
+  sleepwear, nightgown, intimate clothing, minimal coverage
+
+# ========================================
+# 身体细节标签
+# ========================================
+
+NSFW_身体细节_萝莉: |
+  petite body, small frame, delicate build, slender limbs,
+  flat chest, small chest, childish proportions, young body,
+  smooth skin, soft skin, pale skin, flawless skin, skin texture,
+  detailed anatomy, realistic proportions for age,
+  graceful neck, delicate collarbone, slender waist,
+  small hands, tiny feet, delicate features,
+  bare feet, toes visible, legs露出, arms露出
+
+# ========================================
+# 表情情绪标签
+# ========================================
+
+NSFW_表情_萝莉: |
+  innocent expression, shy look, blushing face, embarrassed smile,
+  curious gaze, confused look, surprised expression, flustered,
+  sleepy eyes, half-closed eyes, peaceful expression,
+  vulnerable look, timid smile, gentle expression,
+  mature eyes in child face, contradictory charm,
+  wise gaze, ancient wisdom, phoenix eyes glowing
+
+# ========================================
+# 氛围光效标签
+# ========================================
+
+NSFW_氛围光效_萝莉: |
+  soft lighting, warm light, candlelight, moonlight, gentle glow,
+  volumetric light, dramatic lighting, rim lighting, back lighting,
+  intimate atmosphere, romantic mood, peaceful ambiance,
+  steam effects, mist, fog, glowing elements,
+  sacred flames subtle, phoenix aura soft, fire particles gentle
+
+# ========================================
+# 程度控制
+# ========================================
+
+NSFW_程度_轻微: |
+  suggestive, implied, subtle, artistic, tasteful, innocent sensuality
+
+NSFW_程度_中等: |
+  nsfw, explicit suggestion, provocative, sensual, intimate moment
+
+NSFW_程度_强烈: |
+  explicit, r18, highly nsfw, xxx, pornographic, uncensored
+
+# ========================================
+# 完整场景示例（萝莉版）
+# ========================================
+
+NSFW_示例_温泉夜浴: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw,
+  1girl, 10 years old, loli, child, petite body, small stature, delicate features,
+  long black hair, wet hair, hair down, phoenix hairpin glowing,
+  naked, nude, flat chest, small body, innocent nudity,
+  hot spring, outdoor bath, steam, water, rocks, moonlit night, starry sky,
+  sitting in water, water up to chest, relaxed expression, peaceful face, eyes closed,
+  sacred vermillion flames floating in background, phoenix aura subtle, fire particles,
+  wet skin, water droplets, skin glistening, soft lighting, volumetric fog,
+  Chinese fantasy, xianxia aesthetic, mystical atmosphere, serene mood
+
+NSFW_示例_卧室夜晚: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw,
+  1girl, 10 years old, loli, child, petite body, small stature, childish face,
+  long black hair, loose hair, flowing freely, phoenix hairpin,
+  red silk nightgown, transparent fabric, see-through sleepwear, revealing clothing,
+  lying on bed, silk sheets, pillows, bedroom, palace interior,
+  shy expression, blushing, embarrassed, innocent yet suggestive,
+  soft lighting, candlelight, warm atmosphere, intimate mood,
+  phoenix patterns on fabric, red and gold theme, romantic ambiance,
+  Chinese fantasy aesthetic, traditional setting, peaceful night
+
+NSFW_示例_浴后更衣: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw,
+  1girl, 10 years old, loli, child, petite body, small stature,
+  long black hair, wet hair, phoenix hairpin,
+  towel wrap, white towel, barely covered, after bath,
+  standing, bedroom, palace interior, changing room, privacy screen,
+  surprised expression, blushing, caught off guard, embarrassed,
+  water droplets on skin, wet skin glistening, steam rising,
+  soft lighting, warm atmosphere, intimate setting,
+  robes hanging nearby, scattered clothing,
+  Chinese fantasy, xianxia aesthetic, private moment
+
+NSFW_示例_午睡春梦: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw, suggestive,
+  1girl, 10 years old, loli, child, petite body, small stature,
+  long black hair, loose hair, messy hair, phoenix hairpin,
+  loose hanfu, disheveled robes, open clothing, revealing,
+  lying on bed, silk sheets, pillows, bedroom, daytime,
+  sleepy expression, half-closed eyes, relaxed, peaceful face, slight blush,
+  sunlight through window, soft lighting, warm atmosphere,
+  phoenix patterns, red and gold theme, intimate mood,
+  Chinese fantasy, xianxia aesthetic, serene moment
+
+NSFW_示例_泉边嬉戏: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw,
+  1girl, 10 years old, loli, child, petite body, small stature, innocent face,
+  long black hair, wet hair, hair flowing in water, phoenix hairpin,
+  swimsuit, red bikini, minimal clothing, revealing swimwear,
+  playing in water, splashing, joyful expression, innocent smile, childish fun,
+  hot spring, natural pool, clear water, rocks, waterfall,
+  sunlight, water droplets, wet skin, sparkling water,
+  sacred flames floating nearby, phoenix aura subtle,
+  Chinese fantasy, xianxia aesthetic, playful atmosphere, natural beauty
+
+NSFW_示例_凤焰沐浴: |
+  masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, nsfw, artistic,
+  1girl, 10 years old, loli, child, petite body, small stature,
+  long black hair, hair floating, phoenix hairpin glowing,
+  nude, naked, artistic nudity, body silhouette, backlighting,
+  standing, floating, levitating, mystical pose, arms spread,
+  surrounded by sacred vermillion flames, phoenix fire, crimson aura,
+  fire particles, energy flow, glowing elements, divine light,
+  palace hall, grand chamber, ancient architecture, pillars,
+  dramatic lighting, volumetric light, mystical atmosphere, sacred ritual,
+  Chinese fantasy, xianxia, cultivation breakthrough, phoenix rebirth,
+  dignified despite nudity, divine presence, ancient wisdom
+
+# ========================================
+# 负面提示词（萝莉NSFW专用）
+# ========================================
+
+NSFW_负面提示词_萝莉: |
+  censored, mosaic, bar censor, pixelated,
+  adult, mature body, tall, developed body, large breasts, curvy,
+  western style, modern clothing, realistic photo, 3d render,
+  deformed, ugly, bad anatomy, bad hands, bad proportions, extra limbs,
+  malformed, disfigured, mutated, gross, disturbing,
+  violence, gore, blood, injury, crying, scared, fearful, painful expression,
+  scat, bestiality, vore, guro,
+  lowres, error, text, watermark, signature, username,
+  worst quality, low quality, normal quality, jpeg artifacts, blurry,
+  messy, dirty, aged face, wrinkles, serious expression only
+
+# ========================================
+# 组合使用指南（萝莉NSFW）
+# ========================================
+
+NSFW_组合_萝莉基础: |
+  [NSFW_萝莉核心] + [暴露程度] + [姿态动作] + [场景环境] + [氛围光效] + [程度控制]
+
+NSFW_组合_快速生成: |
+  基础: NSFW_萝莉核心 + NSFW_轻度暴露_萝莉 + NSFW_卧室场景_萝莉
+  进阶: NSFW_萝莉核心 + NSFW_中度暴露_萝莉 + NSFW_温泉场景_萝莉 + NSFW_程度_中等
+  完整: NSFW_萝莉核心 + NSFW_高度暴露_萝莉 + 任意场景 + NSFW_程度_强烈
+
+NSFW_注意事项_萝莉: |
+  1. 保持角色核心：10岁外观、凤眸、黑长发、凤簪不变
+  2. 平衡矛盾美：幼童外表 + 成熟气质 + 百年智慧
+  3. 火焰特效可选：根据场景氛围决定是否添加凤凰元素
+  4. 光效很重要：使用柔和光线营造氛围，避免过于写实
+  5. 表情要自然：保持童真感，即使在NSFW场景中
+  6. 姿态要合理：符合幼童身体比例和动作特点
+  7. 场景要协调：中式仙侠风格 + NSFW元素的平衡
+  8. 负面词必加：确保画面质量和去除不当元素
+
+# ========================================
+# 十五、使用指南
+# ========================================
+
+使用说明_基础组合: |
+  [核心不变部分] + [默认凤袍] + [场景环境] + [氛围情绪]
+
+使用说明_换装组合: |
+  [核心不变部分] + [选择的服装] + [发型变化(可选)] + [配饰(可选)] + [场景环境] + [氛围情绪]
+
+使用说明_NSFW组合: |
+  [NSFW_成人化基础] + [NSFW_暴露程度] + [NSFW_姿态/场景] + [环境] + [特效(可选)]
+  ⚠️ 必须使用成人化年龄设定，移除所有未成年相关标签
+
+使用说明_快速替换表: |
+  原始元素 → 替换为
+  crimson robes, phoenix robes → 任意服装选项
+  red and gold theme → 新服装配色主题
+  phoenix pattern, gold embroidery → 新服装图案/装饰
+  phoenix hairpin → 其他发饰或保持
+  imperial dress → 对应服装风格
+
+使用技巧_标签强度控制: |
+  增强: (关键词:1.2) 或 ((关键词))
+  减弱: (关键词:0.8) 或 [关键词]
+  渐变: [关键词1:关键词2:0.5]
+
+注意事项: |
+  1. 保持角色核心特征：黑色长发、凤眸、成熟气质
+  2. 火焰元素可选：根据场景决定是否保留
+  3. 配色协调：更换主题色时注意与人物特征配合
+  4. 场景匹配：服装应与背景协调
+  5. NSFW内容必须年龄成人化，遵守法律法规
+
+---
+
+masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k
+1girl, 10 years old, loli, child, petite body, small stature, childish face
+long black hair, phoenix hairpin, delicate features, pale skin, clear eyes, phoenix eyes
+elegant eyebrows, long black hair, loose hair, hair down, flowing freely, phoenix hairpin, jade ornament
+dignified pose, regal posture, commanding presence, imperial majesty, noble aura, sitting elegantly, sitting on throne, cross-legged, kneeling
+sacred flames, vermillion fire, crimson flames, fire effects, glowing elements, phoenix aura
+crimson robes, phoenix robes, luxurious clothing, wide sleeves, flowing fabric
+gold embroidery, phoenix pattern, red and gold theme, imperial dress
+Chinese traditional clothing, hanfu
+Chinese fantasy, xianxia aesthetic

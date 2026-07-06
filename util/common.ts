@@ -110,7 +110,7 @@ export function parseString(content: string): any {
       } catch (json_error) {
         try {
           if (!json_first) {
-            throw Error(`expected error`);
+            throw Error(`expected error`, { cause: json_error });
           }
           return YAML.parseDocument(content, { merge: true }).toJS();
         } catch (yaml_error2) {
@@ -126,6 +126,7 @@ export function parseString(content: string): any {
                 JSON错误信息: toError(json_error),
               },
             }),
+            { cause: yaml_error2 },
           );
         }
       }

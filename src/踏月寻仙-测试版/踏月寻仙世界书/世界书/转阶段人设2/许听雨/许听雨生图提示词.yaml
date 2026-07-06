@@ -1,0 +1,332 @@
+---
+# 许听雨生图提示词
+# 默认画风：sketch, flat color 水彩风格
+
+# ========================================
+# 默认提示词（推荐直接使用）
+# ========================================
+
+默认提示词: |
+  masterpiece, best quality, absurdres, highres,
+  1girl, loving mother, motherly expression, gentle smile,
+  gigantic breasts, bare feet, detailed feet, anklet,
+  exquisite face, detailed eyes, deep blue eyes, looking at viewer, front view,
+  deep blue hair, very long hair, floating hair,
+  pale skin, wet skin,
+  scales on neck, iridescent scales, fin ears,
+  underwater, air bubbles, caustics, light rays,
+  sketch, flat color
+
+# ========================================
+# 调整选项（按需替换默认提示词中的对应部分）
+# ========================================
+
+# 一、表情调整（替换"motherly expression, gentle smile"）
+表情_温柔微笑: motherly expression, gentle smile, soft eyes
+表情_慈爱凝视: loving gaze, tender eyes, affectionate look
+表情_平静安详: serene expression, calm face, peaceful look
+表情_略带担忧: motherly expression, slightly worried, concerned look
+表情_欣慰满足: relieved smile, content expression, satisfied look
+
+# 二、姿态调整（替换"looking at viewer, front view"）
+姿态_正面注视: looking at viewer, front view
+姿态_侧脸回眸: side view, looking back, over shoulder
+姿态_低头温柔: looking down, gentle downward gaze
+姿态_仰望天空: looking up, gazing upward
+
+# 三、环境调整（替换"underwater, air bubbles, caustics, light rays"）
+环境_深海默认: underwater, air bubbles, caustics, light rays
+环境_浅滩阳光: shallow water, sunlit water, clear ocean, light beams
+环境_海滩月夜: beach at night, moonlight, starry sky, gentle waves
+环境_珊瑚礁: coral reef, colorful corals, tropical fish, marine life
+环境_海底宫殿: underwater palace, ancient ruins, mystical architecture
+
+# 四、画风微调（替换"sketch, flat color"）
+画风_水彩默认: sketch, flat color
+画风_细腻水彩: watercolor, soft shading, gentle gradients
+画风_厚涂油画: oil painting, thick paint, textured strokes
+画风_赛璐珞: cel shading, anime style, clean lines
+画风_柔光梦幻: soft focus, dreamy atmosphere, ethereal glow
+
+# 五、额外细节增强（可添加到默认提示词末尾）
+细节_鳞片强化: detailed scales, scale texture, shimmering scales, gradient scales
+细节_头发飘逸: hair flowing, hair strands, dynamic hair, wind-blown hair
+细节_水滴质感: water droplets, glistening skin, dew drops, moisture
+细节_光影加强: volumetric lighting, god rays, soft glow, dramatic lighting
+细节_氛围渲染: peaceful atmosphere, maternal warmth, serene mood, gentle aura
+
+# 六、快速场景切换
+场景_深海圣域: |
+  + sitting on coral throne, underwater palace, bioluminescent plants, mystical atmosphere
+
+场景_海滩温馨: |
+  + sitting on rock, beach scene, sunset, warm lighting, romantic atmosphere
+
+场景_守护姿态: |
+  + protective stance, arms extended, water barrier, glowing elements, maternal power
+
+# ========================================
+# NSFW 选项（⚠️ 谨慎使用，遵守法律法规）
+# ========================================
+
+# 七、NSFW服装（替换"gigantic breasts, bare feet, detailed feet, anklet"部分或在其后添加）
+
+NSFW_轻度暴露:
+  透视湿衣: wet translucent clothing, see-through fabric, clingy wet dress, nipples visible through fabric, body outline visible
+  贝壳比基尼: shell bikini, minimal coverage, seashell bra, revealing swimwear, barely covered
+  开胸装: cleavage cutout, deep neckline, underboob, sideboob, exposed cleavage, plunging neckline
+
+NSFW_中度暴露:
+  全裸遮掩: completely nude, strategically covered, hands covering breasts, arm covering, towel wrap, barely covered
+  情趣内衣: lace lingerie, sheer bra, see-through panties, garter belt, fishnet stockings, sexy underwear
+  微型比基尼: micro bikini, string bikini, side-tie bikini, thong bikini, extreme swimwear
+
+NSFW_高度暴露:
+  完全裸体: completely nude, naked, full nudity, bare breasts, nipples, bare pussy, uncensored, no clothing
+  艺术裸体: artistic nude, natural body, nude figure study, sensual nude, tasteful nudity
+  水中裸体: nude underwater, naked in water, bare skin in ocean, unclothed swimming
+
+# 八、NSFW姿态（替换默认姿态部分）
+
+NSFW_暗示姿态:
+  诱惑凝视: seductive gaze, bedroom eyes, sultry expression, inviting look, alluring smile
+  撩人姿态: seductive pose, suggestive pose, hand on hip, arched back, chest thrust forward
+  羞涩遮掩: shy expression, blushing, embarrassed, covering body, modest gesture, flustered
+
+NSFW_大胆姿态:
+  展示姿态: presenting, legs spread, arms behind head, chest out, provocative pose
+  躺卧姿态: lying down, on back, reclining, lying on side, sprawled out, relaxed pose
+  跪姿: kneeling, on knees, submissive pose, looking up, hands on thighs
+
+NSFW_动态姿态:
+  湿身状态: water dripping, soaking wet, water streaming down body, drenched, dripping hair
+  触摸身体: hand on breast, touching thigh, hand between legs, self-touch, caressing body
+  诱人动作: licking lips, biting lip, mouth open, heavy breathing, sensual movement
+
+# 九、NSFW场景环境
+
+NSFW_私密场景:
+  温泉浴池: hot spring, bathing, steam, warm water, intimate bathing scene
+  卧室场景: bedroom, bed, silk sheets, pillows, intimate setting, dim lighting
+  海滩夜色: secluded beach, moonlit shore, private cove, romantic night, isolated location
+
+NSFW_暧昧氛围:
+  暧昧光影: soft lighting, sensual atmosphere, intimate mood, romantic glow, warm ambiance
+  朦胧雾气: mist, fog, steamy, hazy atmosphere, obscured view, mysterious ambiance
+  月光洒落: moonlight on skin, silvery glow, night scene, romantic lighting, ethereal light
+
+# 十、NSFW细节强化
+
+NSFW_身体细节:
+  胸部强化: huge breasts, massive breasts, bouncing breasts, jiggling breasts, soft breasts, detailed nipples, areola
+  臀部强化: thick thighs, wide hips, large butt, round ass, plump bottom, curvy lower body
+  整体强化: voluptuous figure, hourglass body, sexy body, sensual curves, mature body, fertile body
+
+NSFW_皮肤质感:
+  湿润肌肤: glistening skin, sweaty skin, oily skin, shiny skin, slick body, dewy complexion
+  细腻肌肤: soft skin, smooth skin, flawless skin, silky texture, delicate skin, perfect complexion
+  性感细节: beauty marks, skin indentation, tan lines, bikini tan, skin folds, body curves
+
+NSFW_表情细节:
+  情欲表情: aroused expression, lustful gaze, passionate look, desire in eyes, heated expression
+  愉悦表情: pleasure, ecstasy, blissful expression, satisfied smile, euphoric look
+  羞耻表情: embarrassed, ashamed, flustered, red face, shy smile, timid expression
+
+# ========================================
+# NSFW完整提示词示例（基于默认画风）
+# ========================================
+
+NSFW示例_轻度_透视湿衣: |
+  masterpiece, best quality, absurdres, highres, nsfw, suggestive,
+  1girl, loving mother, seductive gaze, alluring smile,
+  gigantic breasts, wet translucent clothing, see-through fabric, nipples visible through fabric,
+  bare feet, detailed feet, anklet,
+  exquisite face, detailed eyes, deep blue eyes, looking at viewer, front view,
+  deep blue hair, very long hair, floating hair, wet hair,
+  pale skin, wet skin, glistening skin, water droplets,
+  scales on neck, iridescent scales, fin ears,
+  shallow water, beach scene, moonlight, gentle waves,
+  sketch, flat color
+
+NSFW示例_中度_贝壳比基尼: |
+  masterpiece, best quality, absurdres, highres, nsfw, explicit,
+  1girl, mature female, seductive pose, sultry expression,
+  huge breasts, shell bikini, minimal coverage, seashell bra, barely covered,
+  thick thighs, curvy hips, bare feet, anklet,
+  exquisite face, detailed eyes, deep blue eyes, bedroom eyes, looking at viewer,
+  deep blue hair, very long hair, floating hair,
+  pale skin, wet skin, glistening skin,
+  scales on neck, iridescent scales, fin ears,
+  beach at night, moonlight, romantic atmosphere, soft lighting,
+  sketch, flat color
+
+NSFW示例_高度_温泉裸浴: |
+  masterpiece, best quality, absurdres, highres, nsfw, r18, explicit,
+  1girl, mature female, loving mother, shy expression, blushing,
+  completely nude, naked, bare breasts, nipples, uncensored,
+  gigantic breasts, wide hips, thick thighs, voluptuous body,
+  bare feet, detailed feet,
+  exquisite face, detailed eyes, deep blue eyes, embarrassed, looking away,
+  deep blue hair, very long hair, wet hair,
+  pale skin, wet skin, glistening skin, water droplets,
+  scales on neck, iridescent scales, fin ears,
+  hot spring, steam, warm water, bathing, intimate atmosphere,
+  sketch, flat color
+
+NSFW示例_极致_全裸展示: |
+  masterpiece, best quality, absurdres, highres, nsfw, xxx, r18, uncensored,
+  1girl, mature female, seductive gaze, lustful expression, mouth slightly open,
+  completely nude, full nudity, bare breasts, detailed nipples, bare pussy, uncensored genitals,
+  massive breasts, thick thighs, wide hips, voluptuous figure, hourglass body,
+  lying on back, legs spread, arms behind head, provocative pose,
+  bare feet, detailed feet, toes,
+  exquisite face, detailed eyes, deep blue eyes, bedroom eyes, looking at viewer,
+  deep blue hair, very long hair, floating hair, spread hair,
+  pale skin, glistening skin, sweaty skin, oily skin,
+  detailed scales on neck, iridescent scales, fin ears,
+  bedroom, bed, silk sheets, moonlight through window, intimate lighting,
+  sketch, flat color, sensual atmosphere
+
+# ========================================
+# NSFW负面提示词
+# ========================================
+
+NSFW负面词: |
+  censored, mosaic, bar censor, pixelated, blurred genitals,
+  child, underage, loli, young, flat chest,
+  deformed, ugly, bad anatomy, bad proportions, extra limbs,
+  gross, disturbing, scat, gore, violence, pregnant,
+  masculine, male features, penis
+
+# ========================================
+# NSFW 最佳提示词（用户验证效果最好）
+# ========================================
+
+NSFW_最佳默认: |
+  1girl, fantasy, textures, volumetric light, monster girl, gigantic breasts, bare feet,
+  nsfw, nude, exposed nipple, blush,
+  incredibly absurdres, huge filesize, 4K absurdres, highres,
+  soft face, flat_color,
+  looking at viewer, front view,
+  deep blue eyes, deep blue hair, very long hair, floating hair,
+  pale skin, scales on neck, fin ears,
+  gentle smile, motherly expression,
+  wet skin, underwater, air bubble, caustics,
+  detailed feet, anklet, exquisite face, detailed eyes
+
+# 基于最佳提示词的变化选项
+
+NSFW_姿态变化:
+  正面注视: looking at viewer, front view
+  侧脸回眸: side view, looking back, over shoulder
+  低头羞涩: looking down, shy, embarrassed
+  仰望诱惑: looking up, from above, inviting gaze
+
+NSFW_表情变化:
+  温柔慈母: gentle smile, motherly expression, soft eyes
+  羞涩脸红: blushing, shy smile, embarrassed, flustered
+  诱惑挑逗: seductive smile, sultry expression, bedroom eyes
+  情欲愉悦: pleasure, aroused, lustful gaze, passionate expression
+
+NSFW_裸露程度:
+  露乳默认: nsfw, nude, exposed nipple, blush
+  完全裸体: nsfw, completely nude, naked, bare breasts, exposed nipples, bare pussy, uncensored
+  半遮半掩: nsfw, partially nude, topless, covering breasts, hand bra, strategically covered
+  透视湿身: nsfw, wet translucent clothing, see-through, nipples visible through fabric
+
+NSFW_场景变化:
+  深海默认: underwater, air bubble, caustics
+  温泉浴池: hot spring, steam, warm water, bathing scene
+  海滩月夜: beach at night, moonlight, starry sky, gentle waves
+  卧室私密: bedroom, bed, silk sheets, soft lighting, intimate atmosphere
+
+NSFW_姿势变化:
+  站立展示: standing, arms at sides, presenting body, full body visible
+  跪姿诱惑: kneeling, on knees, looking up, submissive pose
+  躺卧放松: lying down, on back, reclining, relaxed pose, spread out
+  坐姿撩人: sitting, legs crossed, seductive sitting, alluring pose
+
+NSFW_身体强化:
+  胸部焦点: huge breasts, massive breasts, bouncing breasts, soft breasts, detailed nipples, large areola
+  整体曲线: voluptuous body, hourglass figure, thick thighs, wide hips, curvy body, fertile figure
+  皮肤质感: glistening skin, sweaty skin, oily skin, wet skin dripping, water droplets on body
+
+# 完整变化示例
+
+NSFW_示例_温泉羞涩: |
+  1girl, fantasy, textures, volumetric light, monster girl, gigantic breasts, bare feet,
+  nsfw, completely nude, naked, exposed nipples, blushing, embarrassed,
+  incredibly absurdres, huge filesize, 4K absurdres, highres,
+  soft face, flat_color,
+  looking down, shy,
+  deep blue eyes, deep blue hair, very long hair, wet hair,
+  pale skin, scales on neck, fin ears,
+  shy smile, flustered expression,
+  wet skin, glistening skin, water droplets,
+  hot spring, steam, warm water,
+  detailed feet, anklet, exquisite face, detailed eyes
+
+NSFW_示例_卧室诱惑: |
+  1girl, fantasy, textures, volumetric light, monster girl, huge breasts, bare feet,
+  nsfw, completely nude, bare breasts, exposed nipples, bare pussy, uncensored,
+  incredibly absurdres, huge filesize, 4K absurdres, highres,
+  soft face, flat_color,
+  seductive smile, bedroom eyes, looking at viewer,
+  deep blue eyes, deep blue hair, very long hair, spread hair,
+  pale skin, scales on neck, fin ears,
+  lustful gaze, aroused expression,
+  lying on back, legs spread, arms behind head,
+  glistening skin, sweaty skin,
+  bedroom, bed, silk sheets, moonlight, intimate lighting,
+  detailed feet, anklet, exquisite face, detailed eyes
+
+NSFW_示例_海滩展示: |
+  1girl, fantasy, textures, volumetric light, monster girl, gigantic breasts, bare feet,
+  nsfw, nude, exposed nipple, blush,
+  incredibly absurdres, huge filesize, 4K absurdres, highres,
+  soft face, flat_color,
+  looking at viewer, front view,
+  deep blue eyes, deep blue hair, very long hair, floating hair,
+  pale skin, scales on neck, fin ears,
+  gentle smile, motherly expression,
+  standing, arms at sides, full body,
+  wet skin, water droplets,
+  beach at night, moonlight, starry sky, gentle waves, shore,
+  detailed feet, anklet, exquisite face, detailed eyes
+
+# ========================================
+# 使用说明
+# ========================================
+
+使用方法:
+  1. 直接使用：复制下方"默认提示词"
+  2. 微调表情：用"表情调整"中的选项替换对应部分
+  3. 改变姿态：用"姿态调整"中的选项替换对应部分
+  4. 换环境：用"环境调整"中的选项替换对应部分
+  5. 换画风：用"画风微调"中的选项替换对应部分
+  6. 增强细节：在末尾添加"额外细节增强"中的内容
+  7. 快速切换场景：在末尾添加"快速场景切换"中的内容
+
+示例-改成海滩场景:
+  masterpiece, best quality, absurdres, highres,
+  1girl, loving mother, loving gaze, tender eyes,  ← 改了表情
+  gigantic breasts, bare feet, detailed feet, anklet,
+  exquisite face, detailed eyes, deep blue eyes, side view, looking back,  ← 改了姿态
+  deep blue hair, very long hair, floating hair,
+  pale skin, wet skin,
+  scales on neck, iridescent scales, fin ears,
+  beach at night, moonlight, starry sky, gentle waves,  ← 改了环境
+  watercolor, soft shading, gentle gradients  ← 改了画风
+
+---
+
+# 默认提示词（推荐直接复制使用）
+masterpiece, best quality, absurdres, highres,
+1girl, loving mother, motherly expression, gentle smile,
+gigantic breasts, bare feet, detailed feet, anklet,
+exquisite face, detailed eyes, deep blue eyes, looking at viewer, front view,
+deep blue hair, very long hair, floating hair,
+pale skin, wet skin,
+scales on neck, iridescent scales, fin ears,
+underwater, air bubbles, caustics, light rays,
+sketch, flat color
