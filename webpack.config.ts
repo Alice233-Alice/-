@@ -187,12 +187,13 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
     .readFileSync(path.join(import.meta.dirname, entry.script), 'utf-8')
     .includes('@obfuscate');
   const script_filepath = path.parse(entry.script);
+  const sassLoader = { loader: 'sass-loader', options: { sassOptions: { charset: false } } };
 
   return (_env, argv) => ({
     experiments: {
       outputModule: true,
     },
-    devtool: argv.mode === 'production' ? 'source-map' : 'eval-source-map',
+    devtool: argv.mode === 'production' ? 'source-map' : false,
     watchOptions: {
       ignored: ['**/dist', '**/node_modules'],
     },
@@ -250,7 +251,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
             },
             {
               test: /\.(sa|sc)ss$/,
-              use: ['postcss-loader', 'sass-loader'],
+              use: ['postcss-loader', sassLoader],
               resourceQuery: /raw/,
               type: 'asset/source',
               exclude: /node_modules/,
@@ -284,7 +285,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
             },
             {
               test: /\.(sa|sc)ss$/,
-              use: ['postcss-loader', 'sass-loader'],
+              use: ['postcss-loader', sassLoader],
               resourceQuery: /url/,
               type: 'asset/inline',
               exclude: /node_modules/,
@@ -354,7 +355,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       { loader: 'vue-style-loader', options: { ssrId: true } },
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
-                      'sass-loader',
+                      sassLoader,
                     ],
                     exclude: /node_modules/,
                   },
@@ -373,7 +374,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       'style-loader',
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
-                      'sass-loader',
+                      sassLoader,
                     ],
                     exclude: /node_modules/,
                   },
@@ -390,7 +391,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       MiniCssExtractPlugin.loader,
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
-                      'sass-loader',
+                      sassLoader,
                     ],
                     exclude: /node_modules/,
                   },
