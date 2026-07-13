@@ -187,13 +187,20 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
     .readFileSync(path.join(import.meta.dirname, entry.script), 'utf-8')
     .includes('@obfuscate');
   const script_filepath = path.parse(entry.script);
+<<<<<<< HEAD
   const sassLoader = { loader: 'sass-loader', options: { sassOptions: { charset: false } } };
+=======
+>>>>>>> 563a54227d547b8c7ade58fb3242b38f89cefd18
 
   return (_env, argv) => ({
     experiments: {
       outputModule: true,
     },
+<<<<<<< HEAD
     devtool: argv.mode === 'production' ? 'source-map' : false,
+=======
+    devtool: argv.mode === 'production' ? 'source-map' : 'eval-source-map',
+>>>>>>> 563a54227d547b8c7ade58fb3242b38f89cefd18
     watchOptions: {
       ignored: ['**/dist', '**/node_modules'],
     },
@@ -251,7 +258,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
             },
             {
               test: /\.(sa|sc)ss$/,
+<<<<<<< HEAD
               use: ['postcss-loader', sassLoader],
+=======
+              use: ['postcss-loader', 'sass-loader'],
+>>>>>>> 563a54227d547b8c7ade58fb3242b38f89cefd18
               resourceQuery: /raw/,
               type: 'asset/source',
               exclude: /node_modules/,
@@ -285,7 +296,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
             },
             {
               test: /\.(sa|sc)ss$/,
+<<<<<<< HEAD
               use: ['postcss-loader', sassLoader],
+=======
+              use: ['postcss-loader', 'sass-loader'],
+>>>>>>> 563a54227d547b8c7ade58fb3242b38f89cefd18
               resourceQuery: /url/,
               type: 'asset/inline',
               exclude: /node_modules/,
@@ -355,7 +370,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       { loader: 'vue-style-loader', options: { ssrId: true } },
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
+<<<<<<< HEAD
                       sassLoader,
+=======
+                      'sass-loader',
+>>>>>>> 563a54227d547b8c7ade58fb3242b38f89cefd18
                     ],
                     exclude: /node_modules/,
                   },
@@ -374,7 +393,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       'style-loader',
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
+<<<<<<< HEAD
                       sassLoader,
+=======
+                      'sass-loader',
+>>>>>>> 563a54227d547b8c7ade58fb3242b38f89cefd18
                     ],
                     exclude: /node_modules/,
                   },
@@ -391,7 +414,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       MiniCssExtractPlugin.loader,
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
+<<<<<<< HEAD
                       sassLoader,
+=======
+                      'sass-loader',
+>>>>>>> 563a54227d547b8c7ade58fb3242b38f89cefd18
                     ],
                     exclude: /node_modules/,
                   },
