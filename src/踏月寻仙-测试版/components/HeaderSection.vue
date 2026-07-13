@@ -11,7 +11,7 @@
         <i class="fa-solid fa-sliders"></i>
       </button>
     </div>
-    <div class="location-info">
+    <button class="location-info map-entry" type="button" title="打开行踪地图" @click="$emit('open-map')">
       <div class="danger-badge" :style="{ backgroundColor: dangerColor }">
         危险度 {{ store.本尊.行踪.危险度 ?? 10 }}
       </div>
@@ -26,7 +26,7 @@
           <span class="location-current">{{ store.本尊.行踪.当前区域 }}</span>
         </span>
       </div>
-    </div>
+    </button>
   </div>
 </template>
 
@@ -60,6 +60,7 @@ defineEmits<{
   (e: 'toggle-collapse'): void;
   (e: 'toggle-theme-selector'): void;
   (e: 'toggle-preset-editor'): void;
+  (e: 'open-map'): void;
 }>();
 </script>
 
@@ -111,6 +112,27 @@ defineEmits<{
     align-items: flex-end;
     gap: 6px;
     margin-left: auto;
+    padding: 5px 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition:
+      background 0.2s,
+      border-color 0.2s,
+      box-shadow 0.2s,
+      transform 0.2s;
+
+    &:hover {
+      background: var(--button-bg);
+      border-color: var(--border-color);
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.04);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
 
     .danger-badge {
       font-size: 10px;
@@ -123,6 +145,7 @@ defineEmits<{
       display: flex;
       align-items: center;
       gap: 8px;
+      text-align: right;
 
       .location-hierarchy {
         display: flex;
@@ -170,6 +193,8 @@ defineEmits<{
     }
 
     .location-info {
+      padding: 4px 6px;
+
       .danger-badge {
         font-size: 9px;
         padding: 2px 5px;

@@ -1,30 +1,35 @@
 <template>
   <div class="panel map-panel">
-    <div class="current-location">
-      <div class="location-name">{{ store.本尊.行踪.当前区域 }}</div>
-      <div class="location-layer">{{ displayLayer }}</div>
-      <div class="location-desc">{{ store.本尊.行踪.环境描述 }}</div>
-    </div>
-    <div class="connections">
-      <div class="connections-title">可通往：</div>
-      <div class="connections-list">
-        <span
-          v-for="conn in availableConnections"
-          :key="conn"
-          class="connection-item"
-          :style="{ borderColor: getRegionColor(conn) }"
-        >
-          {{ conn }}
-        </span>
-        <div v-if="availableConnections.length === 0" class="empty-hint" style="padding: 10px">尚未探明通道</div>
+    <div class="location-brief">
+      <div class="brief-header">
+        <div class="brief-label">当前落点</div>
+        <div class="brief-title">{{ store.本尊.行踪.当前区域 }}</div>
+        <div class="brief-domain">{{ displayLayer }}</div>
+      </div>
+      <div class="brief-desc">
+        <i class="fa-solid fa-quote-left quote-icon"></i>
+        {{ store.本尊.行踪.环境描述 || '周遭情势尚未明晰。' }}
+        <i class="fa-solid fa-quote-right quote-icon"></i>
+      </div>
+      <div class="brief-routes">
+        <div class="routes-title"><i class="fa-solid fa-compass"></i> 灵脉通路</div>
+        <div class="connections-list">
+          <span
+            v-for="conn in availableConnections"
+            :key="conn"
+            class="connection-item"
+            :style="{ '--conn-color': getRegionColor(conn) }"
+          >
+            <i class="fa-solid fa-location-dot"></i> {{ conn }}
+          </span>
+          <div v-if="availableConnections.length === 0" class="empty-hint compact">尚未探明通道</div>
+        </div>
       </div>
     </div>
 
     <!-- 任务列表 -->
     <div class="tasks-section">
-      <div class="section-title">
-        <i class="fa-solid fa-scroll"></i> 任务
-      </div>
+      <div class="section-title"><i class="fa-solid fa-scroll"></i> 任务</div>
       <div class="tasks-list">
         <template v-for="(task, taskId) in store.任务列表" :key="taskId">
           <div v-if="taskId && String(taskId).trim()" class="task-item" :class="`task-${task.状态}`">
@@ -42,9 +47,7 @@
 
     <!-- 声望系统 -->
     <div class="reputation-section">
-      <div class="section-title">
-        <i class="fa-solid fa-star"></i> 声望
-      </div>
+      <div class="section-title"><i class="fa-solid fa-star"></i> 声望</div>
       <div class="reputation-list">
         <template v-for="(rep, faction) in store.声望系统" :key="faction">
           <div v-if="faction && String(faction).trim()" class="reputation-item">
@@ -71,8 +74,8 @@
 </template>
 
 <script setup lang="ts">
-import { getDangerColor } from '../schema';
 import { inferLayerFromTrack, normalizeRegionName } from '../region-utils';
+import { getDangerColor } from '../schema';
 import { useDataStore } from '../store';
 
 const store = useDataStore();
@@ -84,7 +87,9 @@ const extractChineseQuestLabel = (input: unknown): string => {
   const raw = String(input ?? '').trim();
   if (!raw) return '';
 
-  const strippedPrefix = raw.replace(/^(?:[A-Za-z][A-Za-z0-9]*)(?:[._:\-/\\\s]+[A-Za-z0-9]+)*[._:\-/\\\s]*/u, '').trim();
+  const strippedPrefix = raw
+    .replace(/^(?:[A-Za-z][A-Za-z0-9]*)(?:[._:\-/\\\s]+[A-Za-z0-9]+)*[._:\-/\\\s]*/u, '')
+    .trim();
   const candidate = strippedPrefix || raw;
   const firstCjkIndex = candidate.search(/[\u3400-\u4dbf\u4e00-\u9fff]/);
   if (firstCjkIndex < 0) return '';
@@ -109,13 +114,15 @@ const getTaskDisplayName = (task: { 名称: string; 类型: string }, taskId: st
   return typeNames[task.类型] || '未命名任务';
 };
 
-const displayLayer = computed(() => inferLayerFromTrack(
-  store.本尊.行踪.当前区域,
-  store.本尊.行踪.所属层级,
-  store.本尊.行踪.环境描述,
-  store.地点库 as Record<string, { 域?: string }>,
-  store.世界地图 as Record<string, { layer?: string }>,
-));
+const displayLayer = computed(() =>
+  inferLayerFromTrack(
+    store.本尊.行踪.当前区域,
+    store.本尊.行踪.所属层级,
+    store.本尊.行踪.环境描述,
+    store.地点库 as Record<string, { 域?: string }>,
+    store.世界地图 as Record<string, { layer?: string }>,
+  ),
+);
 
 // 计算可通往的地点
 const availableConnections = computed(() => {
@@ -145,206 +152,235 @@ const getRegionColor = (region: string) => {
 
 <style lang="scss" scoped>
 .map-panel {
-  padding: 16px;
+  padding: 20px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
 
-  .current-location {
-    text-align: center;
+  .location-brief {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 24px 0;
     padding: 20px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    margin-bottom: 16px;
+    border-radius: 12px;
+  }
 
-    .location-name {
-      font-size: 22px;
-      font-weight: bold;
-      color: #a0d0ff;
-      margin-bottom: 4px;
-    }
+  .brief-header {
+    text-align: center;
+  }
 
-    .location-layer {
+  .brief-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .brief-title {
+    font-size: 26px;
+    font-weight: bold;
+    color: var(--text-accent);
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+  }
+
+  .brief-domain {
+    font-size: 14px;
+    color: var(--accent-color);
+  }
+
+  .brief-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    text-align: center;
+    padding: 16px 24px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+
+    .quote-icon {
+      color: var(--border-color);
       font-size: 12px;
-      color: var(--accent-color);
-      margin-bottom: 10px;
-    }
-
-    .location-desc {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.5;
+      margin: 0 6px;
+      vertical-align: super;
     }
   }
 
-  .connections {
-    margin-bottom: 20px;
-
-    .connections-title {
+  .brief-routes {
+    margin-top: 8px;
+    
+    .routes-title {
       font-size: 13px;
       color: var(--text-secondary);
-      margin-bottom: 10px;
-    }
-
-    .connections-list {
+      margin-bottom: 12px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      align-items: center;
+      gap: 6px;
+      justify-content: center;
 
-      .connection-item {
-        padding: 6px 12px;
-        background: var(--bg-secondary);
-        border: 1px solid;
-        border-radius: 15px;
-        font-size: 12px;
-        color: var(--text-accent);
-      }
+      i { color: var(--accent-color); }
     }
   }
 
-  // 任务列表
-  .tasks-section {
-    margin-bottom: 20px;
+  .connections-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
 
-    .section-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: var(--text-accent);
-      margin-bottom: 10px;
+    .connection-item {
+      padding: 6px 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
       display: flex;
       align-items: center;
       gap: 6px;
 
       i {
+        font-size: 11px;
         color: var(--accent-color);
+        opacity: 0.8;
+      }
+
+      &:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent-color);
+        color: var(--text-accent);
       }
     }
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+
+    i {
+      color: var(--accent-color);
+      font-size: 16px;
+    }
+  }
+
+  .tasks-section {
+    margin-bottom: 24px;
 
     .tasks-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
 
     .task-item {
-      padding: 12px;
+      padding: 16px;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      border-left: 3px solid;
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s;
 
-      &.task-进行中 {
-        border-left-color: #4a9eff;
+      &:hover {
+        border-color: var(--accent-color);
       }
 
-      &.task-已完成 {
-        border-left-color: #44aa44;
-        opacity: 0.7;
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0; width: 3px;
       }
 
-      &.task-已失败 {
-        border-left-color: #ff4444;
-        opacity: 0.7;
-      }
+      &.task-进行中::before { background: var(--accent-color); }
+      &.task-已完成::before { background: #4ade80; }
+      &.task-已失败::before { background: #f87171; }
 
       .task-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 6px;
+        margin-bottom: 10px;
 
         .task-name {
-          font-size: 13px;
-          font-weight: 500;
+          font-size: 15px;
+          font-weight: bold;
           color: var(--text-primary);
         }
 
         .task-type {
-          font-size: 10px;
-          padding: 2px 8px;
-          border-radius: 10px;
-          font-weight: 500;
+          font-size: 11px;
+          padding: 2px 10px;
+          border-radius: 12px;
+          border: 1px solid currentColor;
+          background: var(--bg-primary);
 
-          &.type-主线 {
-            background: rgba(255, 100, 100, 0.2);
-            color: #ff6464;
-          }
-
-          &.type-支线 {
-            background: rgba(100, 150, 255, 0.2);
-            color: #6496ff;
-          }
-
-          &.type-每日 {
-            background: rgba(100, 200, 100, 0.2);
-            color: #64c864;
-          }
-
-          &.type-临危受命 {
-            background: rgba(255, 150, 50, 0.2);
-            color: #ff9632;
-          }
+          &.type-主线 { color: #fca5a5; }
+          &.type-支线 { color: #93c5fd; }
+          &.type-每日 { color: #86efac; }
+          &.type-临危受命 { color: #fdba74; }
         }
       }
 
       .task-target {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--text-secondary);
-        margin-bottom: 4px;
-        line-height: 1.4;
+        line-height: 1.6;
       }
 
       .task-status {
-        font-size: 11px;
-        color: var(--text-accent);
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        opacity: 0.8;
       }
     }
   }
 
-  // 声望系统
   .reputation-section {
-    .section-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: var(--text-accent);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      i {
-        color: var(--accent-color);
-      }
-    }
-
     .reputation-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
 
     .reputation-item {
-      padding: 10px 12px;
+      padding: 14px 16px;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: 10px;
 
       .reputation-faction {
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 14px;
         color: var(--text-primary);
-        margin-bottom: 6px;
+        margin-bottom: 10px;
+        font-weight: bold;
       }
 
       .reputation-bar {
-        height: 6px;
-        background: var(--progress-bg);
-        border-radius: 3px;
+        height: 4px;
+        background: var(--bg-primary);
+        border-radius: 2px;
         overflow: hidden;
-        margin-bottom: 6px;
+        margin-bottom: 10px;
 
         .reputation-fill {
           height: 100%;
-          border-radius: 3px;
-          transition: width 0.3s ease;
+          border-radius: 2px;
         }
       }
 
@@ -352,10 +388,11 @@ const getRegionColor = (region: string) => {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 11px;
+        font-size: 12px;
 
         .reputation-value {
           color: var(--text-accent);
+          font-family: monospace;
         }
 
         .reputation-relation {
@@ -367,95 +404,39 @@ const getRegionColor = (region: string) => {
 
   .empty-hint {
     text-align: center;
-    padding: 20px;
-    color: #506070;
+    padding: 24px;
+    color: var(--text-secondary);
     font-style: italic;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+
+    &.compact {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+    }
   }
 }
 
-// 手机端适配
 @media screen and (max-width: 480px) {
   .map-panel {
     padding: 12px;
 
-    .current-location {
+    .location-brief {
       padding: 16px;
-
-      .location-name {
-        font-size: 18px;
-      }
-
-      .location-layer {
-        font-size: 11px;
-      }
-
-      .location-desc {
-        font-size: 12px;
-      }
+      margin: 16px 0;
     }
 
-    .connections {
-      .connections-title {
-        font-size: 12px;
-      }
-
-      .connections-list {
-        gap: 6px;
-
-        .connection-item {
-          padding: 5px 10px;
-          font-size: 11px;
-        }
-      }
-    }
-
-    .tasks-section {
-      .section-title {
-        font-size: 13px;
-      }
-
-      .task-item {
-        padding: 10px;
-
-        .task-name {
-          font-size: 12px;
-        }
-
-        .task-type {
-          font-size: 9px;
-          padding: 2px 6px;
-        }
-
-        .task-target {
-          font-size: 11px;
-        }
-
-        .task-status {
-          font-size: 10px;
-        }
-      }
-    }
-
-    .reputation-section {
-      .section-title {
-        font-size: 13px;
-      }
-
-      .reputation-item {
-        padding: 8px 10px;
-
-        .reputation-faction {
-          font-size: 12px;
-        }
-
-        .reputation-bar {
-          height: 5px;
-        }
-
-        .reputation-info {
-          font-size: 10px;
-        }
-      }
+    .brief-title { font-size: 22px; }
+    .brief-desc { padding: 12px 16px; font-size: 13px; }
+    
+    .section-title { font-size: 16px; }
+    
+    .tasks-section .task-item {
+      padding: 12px;
+      .task-name { font-size: 14px; }
+      .task-target { font-size: 12px; }
     }
   }
 }

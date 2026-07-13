@@ -17,6 +17,7 @@
       @toggle-collapse="toggleCollapse"
       @toggle-theme-selector="toggleThemeSelector"
       @toggle-preset-editor="activeTab = 'preset'"
+      @open-map="openMapPanel"
     />
 
     <!-- 主题选择器弹窗 -->
@@ -42,8 +43,18 @@
       <!-- 红颜面板 -->
       <CompanionsPanel v-else-if="activeTab === 'companions'" />
 
-      <!-- 地图面板 -->
-      <MapPanel v-else-if="activeTab === 'map'" />
+      <!-- 行踪面板 -->
+      <MapPanel v-else-if="activeTab === 'trace'" />
+
+      <!-- 地图面板 (独立全屏) -->
+      <div v-else-if="activeTab === 'map'" class="panel full-map-panel">
+        <WorldMapCanvas
+          :current-location="store.本尊.行踪.当前区域"
+          :current-domain="parentRegion"
+          :current-danger="store.本尊.行踪.危险度 ?? 10"
+          :available-connections="store.本尊.行踪.可用通道 || []"
+        />
+      </div>
 
       <!-- 历劫面板 -->
       <div v-else-if="activeTab === 'tribulation'" class="panel tribulation-panel">
@@ -82,6 +93,7 @@ import PresetPanel from './components/PresetPanel.vue';
 import SkillsPanel from './components/SkillsPanel.vue';
 import TabNav from './components/TabNav.vue';
 import ThemeSelector from './components/ThemeSelector.vue';
+import WorldMapCanvas from './components/WorldMapCanvas.vue';
 import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
 import { useDataStore, useThemeStore } from './store';
@@ -95,7 +107,8 @@ const tabs = [
   { id: 'skills', label: '神通', icon: 'fa-solid fa-hand-sparkles' },
   { id: 'inventory', label: '储物', icon: 'fa-solid fa-box-open' },
   { id: 'companions', label: '红颜', icon: 'fa-solid fa-heart' },
-  { id: 'map', label: '行踪', icon: 'fa-solid fa-map' },
+  { id: 'trace', label: '行踪', icon: 'fa-solid fa-shoe-prints' },
+  { id: 'map', label: '地图', icon: 'fa-solid fa-map-location-dot' },
   { id: 'tribulation', label: '历劫', icon: 'fa-solid fa-bolt' },
   { id: 'gallery', label: '图鉴', icon: 'fa-solid fa-images' },
 ];
@@ -112,6 +125,11 @@ const toggleCollapse = () => {
 // 切换主题选择器
 const toggleThemeSelector = () => {
   showThemeSelector.value = !showThemeSelector.value;
+};
+
+const openMapPanel = () => {
+  activeTab.value = 'map';
+  isCollapsed.value = false;
 };
 
 // 选择主题
@@ -150,31 +168,33 @@ const themeStyles = computed(() => {
 const parentRegion = computed(() => {
   const currentRegionRaw = String(store.本尊.行踪.当前区域 || '').trim();
   const layerRaw = String(store.本尊.行踪.所属层级 || '').trim();
-  return inferLayerFromTrack(
-    currentRegionRaw,
-    layerRaw,
-    String(store.本尊.行踪.环境描述 || ''),
-    store.地点库 as Record<string, { 域?: string }>,
-    store.世界地图 as Record<string, { layer?: string }>,
-  ) || '';
+  return (
+    inferLayerFromTrack(
+      currentRegionRaw,
+      layerRaw,
+      String(store.本尊.行踪.环境描述 || ''),
+      store.地点库 as Record<string, { 域?: string }>,
+      store.世界地图 as Record<string, { layer?: string }>,
+    ) || ''
+  );
 });
 
 const dangerColor = computed(() => getDangerColor(store.本尊.行踪.危险度 ?? 10));
 const locationColor = computed(() => {
   const domainColors: Record<string, string> = {
-    '天层': '#88ddff',
-    '天渊': '#88ddff',
-    '神州': '#ffdd44',
-    '东苍': '#44aa44',
-    '南炎': '#ff6644',
-    '西庚': '#cccccc',
-    '北冥': '#4488ff',
-    '四海': '#44cccc',
-    '下层': '#ff4444',
-    '归墟': '#9944cc',
-    '黄泉古迹': '#cc8844',
-    '无尽炎渊': '#ff3300',
-    '雷暴海': '#6644ff',
+    天层: '#88ddff',
+    天渊: '#88ddff',
+    神州: '#ffdd44',
+    东苍: '#44aa44',
+    南炎: '#ff6644',
+    西庚: '#cccccc',
+    北冥: '#4488ff',
+    四海: '#44cccc',
+    下层: '#ff4444',
+    归墟: '#9944cc',
+    黄泉古迹: '#cc8844',
+    无尽炎渊: '#ff3300',
+    雷暴海: '#6644ff',
   };
   // 优先使用 parentRegion（已包含完整回退链）
   const region = parentRegion.value;
@@ -310,6 +330,13 @@ const locationColor = computed(() => {
 
 .panel {
   padding: 16px;
+}
+
+.full-map-panel {
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 // 手机端响应式适配
