@@ -111,9 +111,9 @@ const deleteDialogTitleId = `delete-stage-${Math.random().toString(36).slice(2, 
 const stageTitle = computed(() => {
   if (props.activeView === 'story' && pseudo.view.stage.kind === 'dialogue') return '正文回顾';
   if (props.activeView === 'dialogue') {
-    const dialogue = pseudo.activeDialogue ?? pseudo.selectedDialogue;
+    const dialogue = pseudo.dialogueContext;
     if (!dialogue) return '交谈';
-    const turnCount = pseudo.view.stage.kind === 'dialogue' ? ` · ${pseudo.view.stage.turnCount}轮` : '';
+    const turnCount = pseudo.dialogueTurns.length > 0 ? ` · ${pseudo.dialogueTurns.length}轮` : '';
     return `与${dialogue.targetName}${turnCount}`;
   }
   return pseudo.view.stage.kind === 'dialogue'

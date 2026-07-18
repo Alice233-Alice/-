@@ -4448,6 +4448,8 @@ var __webpack_modules__ = {
       const storyFloorReasoning = (0, vue__WEBPACK_IMPORTED_MODULE_2__.ref)("");
       const storyFloorReasoningDuration = (0, vue__WEBPACK_IMPORTED_MODULE_2__.ref)(null);
       const dialogueTurns = (0, vue__WEBPACK_IMPORTED_MODULE_2__.ref)([]);
+      const recentDialogue = (0, vue__WEBPACK_IMPORTED_MODULE_2__.ref)(null);
+      const pendingDialogueResume = (0, vue__WEBPACK_IMPORTED_MODULE_2__.ref)(null);
       const focusNonce = (0, vue__WEBPACK_IMPORTED_MODULE_2__.ref)(0);
       let started = false;
       let helloTimer = null;
@@ -4466,9 +4468,9 @@ var __webpack_modules__ = {
         canonicalName: view.value.stage.canonicalName,
         channel: view.value.stage.channel
       } : null);
-      const dialogueContext = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => activeDialogue.value ?? selectedDialogue.value);
+      const dialogueContext = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value);
       const isDialogueActive = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => activeDialogue.value !== null);
-      const isDialogueView = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => isDialogueActive.value || selectedDialogue.value !== null && !isGenerating.value);
+      const isDialogueView = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => isDialogueActive.value || dialogueContext.value !== null && !isGenerating.value);
       const canSubmit = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => controllerReady.value && isLatest.value && draftPrompt.value.trim().length > 0 && !isGenerating.value && !isDeleting.value);
       const canReroll = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => controllerReady.value && isLatest.value && view.value.total > 0 && !isGenerating.value && !isDeleting.value);
       const canDelete = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => controllerReady.value && isLatest.value && !isGenerating.value && !isDeleting.value && (view.value.total > 1 || view.value.stage.kind === "dialogue" && view.value.stage.turnCount > 1));
@@ -4516,6 +4518,21 @@ var __webpack_modules__ = {
           } ];
         });
       };
+      const findLatestDialogue = targetMessageId => {
+        const messages = getMessageRange(targetMessageId);
+        for (let index = messages.length - 1; index >= 0; index -= 1) {
+          const metadata = readMetadata(messages[index]);
+          if (!metadata) continue;
+          return {
+            mode: "dialogue",
+            sessionId: metadata.sessionId,
+            targetName: metadata.targetName,
+            canonicalName: metadata.canonicalName,
+            channel: metadata.channel
+          };
+        }
+        return null;
+      };
       const refreshStoryFloor = targetMessageId => {
         const messages = getMessageRange(targetMessageId);
         let storyMessage;
@@ -4546,8 +4563,16 @@ var __webpack_modules__ = {
           floorReasoning.value = reasoning.text;
           floorReasoningDuration.value = reasoning.duration;
           refreshStoryFloor(targetMessageId);
-          if (view.value.stage.kind === "dialogue") {
-            refreshDialogueTurns(targetMessageId, view.value.stage.sessionId);
+          const archivedDialogue = view.value.stage.kind === "dialogue" ? {
+            mode: "dialogue",
+            sessionId: view.value.stage.sessionId,
+            targetName: view.value.stage.targetName,
+            canonicalName: view.value.stage.canonicalName,
+            channel: view.value.stage.channel
+          } : findLatestDialogue(targetMessageId);
+          recentDialogue.value = archivedDialogue;
+          if (archivedDialogue) {
+            refreshDialogueTurns(targetMessageId, archivedDialogue.sessionId);
           } else {
             dialogueTurns.value = [];
           }
@@ -4585,6 +4610,11 @@ var __webpack_modules__ = {
           const shouldRefreshFloor = response.view.hostMessageId === messageId && (view.value.selectedMessageId !== response.view.selectedMessageId || view.value.revision !== response.view.revision || !floorMessage.value);
           view.value = response.view;
           if (shouldRefreshFloor) refreshFloor(response.view.selectedMessageId);
+          if (pendingDialogueResume.value && isLatest.value && !isGenerating.value) {
+            const pending = pendingDialogueResume.value;
+            pendingDialogueResume.value = null;
+            window.queueMicrotask(() => beginDialogue(pending, pending.sessionId));
+          }
           return;
         }
         if (response.type === "deleted") {
@@ -4697,7 +4727,7 @@ var __webpack_modules__ = {
         draftPrompt.value = "";
         generationError.value = "";
       };
-      const beginDialogue = (target, sessionId) => {
+      function beginDialogue(target, sessionId) {
         if (!isLatest.value || isGenerating.value) return;
         const interaction = {
           mode: "dialogue",
@@ -4707,7 +4737,10 @@ var __webpack_modules__ = {
           channel: target.channel
         };
         if (!interaction.targetName || !interaction.canonicalName) return;
-        if (dialogueContext.value?.sessionId !== interaction.sessionId) dialogueTurns.value = [];
+        if (dialogueContext.value?.sessionId !== interaction.sessionId) {
+          refreshDialogueTurns(view.value.selectedMessageId, interaction.sessionId);
+        }
+        recentDialogue.value = interaction;
         view.value = {
           ...view.value,
           activeInteraction: interaction
@@ -4721,10 +4754,17 @@ var __webpack_modules__ = {
           type: "set_interaction",
           interaction
         });
-      };
+      }
       const continueDialogue = () => {
-        const context = selectedDialogue.value;
+        const context = dialogueContext.value;
         if (!context) return;
+        if (!isLatest.value) {
+          pendingDialogueResume.value = {
+            ...context
+          };
+          returnLatest();
+          return;
+        }
         beginDialogue(context, context.sessionId);
       };
       const endDialogue = () => {
@@ -4853,6 +4893,7 @@ var __webpack_modules__ = {
         storyFloorReasoning,
         storyFloorReasoningDuration,
         dialogueTurns,
+        recentDialogue,
         focusNonce,
         isGenerating,
         isRerolling,
@@ -6505,6 +6546,10 @@ var __webpack_modules__ = {
         const relation = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => String(companion.value?.关系 ?? "").trim());
         const emotion = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => String(companion.value?.关系上下文?.当前情绪 ?? "").trim());
         const relationLabel = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => [ relation.value, emotion.value ].filter(Boolean).join(" · "));
+        const dialogueKicker = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => {
+          if (!pseudo.isDialogueActive) return pseudo.isLatest ? "最近交谈" : "历史对话";
+          return context.value?.channel === "transmission" ? "传讯往来" : "此刻相谈";
+        });
         const portraitUrl = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => {
           const value = context.value;
           if (!value) return "";
@@ -6569,6 +6614,7 @@ var __webpack_modules__ = {
           relation,
           emotion,
           relationLabel,
+          dialogueKicker,
           portraitUrl,
           visibleTurns,
           pendingUserText,
@@ -7958,7 +8004,7 @@ var __webpack_modules__ = {
         };
         const chooseDialogue = () => {
           if (pseudo.isGenerating || !pseudo.isLatest || pseudo.isDialogueActive) return;
-          if (pseudo.selectedDialogue) pseudo.continueDialogue(); else showTargetPicker.value = true;
+          if (pseudo.dialogueContext) pseudo.continueDialogue(); else showTargetPicker.value = true;
         };
         (0, vue__WEBPACK_IMPORTED_MODULE_0__.watch)(() => pseudo.focusNonce, () => (0, vue__WEBPACK_IMPORTED_MODULE_0__.nextTick)(() => textareaRef.value?.focus()));
         const __returned__ = {
@@ -8292,9 +8338,9 @@ var __webpack_modules__ = {
         const stageTitle = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => {
           if (props.activeView === "story" && pseudo.view.stage.kind === "dialogue") return "正文回顾";
           if (props.activeView === "dialogue") {
-            const dialogue = pseudo.activeDialogue ?? pseudo.selectedDialogue;
+            const dialogue = pseudo.dialogueContext;
             if (!dialogue) return "交谈";
-            const turnCount = pseudo.view.stage.kind === "dialogue" ? ` · ${pseudo.view.stage.turnCount}轮` : "";
+            const turnCount = pseudo.dialogueTurns.length > 0 ? ` · ${pseudo.dialogueTurns.length}轮` : "";
             return `与${dialogue.targetName}${turnCount}`;
           }
           return pseudo.view.stage.kind === "dialogue" ? `与${pseudo.view.stage.targetName} · ${pseudo.view.stage.turnCount}轮` : `第 ${pseudo.view.index || 1} 回`;
@@ -10675,84 +10721,85 @@ var __webpack_modules__ = {
     const _hoisted_7 = [ "disabled" ];
     const _hoisted_8 = [ "disabled" ];
     const _hoisted_9 = [ "disabled" ];
-    const _hoisted_10 = {
-      key: 1,
+    const _hoisted_10 = [ "disabled" ];
+    const _hoisted_11 = {
+      key: 2,
       class: "history-badge"
     };
-    const _hoisted_11 = {
-      class: "dialogue-scroll-shell"
-    };
     const _hoisted_12 = {
-      key: 0,
-      class: "dialogue-empty"
+      class: "dialogue-scroll-shell"
     };
     const _hoisted_13 = {
       key: 0,
-      class: "dialogue-turn user-turn"
+      class: "dialogue-empty"
     };
     const _hoisted_14 = {
-      class: "dialogue-bubble"
+      key: 0,
+      class: "dialogue-turn user-turn"
     };
     const _hoisted_15 = {
-      class: "dialogue-turn character-turn"
+      class: "dialogue-bubble"
     };
     const _hoisted_16 = {
+      class: "dialogue-turn character-turn"
+    };
+    const _hoisted_17 = {
       class: "bubble-heading"
     };
-    const _hoisted_17 = [ "title", "onClick" ];
-    const _hoisted_18 = {
+    const _hoisted_18 = [ "title", "onClick" ];
+    const _hoisted_19 = {
       key: 0
     };
-    const _hoisted_19 = [ "innerHTML" ];
-    const _hoisted_20 = {
+    const _hoisted_20 = [ "innerHTML" ];
+    const _hoisted_21 = {
       key: 0,
       class: "turn-reasoning"
     };
-    const _hoisted_21 = [ "innerHTML" ];
-    const _hoisted_22 = {
+    const _hoisted_22 = [ "innerHTML" ];
+    const _hoisted_23 = {
       key: 1,
       class: "dialogue-turn user-turn pending"
     };
-    const _hoisted_23 = {
+    const _hoisted_24 = {
       class: "dialogue-bubble"
     };
-    const _hoisted_24 = {
+    const _hoisted_25 = {
       key: 2,
       class: "dialogue-turn character-turn live-turn"
     };
-    const _hoisted_25 = {
+    const _hoisted_26 = {
       class: "bubble-heading"
     };
-    const _hoisted_26 = {
+    const _hoisted_27 = {
       class: "live-status"
     };
-    const _hoisted_27 = [ "innerHTML" ];
-    const _hoisted_28 = {
+    const _hoisted_28 = [ "innerHTML" ];
+    const _hoisted_29 = {
       key: 1,
       class: "dialogue-bubble waiting-dots",
       "aria-label": "等待回应"
     };
-    const _hoisted_29 = {
+    const _hoisted_30 = {
       key: 2,
       class: "live-reasoning"
     };
-    const _hoisted_30 = [ "innerHTML" ];
-    const _hoisted_31 = {
+    const _hoisted_31 = [ "innerHTML" ];
+    const _hoisted_32 = {
       key: 0,
       class: "dialogue-portrait",
       "aria-label": "交谈对象立绘"
     };
-    const _hoisted_32 = {
+    const _hoisted_33 = {
       class: "portrait-frame"
     };
-    const _hoisted_33 = [ "src", "alt" ];
-    const _hoisted_34 = {
-      key: 0
-    };
+    const _hoisted_34 = [ "src", "alt" ];
     const _hoisted_35 = {
       key: 0
     };
     const _hoisted_36 = {
+      key: 0
+    };
+    const _hoisted_37 = {
       key: 1
     };
     function render(_ctx, _cache, $props, $setup, $data, $options) {
@@ -10766,7 +10813,7 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "fa-solid", $setup.context?.channel === "transmission" ? "fa-feather-pointed" : "fa-comments" ])
       }, null, 2) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_4, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("small", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.context?.channel === "transmission" ? "传讯往来" : "此刻相谈"), 1), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("small", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.dialogueKicker), 1), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("strong", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.context?.targetName || "尚未择定"), 1) ]), $setup.relationLabel ? ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_5, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.relationLabel), 1)) : (0, 
@@ -10777,16 +10824,16 @@ var __webpack_modules__ = {
         title: "更换交谈对象",
         disabled: $setup.pseudo.isGenerating,
         onClick: _cache[0] || (_cache[0] = $event => $setup.showPicker = true)
-      }, [ ..._cache[10] || (_cache[10] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[11] || (_cache[11] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-user-group"
-      }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "换人", -1) ]) ], 8, _hoisted_7), !$setup.pseudo.isDialogueActive && $setup.pseudo.selectedDialogue ? ((0, 
+      }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "换人", -1) ]) ], 8, _hoisted_7), !$setup.pseudo.isDialogueActive && $setup.context ? ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
         key: 0,
         type: "button",
         class: "continue-button",
         disabled: $setup.pseudo.isGenerating,
         onClick: _cache[1] || (_cache[1] = (...args) => $setup.pseudo.continueDialogue && $setup.pseudo.continueDialogue(...args))
-      }, [ ..._cache[11] || (_cache[11] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[12] || (_cache[12] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-comment-dots"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "继续交谈", -1) ]) ], 8, _hoisted_8)) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), $setup.pseudo.isDialogueActive ? ((0, 
@@ -10796,11 +10843,20 @@ var __webpack_modules__ = {
         class: "end-button",
         disabled: $setup.pseudo.isGenerating,
         onClick: _cache[2] || (_cache[2] = (...args) => $setup.pseudo.endDialogue && $setup.pseudo.endDialogue(...args))
-      }, [ ..._cache[12] || (_cache[12] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[13] || (_cache[13] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-door-open"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "结束交谈", -1) ]) ], 8, _hoisted_9)) : (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ])) : ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
-      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_10, [ ..._cache[13] || (_cache[13] = [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ])) : $setup.context ? ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
+        key: 1,
+        type: "button",
+        class: "history-resume-button",
+        disabled: $setup.pseudo.isGenerating,
+        onClick: _cache[3] || (_cache[3] = (...args) => $setup.pseudo.continueDialogue && $setup.pseudo.continueDialogue(...args))
+      }, [ ..._cache[14] || (_cache[14] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+        class: "fa-solid fa-forward-step"
+      }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "返回最新并继续", -1) ]) ], 8, _hoisted_10)) : ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_11, [ ..._cache[15] || (_cache[15] = [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-lock"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 历史对话", -1) ]) ])) ]), (0, 
@@ -10808,16 +10864,16 @@ var __webpack_modules__ = {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "dialogue-layout", {
           "with-portrait": Boolean($setup.portraitUrl)
         } ])
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_11, [ (0, 
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_12, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         ref: "scrollRef",
         class: "dialogue-scroll",
-        onScroll: _cache[4] || (_cache[4] = (...args) => $setup.handleStreamScroll && $setup.handleStreamScroll(...args)),
-        onWheelPassive: _cache[5] || (_cache[5] = (...args) => $setup.handleStreamWheel && $setup.handleStreamWheel(...args)),
-        onTouchstartPassive: _cache[6] || (_cache[6] = (...args) => $setup.handleStreamTouchStart && $setup.handleStreamTouchStart(...args)),
-        onTouchmovePassive: _cache[7] || (_cache[7] = (...args) => $setup.handleStreamTouchMove && $setup.handleStreamTouchMove(...args))
+        onScroll: _cache[5] || (_cache[5] = (...args) => $setup.handleStreamScroll && $setup.handleStreamScroll(...args)),
+        onWheelPassive: _cache[6] || (_cache[6] = (...args) => $setup.handleStreamWheel && $setup.handleStreamWheel(...args)),
+        onTouchstartPassive: _cache[7] || (_cache[7] = (...args) => $setup.handleStreamTouchStart && $setup.handleStreamTouchStart(...args)),
+        onTouchmovePassive: _cache[8] || (_cache[8] = (...args) => $setup.handleStreamTouchMove && $setup.handleStreamTouchMove(...args))
       }, [ $setup.visibleTurns.length === 0 && !$setup.pseudo.isGenerating ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
-      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_12, [ (0, 
+      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_13, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "fa-solid", $setup.context?.channel === "transmission" ? "fa-paper-plane" : "fa-comment-dots" ])
       }, null, 2), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("strong", null, (0, 
@@ -10827,8 +10883,8 @@ var __webpack_modules__ = {
         key: 0,
         type: "button",
         class: "choose-speaker-button",
-        onClick: _cache[3] || (_cache[3] = $event => $setup.showPicker = true)
-      }, [ ..._cache[14] || (_cache[14] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+        onClick: _cache[4] || (_cache[4] = $event => $setup.showPicker = true)
+      }, [ ..._cache[16] || (_cache[16] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-user-group"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "选择角色", -1) ]) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), ((0, 
@@ -10836,45 +10892,45 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.visibleTurns, turn => ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, {
         key: turn.assistantMessageId
-      }, [ turn.userText ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("article", _hoisted_13, [ _cache[15] || (_cache[15] = (0, 
+      }, [ turn.userText ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("article", _hoisted_14, [ _cache[17] || (_cache[17] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
         class: "bubble-speaker"
-      }, "你", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_14, (0, 
+      }, "你", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_15, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(turn.userText), 1) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("article", _hoisted_15, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_16, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("article", _hoisted_16, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_17, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.context?.targetName), 1), turn.reasoning ? ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
         key: 0,
         type: "button",
         title: $setup.expandedReasoningId === turn.assistantMessageId ? "收起推演思绪" : "查看推演思绪",
         onClick: $event => $setup.toggleReasoning(turn.assistantMessageId)
-      }, [ _cache[16] || (_cache[16] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ _cache[18] || (_cache[18] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-brain"
       }, null, -1)), turn.reasoningDuration ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
-      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_18, (0, 
+      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_19, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatDuration(turn.reasoningDuration)), 1)) : (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ], 8, _hoisted_17)) : (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ], 8, _hoisted_18)) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" eslint-disable-next-line vue/no-v-html "), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "dialogue-bubble formatted",
         innerHTML: $setup.formatReply(turn.replyText, turn.assistantMessageId)
-      }, null, 8, _hoisted_19), $setup.expandedReasoningId === turn.assistantMessageId ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_20, [ (0, 
+      }, null, 8, _hoisted_20), $setup.expandedReasoningId === turn.assistantMessageId ? ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_21, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" eslint-disable-next-line vue/no-v-html "), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         innerHTML: $setup.formatReasoning(turn.reasoning, turn.assistantMessageId)
-      }, null, 8, _hoisted_21) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]) ], 64))), 128)), $setup.pseudo.isGenerating && $setup.pendingUserText ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("article", _hoisted_22, [ _cache[17] || (_cache[17] = (0, 
+      }, null, 8, _hoisted_22) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]) ], 64))), 128)), $setup.pseudo.isGenerating && $setup.pendingUserText ? ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("article", _hoisted_23, [ _cache[19] || (_cache[19] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
         class: "bubble-speaker"
-      }, "你", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_23, (0, 
+      }, "你", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_24, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.pendingUserText), 1) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), $setup.pseudo.isGenerating ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("article", _hoisted_24, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_25, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("article", _hoisted_25, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_26, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.context?.targetName), 1), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_26, [ _cache[18] || (_cache[18] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_27, [ _cache[20] || (_cache[20] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-circle-notch fa-spin"
       }, null, -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)((0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.liveStatus), 1) ]) ]), (0, 
@@ -10883,48 +10939,48 @@ var __webpack_modules__ = {
         key: 0,
         class: "dialogue-bubble formatted",
         innerHTML: $setup.liveReplyHtml
-      }, null, 8, _hoisted_27)) : ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
-      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_28, [ ..._cache[19] || (_cache[19] = [ (0, 
+      }, null, 8, _hoisted_28)) : ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
+      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_29, [ ..._cache[21] || (_cache[21] = [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", null, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", null, null, -1), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", null, null, -1) ]) ])), $setup.pseudo.liveReasoning ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("details", _hoisted_29, [ _cache[20] || (_cache[20] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("details", _hoisted_30, [ _cache[22] || (_cache[22] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("summary", null, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-brain"
       }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 推演思绪") ], -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" eslint-disable-next-line vue/no-v-html "), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         innerHTML: $setup.formatReasoning($setup.pseudo.liveReasoning, $setup.pseudo.view.selectedMessageId)
-      }, null, 8, _hoisted_30) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ])) : (0, 
+      }, null, 8, _hoisted_31) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ], 544), $setup.pseudo.isGenerating && !$setup.isFollowingStream ? ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
         key: 0,
         type: "button",
         class: "resume-stream-follow",
         title: "回到最新对话",
-        onClick: _cache[8] || (_cache[8] = $event => $setup.resumeStreamFollow(!$setup.appearance.preferences.reduceMotion))
-      }, [ ..._cache[21] || (_cache[21] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+        onClick: _cache[9] || (_cache[9] = $event => $setup.resumeStreamFollow(!$setup.appearance.preferences.reduceMotion))
+      }, [ ..._cache[23] || (_cache[23] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-arrow-down"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "跟随最新", -1) ]) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]), $setup.portraitUrl ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("aside", _hoisted_31, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_32, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("aside", _hoisted_32, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_33, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
         src: $setup.portraitUrl,
         alt: $setup.context?.targetName || ""
-      }, null, 8, _hoisted_33), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, [ (0, 
+      }, null, 8, _hoisted_34), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("small", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.context?.channel === "transmission" ? "传讯彼端" : "此刻在场"), 1), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("strong", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.context?.targetName), 1) ]) ]), $setup.relation || $setup.emotion ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("dl", _hoisted_34, [ $setup.relation ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_35, [ _cache[22] || (_cache[22] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("dl", _hoisted_35, [ $setup.relation ? ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_36, [ _cache[24] || (_cache[24] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("dt", null, "关系", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("dd", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.relation), 1) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), $setup.emotion ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_36, [ _cache[23] || (_cache[23] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_37, [ _cache[25] || (_cache[25] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("dt", null, "心绪", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("dd", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.emotion), 1) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ], 2), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)($setup["DialogueTargetPicker"], {
         visible: $setup.showPicker,
-        onClose: _cache[9] || (_cache[9] = $event => $setup.showPicker = false)
+        onClose: _cache[10] || (_cache[10] = $event => $setup.showPicker = false)
       }, null, 8, [ "visible" ]) ], 2);
     }
   },
@@ -16843,7 +16899,7 @@ let __webpack_exports__ = {};
 /*!******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/.pnpm/css-loader@7.1.4_webpack@5.108.3/node_modules/css-loader/dist/cjs.js??clonedRuleSet-463.use[1]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/stylePostLoader.js!./node_modules/.pnpm/postcss-loader@8.2.1_postcs_421decd4ad49e80fec822be91ba0510c/node_modules/postcss-loader/dist/cjs.js!./node_modules/.pnpm/sass-loader@17.0.0_sass@1.101.0_webpack@5.108.3/node_modules/sass-loader/dist/cjs/index.js??clonedRuleSet-463.use[3]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明/components/DialogueStage.vue?vue&type=style&index=0&id=2909127a&lang=scss&scoped=true ***!
   \******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
-.dialogue-stage[data-v-2909127a]{position:relative;min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;color:var(--text-primary);background:var(--reading-surface);isolation:isolate}.dialogue-stage[data-v-2909127a]::before{content:"";position:absolute;inset:0;z-index:0;background:var(--reading-material);opacity:0.76;pointer-events:none}.dialogue-stage[data-v-2909127a]>*{position:relative;z-index:1}.choose-speaker-button[data-v-2909127a]{min-height:34px;margin-top:8px;padding:0 14px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);border-radius:5px;color:var(--gold);background:var(--button-bg);cursor:pointer}.choose-speaker-button[data-v-2909127a]:hover{background:var(--button-hover)}.dialogue-header[data-v-2909127a]{min-height:48px;flex:none;padding:6px 12px 6px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line-subtle);background:color-mix(in srgb,var(--surface-inset) 72%,transparent)}.speaker-heading[data-v-2909127a]{min-width:0;display:flex;align-items:center;gap:9px}.channel-mark[data-v-2909127a]{width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid var(--line-subtle);border-radius:50%;color:var(--jade);background:color-mix(in srgb,var(--jade) 8%,var(--surface-inset))}.transmitting .channel-mark[data-v-2909127a]{color:var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--surface-inset))}.speaker-copy[data-v-2909127a]{min-width:0;display:grid;gap:1px}.speaker-copy small[data-v-2909127a]{color:var(--text-secondary);font-size:9px}.speaker-copy strong[data-v-2909127a]{overflow:hidden;color:var(--text-accent);font-family:"Songti SC","STSong",serif;font-size:15px;text-overflow:ellipsis;white-space:nowrap}.relation-label[data-v-2909127a],.history-badge[data-v-2909127a]{flex:none;padding:3px 7px;border:1px solid var(--line-subtle);border-radius:999px;color:var(--text-secondary);font-size:9px}.dialogue-actions[data-v-2909127a]{display:flex;gap:5px}.dialogue-actions button[data-v-2909127a]{min-height:30px;padding:0 9px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--line-subtle);border-radius:5px;color:var(--text-secondary);background:var(--surface-inset);cursor:pointer}.dialogue-actions button[data-v-2909127a]:hover:not(:disabled){border-color:var(--line-strong);color:var(--gold)}.dialogue-actions button[data-v-2909127a]:disabled{opacity:0.4;cursor:not-allowed}.dialogue-actions .continue-button[data-v-2909127a]{color:var(--jade)}.dialogue-actions .end-button[data-v-2909127a]{color:var(--gold-soft)}.dialogue-layout[data-v-2909127a]{min-width:0;min-height:0;flex:1;display:grid;grid-template-columns:minmax(0,1fr)}.dialogue-layout.with-portrait[data-v-2909127a]{grid-template-columns:minmax(0,1fr) clamp(210px,21vw,310px)}.dialogue-scroll-shell[data-v-2909127a]{position:relative;min-width:0;min-height:0}.dialogue-scroll[data-v-2909127a]{width:100%;height:100%;min-width:0;min-height:0;overflow-y:auto;padding:clamp(22px,4vh,42px) clamp(18px,5vw,64px) 46px;scrollbar-color:var(--line-strong) transparent;scrollbar-width:thin}.resume-stream-follow[data-v-2909127a]{position:absolute;right:16px;bottom:12px;z-index:2;min-height:32px;padding:0 11px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);border-radius:999px;color:var(--text-accent);background:color-mix(in srgb,var(--surface-raised) 94%,transparent);box-shadow:0 10px 28px var(--stage-shadow);cursor:pointer}.resume-stream-follow[data-v-2909127a]:hover{color:var(--gold);background:var(--button-hover)}.dialogue-empty[data-v-2909127a]{height:100%;display:grid;place-items:center;align-content:center;gap:9px;color:var(--text-secondary);text-align:center}.dialogue-empty i[data-v-2909127a]{color:var(--jade);font-size:22px}.dialogue-empty strong[data-v-2909127a]{color:var(--text-accent);font-family:"Songti SC","STSong",serif}.dialogue-empty span[data-v-2909127a]{font-size:11px}.dialogue-turn[data-v-2909127a]{width:min(82%,760px);margin-bottom:20px;display:flex;flex-direction:column}.user-turn[data-v-2909127a]{margin-left:auto;align-items:flex-end}.character-turn[data-v-2909127a]{margin-right:auto;align-items:flex-start}.bubble-speaker[data-v-2909127a],.bubble-heading[data-v-2909127a]{margin-bottom:5px;color:var(--text-secondary);font-size:10px}.bubble-heading[data-v-2909127a]{width:100%;min-height:21px;display:flex;align-items:center;gap:8px}.bubble-heading>span[data-v-2909127a]:first-child{color:var(--text-accent)}.bubble-heading button[data-v-2909127a]{min-height:21px;padding:0 6px;display:inline-flex;align-items:center;gap:4px;border:0;border-radius:4px;color:var(--text-secondary);background:color-mix(in srgb,var(--surface-inset) 70%,transparent);font-size:9px;cursor:pointer}.bubble-heading button[data-v-2909127a]:hover{color:var(--jade)}.dialogue-bubble[data-v-2909127a]{padding:11px 14px;border:1px solid var(--line-subtle);border-radius:7px;color:var(--text-primary);background:color-mix(in srgb,var(--surface-raised) 88%,transparent);box-shadow:0 8px 24px color-mix(in srgb,var(--stage-shadow) 18%,transparent);white-space:pre-wrap;overflow-wrap:anywhere;font-family:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,serif;font-size:var(--reading-font-size);line-height:min(var(--reading-line-height),2)}.user-turn .dialogue-bubble[data-v-2909127a]{border-color:color-mix(in srgb,var(--gold) 28%,var(--line-subtle));background:color-mix(in srgb,var(--gold) 9%,var(--surface-inset))}.character-turn .dialogue-bubble[data-v-2909127a]{border-color:color-mix(in srgb,var(--jade) 24%,var(--line-subtle))}.formatted[data-v-2909127a] p{margin:0 0 0.72em}.formatted[data-v-2909127a] p:last-child{margin-bottom:0}.formatted[data-v-2909127a] q{quotes:none}.formatted[data-v-2909127a] q::before,.formatted[data-v-2909127a] q::after{content:none}.turn-reasoning[data-v-2909127a],.live-reasoning[data-v-2909127a]{width:100%;margin-top:6px;padding:9px 11px;border-left:2px solid var(--jade);color:var(--text-secondary);background:color-mix(in srgb,var(--surface-inset) 72%,transparent);font-size:11px;line-height:1.7}.live-reasoning summary[data-v-2909127a]{color:var(--jade);cursor:pointer}.live-status[data-v-2909127a]{margin-left:auto;display:inline-flex;align-items:center;gap:5px;color:var(--jade) !important}.waiting-dots[data-v-2909127a]{min-width:72px;display:flex;align-items:center;justify-content:center;gap:5px}.waiting-dots i[data-v-2909127a]{width:5px;height:5px;border-radius:50%;background:var(--jade);animation:dialogue-pulse-2909127a 1.1s ease-in-out infinite}.waiting-dots i[data-v-2909127a]:nth-child(2){animation-delay:0.14s}.waiting-dots i[data-v-2909127a]:nth-child(3){animation-delay:0.28s}.dialogue-portrait[data-v-2909127a]{min-width:0;min-height:0;padding:18px;display:flex;flex-direction:column;gap:12px;border-left:1px solid var(--line-subtle);background:var(--portrait-material),color-mix(in srgb,var(--surface) 84%,transparent)}.portrait-frame[data-v-2909127a]{min-height:0;flex:1;position:relative;overflow:hidden;border:1px solid var(--line-subtle);border-radius:6px;background:var(--surface-inset);box-shadow:0 14px 36px color-mix(in srgb,var(--stage-shadow) 55%,transparent)}.portrait-frame img[data-v-2909127a]{width:100%;height:100%;display:block;object-fit:contain}.portrait-frame>span[data-v-2909127a]{position:absolute;right:0;bottom:0;left:0;padding:42px 12px 11px;display:grid;gap:2px;color:#f3eee5;background:linear-gradient(to top,color-mix(in srgb,var(--surface-inset) 96%,black),transparent)}.portrait-frame small[data-v-2909127a]{color:#e4bd75;font-size:9px}.portrait-frame strong[data-v-2909127a]{font-family:"Songti SC","STSong",serif;font-size:17px}.dialogue-portrait dl[data-v-2909127a]{margin:0;padding:9px 10px;border-top:1px solid var(--line-subtle)}.dialogue-portrait dl div[data-v-2909127a]{display:grid;grid-template-columns:38px 1fr;gap:7px;padding:3px 0;font-size:10px}.dialogue-portrait dt[data-v-2909127a]{color:var(--gold-soft)}.dialogue-portrait dd[data-v-2909127a]{margin:0;color:var(--text-secondary)}@keyframes dialogue-pulse-2909127a{0%,100%{opacity:0.28;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}@media screen and (max-width:760px){.dialogue-header[data-v-2909127a]{align-items:flex-start}.relation-label[data-v-2909127a]{display:none}.dialogue-actions button span[data-v-2909127a]{display:none}.dialogue-actions button[data-v-2909127a]{width:31px;padding:0}.dialogue-layout.with-portrait[data-v-2909127a]{grid-template-columns:minmax(0,1fr);grid-template-rows:112px minmax(0,1fr)}.dialogue-portrait[data-v-2909127a]{grid-row:1;padding:9px 12px;display:grid;grid-template-columns:78px minmax(0,1fr);border-bottom:1px solid var(--line-subtle);border-left:0}.portrait-frame[data-v-2909127a]{grid-row:1;min-height:92px}.portrait-frame>span[data-v-2909127a]{padding:26px 7px 6px}.portrait-frame strong[data-v-2909127a]{font-size:12px}.dialogue-portrait dl[data-v-2909127a]{align-self:center;border-top:0}.dialogue-scroll-shell[data-v-2909127a]{grid-row:2}.dialogue-scroll[data-v-2909127a]{padding:20px 13px 34px}.resume-stream-follow[data-v-2909127a]{right:9px;bottom:9px}.dialogue-turn[data-v-2909127a]{width:92%;margin-bottom:15px}.dialogue-bubble[data-v-2909127a]{padding:9px 11px}}.historical .dialogue-scroll[data-v-2909127a]{padding-bottom:28px}
+.dialogue-stage[data-v-2909127a]{position:relative;min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;color:var(--text-primary);background:var(--reading-surface);isolation:isolate}.dialogue-stage[data-v-2909127a]::before{content:"";position:absolute;inset:0;z-index:0;background:var(--reading-material);opacity:0.76;pointer-events:none}.dialogue-stage[data-v-2909127a]>*{position:relative;z-index:1}.choose-speaker-button[data-v-2909127a]{min-height:34px;margin-top:8px;padding:0 14px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);border-radius:5px;color:var(--gold);background:var(--button-bg);cursor:pointer}.choose-speaker-button[data-v-2909127a]:hover{background:var(--button-hover)}.dialogue-header[data-v-2909127a]{min-height:48px;flex:none;padding:6px 12px 6px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line-subtle);background:color-mix(in srgb,var(--surface-inset) 72%,transparent)}.speaker-heading[data-v-2909127a]{min-width:0;display:flex;align-items:center;gap:9px}.channel-mark[data-v-2909127a]{width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid var(--line-subtle);border-radius:50%;color:var(--jade);background:color-mix(in srgb,var(--jade) 8%,var(--surface-inset))}.transmitting .channel-mark[data-v-2909127a]{color:var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--surface-inset))}.speaker-copy[data-v-2909127a]{min-width:0;display:grid;gap:1px}.speaker-copy small[data-v-2909127a]{color:var(--text-secondary);font-size:9px}.speaker-copy strong[data-v-2909127a]{overflow:hidden;color:var(--text-accent);font-family:"Songti SC","STSong",serif;font-size:15px;text-overflow:ellipsis;white-space:nowrap}.relation-label[data-v-2909127a],.history-badge[data-v-2909127a]{flex:none;padding:3px 7px;border:1px solid var(--line-subtle);border-radius:999px;color:var(--text-secondary);font-size:9px}.dialogue-actions[data-v-2909127a]{display:flex;gap:5px}.dialogue-actions button[data-v-2909127a],.history-resume-button[data-v-2909127a]{min-height:30px;padding:0 9px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--line-subtle);border-radius:5px;color:var(--text-secondary);background:var(--surface-inset);cursor:pointer}.dialogue-actions button[data-v-2909127a]:hover:not(:disabled),.history-resume-button[data-v-2909127a]:hover:not(:disabled){border-color:var(--line-strong);color:var(--gold)}.dialogue-actions button[data-v-2909127a]:disabled,.history-resume-button[data-v-2909127a]:disabled{opacity:0.4;cursor:not-allowed}.dialogue-actions .continue-button[data-v-2909127a]{color:var(--jade)}.dialogue-actions .end-button[data-v-2909127a]{color:var(--gold-soft)}.history-resume-button[data-v-2909127a]{flex:none;color:var(--jade)}.dialogue-layout[data-v-2909127a]{min-width:0;min-height:0;flex:1;display:grid;grid-template-columns:minmax(0,1fr)}.dialogue-layout.with-portrait[data-v-2909127a]{grid-template-columns:minmax(0,1fr) clamp(210px,21vw,310px)}.dialogue-scroll-shell[data-v-2909127a]{position:relative;min-width:0;min-height:0}.dialogue-scroll[data-v-2909127a]{width:100%;height:100%;min-width:0;min-height:0;overflow-y:auto;padding:clamp(22px,4vh,42px) clamp(18px,5vw,64px) 46px;scrollbar-color:var(--line-strong) transparent;scrollbar-width:thin}.resume-stream-follow[data-v-2909127a]{position:absolute;right:16px;bottom:12px;z-index:2;min-height:32px;padding:0 11px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);border-radius:999px;color:var(--text-accent);background:color-mix(in srgb,var(--surface-raised) 94%,transparent);box-shadow:0 10px 28px var(--stage-shadow);cursor:pointer}.resume-stream-follow[data-v-2909127a]:hover{color:var(--gold);background:var(--button-hover)}.dialogue-empty[data-v-2909127a]{height:100%;display:grid;place-items:center;align-content:center;gap:9px;color:var(--text-secondary);text-align:center}.dialogue-empty i[data-v-2909127a]{color:var(--jade);font-size:22px}.dialogue-empty strong[data-v-2909127a]{color:var(--text-accent);font-family:"Songti SC","STSong",serif}.dialogue-empty span[data-v-2909127a]{font-size:11px}.dialogue-turn[data-v-2909127a]{width:min(82%,760px);margin-bottom:20px;display:flex;flex-direction:column}.user-turn[data-v-2909127a]{margin-left:auto;align-items:flex-end}.character-turn[data-v-2909127a]{margin-right:auto;align-items:flex-start}.bubble-speaker[data-v-2909127a],.bubble-heading[data-v-2909127a]{margin-bottom:5px;color:var(--text-secondary);font-size:10px}.bubble-heading[data-v-2909127a]{width:100%;min-height:21px;display:flex;align-items:center;gap:8px}.bubble-heading>span[data-v-2909127a]:first-child{color:var(--text-accent)}.bubble-heading button[data-v-2909127a]{min-height:21px;padding:0 6px;display:inline-flex;align-items:center;gap:4px;border:0;border-radius:4px;color:var(--text-secondary);background:color-mix(in srgb,var(--surface-inset) 70%,transparent);font-size:9px;cursor:pointer}.bubble-heading button[data-v-2909127a]:hover{color:var(--jade)}.dialogue-bubble[data-v-2909127a]{padding:11px 14px;border:1px solid var(--line-subtle);border-radius:7px;color:var(--text-primary);background:color-mix(in srgb,var(--surface-raised) 88%,transparent);box-shadow:0 8px 24px color-mix(in srgb,var(--stage-shadow) 18%,transparent);white-space:pre-wrap;overflow-wrap:anywhere;font-family:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,serif;font-size:var(--reading-font-size);line-height:min(var(--reading-line-height),2)}.user-turn .dialogue-bubble[data-v-2909127a]{border-color:color-mix(in srgb,var(--gold) 28%,var(--line-subtle));background:color-mix(in srgb,var(--gold) 9%,var(--surface-inset))}.character-turn .dialogue-bubble[data-v-2909127a]{border-color:color-mix(in srgb,var(--jade) 24%,var(--line-subtle))}.formatted[data-v-2909127a] p{margin:0 0 0.72em}.formatted[data-v-2909127a] p:last-child{margin-bottom:0}.formatted[data-v-2909127a] q{quotes:none}.formatted[data-v-2909127a] q::before,.formatted[data-v-2909127a] q::after{content:none}.turn-reasoning[data-v-2909127a],.live-reasoning[data-v-2909127a]{width:100%;margin-top:6px;padding:9px 11px;border-left:2px solid var(--jade);color:var(--text-secondary);background:color-mix(in srgb,var(--surface-inset) 72%,transparent);font-size:11px;line-height:1.7}.live-reasoning summary[data-v-2909127a]{color:var(--jade);cursor:pointer}.live-status[data-v-2909127a]{margin-left:auto;display:inline-flex;align-items:center;gap:5px;color:var(--jade) !important}.waiting-dots[data-v-2909127a]{min-width:72px;display:flex;align-items:center;justify-content:center;gap:5px}.waiting-dots i[data-v-2909127a]{width:5px;height:5px;border-radius:50%;background:var(--jade);animation:dialogue-pulse-2909127a 1.1s ease-in-out infinite}.waiting-dots i[data-v-2909127a]:nth-child(2){animation-delay:0.14s}.waiting-dots i[data-v-2909127a]:nth-child(3){animation-delay:0.28s}.dialogue-portrait[data-v-2909127a]{min-width:0;min-height:0;padding:18px;display:flex;flex-direction:column;gap:12px;border-left:1px solid var(--line-subtle);background:var(--portrait-material),color-mix(in srgb,var(--surface) 84%,transparent)}.portrait-frame[data-v-2909127a]{min-height:0;flex:1;position:relative;overflow:hidden;border:1px solid var(--line-subtle);border-radius:6px;background:var(--surface-inset);box-shadow:0 14px 36px color-mix(in srgb,var(--stage-shadow) 55%,transparent)}.portrait-frame img[data-v-2909127a]{width:100%;height:100%;display:block;object-fit:contain}.portrait-frame>span[data-v-2909127a]{position:absolute;right:0;bottom:0;left:0;padding:42px 12px 11px;display:grid;gap:2px;color:#f3eee5;background:linear-gradient(to top,color-mix(in srgb,var(--surface-inset) 96%,black),transparent)}.portrait-frame small[data-v-2909127a]{color:#e4bd75;font-size:9px}.portrait-frame strong[data-v-2909127a]{font-family:"Songti SC","STSong",serif;font-size:17px}.dialogue-portrait dl[data-v-2909127a]{margin:0;padding:9px 10px;border-top:1px solid var(--line-subtle)}.dialogue-portrait dl div[data-v-2909127a]{display:grid;grid-template-columns:38px 1fr;gap:7px;padding:3px 0;font-size:10px}.dialogue-portrait dt[data-v-2909127a]{color:var(--gold-soft)}.dialogue-portrait dd[data-v-2909127a]{margin:0;color:var(--text-secondary)}@keyframes dialogue-pulse-2909127a{0%,100%{opacity:0.28;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}@media screen and (max-width:760px){.dialogue-header[data-v-2909127a]{align-items:flex-start}.relation-label[data-v-2909127a]{display:none}.dialogue-actions button span[data-v-2909127a]{display:none}.dialogue-actions button[data-v-2909127a]{width:31px;padding:0}.history-resume-button span[data-v-2909127a]{display:none}.history-resume-button[data-v-2909127a]{width:31px;padding:0}.dialogue-layout.with-portrait[data-v-2909127a]{grid-template-columns:minmax(0,1fr);grid-template-rows:112px minmax(0,1fr)}.dialogue-portrait[data-v-2909127a]{grid-row:1;padding:9px 12px;display:grid;grid-template-columns:78px minmax(0,1fr);border-bottom:1px solid var(--line-subtle);border-left:0}.portrait-frame[data-v-2909127a]{grid-row:1;min-height:92px}.portrait-frame>span[data-v-2909127a]{padding:26px 7px 6px}.portrait-frame strong[data-v-2909127a]{font-size:12px}.dialogue-portrait dl[data-v-2909127a]{align-self:center;border-top:0}.dialogue-scroll-shell[data-v-2909127a]{grid-row:2}.dialogue-scroll[data-v-2909127a]{padding:20px 13px 34px}.resume-stream-follow[data-v-2909127a]{right:9px;bottom:9px}.dialogue-turn[data-v-2909127a]{width:92%;margin-bottom:15px}.dialogue-bubble[data-v-2909127a]{padding:9px 11px}}.historical .dialogue-scroll[data-v-2909127a]{padding-bottom:28px}
 /*!******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/.pnpm/css-loader@7.1.4_webpack@5.108.3/node_modules/css-loader/dist/cjs.js??clonedRuleSet-463.use[1]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/stylePostLoader.js!./node_modules/.pnpm/postcss-loader@8.2.1_postcs_421decd4ad49e80fec822be91ba0510c/node_modules/postcss-loader/dist/cjs.js!./node_modules/.pnpm/sass-loader@17.0.0_sass@1.101.0_webpack@5.108.3/node_modules/sass-loader/dist/cjs/index.js??clonedRuleSet-463.use[3]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明/components/FooterSection.vue?vue&type=style&index=0&id=05eb0187&lang=scss&scoped=true ***!
   \******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/

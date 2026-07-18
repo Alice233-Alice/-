@@ -154,7 +154,7 @@ const chooseStory = () => {
 
 const chooseDialogue = () => {
   if (pseudo.isGenerating || !pseudo.isLatest || pseudo.isDialogueActive) return;
-  if (pseudo.selectedDialogue) pseudo.continueDialogue();
+  if (pseudo.dialogueContext) pseudo.continueDialogue();
   else showTargetPicker.value = true;
 };
 

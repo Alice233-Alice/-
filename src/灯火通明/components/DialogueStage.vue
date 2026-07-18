@@ -6,7 +6,7 @@
           <i class="fa-solid" :class="context?.channel === 'transmission' ? 'fa-feather-pointed' : 'fa-comments'"></i>
         </span>
         <span class="speaker-copy">
-          <small>{{ context?.channel === 'transmission' ? '传讯往来' : '此刻相谈' }}</small>
+          <small>{{ dialogueKicker }}</small>
           <strong>{{ context?.targetName || '尚未择定' }}</strong>
         </span>
         <span v-if="relationLabel" class="relation-label">{{ relationLabel }}</span>
@@ -17,7 +17,7 @@
           <i class="fa-solid fa-user-group"></i><span>换人</span>
         </button>
         <button
-          v-if="!pseudo.isDialogueActive && pseudo.selectedDialogue"
+          v-if="!pseudo.isDialogueActive && context"
           type="button"
           class="continue-button"
           :disabled="pseudo.isGenerating"
@@ -35,6 +35,15 @@
           <i class="fa-solid fa-door-open"></i><span>结束交谈</span>
         </button>
       </div>
+      <button
+        v-else-if="context"
+        type="button"
+        class="history-resume-button"
+        :disabled="pseudo.isGenerating"
+        @click="pseudo.continueDialogue"
+      >
+        <i class="fa-solid fa-forward-step"></i><span>返回最新并继续</span>
+      </button>
       <span v-else class="history-badge"><i class="fa-solid fa-lock"></i> 历史对话</span>
     </header>
 
@@ -174,6 +183,10 @@ const companion = computed(() => {
 const relation = computed(() => String(companion.value?.关系 ?? '').trim());
 const emotion = computed(() => String(companion.value?.关系上下文?.当前情绪 ?? '').trim());
 const relationLabel = computed(() => [relation.value, emotion.value].filter(Boolean).join(' · '));
+const dialogueKicker = computed(() => {
+  if (!pseudo.isDialogueActive) return pseudo.isLatest ? '最近交谈' : '历史对话';
+  return context.value?.channel === 'transmission' ? '传讯往来' : '此刻相谈';
+});
 
 const portraitUrl = computed(() => {
   const value = context.value;
@@ -314,7 +327,8 @@ watch(
   font-size: 9px;
 }
 .dialogue-actions { display: flex; gap: 5px; }
-.dialogue-actions button {
+.dialogue-actions button,
+.history-resume-button {
   min-height: 30px;
   padding: 0 9px;
   display: inline-flex;
@@ -327,10 +341,13 @@ watch(
   background: var(--surface-inset);
   cursor: pointer;
 }
-.dialogue-actions button:hover:not(:disabled) { border-color: var(--line-strong); color: var(--gold); }
-.dialogue-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+.dialogue-actions button:hover:not(:disabled),
+.history-resume-button:hover:not(:disabled) { border-color: var(--line-strong); color: var(--gold); }
+.dialogue-actions button:disabled,
+.history-resume-button:disabled { opacity: 0.4; cursor: not-allowed; }
 .dialogue-actions .continue-button { color: var(--jade); }
 .dialogue-actions .end-button { color: var(--gold-soft); }
+.history-resume-button { flex: none; color: var(--jade); }
 
 .dialogue-layout {
   min-width: 0;
@@ -497,6 +514,8 @@ watch(
   .relation-label { display: none; }
   .dialogue-actions button span { display: none; }
   .dialogue-actions button { width: 31px; padding: 0; }
+  .history-resume-button span { display: none; }
+  .history-resume-button { width: 31px; padding: 0; }
   .dialogue-layout.with-portrait {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 112px minmax(0, 1fr);

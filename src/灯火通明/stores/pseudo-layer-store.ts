@@ -123,6 +123,8 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const storyFloorReasoning = ref('');
   const storyFloorReasoningDuration = ref<number | null>(null);
   const dialogueTurns = ref<DialogueTurn[]>([]);
+  const recentDialogue = ref<DialogueContext | null>(null);
+  const pendingDialogueResume = ref<DialogueContext | null>(null);
   const focusNonce = ref(0);
 
   let started = false;
@@ -149,10 +151,12 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
         }
       : null,
   );
-  const dialogueContext = computed(() => activeDialogue.value ?? selectedDialogue.value);
+  const dialogueContext = computed(
+    () => activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value,
+  );
   const isDialogueActive = computed(() => activeDialogue.value !== null);
   const isDialogueView = computed(
-    () => isDialogueActive.value || (selectedDialogue.value !== null && !isGenerating.value),
+    () => isDialogueActive.value || (dialogueContext.value !== null && !isGenerating.value),
   );
   const canSubmit = computed(
     () =>
@@ -243,6 +247,22 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       });
   };
 
+  const findLatestDialogue = (targetMessageId: number): DialogueContext | null => {
+    const messages = getMessageRange(targetMessageId);
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const metadata = readMetadata(messages[index]);
+      if (!metadata) continue;
+      return {
+        mode: 'dialogue',
+        sessionId: metadata.sessionId,
+        targetName: metadata.targetName,
+        canonicalName: metadata.canonicalName,
+        channel: metadata.channel,
+      };
+    }
+    return null;
+  };
+
   const refreshStoryFloor = (targetMessageId: number) => {
     const messages = getMessageRange(targetMessageId);
     let storyMessage: ChatMessage | undefined;
@@ -279,8 +299,19 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       floorReasoning.value = reasoning.text;
       floorReasoningDuration.value = reasoning.duration;
       refreshStoryFloor(targetMessageId);
-      if (view.value.stage.kind === 'dialogue') {
-        refreshDialogueTurns(targetMessageId, view.value.stage.sessionId);
+      const archivedDialogue =
+        view.value.stage.kind === 'dialogue'
+          ? {
+              mode: 'dialogue' as const,
+              sessionId: view.value.stage.sessionId,
+              targetName: view.value.stage.targetName,
+              canonicalName: view.value.stage.canonicalName,
+              channel: view.value.stage.channel,
+            }
+          : findLatestDialogue(targetMessageId);
+      recentDialogue.value = archivedDialogue;
+      if (archivedDialogue) {
+        refreshDialogueTurns(targetMessageId, archivedDialogue.sessionId);
       } else {
         dialogueTurns.value = [];
       }
@@ -322,6 +353,11 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
           !floorMessage.value);
       view.value = response.view;
       if (shouldRefreshFloor) refreshFloor(response.view.selectedMessageId);
+      if (pendingDialogueResume.value && isLatest.value && !isGenerating.value) {
+        const pending = pendingDialogueResume.value;
+        pendingDialogueResume.value = null;
+        window.queueMicrotask(() => beginDialogue(pending, pending.sessionId));
+      }
       return;
     }
 
@@ -437,7 +473,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     generationError.value = '';
   };
 
-  const beginDialogue = (target: DialogueTarget, sessionId?: string) => {
+  function beginDialogue(target: DialogueTarget, sessionId?: string) {
     if (!isLatest.value || isGenerating.value) return;
     const interaction: DialogueContext = {
       mode: 'dialogue',
@@ -447,7 +483,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       channel: target.channel,
     };
     if (!interaction.targetName || !interaction.canonicalName) return;
-    if (dialogueContext.value?.sessionId !== interaction.sessionId) dialogueTurns.value = [];
+    if (dialogueContext.value?.sessionId !== interaction.sessionId) {
+      refreshDialogueTurns(view.value.selectedMessageId, interaction.sessionId);
+    }
+    recentDialogue.value = interaction;
     view.value = { ...view.value, activeInteraction: interaction };
     generationError.value = '';
     selectedTitle.value = '';
@@ -458,11 +497,16 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       type: 'set_interaction',
       interaction,
     });
-  };
+  }
 
   const continueDialogue = () => {
-    const context = selectedDialogue.value;
+    const context = dialogueContext.value;
     if (!context) return;
+    if (!isLatest.value) {
+      pendingDialogueResume.value = { ...context };
+      returnLatest();
+      return;
+    }
     beginDialogue(context, context.sessionId);
   };
 
@@ -588,6 +632,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     storyFloorReasoning,
     storyFloorReasoningDuration,
     dialogueTurns,
+    recentDialogue,
     focusNonce,
     isGenerating,
     isRerolling,
