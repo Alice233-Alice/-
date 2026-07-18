@@ -697,16 +697,31 @@ const triggerNativeSend = (prompt: string) => {
   sendButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 };
 
-const triggerNativeReroll = async () => {
+const triggerNativeReroll = async (messageId: number) => {
   const context = (
     tavernWindow as typeof tavernWindow & {
       SillyTavern?: {
-        getContext?: () => { swipe?: { right?: () => Promise<void> } };
+        getContext?: () => {
+          chat?: unknown[];
+          swipe?: {
+            right?: (
+              event?: Event | null,
+              options?: { source?: string; repeated?: boolean; message?: unknown },
+            ) => Promise<void>;
+          };
+        };
       };
     }
   ).SillyTavern?.getContext?.();
-  if (typeof context?.swipe?.right !== 'function') throw new Error('当前酒馆版本没有提供原生重生成接口。');
-  await context.swipe.right();
+  const swipeRight = context?.swipe?.right;
+  if (typeof swipeRight !== 'function') throw new Error('当前酒馆版本没有提供原生重生成接口。');
+
+  const nativeButton = getMessageElement(messageId)?.querySelector<HTMLElement>('.swipe_right');
+  const nativeMessage = context?.chat?.at(-1);
+  await swipeRight.call(nativeButton ?? context?.swipe, null, {
+    source: 'dhl-pseudo-layer',
+    message: nativeMessage,
+  });
 };
 
 const beginGeneration = (
@@ -823,8 +838,13 @@ const beginReroll = (
   sendGenerationState(activeGeneration, 'preparing');
   applyStageVisibility();
 
-  void triggerNativeReroll().catch(error => {
-    if (!activeGeneration || activeGeneration.requestId !== request.requestId) return;
+  void triggerNativeReroll(request.messageId).catch(error => {
+    const generation = activeGeneration;
+    if (!generation || generation.requestId !== request.requestId) return;
+    if (generation.received || generation.streamText.trim()) {
+      console.warn('[灯火阑珊·伪同层] 酒馆在重生成完成后报告 swipe 收尾异常，已保留新回复', error);
+      return;
+    }
     send(source, {
       type: 'error',
       requestId: request.requestId,
