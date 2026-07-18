@@ -9,22 +9,27 @@
       <div class="turn-navigation">
         <button
           type="button"
-          :disabled="pseudo.view.previousMessageId === undefined || pseudo.isGenerating"
+          :disabled="history.previousMessageId === undefined || pseudo.isGenerating"
           title="上一回"
-          @click="pseudo.navigate('previous')"
+          @click="pseudo.navigate('previous', historyKind)"
         >
           <i class="fa-solid fa-chevron-left"></i>
         </button>
-        <span>{{ pseudo.view.index || 1 }} / {{ pseudo.view.total || 1 }}</span>
+        <span>{{ history.index || 1 }} / {{ history.total || 1 }}</span>
         <button
           type="button"
-          :disabled="pseudo.view.nextMessageId === undefined || pseudo.isGenerating"
+          :disabled="history.nextMessageId === undefined || pseudo.isGenerating"
           title="下一回"
-          @click="pseudo.navigate('next')"
+          @click="pseudo.navigate('next', historyKind)"
         >
           <i class="fa-solid fa-chevron-right"></i>
         </button>
-        <button v-if="!pseudo.isLatest" type="button" title="返回最新回合" @click="pseudo.returnLatest">
+        <button
+          v-if="!history.isLatest"
+          type="button"
+          :title="historyKind === 'dialogue' ? '返回最新交谈' : '返回最新正文'"
+          @click="pseudo.returnHistoryLatest(historyKind)"
+        >
           <i class="fa-solid fa-forward-step"></i>
         </button>
       </div>
@@ -95,6 +100,7 @@
 
 <script setup lang="ts">
 import { useDataStore, usePseudoLayerStore } from '../store';
+import type { PseudoLayerHistoryKind } from '../pseudo-layer-protocol';
 
 const props = defineProps<{ activeView: string; immersive: boolean; parentRegion: string; dangerColor: string }>();
 defineEmits<{
@@ -108,8 +114,24 @@ const data = useDataStore();
 const pseudo = usePseudoLayerStore();
 const deleteDialogOpen = ref(false);
 const deleteDialogTitleId = `delete-stage-${Math.random().toString(36).slice(2, 8)}`;
+const historyKind = computed<PseudoLayerHistoryKind>(() => {
+  if (props.activeView === 'dialogue') return 'dialogue';
+  if (props.activeView === 'story') return 'story';
+  return pseudo.view.stage.kind;
+});
+const history = computed(() =>
+  pseudo.view.histories?.[historyKind.value] ?? {
+    selectedMessageId: pseudo.view.selectedMessageId,
+    latestMessageId: pseudo.view.latestMessageId,
+    index: pseudo.view.index,
+    total: pseudo.view.total,
+    previousMessageId: pseudo.view.previousMessageId,
+    nextMessageId: pseudo.view.nextMessageId,
+    isLatest: pseudo.view.isLatest,
+  },
+);
 const stageTitle = computed(() => {
-  if (props.activeView === 'story' && pseudo.view.stage.kind === 'dialogue') return '正文回顾';
+  if (props.activeView === 'story') return `第 ${history.value.index || 1} 回`;
   if (props.activeView === 'dialogue') {
     const dialogue = pseudo.dialogueContext;
     if (!dialogue) return '交谈';
@@ -118,7 +140,7 @@ const stageTitle = computed(() => {
   }
   return pseudo.view.stage.kind === 'dialogue'
     ? `与${pseudo.view.stage.targetName} · ${pseudo.view.stage.turnCount}轮`
-    : `第 ${pseudo.view.index || 1} 回`;
+    : `第 ${pseudo.view.histories?.story.index || pseudo.view.index || 1} 回`;
 });
 const deleteButtonTitle = computed(() =>
   pseudo.view.stage.kind === 'dialogue' ? '删除最后一轮交谈' : '删除本回正文',

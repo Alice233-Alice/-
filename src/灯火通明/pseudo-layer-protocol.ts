@@ -2,6 +2,7 @@ export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
 export const PSEUDO_LAYER_VERSION = 4;
 
 export type InteractionMode = 'story' | 'dialogue';
+export type PseudoLayerHistoryKind = InteractionMode;
 export type DialogueChannel = 'present' | 'transmission';
 
 export type DialogueContext = {
@@ -25,6 +26,16 @@ export type PseudoLayerDialogueStage = {
   turnCount: number;
 };
 export type PseudoLayerStage = PseudoLayerStoryStage | PseudoLayerDialogueStage;
+
+export type PseudoLayerHistoryState = {
+  selectedMessageId: number;
+  latestMessageId: number;
+  index: number;
+  total: number;
+  previousMessageId?: number;
+  nextMessageId?: number;
+  isLatest: boolean;
+};
 
 export type PseudoLayerInteractionMetadata = {
   version: 1;
@@ -53,6 +64,7 @@ export type PseudoLayerView = {
   isLatest: boolean;
   nativeInputCollapsed: boolean;
   stage: PseudoLayerStage;
+  histories: Record<PseudoLayerHistoryKind, PseudoLayerHistoryState>;
   activeInteraction: PseudoLayerInteraction;
 };
 
@@ -89,8 +101,20 @@ export type PseudoLayerRequest =
       type: 'navigate';
       messageId: number;
       direction: 'previous' | 'next';
+      history?: PseudoLayerHistoryKind;
     }
-  | { channel: typeof PSEUDO_LAYER_CHANNEL; version: number; type: 'return_latest' }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
+      type: 'select_history';
+      history: PseudoLayerHistoryKind;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
+      type: 'return_latest';
+      history?: PseudoLayerHistoryKind;
+    }
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
       version: number;
@@ -172,6 +196,7 @@ const REQUEST_TYPES = new Set([
   'reroll',
   'delete_message',
   'navigate',
+  'select_history',
   'return_latest',
   'set_interaction',
   'end_interaction',

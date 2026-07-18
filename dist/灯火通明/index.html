@@ -1074,7 +1074,7 @@ var __webpack_modules__ = {
       const message = value;
       return message.channel === PSEUDO_LAYER_CHANNEL && message.version === PSEUDO_LAYER_VERSION;
     };
-    const REQUEST_TYPES = new Set([ "hello", "goodbye", "generate", "stop", "reroll", "delete_message", "navigate", "return_latest", "set_interaction", "end_interaction", "toggle_native_input" ]);
+    const REQUEST_TYPES = new Set([ "hello", "goodbye", "generate", "stop", "reroll", "delete_message", "navigate", "select_history", "return_latest", "set_interaction", "end_interaction", "toggle_native_input" ]);
     const RESPONSE_TYPES = new Set([ "ready", "view", "state", "stream", "reasoning", "complete", "deleted", "error" ]);
     const isPseudoLayerRequest = value => hasEnvelope(value) && REQUEST_TYPES.has(String(value.type));
     const isPseudoLayerResponse = value => hasEnvelope(value) && RESPONSE_TYPES.has(String(value.type));
@@ -4362,6 +4362,13 @@ var __webpack_modules__ = {
     const STORY_INTERACTION = {
       mode: "story"
     };
+    const EMPTY_HISTORY = {
+      selectedMessageId: -1,
+      latestMessageId: -1,
+      index: 0,
+      total: 0,
+      isLatest: true
+    };
     const EMPTY_VIEW = {
       hostMessageId: -1,
       revision: 0,
@@ -4373,6 +4380,14 @@ var __webpack_modules__ = {
       nativeInputCollapsed: false,
       stage: {
         kind: "story"
+      },
+      histories: {
+        story: {
+          ...EMPTY_HISTORY
+        },
+        dialogue: {
+          ...EMPTY_HISTORY
+        }
       },
       activeInteraction: STORY_INTERACTION
     };
@@ -4468,7 +4483,7 @@ var __webpack_modules__ = {
         canonicalName: view.value.stage.canonicalName,
         channel: view.value.stage.channel
       } : null);
-      const dialogueContext = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value);
+      const dialogueContext = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => !view.value.isLatest && selectedDialogue.value ? selectedDialogue.value : activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value);
       const isDialogueActive = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => activeDialogue.value !== null);
       const isDialogueView = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => isDialogueActive.value || dialogueContext.value !== null && !isGenerating.value);
       const canSubmit = (0, vue__WEBPACK_IMPORTED_MODULE_2__.computed)(() => controllerReady.value && isLatest.value && draftPrompt.value.trim().length > 0 && !isGenerating.value && !isDeleting.value);
@@ -4848,20 +4863,38 @@ var __webpack_modules__ = {
           messageId: view.value.selectedMessageId
         });
       };
-      const navigate = direction => {
+      const selectHistory = history => {
+        if (!Number.isFinite(messageId) || isGenerating.value) return;
+        post({
+          channel: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_CHANNEL,
+          version: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_VERSION,
+          type: "select_history",
+          history
+        });
+      };
+      const navigate = (direction, history) => {
         if (!Number.isFinite(messageId) || isGenerating.value) return;
         post({
           channel: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_CHANNEL,
           version: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_VERSION,
           type: "navigate",
           messageId: view.value.selectedMessageId,
-          direction
+          direction,
+          ...history ? {
+            history
+          } : {}
         });
       };
       const returnLatest = () => post({
         channel: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_CHANNEL,
         version: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_VERSION,
         type: "return_latest"
+      });
+      const returnHistoryLatest = history => post({
+        channel: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_CHANNEL,
+        version: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_VERSION,
+        type: "return_latest",
+        history
       });
       const toggleNativeInput = () => post({
         channel: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_CHANNEL,
@@ -4921,8 +4954,10 @@ var __webpack_modules__ = {
         stop,
         reroll,
         deleteCurrent,
+        selectHistory,
         navigate,
         returnLatest,
+        returnHistoryLatest,
         toggleNativeInput
       };
     });
@@ -5539,6 +5574,9 @@ var __webpack_modules__ = {
               });
             }
           });
+          if ((next === "story" || next === "dialogue") && next !== previous) {
+            pseudoLayerStore.selectHistory(next);
+          }
         });
         (0, vue__WEBPACK_IMPORTED_MODULE_0__.watch)(() => pseudoLayerStore.generationState, (next, previous) => {
           if (next === "generating") {
@@ -8335,15 +8373,29 @@ var __webpack_modules__ = {
         const pseudo = (0, _store__WEBPACK_IMPORTED_MODULE_1__.usePseudoLayerStore)();
         const deleteDialogOpen = (0, vue__WEBPACK_IMPORTED_MODULE_0__.ref)(false);
         const deleteDialogTitleId = `delete-stage-${Math.random().toString(36).slice(2, 8)}`;
+        const historyKind = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => {
+          if (props.activeView === "dialogue") return "dialogue";
+          if (props.activeView === "story") return "story";
+          return pseudo.view.stage.kind;
+        });
+        const history = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => pseudo.view.histories?.[historyKind.value] ?? {
+          selectedMessageId: pseudo.view.selectedMessageId,
+          latestMessageId: pseudo.view.latestMessageId,
+          index: pseudo.view.index,
+          total: pseudo.view.total,
+          previousMessageId: pseudo.view.previousMessageId,
+          nextMessageId: pseudo.view.nextMessageId,
+          isLatest: pseudo.view.isLatest
+        });
         const stageTitle = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => {
-          if (props.activeView === "story" && pseudo.view.stage.kind === "dialogue") return "正文回顾";
+          if (props.activeView === "story") return `第 ${history.value.index || 1} 回`;
           if (props.activeView === "dialogue") {
             const dialogue = pseudo.dialogueContext;
             if (!dialogue) return "交谈";
             const turnCount = pseudo.dialogueTurns.length > 0 ? ` · ${pseudo.dialogueTurns.length}轮` : "";
             return `与${dialogue.targetName}${turnCount}`;
           }
-          return pseudo.view.stage.kind === "dialogue" ? `与${pseudo.view.stage.targetName} · ${pseudo.view.stage.turnCount}轮` : `第 ${pseudo.view.index || 1} 回`;
+          return pseudo.view.stage.kind === "dialogue" ? `与${pseudo.view.stage.targetName} · ${pseudo.view.stage.turnCount}轮` : `第 ${pseudo.view.histories?.story.index || pseudo.view.index || 1} 回`;
         });
         const deleteButtonTitle = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => pseudo.view.stage.kind === "dialogue" ? "删除最后一轮交谈" : "删除本回正文");
         const deleteDialogTitle = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => pseudo.view.stage.kind === "dialogue" ? "删除最后一轮交谈？" : "删除本回剧情？");
@@ -8366,6 +8418,8 @@ var __webpack_modules__ = {
           pseudo,
           deleteDialogOpen,
           deleteDialogTitleId,
+          historyKind,
+          history,
           stageTitle,
           deleteButtonTitle,
           deleteDialogTitle,
@@ -13612,20 +13666,21 @@ var __webpack_modules__ = {
     };
     const _hoisted_6 = [ "disabled" ];
     const _hoisted_7 = [ "disabled" ];
-    const _hoisted_8 = {
+    const _hoisted_8 = [ "title" ];
+    const _hoisted_9 = {
       class: "stage-utilities"
     };
-    const _hoisted_9 = [ "title", "disabled" ];
     const _hoisted_10 = [ "title", "disabled" ];
-    const _hoisted_11 = [ "title" ];
-    const _hoisted_12 = {
+    const _hoisted_11 = [ "title", "disabled" ];
+    const _hoisted_12 = [ "title" ];
+    const _hoisted_13 = {
       class: "delete-dialog-copy"
     };
-    const _hoisted_13 = {
+    const _hoisted_14 = {
       class: "delete-dialog-actions"
     };
-    const _hoisted_14 = [ "disabled" ];
     const _hoisted_15 = [ "disabled" ];
+    const _hoisted_16 = [ "disabled" ];
     function render(_ctx, _cache, $props, $setup, $data, $options) {
       return (0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("header", _hoisted_1, [ (0, 
@@ -13641,30 +13696,30 @@ var __webpack_modules__ = {
       }, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.stageTitle), 9, _hoisted_4) ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_5, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         type: "button",
-        disabled: $setup.pseudo.view.previousMessageId === undefined || $setup.pseudo.isGenerating,
+        disabled: $setup.history.previousMessageId === undefined || $setup.pseudo.isGenerating,
         title: "上一回",
-        onClick: _cache[0] || (_cache[0] = $event => $setup.pseudo.navigate("previous"))
+        onClick: _cache[0] || (_cache[0] = $event => $setup.pseudo.navigate("previous", $setup.historyKind))
       }, [ ..._cache[13] || (_cache[13] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-chevron-left"
       }, null, -1) ]) ], 8, _hoisted_6), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.pseudo.view.index || 1) + " / " + (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.pseudo.view.total || 1), 1), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.history.index || 1) + " / " + (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.history.total || 1), 1), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         type: "button",
-        disabled: $setup.pseudo.view.nextMessageId === undefined || $setup.pseudo.isGenerating,
+        disabled: $setup.history.nextMessageId === undefined || $setup.pseudo.isGenerating,
         title: "下一回",
-        onClick: _cache[1] || (_cache[1] = $event => $setup.pseudo.navigate("next"))
+        onClick: _cache[1] || (_cache[1] = $event => $setup.pseudo.navigate("next", $setup.historyKind))
       }, [ ..._cache[14] || (_cache[14] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-chevron-right"
-      }, null, -1) ]) ], 8, _hoisted_7), !$setup.pseudo.isLatest ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
+      }, null, -1) ]) ], 8, _hoisted_7), !$setup.history.isLatest ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
         key: 0,
         type: "button",
-        title: "返回最新回合",
-        onClick: _cache[2] || (_cache[2] = (...args) => $setup.pseudo.returnLatest && $setup.pseudo.returnLatest(...args))
+        title: $setup.historyKind === "dialogue" ? "返回最新交谈" : "返回最新正文",
+        onClick: _cache[2] || (_cache[2] = $event => $setup.pseudo.returnHistoryLatest($setup.historyKind))
       }, [ ..._cache[15] || (_cache[15] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-forward-step"
-      }, null, -1) ]) ])) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]) ]), (0, 
+      }, null, -1) ]) ], 8, _hoisted_8)) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]) ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "scene-location",
         type: "button",
@@ -13683,7 +13738,7 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("b", null, "·", -1)) ], 64)) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" " + (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.data.本尊.行踪.当前区域), 1) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_8, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_9, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
         class: "danger-badge",
         style: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeStyle)({
           "--danger-color": $props.dangerColor
@@ -13697,7 +13752,7 @@ var __webpack_modules__ = {
         onClick: _cache[4] || (_cache[4] = $event => $setup.deleteDialogOpen = true)
       }, [ ..._cache[20] || (_cache[20] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-trash-can"
-      }, null, -1) ]) ], 8, _hoisted_9), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+      }, null, -1) ]) ], 8, _hoisted_10), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "reroll-button",
         type: "button",
         title: $setup.pseudo.view.stage.kind === "dialogue" ? "重生成本次回应" : "重生成本回正文",
@@ -13705,7 +13760,7 @@ var __webpack_modules__ = {
         onClick: _cache[5] || (_cache[5] = (...args) => $setup.pseudo.reroll && $setup.pseudo.reroll(...args))
       }, [ ..._cache[21] || (_cache[21] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-rotate-right"
-      }, null, -1) ]) ], 8, _hoisted_10), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+      }, null, -1) ]) ], 8, _hoisted_11), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "preset-button",
         type: "button",
         title: "开局预设",
@@ -13731,7 +13786,7 @@ var __webpack_modules__ = {
         onClick: _cache[9] || (_cache[9] = $event => _ctx.$emit("toggle-immersive"))
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "fa-solid", $props.immersive ? "fa-compress" : "fa-expand" ])
-      }, null, 2) ], 8, _hoisted_11) ]) ]), $setup.deleteDialogOpen ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
+      }, null, 2) ], 8, _hoisted_12) ]) ]), $setup.deleteDialogOpen ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
         key: 0,
         class: "delete-dialog-backdrop",
@@ -13746,24 +13801,24 @@ var __webpack_modules__ = {
         class: "delete-dialog-mark"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-trash-can"
-      }) ], -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_12, [ (0, 
+      }) ], -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_13, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("h2", {
         id: $setup.deleteDialogTitleId
       }, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.deleteDialogTitle), 1), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("p", null, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.deleteDialogDescription), 1) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_13, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_14, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         type: "button",
         class: "cancel-delete",
         disabled: $setup.pseudo.isDeleting,
         onClick: _cache[10] || (_cache[10] = $event => $setup.deleteDialogOpen = false)
-      }, " 取消 ", 8, _hoisted_14), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+      }, " 取消 ", 8, _hoisted_15), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         type: "button",
         class: "confirm-delete",
         disabled: $setup.pseudo.isDeleting,
         onClick: $setup.confirmDelete
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "fa-solid", $setup.pseudo.isDeleting ? "fa-circle-notch fa-spin" : "fa-trash-can" ])
-      }, null, 2), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" " + (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.pseudo.isDeleting ? "正在删除" : "确认删除"), 1) ], 8, _hoisted_15) ]) ]) ])) : (0, 
+      }, null, 2), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" " + (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.pseudo.isDeleting ? "正在删除" : "确认删除"), 1) ], 8, _hoisted_16) ]) ]) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ], 64);
     }
   },

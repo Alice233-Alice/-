@@ -4,6 +4,8 @@ import {
   PSEUDO_LAYER_VERSION,
   PseudoLayerGenerationOperation,
   PseudoLayerGenerationState,
+  PseudoLayerHistoryKind,
+  PseudoLayerHistoryState,
   PseudoLayerInteraction,
   PseudoLayerInteractionMetadata,
   PseudoLayerReasoningState,
@@ -64,6 +66,10 @@ const registrations = new Map<number, ReplyTarget>();
 let activeGeneration: ActiveGeneration | null = null;
 let activeInteraction: PseudoLayerInteraction = STORY_INTERACTION;
 let selectedMessageId: number | null = null;
+const selectedHistoryMessageIds: Record<PseudoLayerHistoryKind, number | null> = {
+  story: null,
+  dialogue: null,
+};
 let browsingHistory = false;
 let deletingMessageId: number | null = null;
 let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === 'true';
@@ -450,6 +456,57 @@ const getStageEntries = (): StageEntry[] => {
 const getStageIds = () => getStageEntries().map(entry => entry.representativeMessageId);
 const latestStageId = () => getStageEntries().at(-1)?.representativeMessageId;
 
+const getHistoryEntries = (entries: StageEntry[], history: PseudoLayerHistoryKind) =>
+  entries.filter(entry => entry.stage.kind === history);
+
+const resolveHistorySelection = (
+  entries: StageEntry[],
+  history: PseudoLayerHistoryKind,
+): number | null => {
+  const historyEntries = getHistoryEntries(entries, history);
+  if (historyEntries.length === 0) {
+    selectedHistoryMessageIds[history] = null;
+    return null;
+  }
+
+  const remembered = selectedHistoryMessageIds[history];
+  const selectedEntry = historyEntries.find(
+    entry => entry.representativeMessageId === remembered || (remembered !== null && entry.messageIds.includes(remembered)),
+  );
+  const selected = selectedEntry ?? historyEntries.at(-1)!;
+  selectedHistoryMessageIds[history] = selected.representativeMessageId;
+  return selected.representativeMessageId;
+};
+
+const makeHistoryState = (
+  entries: StageEntry[],
+  history: PseudoLayerHistoryKind,
+): PseudoLayerHistoryState => {
+  const historyEntries = getHistoryEntries(entries, history);
+  const ids = historyEntries.map(entry => entry.representativeMessageId);
+  const selected = resolveHistorySelection(entries, history) ?? -1;
+  const position = ids.indexOf(selected);
+  const latestMessageId = ids.at(-1) ?? -1;
+  return {
+    selectedMessageId: selected,
+    latestMessageId,
+    index: position >= 0 ? position + 1 : 0,
+    total: ids.length,
+    previousMessageId: position > 0 ? ids[position - 1] : undefined,
+    nextMessageId: position >= 0 && position < ids.length - 1 ? ids[position + 1] : undefined,
+    isLatest: selected === latestMessageId,
+  };
+};
+
+const rememberStageSelection = (messageId: number, entries = getStageEntries()) => {
+  const entry = entries.find(
+    candidate =>
+      candidate.representativeMessageId === messageId || candidate.messageIds.includes(messageId),
+  );
+  if (!entry) return;
+  selectedHistoryMessageIds[entry.stage.kind] = entry.representativeMessageId;
+};
+
 const parkCandidateFrame = (frame: HTMLIFrameElement) => {
   const messageId = getFrameMessageId(frame);
   if (messageId === undefined) return;
@@ -541,6 +598,10 @@ const makeView = (): PseudoLayerView => {
     isLatest: selected === latestMessageId,
     nativeInputCollapsed,
     stage: entries[position]?.stage ?? { kind: 'story' },
+    histories: {
+      story: makeHistoryState(entries, 'story'),
+      dialogue: makeHistoryState(entries, 'dialogue'),
+    },
     activeInteraction:
       activeInteraction.mode === 'dialogue' ? { ...activeInteraction } : STORY_INTERACTION,
   };
@@ -894,6 +955,7 @@ const finishMessageInternal = async (messageId: number) => {
     }
     await ensurePseudoMarker(messageId);
     selectedMessageId = messageId;
+    rememberStageSelection(messageId);
     browsingHistory = false;
     viewRevision += 1;
     if (generation) {
@@ -936,8 +998,10 @@ const repairDialogueMetadata = async (messageId: number) => {
   broadcastView();
 };
 
-const selectStage = (target: number) => {
+const selectStage = (target: number, history?: PseudoLayerHistoryKind) => {
   selectedMessageId = target;
+  if (history) selectedHistoryMessageIds[history] = target;
+  else rememberStageSelection(target);
   browsingHistory = target !== latestStageId();
   viewRevision += 1;
   broadcastView();
@@ -946,12 +1010,40 @@ const selectStage = (target: number) => {
 
 const navigate = (request: Extract<PseudoLayerRequest, { type: 'navigate' }>) => {
   if (activeGeneration || deletingMessageId !== null) return;
-  const ids = getStageIds();
-  const position = ids.indexOf(request.messageId);
+  const entries = getStageEntries();
+  const historyEntries = request.history ? getHistoryEntries(entries, request.history) : entries;
+  const ids = historyEntries.map(entry => entry.representativeMessageId);
+  const selected = request.history
+    ? resolveHistorySelection(entries, request.history)
+    : request.messageId;
+  const position = selected === null ? -1 : ids.indexOf(selected);
   if (position < 0) return;
   const target = request.direction === 'previous' ? ids[position - 1] : ids[position + 1];
   if (target === undefined) return;
-  selectStage(target);
+  selectStage(target, request.history);
+};
+
+const selectHistory = (history: PseudoLayerHistoryKind) => {
+  if (activeGeneration || deletingMessageId !== null) return;
+  const entries = getStageEntries();
+  const target = resolveHistorySelection(entries, history);
+  if (target === null) {
+    viewRevision += 1;
+    broadcastView();
+    return;
+  }
+
+  const latest = entries.at(-1)?.representativeMessageId;
+  if (
+    history === 'dialogue' &&
+    activeInteraction.mode === 'dialogue' &&
+    selectedMessageId === latest
+  ) {
+    viewRevision += 1;
+    broadcastView();
+    return;
+  }
+  selectStage(target, history);
 };
 
 const deleteLatestTurn = async (
@@ -1010,6 +1102,7 @@ const deleteLatestTurn = async (
   try {
     await deleteChatMessages(messageIds, { refresh: 'affected' });
     selectedMessageId = latestStageId() ?? null;
+    if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
     browsingHistory = false;
     viewRevision += 1;
     send(source, {
@@ -1107,8 +1200,20 @@ const handleMessage = (event: MessageEvent<unknown>) => {
     return;
   }
 
+  if (request.type === 'select_history') {
+    if (getSourceMessageId(source) === undefined) return;
+    selectHistory(request.history);
+    return;
+  }
+
   if (request.type === 'return_latest') {
     if (activeGeneration || deletingMessageId !== null) return;
+    if (request.history) {
+      const entries = getStageEntries();
+      const target = getHistoryEntries(entries, request.history).at(-1)?.representativeMessageId;
+      if (target !== undefined) selectStage(target, request.history);
+      return;
+    }
     const target = latestStageId();
     if (target !== undefined) selectStage(target);
     return;
@@ -1302,6 +1407,8 @@ eventOn(tavern_events.CHAT_CHANGED, () => {
   dialoguePromptHandle?.uninject();
   dialoguePromptHandle = null;
   selectedMessageId = null;
+  selectedHistoryMessageIds.story = null;
+  selectedHistoryMessageIds.dialogue = null;
   browsingHistory = false;
   viewRevision += 1;
   applyStageVisibility();

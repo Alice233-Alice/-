@@ -5,6 +5,7 @@ import {
   PSEUDO_LAYER_VERSION,
   PseudoLayerGenerationOperation,
   PseudoLayerGenerationState,
+  PseudoLayerHistoryKind,
   PseudoLayerInteraction,
   PseudoLayerInteractionMetadata,
   PseudoLayerRequest,
@@ -29,6 +30,13 @@ export type DialogueTarget = {
 
 const INTERACTION_KEY = 'dhl_pseudo_interaction';
 const STORY_INTERACTION = { mode: 'story' } as const;
+const EMPTY_HISTORY = {
+  selectedMessageId: -1,
+  latestMessageId: -1,
+  index: 0,
+  total: 0,
+  isLatest: true,
+} as const;
 const EMPTY_VIEW: PseudoLayerView = {
   hostMessageId: -1,
   revision: 0,
@@ -39,6 +47,10 @@ const EMPTY_VIEW: PseudoLayerView = {
   isLatest: true,
   nativeInputCollapsed: false,
   stage: { kind: 'story' },
+  histories: {
+    story: { ...EMPTY_HISTORY },
+    dialogue: { ...EMPTY_HISTORY },
+  },
   activeInteraction: STORY_INTERACTION,
 };
 
@@ -151,8 +163,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
         }
       : null,
   );
-  const dialogueContext = computed(
-    () => activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value,
+  const dialogueContext = computed(() =>
+    !view.value.isLatest && selectedDialogue.value
+      ? selectedDialogue.value
+      : activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value,
   );
   const isDialogueActive = computed(() => activeDialogue.value !== null);
   const isDialogueView = computed(
@@ -590,7 +604,17 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     });
   };
 
-  const navigate = (direction: 'previous' | 'next') => {
+  const selectHistory = (history: PseudoLayerHistoryKind) => {
+    if (!Number.isFinite(messageId) || isGenerating.value) return;
+    post({
+      channel: PSEUDO_LAYER_CHANNEL,
+      version: PSEUDO_LAYER_VERSION,
+      type: 'select_history',
+      history,
+    });
+  };
+
+  const navigate = (direction: 'previous' | 'next', history?: PseudoLayerHistoryKind) => {
     if (!Number.isFinite(messageId) || isGenerating.value) return;
     post({
       channel: PSEUDO_LAYER_CHANNEL,
@@ -598,11 +622,20 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       type: 'navigate',
       messageId: view.value.selectedMessageId,
       direction,
+      ...(history ? { history } : {}),
     });
   };
 
   const returnLatest = () =>
     post({ channel: PSEUDO_LAYER_CHANNEL, version: PSEUDO_LAYER_VERSION, type: 'return_latest' });
+
+  const returnHistoryLatest = (history: PseudoLayerHistoryKind) =>
+    post({
+      channel: PSEUDO_LAYER_CHANNEL,
+      version: PSEUDO_LAYER_VERSION,
+      type: 'return_latest',
+      history,
+    });
 
   const toggleNativeInput = () =>
     post({ channel: PSEUDO_LAYER_CHANNEL, version: PSEUDO_LAYER_VERSION, type: 'toggle_native_input' });
@@ -660,8 +693,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     stop,
     reroll,
     deleteCurrent,
+    selectHistory,
     navigate,
     returnLatest,
+    returnHistoryLatest,
     toggleNativeInput,
   };
 });

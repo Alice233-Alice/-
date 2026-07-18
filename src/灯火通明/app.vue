@@ -260,6 +260,9 @@ watch(activeView, (next, previous) => {
       });
     }
   });
+  if ((next === 'story' || next === 'dialogue') && next !== previous) {
+    pseudoLayerStore.selectHistory(next);
+  }
 });
 
 watch(

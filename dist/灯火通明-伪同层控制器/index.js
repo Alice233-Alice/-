@@ -14,7 +14,7 @@ var __webpack_modules__ = {
       const message = value;
       return message.channel === PSEUDO_LAYER_CHANNEL && message.version === PSEUDO_LAYER_VERSION;
     };
-    const REQUEST_TYPES = new Set([ "hello", "goodbye", "generate", "stop", "reroll", "delete_message", "navigate", "return_latest", "set_interaction", "end_interaction", "toggle_native_input" ]);
+    const REQUEST_TYPES = new Set([ "hello", "goodbye", "generate", "stop", "reroll", "delete_message", "navigate", "select_history", "return_latest", "set_interaction", "end_interaction", "toggle_native_input" ]);
     const RESPONSE_TYPES = new Set([ "ready", "view", "state", "stream", "reasoning", "complete", "deleted", "error" ]);
     const isPseudoLayerRequest = value => hasEnvelope(value) && REQUEST_TYPES.has(String(value.type));
     const isPseudoLayerResponse = value => hasEnvelope(value) && RESPONSE_TYPES.has(String(value.type));
@@ -122,6 +122,10 @@ let __webpack_exports__ = {};
   let activeGeneration = null;
   let activeInteraction = STORY_INTERACTION;
   let selectedMessageId = null;
+  const selectedHistoryMessageIds = {
+    story: null,
+    dialogue: null
+  };
   let browsingHistory = false;
   let deletingMessageId = null;
   let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === "true";
@@ -407,6 +411,40 @@ let __webpack_exports__ = {};
   };
   const getStageIds = () => getStageEntries().map(entry => entry.representativeMessageId);
   const latestStageId = () => getStageEntries().at(-1)?.representativeMessageId;
+  const getHistoryEntries = (entries, history) => entries.filter(entry => entry.stage.kind === history);
+  const resolveHistorySelection = (entries, history) => {
+    const historyEntries = getHistoryEntries(entries, history);
+    if (historyEntries.length === 0) {
+      selectedHistoryMessageIds[history] = null;
+      return null;
+    }
+    const remembered = selectedHistoryMessageIds[history];
+    const selectedEntry = historyEntries.find(entry => entry.representativeMessageId === remembered || remembered !== null && entry.messageIds.includes(remembered));
+    const selected = selectedEntry ?? historyEntries.at(-1);
+    selectedHistoryMessageIds[history] = selected.representativeMessageId;
+    return selected.representativeMessageId;
+  };
+  const makeHistoryState = (entries, history) => {
+    const historyEntries = getHistoryEntries(entries, history);
+    const ids = historyEntries.map(entry => entry.representativeMessageId);
+    const selected = resolveHistorySelection(entries, history) ?? -1;
+    const position = ids.indexOf(selected);
+    const latestMessageId = ids.at(-1) ?? -1;
+    return {
+      selectedMessageId: selected,
+      latestMessageId,
+      index: position >= 0 ? position + 1 : 0,
+      total: ids.length,
+      previousMessageId: position > 0 ? ids[position - 1] : undefined,
+      nextMessageId: position >= 0 && position < ids.length - 1 ? ids[position + 1] : undefined,
+      isLatest: selected === latestMessageId
+    };
+  };
+  const rememberStageSelection = (messageId, entries = getStageEntries()) => {
+    const entry = entries.find(candidate => candidate.representativeMessageId === messageId || candidate.messageIds.includes(messageId));
+    if (!entry) return;
+    selectedHistoryMessageIds[entry.stage.kind] = entry.representativeMessageId;
+  };
   const parkCandidateFrame = frame => {
     const messageId = getFrameMessageId(frame);
     if (messageId === undefined) return;
@@ -487,6 +525,10 @@ let __webpack_exports__ = {};
       nativeInputCollapsed,
       stage: entries[position]?.stage ?? {
         kind: "story"
+      },
+      histories: {
+        story: makeHistoryState(entries, "story"),
+        dialogue: makeHistoryState(entries, "dialogue")
       },
       activeInteraction: activeInteraction.mode === "dialogue" ? {
         ...activeInteraction
@@ -767,6 +809,7 @@ let __webpack_exports__ = {};
       }
       await ensurePseudoMarker(messageId);
       selectedMessageId = messageId;
+      rememberStageSelection(messageId);
       browsingHistory = false;
       viewRevision += 1;
       if (generation) {
@@ -810,8 +853,9 @@ let __webpack_exports__ = {};
     viewRevision += 1;
     broadcastView();
   };
-  const selectStage = target => {
+  const selectStage = (target, history) => {
     selectedMessageId = target;
+    if (history) selectedHistoryMessageIds[history] = target; else rememberStageSelection(target);
     browsingHistory = target !== latestStageId();
     viewRevision += 1;
     broadcastView();
@@ -822,12 +866,32 @@ let __webpack_exports__ = {};
   };
   const navigate = request => {
     if (activeGeneration || deletingMessageId !== null) return;
-    const ids = getStageIds();
-    const position = ids.indexOf(request.messageId);
+    const entries = getStageEntries();
+    const historyEntries = request.history ? getHistoryEntries(entries, request.history) : entries;
+    const ids = historyEntries.map(entry => entry.representativeMessageId);
+    const selected = request.history ? resolveHistorySelection(entries, request.history) : request.messageId;
+    const position = selected === null ? -1 : ids.indexOf(selected);
     if (position < 0) return;
     const target = request.direction === "previous" ? ids[position - 1] : ids[position + 1];
     if (target === undefined) return;
-    selectStage(target);
+    selectStage(target, request.history);
+  };
+  const selectHistory = history => {
+    if (activeGeneration || deletingMessageId !== null) return;
+    const entries = getStageEntries();
+    const target = resolveHistorySelection(entries, history);
+    if (target === null) {
+      viewRevision += 1;
+      broadcastView();
+      return;
+    }
+    const latest = entries.at(-1)?.representativeMessageId;
+    if (history === "dialogue" && activeInteraction.mode === "dialogue" && selectedMessageId === latest) {
+      viewRevision += 1;
+      broadcastView();
+      return;
+    }
+    selectStage(target, history);
   };
   const deleteLatestTurn = async (request, source) => {
     if (activeGeneration || deletingMessageId !== null) {
@@ -877,6 +941,7 @@ let __webpack_exports__ = {};
         refresh: "affected"
       });
       selectedMessageId = latestStageId() ?? null;
+      if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
       browsingHistory = false;
       viewRevision += 1;
       send(source, {
@@ -965,8 +1030,19 @@ let __webpack_exports__ = {};
       navigate(request);
       return;
     }
+    if (request.type === "select_history") {
+      if (getSourceMessageId(source) === undefined) return;
+      selectHistory(request.history);
+      return;
+    }
     if (request.type === "return_latest") {
       if (activeGeneration || deletingMessageId !== null) return;
+      if (request.history) {
+        const entries = getStageEntries();
+        const target = getHistoryEntries(entries, request.history).at(-1)?.representativeMessageId;
+        if (target !== undefined) selectStage(target, request.history);
+        return;
+      }
       const target = latestStageId();
       if (target !== undefined) selectStage(target);
       return;
@@ -1151,6 +1227,8 @@ let __webpack_exports__ = {};
     dialoguePromptHandle?.uninject();
     dialoguePromptHandle = null;
     selectedMessageId = null;
+    selectedHistoryMessageIds.story = null;
+    selectedHistoryMessageIds.dialogue = null;
     browsingHistory = false;
     viewRevision += 1;
     applyStageVisibility();
