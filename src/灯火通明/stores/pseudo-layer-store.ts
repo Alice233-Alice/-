@@ -12,11 +12,13 @@ import {
   PseudoLayerView,
   isPseudoLayerResponse,
 } from '../pseudo-layer-protocol';
+import { extractDialogueContent } from '../message-content';
 
 export type DialogueTurn = {
   assistantMessageId: number;
   userMessageId: number | null;
   userText: string;
+  reaction: string;
   replyText: string;
   reasoning: string;
   reasoningDuration: number | null;
@@ -60,7 +62,7 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
     message.extra?.extra?.[INTERACTION_KEY]) as Partial<PseudoLayerInteractionMetadata> | undefined;
   if (
     !value ||
-    value.version !== 1 ||
+    (value.version !== 1 && value.version !== 2) ||
     value.kind !== 'dialogue' ||
     (value.channel !== 'present' && value.channel !== 'transmission')
   ) {
@@ -72,7 +74,8 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
   if (!sessionId || !targetName || !canonicalName) return null;
   const userMessageId = Number(value.userMessageId);
   return {
-    version: 1,
+    ...value,
+    version: value.version,
     kind: 'dialogue',
     sessionId,
     targetName,
@@ -80,7 +83,7 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
     channel: value.channel,
     ...(typeof value.rawUserText === 'string' ? { rawUserText: value.rawUserText } : {}),
     ...(Number.isFinite(userMessageId) ? { userMessageId } : {}),
-  };
+  } as PseudoLayerInteractionMetadata;
 };
 
 const readReasoning = (message: ChatMessage | undefined) => {
@@ -119,6 +122,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const generationState = ref<PseudoLayerGenerationState>('idle');
   const generationOperation = ref<PseudoLayerGenerationOperation | null>(null);
   const streamText = ref('');
+  const streamReaction = ref('');
   const liveReasoning = ref('');
   const reasoningDuration = ref<number | null>(null);
   const generationError = ref('');
@@ -185,6 +189,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       controllerReady.value &&
       isLatest.value &&
       view.value.total > 0 &&
+      view.value.stage.kind !== 'dialogue' &&
       !isGenerating.value &&
       !isDeleting.value,
   );
@@ -218,6 +223,11 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     return undefined;
   };
 
+  const findImmediatePreviousMessage = (messages: ChatMessage[], targetMessageId: number) =>
+    messages
+      .filter(message => message.message_id < targetMessageId)
+      .sort((left, right) => right.message_id - left.message_id)[0];
+
   const findLatestUserMessage = () => {
     const lastMessageId = getLastMessageId();
     if (!Number.isFinite(lastMessageId)) return '';
@@ -238,22 +248,22 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     dialogueTurns.value = messages
       .filter(message => message.role === 'assistant')
       .flatMap(message => {
-        const previousUser = [...messages]
-          .reverse()
-          .find(candidate => candidate.role === 'user' && candidate.message_id < message.message_id);
-        const metadata = readMetadata(message) ?? readMetadata(previousUser);
+        const previousMessage = findImmediatePreviousMessage(messages, message.message_id);
+        const adjacentUser = previousMessage?.role === 'user' ? previousMessage : undefined;
+        const metadata = readMetadata(message) ?? readMetadata(adjacentUser);
         if (!metadata || metadata.sessionId !== sessionId) return [];
         const linkedUser =
           (metadata.userMessageId !== undefined ? byId.get(metadata.userMessageId) : undefined) ??
-          previousUser ??
-          findPreviousUser(message.message_id);
+          adjacentUser;
         const reasoning = readReasoning(message);
+        const visible = extractDialogueContent(String(message.message ?? ''));
         return [
           {
             assistantMessageId: message.message_id,
             userMessageId: linkedUser?.message_id ?? null,
             userText: rawUserText(linkedUser),
-            replyText: String(message.message ?? ''),
+            reaction: metadata.reaction ?? visible.reaction,
+            replyText: visible.dialogue,
             reasoning: reasoning.text,
             reasoningDuration: reasoning.duration,
           },
@@ -285,13 +295,11 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
       const message = messages[index];
       if (message.role !== 'assistant' || message.message_id > targetMessageId) continue;
-      const previousUser = messages
-        .slice(0, index)
-        .reverse()
-        .find(candidate => candidate.role === 'user');
-      if (readMetadata(message) ?? readMetadata(previousUser)) continue;
+      const previousMessage = findImmediatePreviousMessage(messages, message.message_id);
+      const adjacentUser = previousMessage?.role === 'user' ? previousMessage : undefined;
+      if (readMetadata(message) ?? readMetadata(adjacentUser)) continue;
       storyMessage = message;
-      storyUserMessage = previousUser;
+      storyUserMessage = adjacentUser;
       break;
     }
 
@@ -307,8 +315,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     if (!Number.isFinite(targetMessageId) || targetMessageId < 0) return;
     try {
       const message = getChatMessages(targetMessageId)[0];
+      const messages = getMessageRange(targetMessageId);
+      const previousMessage = findImmediatePreviousMessage(messages, targetMessageId);
       floorMessage.value = String(message?.message ?? '');
-      floorUserMessage.value = rawUserText(findPreviousUser(targetMessageId));
+      floorUserMessage.value = rawUserText(previousMessage?.role === 'user' ? previousMessage : undefined);
       const reasoning = readReasoning(message);
       floorReasoning.value = reasoning.text;
       floorReasoningDuration.value = reasoning.duration;
@@ -408,6 +418,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       generationState.value = 'generating';
       if (!generationUserMessage.value) refreshGenerationUserMessage();
       streamText.value = response.text;
+      streamReaction.value = response.reaction ?? '';
       return;
     }
 
@@ -425,6 +436,8 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       selectedTitle.value = '';
       draftPrompt.value = '';
       generationUserMessage.value = '';
+      streamText.value = '';
+      streamReaction.value = '';
       return;
     }
 
@@ -433,6 +446,8 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       generationOperation.value = null;
       activeRequestId.value = '';
       generationUserMessage.value = '';
+      streamText.value = '';
+      streamReaction.value = '';
       generationError.value = response.message;
     }
   };
@@ -545,6 +560,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     generationOperation.value = 'generate';
     generationUserMessage.value = prompt;
     streamText.value = '';
+    streamReaction.value = '';
     liveReasoning.value = '';
     reasoningDuration.value = null;
     generationError.value = '';
@@ -578,6 +594,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     generationOperation.value = 'reroll';
     generationUserMessage.value = floorUserMessage.value;
     streamText.value = '';
+    streamReaction.value = '';
     liveReasoning.value = '';
     reasoningDuration.value = null;
     generationError.value = '';
@@ -649,6 +666,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     generationState,
     generationOperation,
     streamText,
+    streamReaction,
     liveReasoning,
     reasoningDuration,
     generationError,

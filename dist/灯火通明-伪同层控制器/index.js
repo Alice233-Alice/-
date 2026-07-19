@@ -1,4 +1,329 @@
+import * as __WEBPACK_EXTERNAL_MODULE_https_testingcf_jsdelivr_net_npm_jsonrepair_esm_703c329d__ from "https://testingcf.jsdelivr.net/npm/jsonrepair/+esm";
+
 var __webpack_modules__ = {
+  "./src/灯火通明-伪同层控制器/dialogue-engine.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+    __webpack_require__.r(__webpack_exports__);
+    __webpack_require__.d(__webpack_exports__, {
+      generateDialogueReply: () => generateDialogueReply,
+      parseDialogueGeneration: () => parseDialogueGeneration
+    });
+    var jsonrepair__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jsonrepair */ "jsonrepair");
+    var _message_content__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../灯火通明/message-content */ "./src/灯火通明/message-content.ts");
+    const INTERACTION_KEY = "dhl_pseudo_interaction";
+    const MAX_VISIBLE_CHARACTERS = 160;
+    const MAX_REACTION_CHARACTERS = 32;
+    const MAX_CONTEXT_TEXT = 720;
+    const MAX_COMPLETION_TOKENS = 1536;
+    const isRecord = value => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+    const compactText = (value, maxLength = MAX_CONTEXT_TEXT) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+    const truncateAtSentence = (value, maxLength) => {
+      const text = value.trim();
+      if (text.length <= maxLength) return text;
+      const candidate = text.slice(0, maxLength);
+      const boundary = Math.max(candidate.lastIndexOf("。"), candidate.lastIndexOf("！"), candidate.lastIndexOf("？"), candidate.lastIndexOf("…"), candidate.lastIndexOf("；"));
+      return (boundary >= Math.floor(maxLength * .55) ? candidate.slice(0, boundary + 1) : candidate).trim();
+    };
+    const readMetadata = message => {
+      const value = message?.extra?.[INTERACTION_KEY] ?? message?.extra?.extra?.[INTERACTION_KEY];
+      if (!value || value.version !== 1 && value.version !== 2 || value.kind !== "dialogue" || value.channel !== "present" && value.channel !== "transmission") {
+        return null;
+      }
+      const sessionId = compactText(value.sessionId, 120);
+      const targetName = compactText(value.targetName, 80);
+      const canonicalName = compactText(value.canonicalName, 80);
+      if (!sessionId || !targetName || !canonicalName) return null;
+      return {
+        ...value,
+        version: value.version,
+        kind: "dialogue",
+        sessionId,
+        targetName,
+        canonicalName,
+        channel: value.channel
+      };
+    };
+    const findPreviousUser = (messages, beforeMessageId) => [ ...messages ].reverse().find(message => message.role === "user" && message.message_id < beforeMessageId);
+    const findPreviousMessage = (messages, beforeMessageId) => [ ...messages ].reverse().find(message => message.message_id < beforeMessageId);
+    const resolveAssistantMetadata = (message, messages) => {
+      const direct = readMetadata(message);
+      if (direct || message.role !== "assistant") return direct;
+      const previous = findPreviousMessage(messages, message.message_id);
+      return previous?.role === "user" ? readMetadata(previous) : null;
+    };
+    const rawUserText = message => {
+      const metadata = readMetadata(message);
+      return compactText(metadata?.rawUserText ?? String(message?.message ?? "").replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, ""), 360);
+    };
+    const getStatData = mvuData => {
+      const statData = _.get(mvuData, "stat_data");
+      return isRecord(statData) ? statData : mvuData;
+    };
+    const buildSceneSummary = (context, mvuData, latestState, memories = []) => {
+      const statData = getStatData(mvuData);
+      const companion = _.get(statData, [ "红颜", context.canonicalName ], {});
+      const relationContext = _.get(companion, "关系上下文", {});
+      const track = _.get(statData, "本尊.行踪", {});
+      const location = compactText(_.get(track, "当前区域", "未知之地"), 100);
+      const environment = compactText(_.get(track, "环境描述", ""), 220);
+      const situation = compactText(_.get(statData, "当前处境", ""), 360);
+      const relationship = compactText(_.get(companion, "关系", ""), 100);
+      const favor = Number(_.get(companion, "好感度"));
+      const relationLines = [ [ "关系", relationship ], [ "好感", Number.isFinite(favor) ? String(favor) : "" ], [ "当前情绪", compactText(_.get(relationContext, "当前情绪", ""), 120) ], [ "态度缘由", compactText(_.get(relationContext, "态度缘由", ""), 180) ], [ "关系诉求", compactText(_.get(relationContext, "关系诉求", ""), 180) ], [ "相处禁忌", compactText(_.get(relationContext, "相处禁忌", ""), 180) ], [ "未了约定", compactText(_.get(relationContext, "未了约定", ""), 180) ] ].filter(([, value]) => value).map(([label, value]) => `${label}：${value}`).join("\n");
+      const sessionLines = latestState ? [ latestState.emotion && `会话情绪：${compactText(latestState.emotion, 120)}`, latestState.topic && `当前话题：${compactText(latestState.topic, 160)}`, latestState.subtext && `当前潜台词：${compactText(latestState.subtext, 180)}`, latestState.unresolvedThreads?.length && `未解线索：${latestState.unresolvedThreads.map(item => compactText(item, 100)).join("；")}` ].filter(Boolean).join("\n") : "";
+      const memoryLines = memories.length ? `尚未解决的重要记忆：\n${memories.map(item => `- [${item.kind}] ${compactText(item.summary, 160)}`).join("\n")}` : "";
+      return [ `目标角色：${context.targetName}（规范角色名：${context.canonicalName}）`, `交流方式：${context.channel === "present" ? "当面交谈" : "远程传讯"}`, `地点：${location}`, environment && `环境：${environment}`, situation && `当前处境：${situation}`, relationLines, sessionLines, memoryLines ].filter(Boolean).join("\n");
+    };
+    const collectSessionState = (messages, context, baseMessageId) => {
+      for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index];
+        if (message.message_id > baseMessageId || message.role !== "assistant") continue;
+        const metadata = resolveAssistantMetadata(message, messages);
+        if (metadata?.sessionId === context.sessionId && metadata.sessionState) return metadata.sessionState;
+      }
+      return undefined;
+    };
+    const collectOpenMemories = (messages, context, baseMessageId) => {
+      const projection = new Map;
+      messages.forEach(message => {
+        if (message.message_id > baseMessageId || message.role !== "assistant") return;
+        const metadata = resolveAssistantMetadata(message, messages);
+        if (!metadata || metadata.targetName !== context.targetName) return;
+        (metadata.memoryEvents ?? []).forEach(event => {
+          (event.resolves ?? []).forEach(id => projection.delete(id));
+          if (event.status === "resolved") projection.delete(event.id); else projection.set(event.id, event);
+        });
+      });
+      return [ ...projection.values() ].slice(-8);
+    };
+    const buildHistoryPrompts = (messages, context, baseMessageId, sceneSummary) => {
+      const prompts = [ {
+        role: "system",
+        content: `【本轮对话资料】\n${sceneSummary}`
+      } ];
+      const storyAssistant = [ ...messages ].reverse().find(message => message.role === "assistant" && message.message_id <= baseMessageId && !resolveAssistantMetadata(message, messages));
+      if (storyAssistant) {
+        const storyUser = findPreviousUser(messages, storyAssistant.message_id);
+        const userAnchor = compactText(storyUser?.message, 360);
+        const assistantAnchor = compactText((0, _message_content__WEBPACK_IMPORTED_MODULE_1__.extractNarrative)(storyAssistant.message), MAX_CONTEXT_TEXT);
+        prompts.push({
+          role: "system",
+          content: [ "【最近正文锚点，仅用于理解现场，不要续写成长篇剧情】", userAnchor && `用户：${userAnchor}`, assistantAnchor && `剧情：${assistantAnchor}` ].filter(Boolean).join("\n")
+        });
+      }
+      const sessionTurns = messages.filter(message => message.role === "assistant" && message.message_id <= baseMessageId).flatMap(message => {
+        const metadata = resolveAssistantMetadata(message, messages);
+        if (!metadata || metadata.sessionId !== context.sessionId) return [];
+        const linkedUser = Number.isFinite(metadata.userMessageId) ? messages.find(candidate => candidate.message_id === metadata.userMessageId) : findPreviousUser(messages, message.message_id);
+        const visible = (0, _message_content__WEBPACK_IMPORTED_MODULE_1__.extractDialogueContent)(message.message);
+        return [ {
+          user: rawUserText(linkedUser),
+          assistant: [ visible.reaction && `（${visible.reaction}）`, visible.dialogue ].filter(Boolean).join(" ")
+        } ];
+      }).slice(-8);
+      sessionTurns.forEach(turn => {
+        if (turn.user) prompts.push({
+          role: "user",
+          content: turn.user
+        });
+        if (turn.assistant) prompts.push({
+          role: "assistant",
+          content: compactText(turn.assistant, 320)
+        });
+      });
+      return prompts;
+    };
+    const buildEngineContext = input => {
+      const latestState = collectSessionState(input.messages, input.context, input.baseMessageId);
+      const memories = collectOpenMemories(input.messages, input.context, input.baseMessageId);
+      const sceneSummary = buildSceneSummary(input.context, input.mvuData, latestState, memories);
+      return {
+        sceneSummary,
+        historyPrompts: buildHistoryPrompts(input.messages, input.context, input.baseMessageId, sceneSummary)
+      };
+    };
+    const buildDialogueContract = context => `\n【灯火阑珊·红颜专用短对话引擎】\n你现在只扮演「${context.targetName}」（规范角色名：${context.canonicalName}）直接回应用户。\n这是${context.channel === "present" ? "当面交谈" : "远程传讯"}，不是剧情续写任务。\n\n角色表现：\n- 必须遵守现有角色人设、关系阶段与世界事实，但允许回避、不同意、设立边界、反问或主动追问。\n- 回复除回答内容外，至少自然体现一种私人向量：个人立场、欲望、边界、具体记忆或言外之意。\n- 不要固定套用“回答后反问”的模板；角色没有必要每次都提问。\n- 不得替用户决定言行，不得无请求地跳时间、换地点、开启任务或推进成长篇剧情。\n\n可见内容：\n- 严格按 <反应>、<正文>、<会话状态> 的顺序输出，除此之外不得输出任何文字或 Markdown 代码块。\n- <反应> 最多 32 个汉字，只写一个短动作、停顿或神态，可以为空。${context.channel === "transmission" ? "本轮为远程传讯，<反应>必须为空，不能描写用户看不见的远端动作。" : ""}\n- <正文> 只写「${context.targetName}」亲口说出或传回的话，不写说话人标签，不用引号包裹整段。\n- 普通回应通常 30 至 70 字；复杂问答或明显情绪冲突可以更长，但 <反应> 与 <正文> 合计不得超过 160 字。\n- 禁止输出 visual_cards、UpdateVariable、JSONPatch、状态栏、旁白续写或其他结构块。\n\n隐藏状态：\n<会话状态> 内输出一行严格 JSON，不得用代码围栏：\n{"emotion":"当前情绪","topic":"当前话题","subtext":"潜台词","unresolvedThreads":["未解线索"],"memoryEvents":[{"kind":"promise|boundary|conflict|disclosure","summary":"仅记录真正重要且以后应记住的事件","status":"open|resolved","resolves":[]}],"relationEvents":[]}\n- 没有重要记忆或关系事件时对应数组必须为空，不要把日常寒暄记为事件。\n- relationEvents 仅作候选记录，本阶段不会自动修改好感或关系。\n`.trim();
+    const readCompleteTag = (text, tag) => text.match(new RegExp(`<${tag}(?=[\\s/>])[^>]*>([\\s\\S]*?)<\\/${tag}\\s*>`, "i"))?.[1]?.trim() ?? "";
+    const stripDialogueTags = text => text.replace(/<\/?(?:反应|正文|会话状态)(?=[\s/>])[^>]*>/gi, "").trim();
+    const readBoundedTag = (text, tag, stopTags) => {
+      const open = new RegExp(`<${tag}(?=[\\s/>])[^>]*>`, "i").exec(text);
+      if (!open) return "";
+      const remainder = text.slice(open.index + open[0].length);
+      const close = new RegExp(`<\\/${tag}\\s*>`, "i").exec(remainder);
+      let end = close?.index ?? remainder.length;
+      stopTags.forEach(stopTag => {
+        const stop = new RegExp(`<${stopTag}(?=[\\s/>])[^>]*>`, "i").exec(remainder);
+        if (stop && stop.index < end) end = stop.index;
+      });
+      return stripDialogueTags(remainder.slice(0, end));
+    };
+    const parseStateJson = text => {
+      const raw = readCompleteTag(text, "会话状态").replace(/^```(?:json)?\s*|\s*```$/gi, "").trim();
+      if (!raw) return undefined;
+      try {
+        const parsed = JSON.parse((0, jsonrepair__WEBPACK_IMPORTED_MODULE_0__.jsonrepair)(raw));
+        return isRecord(parsed) ? parsed : undefined;
+      } catch (error) {
+        console.warn("[灯火阑珊·短对话] 会话状态解析失败，已保留可见对白", error);
+        return undefined;
+      }
+    };
+    const normalizeSessionState = value => {
+      if (!isRecord(value)) return undefined;
+      const unresolvedThreads = Array.isArray(value.unresolvedThreads) ? value.unresolvedThreads.map(item => compactText(item, 120)).filter(Boolean).slice(0, 8) : [];
+      const state = {
+        emotion: compactText(value.emotion, 100) || undefined,
+        topic: compactText(value.topic, 140) || undefined,
+        subtext: compactText(value.subtext, 180) || undefined,
+        unresolvedThreads: unresolvedThreads.length ? unresolvedThreads : undefined
+      };
+      return Object.values(state).some(Boolean) ? state : undefined;
+    };
+    const normalizeMemoryEvents = (value, operationId) => {
+      if (!Array.isArray(value)) return [];
+      const kinds = new Set([ "promise", "boundary", "conflict", "disclosure" ]);
+      const statuses = new Set([ "open", "resolved" ]);
+      return value.flatMap((candidate, index) => {
+        if (!isRecord(candidate) || !kinds.has(candidate.kind) || !statuses.has(candidate.status)) return [];
+        const summary = compactText(candidate.summary, 180);
+        if (!summary) return [];
+        const resolves = Array.isArray(candidate.resolves) ? candidate.resolves.map(item => compactText(item, 120)).filter(Boolean).slice(0, 8) : [];
+        return [ {
+          id: `${operationId}:memory:${index}`,
+          kind: candidate.kind,
+          summary,
+          status: candidate.status,
+          ...resolves.length ? {
+            resolves
+          } : {}
+        } ];
+      }).slice(0, 4);
+    };
+    const normalizeRelationEvents = (value, operationId) => {
+      if (!Array.isArray(value)) return [];
+      const kinds = new Set([ "positive", "negative", "promise", "boundary", "attitude" ]);
+      return value.flatMap((candidate, index) => {
+        if (!isRecord(candidate) || !kinds.has(candidate.kind)) return [];
+        const summary = compactText(candidate.summary, 180);
+        if (!summary) return [];
+        const rawDelta = Number(candidate.favorDelta);
+        const favorDelta = rawDelta === -1 || rawDelta === 0 || rawDelta === 1 ? rawDelta : undefined;
+        return [ {
+          id: `${operationId}:relation:${index}`,
+          kind: candidate.kind,
+          summary,
+          ...favorDelta !== undefined ? {
+            favorDelta
+          } : {},
+          applied: false
+        } ];
+      }).slice(0, 2);
+    };
+    const parseDialogueGeneration = (raw, context, operationId) => {
+      const visible = (0, _message_content__WEBPACK_IMPORTED_MODULE_1__.extractDialogueContent)(raw);
+      const boundedReaction = readBoundedTag(raw, "反应", [ "正文", "会话状态" ]);
+      const boundedDialogue = readBoundedTag(raw, "正文", [ "会话状态" ]);
+      const reaction = context.channel === "transmission" ? "" : truncateAtSentence(compactText(stripDialogueTags(boundedReaction || visible.reaction), MAX_REACTION_CHARACTERS), MAX_REACTION_CHARACTERS);
+      const dialogueLimit = Math.max(48, MAX_VISIBLE_CHARACTERS - reaction.length);
+      const dialogue = truncateAtSentence(compactText(stripDialogueTags(boundedDialogue || visible.dialogue), dialogueLimit), dialogueLimit);
+      const state = parseStateJson(raw);
+      return {
+        raw,
+        reaction,
+        dialogue,
+        sessionState: normalizeSessionState(state),
+        memoryEvents: normalizeMemoryEvents(state?.memoryEvents, operationId),
+        relationEvents: normalizeRelationEvents(state?.relationEvents, operationId)
+      };
+    };
+    const generateDialogueReply = async input => {
+      const engineContext = buildEngineContext(input);
+      const decoratedInput = input.context.channel === "present" ? `（对${input.context.targetName}说）${input.prompt.trim()}` : `（向${input.context.targetName}传讯）${input.prompt.trim()}`;
+      const result = await generateRaw({
+        generation_id: input.generationId,
+        user_input: decoratedInput,
+        should_stream: true,
+        should_silence: true,
+        max_chat_history: 0,
+        custom_api: {
+          max_tokens: MAX_COMPLETION_TOKENS
+        },
+        ordered_prompts: [ "world_info_before", "persona_description", "char_description", "char_personality", "scenario", "world_info_after", ...engineContext.historyPrompts, {
+          role: "system",
+          content: buildDialogueContract(input.context)
+        }, "user_input" ]
+      });
+      if (typeof result !== "string") throw new Error("短对话模型返回了工具调用，未得到可见对白。");
+      const parsed = parseDialogueGeneration(result, input.context, input.operationId);
+      if (!parsed.dialogue) throw new Error("角色没有返回可供显示的对白，请重试。");
+      return parsed;
+    };
+  },
+  "./src/灯火通明/message-content.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+    __webpack_require__.r(__webpack_exports__);
+    __webpack_require__.d(__webpack_exports__, {
+      extractDialogueContent: () => extractDialogueContent,
+      extractNarrative: () => extractNarrative,
+      formatMessageHtml: () => formatMessageHtml,
+      stripStructuredBlocks: () => stripStructuredBlocks
+    });
+    const STRUCTURAL_TAGS = [ "visual_cards", "pseudo_layer", "UpdateVariable", "JSONPatch", "StatusPlaceHolderImpl", "反应", "会话状态" ];
+    const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const openTagPattern = tag => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
+    const closeTagPattern = tag => `<\\/${escapeRegExp(tag)}\\s*>`;
+    const readTaggedContent = (text, tag) => {
+      const open = openTagPattern(tag);
+      const close = closeTagPattern(tag);
+      const complete = text.match(new RegExp(`${open}([\\s\\S]*?)${close}`, "i"))?.[1];
+      const streaming = text.match(new RegExp(`${open}([\\s\\S]*)$`, "i"))?.[1];
+      return (complete ?? streaming ?? "").replace(new RegExp(`<\\/?${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`, "gi"), "").trim();
+    };
+    const unwrapDialogueQuotes = text => {
+      const pairs = [ [ "“", "”" ], [ "「", "」" ], [ "『", "』" ], [ '"', '"' ], [ "'", "'" ] ];
+      let value = text.trim();
+      for (let pass = 0; pass < 3; pass += 1) {
+        const pair = pairs.find(([open, close]) => value.startsWith(open) && value.endsWith(close));
+        if (!pair || value.length <= pair[0].length + pair[1].length) break;
+        value = value.slice(pair[0].length, -pair[1].length).trim();
+      }
+      return value;
+    };
+    const stripStructuredBlocks = text => {
+      let result = text;
+      STRUCTURAL_TAGS.forEach(tag => {
+        const open = openTagPattern(tag);
+        const close = closeTagPattern(tag);
+        result = result.replace(new RegExp(`${open}[\\s\\S]*?${close}`, "gi"), "").replace(new RegExp(`${open}[\\s\\S]*$`, "gi"), "").replace(new RegExp(`<${escapeRegExp(tag)}(?=[\\s/>])[^>]*/>`, "gi"), "");
+      });
+      return result.trim();
+    };
+    const extractNarrative = text => {
+      const completeBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
+      const streamingBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
+      return stripStructuredBlocks(completeBody ?? streamingBody ?? text).replace(/<\/?正文(?=[\s/>])[^>]*>/gi, "").trim();
+    };
+    const extractDialogueContent = text => {
+      const hasReactionTag = /<反应(?=[\s/>])/i.test(text);
+      const hasBodyTag = /<正文(?=[\s/>])/i.test(text);
+      const reaction = hasReactionTag ? stripStructuredBlocks(readTaggedContent(text, "反应")) : "";
+      const dialogue = hasBodyTag ? readTaggedContent(text, "正文") : hasReactionTag ? "" : extractNarrative(text);
+      return {
+        reaction: reaction.replace(/<[^>]*$/g, "").trim(),
+        dialogue: unwrapDialogueQuotes(stripStructuredBlocks(dialogue).replace(/<[^>]*$/g, "").trim())
+      };
+    };
+    const formatMessageHtml = (text, messageId) => {
+      const value = text.trim();
+      if (!value) return "";
+      try {
+        return formatAsDisplayedMessage(value, {
+          message_id: messageId
+        });
+      } catch (error) {
+        console.warn("[灯火阑珊·伪同层] 消息格式化失败", error);
+        return $("<div>").text(value).html().replace(/\n/g, "<br>");
+      }
+    };
+  },
   "./src/灯火通明/pseudo-layer-protocol.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
@@ -8,7 +333,7 @@ var __webpack_modules__ = {
       isPseudoLayerResponse: () => isPseudoLayerResponse
     });
     const PSEUDO_LAYER_CHANNEL = "denghuolanshan:pseudo-layer";
-    const PSEUDO_LAYER_VERSION = 4;
+    const PSEUDO_LAYER_VERSION = 5;
     const hasEnvelope = value => {
       if (!value || typeof value !== "object") return false;
       const message = value;
@@ -18,6 +343,9 @@ var __webpack_modules__ = {
     const RESPONSE_TYPES = new Set([ "ready", "view", "state", "stream", "reasoning", "complete", "deleted", "error" ]);
     const isPseudoLayerRequest = value => hasEnvelope(value) && REQUEST_TYPES.has(String(value.type));
     const isPseudoLayerResponse = value => hasEnvelope(value) && RESPONSE_TYPES.has(String(value.type));
+  },
+  jsonrepair(module) {
+    module.exports = __WEBPACK_EXTERNAL_MODULE_https_testingcf_jsdelivr_net_npm_jsonrepair_esm_703c329d__;
   }
 };
 
@@ -102,10 +430,10 @@ let __webpack_exports__ = {};
   \**********************************/
   __webpack_require__.r(__webpack_exports__);
   var _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../灯火通明/pseudo-layer-protocol */ "./src/灯火通明/pseudo-layer-protocol.ts");
+  var _dialogue_engine__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./dialogue-engine */ "./src/灯火通明-伪同层控制器/dialogue-engine.ts");
   const STYLE_ID = "dhl-pseudo-layer-controller-style";
   const INPUT_STORAGE_KEY = "denghuolanshan:pseudo-layer:native-input-collapsed";
   const INTERACTION_KEY = "dhl_pseudo_interaction";
-  const DIALOGUE_PROMPT_ID = "dhl-pseudo-dialogue-contract";
   const STAGE_CLASS = "dhl-pseudo-stage";
   const SELECTED_CLASS = "dhl-pseudo-selected";
   const PARKED_FRAME_CLASS = "dhl-pseudo-frame-parked";
@@ -130,7 +458,6 @@ let __webpack_exports__ = {};
   let deletingMessageId = null;
   let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === "true";
   let viewRevision = 0;
-  let dialoguePromptHandle = null;
   let frameObserver = null;
   const send = (source, message) => {
     source?.postMessage({
@@ -157,7 +484,10 @@ let __webpack_exports__ = {};
       send(source, {
         type: "stream",
         requestId: generation.requestId,
-        text: generation.streamText
+        text: generation.streamText,
+        ...generation.streamReaction ? {
+          reaction: generation.streamReaction
+        } : {}
       });
     }
     if (generation.reasoning) {
@@ -191,32 +521,10 @@ let __webpack_exports__ = {};
     };
   };
   const isSameInteraction = (left, right) => left.mode === right.mode && (left.mode === "story" || right.mode === "dialogue" && left.sessionId === right.sessionId && left.targetName === right.targetName && left.canonicalName === right.canonicalName && left.channel === right.channel);
-  const buildDialogueContract = context => {
-    const channelRules = context.channel === "present" ? `这是当面交谈。<正文> 内只能写 ${context.targetName} 此刻亲口说出的话，不得写动作、神态、环境、语气说明或任何旁白。` : `这是远程传讯。<正文> 内只能写 ${context.targetName} 传回的话，不得描写远端场景、动作、神态或任何旁白，也不得仅因本轮传讯把远端角色加入 visual_cards。`;
-    return `\n【灯火阑珊·本轮角色交谈契约】\n本轮由「${context.targetName}」（规范角色名：${context.canonicalName}）直接回应用户，交流方式为${context.channel === "present" ? "当面交谈" : "传讯"}。\n${channelRules}\n\n本契约只覆盖本轮回复的篇幅、叙述结构与推进速度；角色人设、世界观、世界书、MVU、Visual Cards、既有安全规则和原有输出结构仍然有效。\n- 本轮处于专门的短对话模式。本契约优先于“正文不少于 1000 字”“扩写完整剧情”“详细环境描写”等普通剧情要求；禁止为了满足其他篇幅要求增加文字。\n- <正文> 的全部可见文字合计不得超过 50 个中文字符（标点也计入），通常只写 1 至 3 句；直接回答用户，不复述提问。\n- <正文> 必须是百分之百的角色对白。禁止旁白、动作、表情、心理、环境、转述、说话人标签、Markdown 引用和括号舞台说明；不要用引号包裹整段对白。\n- 本轮只允许 ${context.targetName} 回应。即使其他角色在场，也不得代答或插话。\n- 不得无请求地跳时间、换地点、开启新任务、替用户决定言行，或扩展成一整段长篇剧情。\n- 普通寒暄、询问和陪伴不自动增加好感，不自动推进关系。只有可见正文确实发生了实质变化时才更新 MVU；否则变量更新使用现有格式输出空 JSONPatch。\n- 仅 <正文> 内的角色对白受 50 字限制；visual_cards、UpdateVariable、JSONPatch 等结构继续遵守角色卡原有格式，不计入正文字符数。模型漏写结构时也不要用解释性文字补充格式说明。\n  `.trim();
-  };
-  const syncDialoguePrompt = () => {
-    dialoguePromptHandle?.uninject();
-    dialoguePromptHandle = null;
-    if (activeInteraction.mode !== "dialogue") return;
-    const context = {
-      ...activeInteraction
-    };
-    dialoguePromptHandle = injectPrompts([ {
-      id: DIALOGUE_PROMPT_ID,
-      position: "in_chat",
-      depth: 0,
-      role: "system",
-      content: buildDialogueContract(context),
-      should_scan: true,
-      filter: () => !browsingHistory && isSameInteraction(activeInteraction, context)
-    } ]);
-  };
   const setActiveInteraction = interaction => {
     const next = interaction.mode === "dialogue" ? normalizeDialogueContext(interaction) ?? STORY_INTERACTION : STORY_INTERACTION;
     if (isSameInteraction(activeInteraction, next)) return;
     activeInteraction = next;
-    syncDialoguePrompt();
   };
   const getMessageElement = messageId => tavernDocument.querySelector(`#chat > .mes[mesid='${messageId}']`);
   const getStageRoot = (create = true) => {
@@ -322,7 +630,7 @@ let __webpack_exports__ = {};
     const direct = message.extra?.[INTERACTION_KEY];
     const nested = message.extra?.extra?.[INTERACTION_KEY];
     const value = direct ?? nested;
-    if (!value || value.version !== 1 || value.kind !== "dialogue") return null;
+    if (!value || value.version !== 1 && value.version !== 2 || value.kind !== "dialogue") return null;
     const context = normalizeDialogueContext({
       mode: "dialogue",
       ...value
@@ -330,7 +638,8 @@ let __webpack_exports__ = {};
     if (!context) return null;
     const userMessageId = Number(value.userMessageId);
     return {
-      version: 1,
+      ...value,
+      version: value.version,
       kind: "dialogue",
       ...context,
       ...typeof value.rawUserText === "string" ? {
@@ -349,12 +658,14 @@ let __webpack_exports__ = {};
     channel: metadata.channel
   });
   const findPreviousUserMessage = (messages, messageId) => [ ...messages ].reverse().find(message => message.role === "user" && message.message_id < messageId);
+  const findPreviousMessage = (messages, messageId) => [ ...messages ].reverse().find(message => message.message_id < messageId);
   const resolveAssistantInteractionMetadata = (message, messages) => {
     const direct = readInteractionMetadata(message);
     if (direct || !message || message.role !== "assistant") return direct;
-    const userMessage = findPreviousUserMessage(messages, message.message_id);
+    const userMessage = findPreviousMessage(messages, message.message_id);
+    if (userMessage?.role !== "user") return null;
     const userMetadata = readInteractionMetadata(userMessage);
-    if (!userMetadata || !userMessage) return null;
+    if (!userMetadata) return null;
     return {
       ...userMetadata,
       userMessageId: userMessage.message_id
@@ -390,6 +701,7 @@ let __webpack_exports__ = {};
         previous.messageIds.push(message.message_id);
         previous.representativeMessageId = message.message_id;
         previous.stage.turnCount += 1;
+        previous.stage.engine = metadata.engine ?? previous.stage.engine;
         return;
       }
       entries.push({
@@ -401,7 +713,8 @@ let __webpack_exports__ = {};
           targetName: metadata.targetName,
           canonicalName: metadata.canonicalName,
           channel: metadata.channel,
-          turnCount: 1
+          turnCount: 1,
+          engine: metadata.engine
         } : {
           kind: "story"
         }
@@ -593,10 +906,13 @@ let __webpack_exports__ = {};
   const writeInteractionMetadata = async (messageId, context, options = {}) => {
     const message = getChatMessages(messageId)[0];
     if (!message) return;
+    const existing = readInteractionMetadata(message);
     const metadata = {
-      version: 1,
+      ...existing,
+      version: 2,
       kind: "dialogue",
       ...context,
+      engine: existing?.engine ?? "native",
       ...options.rawUserText ? {
         rawUserText: options.rawUserText
       } : {},
@@ -646,6 +962,159 @@ let __webpack_exports__ = {};
       message: nativeMessage
     });
   };
+  const getCurrentChatId = () => String(tavernWindow.SillyTavern?.getCurrentChatId?.() ?? "");
+  const getDialogueMvuSnapshot = messageId => {
+    let snapshot;
+    try {
+      if (typeof Mvu !== "undefined") {
+        snapshot = Mvu.getMvuData({
+          type: "message",
+          message_id: messageId
+        });
+      }
+    } catch (error) {
+      console.warn("[灯火阑珊·短对话] 读取 MVU 快照失败，改用楼层数据", error);
+    }
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+      snapshot = getChatMessages(messageId)[0]?.data ?? {};
+    }
+    return _.cloneDeep(snapshot);
+  };
+  const stripDialogueStructureTags = text => text.replace(/<\/?(?:反应|正文|会话状态|visual_cards|pseudo_layer|UpdateVariable|JSONPatch)(?=[\s/>])[^>]*>/gi, "").trim();
+  const buildDedicatedDialogueMessage = result => {
+    const reaction = stripDialogueStructureTags(result.reaction);
+    const dialogue = stripDialogueStructureTags(result.dialogue);
+    return [ `<反应>${reaction}</反应>`, `<正文>${dialogue}</正文>`, "<pseudo_layer>", "灯火阑珊", "</pseudo_layer>" ].join("\n");
+  };
+  const buildDedicatedMetadata = (generation, context, userMessageId, result) => {
+    const reaction = result ? stripDialogueStructureTags(result.reaction) : "";
+    return {
+      version: 2,
+      kind: "dialogue",
+      ...context,
+      engine: "dedicated",
+      operationId: generation.operationId,
+      rawUserText: generation.rawUserText,
+      userMessageId,
+      ...reaction ? {
+        reaction
+      } : {},
+      ...result?.sessionState ? {
+        sessionState: result.sessionState
+      } : {},
+      ...result?.memoryEvents.length ? {
+        memoryEvents: result.memoryEvents
+      } : {},
+      ...result?.relationEvents.length ? {
+        relationEvents: result.relationEvents
+      } : {}
+    };
+  };
+  const getDialogueOperationMessages = operationId => getAllMessages().filter(message => readInteractionMetadata(message)?.operationId === operationId);
+  const rollbackDialogueOperation = async generation => {
+    if (!generation.operationId || getCurrentChatId() !== generation.chatId) return;
+    const ids = getDialogueOperationMessages(generation.operationId).map(message => message.message_id);
+    if (ids.length === 0) return;
+    const previousDeletingMessageId = deletingMessageId;
+    deletingMessageId = Math.max(...ids);
+    try {
+      await deleteChatMessages(ids, {
+        refresh: "affected"
+      });
+    } finally {
+      deletingMessageId = previousDeletingMessageId;
+    }
+  };
+  const commitDedicatedDialogue = async (generation, context, result, mvuSnapshot) => {
+    const baseline = generation.baselineLastMessageId;
+    if (baseline === undefined || generation.cancelled || getCurrentChatId() !== generation.chatId || getLastMessageId() !== baseline) {
+      throw new Error("生成期间聊天记录已经变化，本轮短对话未写入。");
+    }
+    const userMessageId = baseline + 1;
+    const assistantMessageId = baseline + 2;
+    const userMetadata = buildDedicatedMetadata(generation, context, userMessageId);
+    const assistantMetadata = buildDedicatedMetadata(generation, context, userMessageId, result);
+    await createChatMessages([ {
+      role: "user",
+      message: decorateDialogueInput(generation.rawUserText, context),
+      data: _.cloneDeep(mvuSnapshot),
+      extra: {
+        [INTERACTION_KEY]: userMetadata
+      }
+    }, {
+      role: "assistant",
+      message: buildDedicatedDialogueMessage(result),
+      data: _.cloneDeep(mvuSnapshot),
+      extra: {
+        [INTERACTION_KEY]: assistantMetadata
+      }
+    } ], {
+      refresh: "affected"
+    });
+    const created = getDialogueOperationMessages(generation.operationId ?? "");
+    const user = created.find(message => message.role === "user");
+    const assistant = created.find(message => message.role === "assistant");
+    if (generation.cancelled || getCurrentChatId() !== generation.chatId || getLastMessageId() !== assistantMessageId || user?.message_id !== userMessageId || assistant?.message_id !== assistantMessageId) {
+      throw new Error("写入短对话时聊天记录发生并发变化，已撤销本轮写入。");
+    }
+    return assistantMessageId;
+  };
+  const finishDedicatedGeneration = (generation, messageId) => {
+    selectedMessageId = messageId;
+    rememberStageSelection(messageId);
+    browsingHistory = false;
+    viewRevision += 1;
+    send(generation.source, {
+      type: "complete",
+      requestId: generation.requestId,
+      messageId
+    });
+    if (activeGeneration === generation) activeGeneration = null;
+    broadcastView();
+  };
+  const runDedicatedDialogueGeneration = async (generation, context, messages, mvuSnapshot) => {
+    try {
+      generation.sent = true;
+      sendGenerationState(generation, "generating");
+      const result = await (0, _dialogue_engine__WEBPACK_IMPORTED_MODULE_1__.generateDialogueReply)({
+        generationId: generation.generationId,
+        operationId: generation.operationId,
+        baseMessageId: generation.baseMessageId,
+        prompt: generation.rawUserText,
+        context,
+        messages,
+        mvuData: mvuSnapshot
+      });
+      if (activeGeneration !== generation) return;
+      if (generation.cancelled) throw new Error("本轮短对话已停止。");
+      sendGenerationState(generation, "saving");
+      const messageId = await commitDedicatedDialogue(generation, context, result, mvuSnapshot);
+      if (activeGeneration !== generation) return;
+      finishDedicatedGeneration(generation, messageId);
+    } catch (error) {
+      try {
+        await rollbackDialogueOperation(generation);
+      } catch (rollbackError) {
+        console.error("[灯火阑珊·短对话] 回滚未完成，请检查本轮 operationId", rollbackError);
+      }
+      if (activeGeneration !== generation) return;
+      if (generation.cancelled) {
+        send(generation.source, {
+          type: "complete",
+          requestId: generation.requestId,
+          messageId: generation.baseMessageId
+        });
+      } else {
+        send(generation.source, {
+          type: "error",
+          requestId: generation.requestId,
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+      activeGeneration = null;
+      broadcastView();
+    }
+  };
   const beginGeneration = (request, source) => {
     if (activeGeneration || deletingMessageId !== null) {
       send(source, {
@@ -676,6 +1145,49 @@ let __webpack_exports__ = {};
     const dialogue = request.interaction.mode === "dialogue" ? normalizeDialogueContext(request.interaction) : null;
     const interaction = dialogue ?? STORY_INTERACTION;
     setActiveInteraction(interaction);
+    if (dialogue) {
+      try {
+        const baselineLastMessageId = getLastMessageId();
+        if (baselineLastMessageId !== request.messageId) {
+          throw new Error("聊天记录刚刚发生了变化，请在最新回合重新发送。");
+        }
+        const messages = getAllMessages();
+        const mvuSnapshot = getDialogueMvuSnapshot(request.messageId);
+        const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const generation = {
+          requestId: request.requestId,
+          source,
+          operation: "generate",
+          state: "preparing",
+          baseMessageId: request.messageId,
+          interaction: dialogue,
+          rawUserText: prompt,
+          engine: "dedicated",
+          generationId: `dhl-dialogue-${nonce}`,
+          operationId: `dhl-dialogue-write-${nonce}`,
+          chatId: getCurrentChatId(),
+          baselineLastMessageId,
+          sent: false,
+          received: false,
+          streamText: "",
+          streamReaction: ""
+        };
+        activeGeneration = generation;
+        browsingHistory = false;
+        sendGenerationState(generation, "preparing");
+        applyStageVisibility();
+        void runDedicatedDialogueGeneration(generation, dialogue, messages, mvuSnapshot);
+      } catch (error) {
+        send(source, {
+          type: "error",
+          requestId: request.requestId,
+          message: error instanceof Error ? error.message : String(error)
+        });
+        activeGeneration = null;
+        broadcastView();
+      }
+      return;
+    }
     activeGeneration = {
       requestId: request.requestId,
       source,
@@ -684,15 +1196,17 @@ let __webpack_exports__ = {};
       baseMessageId: request.messageId,
       interaction,
       rawUserText: prompt,
+      engine: "native",
       sent: false,
       received: false,
-      streamText: ""
+      streamText: "",
+      streamReaction: ""
     };
     browsingHistory = false;
     sendGenerationState(activeGeneration, "preparing");
     applyStageVisibility();
     try {
-      triggerNativeSend(dialogue ? decorateDialogueInput(prompt, dialogue) : prompt);
+      triggerNativeSend(prompt);
       window.setTimeout(() => {
         if (!activeGeneration || activeGeneration.requestId !== request.requestId || activeGeneration.sent) return;
         send(source, {
@@ -712,6 +1226,75 @@ let __webpack_exports__ = {};
       activeGeneration = null;
       broadcastView();
     }
+  };
+  const routeNativeDialoguePrompt = prompt => {
+    if (activeInteraction.mode !== "dialogue") return false;
+    const source = getActiveSource();
+    const latest = latestStageId();
+    if (!source || latest === undefined) return false;
+    const requestId = `native-dialogue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    beginGeneration({
+      channel: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_CHANNEL,
+      version: _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_VERSION,
+      type: "generate",
+      requestId,
+      messageId: latest,
+      prompt,
+      interaction: {
+        ...activeInteraction
+      }
+    }, source);
+    return activeGeneration?.requestId === requestId;
+  };
+  const interceptNativeDialogueSend = event => {
+    if (activeInteraction.mode !== "dialogue") return;
+    const textarea = tavernDocument.querySelector("#send_textarea");
+    const prompt = textarea?.value.trim() ?? "";
+    if (!prompt || prompt.startsWith("/")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (activeGeneration || deletingMessageId !== null || browsingHistory) {
+      toastr.warning(browsingHistory ? "请先返回最新回合再继续交谈。" : "当前仍有操作正在进行。");
+      return;
+    }
+    if (!routeNativeDialoguePrompt(prompt) || !textarea) {
+      toastr.error("伪同层尚未就绪，未发送本轮交谈。");
+      return;
+    }
+    textarea.value = "";
+    textarea.dispatchEvent(new Event("input", {
+      bubbles: true
+    }));
+    textarea.dispatchEvent(new Event("change", {
+      bubbles: true
+    }));
+  };
+  const handleNativeSendClick = event => {
+    const target = event.target;
+    if (typeof target?.closest !== "function" || !target.closest("#send_but")) return;
+    interceptNativeDialogueSend(event);
+  };
+  const handleNativeSendSubmit = event => {
+    const target = event.target;
+    if (typeof target?.closest !== "function" || !target.closest("#form_sheld")) return;
+    interceptNativeDialogueSend(event);
+  };
+  const handleNativeSendKeydown = event => {
+    if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+    const target = event.target;
+    if (typeof target?.matches !== "function" || !target.matches("#send_textarea")) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    interceptNativeDialogueSend(event);
+  };
+  const installNativeDialogueBridge = () => {
+    tavernDocument.addEventListener("click", handleNativeSendClick, true);
+    tavernDocument.addEventListener("submit", handleNativeSendSubmit, true);
+    tavernDocument.addEventListener("keydown", handleNativeSendKeydown, true);
+  };
+  const removeNativeDialogueBridge = () => {
+    tavernDocument.removeEventListener("click", handleNativeSendClick, true);
+    tavernDocument.removeEventListener("submit", handleNativeSendSubmit, true);
+    tavernDocument.removeEventListener("keydown", handleNativeSendKeydown, true);
   };
   const beginReroll = (request, source) => {
     if (activeGeneration || deletingMessageId !== null) {
@@ -734,6 +1317,14 @@ let __webpack_exports__ = {};
     const messages = getAllMessages();
     const message = messages.find(item => item.message_id === request.messageId);
     const metadata = resolveAssistantInteractionMetadata(message, messages);
+    if (metadata) {
+      send(source, {
+        type: "error",
+        requestId: request.requestId,
+        message: "专用短对话暂不接管原生 swipe；请删除最后一轮后重新发送。"
+      });
+      return;
+    }
     const previousUser = findPreviousUserMessage(messages, request.messageId);
     const rerollUserText = metadata?.rawUserText ?? String(previousUser?.message ?? "").replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, "").trim();
     const interaction = metadata ? toDialogueContext(metadata) : STORY_INTERACTION;
@@ -747,10 +1338,12 @@ let __webpack_exports__ = {};
       baseMessageId: request.messageId,
       interaction,
       rawUserText: rerollUserText,
+      engine: "native",
       userMessageId: metadata?.userMessageId ?? previousUser?.message_id,
       sent: false,
       received: false,
       streamText: "",
+      streamReaction: "",
       lockedView
     };
     parkSourceFrame(request.messageId, source);
@@ -1021,8 +1614,24 @@ let __webpack_exports__ = {};
     }
     if (request.type === "stop") {
       if (!activeGeneration || activeGeneration.requestId !== request.requestId) return;
-      sendGenerationState(activeGeneration, "stopping", source);
-      SillyTavern.stopGeneration();
+      const generation = activeGeneration;
+      sendGenerationState(generation, "stopping", source);
+      if (generation.engine === "dedicated") {
+        generation.cancelled = true;
+        if (generation.generationId) stopGenerationById(generation.generationId);
+        window.setTimeout(() => {
+          if (activeGeneration !== generation || !generation.cancelled) return;
+          send(generation.source, {
+            type: "complete",
+            requestId: generation.requestId,
+            messageId: generation.baseMessageId
+          });
+          activeGeneration = null;
+          broadcastView();
+        }, 3e3);
+      } else {
+        SillyTavern.stopGeneration();
+      }
       return;
     }
     if (request.type === "navigate") {
@@ -1075,6 +1684,7 @@ let __webpack_exports__ = {};
   };
   const getActiveSource = () => activeGeneration?.source ?? registrations.get(getHostStageId() ?? -1);
   const handleMessageSent = async messageId => {
+    if (activeGeneration?.engine === "dedicated") return;
     const source = getActiveSource();
     if (!source) return;
     const message = getChatMessages(messageId)[0];
@@ -1090,10 +1700,12 @@ let __webpack_exports__ = {};
         baseMessageId: latestStageId() ?? messageId - 1,
         interaction,
         rawUserText: String(message?.message ?? "").trim(),
+        engine: "native",
         userMessageId: messageId,
         sent: true,
         received: false,
-        streamText: ""
+        streamText: "",
+        streamReaction: ""
       };
     } else {
       activeGeneration.sent = true;
@@ -1109,9 +1721,10 @@ let __webpack_exports__ = {};
         extra: {
           ...message.extra ?? {},
           [INTERACTION_KEY]: {
-            version: 1,
+            version: 2,
             kind: "dialogue",
             ...activeGeneration.interaction,
+            engine: "native",
             rawUserText
           }
         }
@@ -1128,12 +1741,12 @@ let __webpack_exports__ = {};
     });
   });
   eventOn(tavern_events.GENERATION_STARTED, () => {
-    if (!activeGeneration) return;
+    if (!activeGeneration || activeGeneration.engine !== "native") return;
     activeGeneration.sent = true;
     sendGenerationState(activeGeneration, "generating");
   });
   eventOn(tavern_events.STREAM_TOKEN_RECEIVED, text => {
-    if (!activeGeneration) return;
+    if (!activeGeneration || activeGeneration.engine !== "native") return;
     activeGeneration.streamText = text;
     send(activeGeneration.source, {
       type: "stream",
@@ -1141,10 +1754,28 @@ let __webpack_exports__ = {};
       text
     });
   });
+  eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, generationId) => {
+    const generation = activeGeneration;
+    if (!generation || generation.engine !== "dedicated" || generation.cancelled || generation.generationId !== generationId || generation.interaction.mode !== "dialogue") {
+      return;
+    }
+    const parsed = (0, _dialogue_engine__WEBPACK_IMPORTED_MODULE_1__.parseDialogueGeneration)(text, generation.interaction, generation.operationId ?? generation.requestId);
+    generation.streamText = parsed.dialogue;
+    generation.streamReaction = parsed.reaction;
+    send(generation.source, {
+      type: "stream",
+      requestId: generation.requestId,
+      text: parsed.dialogue,
+      ...parsed.reaction ? {
+        reaction: parsed.reaction
+      } : {}
+    });
+  });
   eventOn(tavern_events.STREAM_REASONING_DONE, (reasoning, duration, messageId, state) => {
+    if (activeGeneration?.engine === "dedicated") return;
     const source = getActiveSource();
     if (!source) return;
-    if (activeGeneration) {
+    if (activeGeneration?.engine === "native") {
       activeGeneration.reasoning = {
         messageId,
         text: reasoning,
@@ -1162,9 +1793,11 @@ let __webpack_exports__ = {};
     });
   });
   eventOn(tavern_events.MESSAGE_RECEIVED, messageId => {
+    if (activeGeneration?.engine === "dedicated") return;
     void finishMessage(Number(messageId));
   });
   eventOn(tavern_events.GENERATION_ENDED, messageId => {
+    if (activeGeneration?.engine === "dedicated") return;
     const targetMessageId = Number(messageId);
     void finishMessage(targetMessageId);
     [ 350, 1200 ].forEach(delay => {
@@ -1177,7 +1810,7 @@ let __webpack_exports__ = {};
   });
   eventOn(tavern_events.GENERATION_STOPPED, () => {
     const generation = activeGeneration;
-    if (!generation) return;
+    if (!generation || generation.engine !== "native") return;
     window.setTimeout(() => {
       if (!activeGeneration || activeGeneration.requestId !== generation.requestId || generation.received) return;
       send(generation.source, {
@@ -1218,14 +1851,16 @@ let __webpack_exports__ = {};
     window.setTimeout(broadcastView, 200);
   });
   eventOn(tavern_events.CHAT_CHANGED, () => {
+    if (activeGeneration?.engine === "dedicated") {
+      activeGeneration.cancelled = true;
+      if (activeGeneration.generationId) stopGenerationById(activeGeneration.generationId);
+    }
     getStageRoot(false)?.remove();
     tavernDocument.body.classList.remove(ROOT_ACTIVE_CLASS);
     registrations.clear();
     activeGeneration = null;
     deletingMessageId = null;
     activeInteraction = STORY_INTERACTION;
-    dialoguePromptHandle?.uninject();
-    dialoguePromptHandle = null;
     selectedMessageId = null;
     selectedHistoryMessageIds.story = null;
     selectedHistoryMessageIds.dialogue = null;
@@ -1238,13 +1873,17 @@ let __webpack_exports__ = {};
   applyNativeInputState();
   tavernWindow.addEventListener("message", handleMessage);
   installFrameObserver();
+  installNativeDialogueBridge();
   window.setTimeout(parkLatestStageFrame, 0);
   $(window).on("pagehide", () => {
+    if (activeGeneration?.engine === "dedicated") {
+      activeGeneration.cancelled = true;
+      if (activeGeneration.generationId) stopGenerationById(activeGeneration.generationId);
+    }
     frameObserver?.disconnect();
     frameObserver = null;
     tavernWindow.removeEventListener("message", handleMessage);
-    dialoguePromptHandle?.uninject();
-    dialoguePromptHandle = null;
+    removeNativeDialogueBridge();
     releaseParkedFrames();
     tavernDocument.getElementById(STYLE_ID)?.remove();
     tavernDocument.body.classList.remove("dhl-pseudo-layer-active", "dhl-native-input-collapsed", ROOT_ACTIVE_CLASS);

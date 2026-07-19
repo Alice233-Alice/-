@@ -90,6 +90,7 @@
                   <span v-if="turn.reasoningDuration">{{ formatDuration(turn.reasoningDuration) }}</span>
                 </button>
               </div>
+              <p v-if="turn.reaction" class="dialogue-reaction">{{ turn.reaction }}</p>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div class="dialogue-bubble formatted" v-html="formatReply(turn.replyText, turn.assistantMessageId)"></div>
               <div v-if="expandedReasoningId === turn.assistantMessageId" class="turn-reasoning">
@@ -109,6 +110,7 @@
               <span>{{ context?.targetName }}</span>
               <span class="live-status"><i class="fa-solid fa-circle-notch fa-spin"></i>{{ liveStatus }}</span>
             </div>
+            <p v-if="pseudo.streamReaction" class="dialogue-reaction live">{{ pseudo.streamReaction }}</p>
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div v-if="liveReplyHtml" class="dialogue-bubble formatted" v-html="liveReplyHtml"></div>
             <div v-else class="dialogue-bubble waiting-dots" aria-label="等待回应"><i></i><i></i><i></i></div>
@@ -154,7 +156,7 @@
 <script setup lang="ts">
 import { getCharacterImageCandidates } from '../character-assets';
 import { useStreamFollow } from '../composables/use-stream-follow';
-import { extractNarrative, formatMessageHtml } from '../message-content';
+import { formatMessageHtml } from '../message-content';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import type { DialogueTurn } from '../store';
 import DialogueTargetPicker from './DialogueTargetPicker.vue';
@@ -214,7 +216,7 @@ const visibleTurns = computed<DialogueTurn[]>(() => {
 });
 const pendingUserText = computed(() => pseudo.generationUserMessage.trim() || pseudo.draftPrompt.trim());
 const liveReplyHtml = computed(() =>
-  formatMessageHtml(extractNarrative(pseudo.streamText), pseudo.view.selectedMessageId),
+  formatMessageHtml(pseudo.streamText, pseudo.view.selectedMessageId),
 );
 const liveStatus = computed(() => {
   if (pseudo.generationState === 'preparing') return context.value?.channel === 'transmission' ? '传讯送出' : '静候回应';
@@ -223,17 +225,14 @@ const liveStatus = computed(() => {
   return context.value?.channel === 'transmission' ? '回信中' : '回应中';
 });
 
-const formatReply = (text: string, messageId: number) => formatMessageHtml(extractNarrative(text), messageId);
+const formatReply = (text: string, messageId: number) => formatMessageHtml(text, messageId);
 const formatReasoning = (text: string, messageId: number) => formatMessageHtml(text, messageId);
 const formatDuration = (duration: number) => `${Math.max(1, Math.round(duration / 1000))} 秒`;
 const toggleReasoning = (messageId: number) => {
   expandedReasoningId.value = expandedReasoningId.value === messageId ? null : messageId;
 };
 
-watch(
-  [() => pseudo.streamText, () => pseudo.dialogueTurns.length],
-  queueStreamFollow,
-);
+watch([() => pseudo.streamText, () => pseudo.streamReaction, () => pseudo.dialogueTurns.length], queueStreamFollow);
 watch(
   () => context.value?.sessionId,
   () => resumeStreamFollow(false),
@@ -443,6 +442,18 @@ watch(
 .character-turn .dialogue-bubble {
   border-color: color-mix(in srgb, var(--jade) 24%, var(--line-subtle));
 }
+.dialogue-reaction {
+  max-width: 92%;
+  margin: 0 0 7px 3px;
+  padding-left: 9px;
+  border-left: 1px solid color-mix(in srgb, var(--jade) 48%, var(--line-subtle));
+  color: var(--text-secondary);
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, serif;
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.65;
+}
+.dialogue-reaction.live { color: color-mix(in srgb, var(--jade) 72%, var(--text-secondary)); }
 .formatted :deep(p) { margin: 0 0 0.72em; }
 .formatted :deep(p:last-child) { margin-bottom: 0; }
 .formatted :deep(q) { quotes: none; }

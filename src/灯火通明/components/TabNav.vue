@@ -76,7 +76,16 @@ const revealActiveTab = (behavior: ScrollBehavior = 'smooth') => {
   const activeButton = [...(nav?.querySelectorAll<HTMLElement>('.tab-btn') ?? [])].find(
     button => button.dataset.tabId === props.activeTab,
   );
-  activeButton?.scrollIntoView({ behavior, block: 'nearest', inline: 'center' });
+  if (!nav || !activeButton) return;
+
+  const navRect = nav.getBoundingClientRect();
+  const buttonRect = activeButton.getBoundingClientRect();
+  const buttonCenter = buttonRect.left - navRect.left + nav.scrollLeft + buttonRect.width / 2;
+  const maxScrollLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
+  const targetScrollLeft = Math.min(maxScrollLeft, Math.max(0, buttonCenter - nav.clientWidth / 2));
+
+  // Firefox 会把 scrollIntoView 传播到 iframe 外层，靠右页签会因此横向推动酒馆页面。
+  nav.scrollTo({ left: targetScrollLeft, behavior });
   window.setTimeout(updateScrollState, behavior === 'smooth' ? 260 : 0);
 };
 

@@ -1,9 +1,33 @@
 export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
-export const PSEUDO_LAYER_VERSION = 4;
+export const PSEUDO_LAYER_VERSION = 5;
 
 export type InteractionMode = 'story' | 'dialogue';
 export type PseudoLayerHistoryKind = InteractionMode;
 export type DialogueChannel = 'present' | 'transmission';
+export type DialogueEngineKind = 'native' | 'dedicated';
+
+export type DialogueSessionState = {
+  emotion?: string;
+  topic?: string;
+  subtext?: string;
+  unresolvedThreads?: string[];
+};
+
+export type DialogueMemoryEvent = {
+  id: string;
+  kind: 'promise' | 'boundary' | 'conflict' | 'disclosure';
+  summary: string;
+  status: 'open' | 'resolved';
+  resolves?: string[];
+};
+
+export type DialogueRelationEvent = {
+  id: string;
+  kind: 'positive' | 'negative' | 'promise' | 'boundary' | 'attitude';
+  summary: string;
+  favorDelta?: -1 | 0 | 1;
+  applied: boolean;
+};
 
 export type DialogueContext = {
   mode: 'dialogue';
@@ -24,6 +48,7 @@ export type PseudoLayerDialogueStage = {
   canonicalName: string;
   channel: DialogueChannel;
   turnCount: number;
+  engine?: DialogueEngineKind;
 };
 export type PseudoLayerStage = PseudoLayerStoryStage | PseudoLayerDialogueStage;
 
@@ -38,7 +63,7 @@ export type PseudoLayerHistoryState = {
 };
 
 export type PseudoLayerInteractionMetadata = {
-  version: 1;
+  version: 1 | 2;
   kind: 'dialogue';
   sessionId: string;
   targetName: string;
@@ -46,6 +71,12 @@ export type PseudoLayerInteractionMetadata = {
   channel: DialogueChannel;
   rawUserText?: string;
   userMessageId?: number;
+  engine?: DialogueEngineKind;
+  operationId?: string;
+  reaction?: string;
+  sessionState?: DialogueSessionState;
+  memoryEvents?: DialogueMemoryEvent[];
+  relationEvents?: DialogueRelationEvent[];
 };
 
 export type PseudoLayerGenerationState = 'idle' | 'preparing' | 'generating' | 'saving' | 'stopping';
@@ -149,6 +180,7 @@ export type PseudoLayerResponse =
       type: 'stream';
       requestId: string;
       text: string;
+      reaction?: string;
     }
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;

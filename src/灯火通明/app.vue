@@ -251,14 +251,6 @@ watch(activeView, (next, previous) => {
     if (modeViewport.value) {
       modeViewport.value.scrollTop = ['story', 'dialogue'].includes(next) ? 0 : scrollPositions.get(next) ?? 0;
     }
-    if (next === 'map') {
-      requestAnimationFrame(() => {
-        window.frameElement?.scrollIntoView({
-          block: 'start',
-          behavior: themeStore.preferences.reduceMotion ? 'auto' : 'smooth',
-        });
-      });
-    }
   });
   if ((next === 'story' || next === 'dialogue') && next !== previous) {
     pseudoLayerStore.selectHistory(next);
