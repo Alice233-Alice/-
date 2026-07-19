@@ -52,6 +52,12 @@ type ActiveGeneration = {
     state: PseudoLayerReasoningState;
   };
   lockedView?: PseudoLayerView;
+  rerollOriginal?: {
+    messageId: number;
+    message: string;
+    data: Record<string, any>;
+    extra: Record<string, any>;
+  };
 };
 
 type StageEntry = {
@@ -859,6 +865,21 @@ const getDialogueOperationMessages = (operationId: string) =>
 
 const rollbackDialogueOperation = async (generation: ActiveGeneration) => {
   if (!generation.operationId || getCurrentChatId() !== generation.chatId) return;
+  if (generation.operation === 'reroll' && generation.rerollOriginal) {
+    const original = generation.rerollOriginal;
+    await setChatMessages(
+      [
+        {
+          message_id: original.messageId,
+          message: original.message,
+          data: _.cloneDeep(original.data),
+          extra: _.cloneDeep(original.extra),
+        },
+      ],
+      { refresh: 'affected' },
+    );
+    return;
+  }
   const ids = getDialogueOperationMessages(generation.operationId).map(message => message.message_id);
   if (ids.length === 0) return;
   const previousDeletingMessageId = deletingMessageId;
@@ -923,6 +944,55 @@ const commitDedicatedDialogue = async (
   return assistantMessageId;
 };
 
+const commitDedicatedDialogueReroll = async (
+  generation: ActiveGeneration,
+  context: DialogueContext,
+  result: ParsedDialogueGeneration,
+  mvuSnapshot: Record<string, any>,
+) => {
+  const baseline = generation.baselineLastMessageId;
+  const userMessageId = generation.userMessageId;
+  const targetMessageId = generation.baseMessageId;
+  if (
+    baseline === undefined ||
+    userMessageId === undefined ||
+    generation.cancelled ||
+    getCurrentChatId() !== generation.chatId ||
+    getLastMessageId() !== baseline
+  ) {
+    throw new Error('生成期间聊天记录已经变化，本次重答未写入。');
+  }
+
+  const current = getChatMessages(targetMessageId)[0];
+  if (!current || current.role !== 'assistant') throw new Error('没有找到需要重答的角色回复。');
+  const metadata = buildDedicatedMetadata(generation, context, userMessageId, result);
+  await setChatMessages(
+    [
+      {
+        message_id: targetMessageId,
+        message: buildDedicatedDialogueMessage(result),
+        data: _.cloneDeep(mvuSnapshot),
+        extra: {
+          ...(current.extra ?? {}),
+          [INTERACTION_KEY]: metadata,
+        },
+      },
+    ],
+    { refresh: 'affected' },
+  );
+
+  const updated = getChatMessages(targetMessageId)[0];
+  if (
+    generation.cancelled ||
+    getCurrentChatId() !== generation.chatId ||
+    getLastMessageId() !== baseline ||
+    readInteractionMetadata(updated)?.operationId !== generation.operationId
+  ) {
+    throw new Error('写入重答时聊天记录发生并发变化，已恢复原回复。');
+  }
+  return targetMessageId;
+};
+
 const finishDedicatedGeneration = (generation: ActiveGeneration, messageId: number) => {
   selectedMessageId = messageId;
   selectedHistoryKind = 'dialogue';
@@ -946,7 +1016,10 @@ const runDedicatedDialogueGeneration = async (
     const result = await generateDialogueReply({
       generationId: generation.generationId!,
       operationId: generation.operationId!,
-      baseMessageId: generation.baseMessageId,
+      baseMessageId:
+        generation.operation === 'reroll' && generation.userMessageId !== undefined
+          ? generation.userMessageId
+          : generation.baseMessageId,
       prompt: generation.rawUserText,
       context,
       messages,
@@ -955,7 +1028,10 @@ const runDedicatedDialogueGeneration = async (
     if (activeGeneration !== generation) return;
     if (generation.cancelled) throw new Error('本轮短对话已停止。');
     sendGenerationState(generation, 'saving');
-    const messageId = await commitDedicatedDialogue(generation, context, result, mvuSnapshot);
+    const messageId =
+      generation.operation === 'reroll'
+        ? await commitDedicatedDialogueReroll(generation, context, result, mvuSnapshot)
+        : await commitDedicatedDialogue(generation, context, result, mvuSnapshot);
     if (activeGeneration !== generation) return;
     finishDedicatedGeneration(generation, messageId);
   } catch (error) {
@@ -1180,25 +1256,85 @@ const beginReroll = (
     send(source, { type: 'error', requestId: request.requestId, message: '已有一场生成正在进行。' });
     return;
   }
-  const latest = latestStageId();
+  const messages = getAllMessages();
+  const message = messages.find(item => item.message_id === request.messageId);
+  const metadata = resolveAssistantInteractionMetadata(message, messages);
+  const historyKind: PseudoLayerHistoryKind = metadata ? 'dialogue' : 'story';
+  const latest = getGenerationAnchor(historyKind);
   if (request.messageId !== latest || selectedMessageId !== latest) {
     send(source, {
       type: 'error',
       requestId: request.requestId,
-      message: '历史节点不能重生成，请先返回最新。',
+      message: historyKind === 'dialogue'
+        ? '这不是最新一段交谈，请先返回最新交谈。'
+        : '这不是最新正文，请先返回最新正文。',
     });
     return;
   }
 
-  const messages = getAllMessages();
-  const message = messages.find(item => item.message_id === request.messageId);
-  const metadata = resolveAssistantInteractionMetadata(message, messages);
   if (metadata) {
-    send(source, {
-      type: 'error',
-      requestId: request.requestId,
-      message: '专用短对话暂不接管原生 swipe；请删除最后一轮后重新发送。',
-    });
+    try {
+      if (!message || message.role !== 'assistant') throw new Error('没有找到需要重答的角色回复。');
+      const context = toDialogueContext(metadata);
+      const linkedUser =
+        (metadata.userMessageId !== undefined
+          ? messages.find(
+              item => item.role === 'user' && item.message_id === metadata.userMessageId,
+            )
+          : undefined) ?? findPreviousUserMessage(messages, request.messageId);
+      if (!linkedUser) throw new Error('没有找到这条角色回复对应的玩家发言。');
+      const rerollUserText = (
+        metadata.rawUserText ??
+        String(linkedUser.message ?? '').replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, '')
+      ).trim();
+      if (!rerollUserText) throw new Error('这轮交谈没有可用于重答的玩家发言。');
+
+      const mvuSnapshot = getDialogueMvuSnapshot(linkedUser.message_id);
+      const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      setActiveInteraction(context);
+      const lockedView = makeView();
+      const generation: ActiveGeneration = {
+        requestId: request.requestId,
+        source,
+        operation: 'reroll',
+        state: 'preparing',
+        baseMessageId: request.messageId,
+        interaction: context,
+        rawUserText: rerollUserText,
+        engine: 'dedicated',
+        generationId: `dhl-dialogue-reroll-${nonce}`,
+        operationId: `dhl-dialogue-reroll-write-${nonce}`,
+        chatId: getCurrentChatId(),
+        baselineLastMessageId: getLastMessageId(),
+        userMessageId: linkedUser.message_id,
+        sent: false,
+        received: false,
+        streamText: '',
+        streamReaction: '',
+        lockedView,
+        rerollOriginal: {
+          messageId: message.message_id,
+          message: String(message.message ?? ''),
+          data: _.cloneDeep(message.data ?? {}),
+          extra: _.cloneDeep(message.extra ?? {}),
+        },
+      };
+      activeGeneration = generation;
+      parkSourceFrame(request.messageId, source);
+      selectedHistoryKind = 'dialogue';
+      browsingHistory = false;
+      sendGenerationState(generation, 'preparing');
+      applyStageVisibility();
+      void runDedicatedDialogueGeneration(generation, context, messages, mvuSnapshot);
+    } catch (error) {
+      send(source, {
+        type: 'error',
+        requestId: request.requestId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      activeGeneration = null;
+      broadcastView();
+    }
     return;
   }
   const previousUser = findPreviousUserMessage(messages, request.messageId);

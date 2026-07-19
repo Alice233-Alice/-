@@ -209,7 +209,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       controllerReady.value &&
       isLatest.value &&
       view.value.total > 0 &&
-      view.value.stage.kind !== 'dialogue' &&
+      (view.value.stage.kind === 'story' || dialogueTurns.value.length > 0) &&
       !isGenerating.value &&
       !isDeleting.value,
   );
@@ -645,7 +645,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     activeRequestId.value = requestId;
     generationState.value = 'preparing';
     generationOperation.value = 'reroll';
-    generationUserMessage.value = floorUserMessage.value;
+    generationUserMessage.value =
+      view.value.stage.kind === 'dialogue'
+        ? (dialogueTurns.value[dialogueTurns.value.length - 1]?.userText ?? floorUserMessage.value)
+        : floorUserMessage.value;
     streamText.value = '';
     streamReaction.value = '';
     liveReasoning.value = '';

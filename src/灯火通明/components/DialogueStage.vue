@@ -26,14 +26,14 @@
           <i class="fa-solid fa-comment-dots"></i><span>继续交谈</span>
         </button>
         <button
-          v-if="context"
+          v-if="context && pseudo.dialogueTurns.length > 0"
           type="button"
           class="reset-button"
-          title="保留旧记录，用同一角色开启一段新交谈"
-          :disabled="pseudo.isGenerating"
-          @click="pseudo.resetDialogue"
+          title="保留玩家发言，重新生成角色回应"
+          :disabled="!pseudo.canReroll"
+          @click="pseudo.reroll"
         >
-          <i class="fa-solid fa-arrow-rotate-left"></i><span>重置</span>
+          <i class="fa-solid fa-rotate"></i><span>重答</span>
         </button>
         <button
           v-if="pseudo.isDialogueActive"

@@ -23,8 +23,8 @@
         <button type="button" title="继续这段交谈" :disabled="pseudo.isGenerating" @click="pseudo.continueDialogue">
           <i class="fa-solid fa-comment-dots"></i>
         </button>
-        <button type="button" title="保留旧记录并重置会话" :disabled="pseudo.isGenerating" @click="pseudo.resetDialogue">
-          <i class="fa-solid fa-arrow-rotate-left"></i>
+        <button type="button" title="保留旧记录，另开一段交谈" :disabled="pseudo.isGenerating" @click="pseudo.resetDialogue">
+          <i class="fa-solid fa-comment-medical"></i>
         </button>
       </div>
       <div v-else-if="!isDialogueWorkspace && pseudo.selectedTitle" class="selected-intent">
@@ -139,7 +139,7 @@ const isExpanded = computed(
 const connectionLabel = computed(() => (pseudo.controllerReady ? '伪同层已连接' : '等待控制脚本'));
 const inputPlaceholder = computed(() => {
   if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
-    return pseudo.dialogueContext ? '先继续或重置这段交谈……' : '先选择一位交谈对象……';
+    return pseudo.dialogueContext ? '先继续这段交谈，或另开一段……' : '先选择一位交谈对象……';
   }
   if (!isDialogueWorkspace.value) return '写下此刻想做的事……';
   const dialogue = pseudo.activeDialogue;
