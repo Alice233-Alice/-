@@ -212,7 +212,7 @@ const updateBoolean = (key: keyof Pick<ReadingPreferences, 'showPortraitRail' | 
 .preview-rail { position: absolute; top: 20px; right: 8px; bottom: 8px; width: 17px; border: 1px solid color-mix(in srgb, var(--preview-accent) 38%, transparent); background: color-mix(in srgb, var(--preview-surface) 88%, transparent); }
 .theme-copy { min-width: 0; display: grid; gap: 4px; }
 .theme-copy strong { color: var(--text-accent); }
-.theme-copy small { display: -webkit-box; overflow: hidden; color: var(--text-secondary); font-size: 10px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.theme-copy small { display: -webkit-box; overflow: hidden; color: var(--text-secondary); font-size: 10px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 .theme-check { position: absolute; top: 8px; right: 8px; color: var(--preview-accent); font-size: 10px; }
 
 .reading-settings { padding-bottom: 4px; }
