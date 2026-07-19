@@ -343,8 +343,13 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       floorReasoning.value = reasoning.text;
       floorReasoningDuration.value = reasoning.duration;
       refreshStoryFloor(targetMessageId);
+      const liveDialogue =
+        view.value.activeInteraction.mode === 'dialogue' && view.value.histories.dialogue.isLatest
+          ? view.value.activeInteraction
+          : null;
       const archivedDialogue =
-        view.value.stage.kind === 'dialogue'
+        liveDialogue ??
+        (view.value.stage.kind === 'dialogue'
           ? {
               mode: 'dialogue' as const,
               sessionId: view.value.stage.sessionId,
@@ -352,7 +357,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
               canonicalName: view.value.stage.canonicalName,
               channel: view.value.stage.channel,
             }
-          : findLatestDialogue(targetMessageId);
+          : findLatestDialogue(targetMessageId));
       recentDialogue.value = archivedDialogue;
       if (archivedDialogue) {
         refreshDialogueTurns(targetMessageId, archivedDialogue.sessionId);
@@ -523,7 +528,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   };
 
   function beginDialogue(target: DialogueTarget, sessionId?: string) {
-    if (!isDialogueHistoryLatest.value || isGenerating.value) return;
+    if (isGenerating.value) return;
     const interaction: DialogueContext = {
       mode: 'dialogue',
       sessionId: sessionId ?? `dialogue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -532,6 +537,11 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       channel: target.channel,
     };
     if (!interaction.targetName || !interaction.canonicalName) return;
+    if (!isDialogueHistoryLatest.value) {
+      pendingDialogueResume.value = interaction;
+      returnHistoryLatest('dialogue');
+      return;
+    }
     if (dialogueContext.value?.sessionId !== interaction.sessionId) {
       refreshDialogueTurns(view.value.selectedMessageId, interaction.sessionId);
     }

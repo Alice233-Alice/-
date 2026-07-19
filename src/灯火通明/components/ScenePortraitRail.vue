@@ -27,7 +27,7 @@
         type="button"
         class="talk-control"
         :title="`与${displayName}交谈`"
-        :disabled="!pseudo.isLatest || pseudo.isGenerating"
+        :disabled="!pseudo.isStoryHistoryLatest || pseudo.isGenerating"
         @click="startDialogue"
       >
         <i class="fa-solid fa-comment-dots"></i>
