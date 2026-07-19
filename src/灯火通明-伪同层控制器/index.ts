@@ -1202,12 +1202,10 @@ const beginReroll = (
     return;
   }
   const previousUser = findPreviousUserMessage(messages, request.messageId);
-  const rerollUserText =
-    metadata?.rawUserText ??
-    String(previousUser?.message ?? '')
-      .replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, '')
-      .trim();
-  const interaction: PseudoLayerInteraction = metadata ? toDialogueContext(metadata) : STORY_INTERACTION;
+  const rerollUserText = String(previousUser?.message ?? '')
+    .replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, '')
+    .trim();
+  const interaction: PseudoLayerInteraction = STORY_INTERACTION;
   setActiveInteraction(interaction);
   const lockedView = makeView();
   activeGeneration = {
@@ -1219,7 +1217,7 @@ const beginReroll = (
     interaction,
     rawUserText: rerollUserText,
     engine: 'native',
-    userMessageId: metadata?.userMessageId ?? previousUser?.message_id,
+    userMessageId: previousUser?.message_id,
     sent: false,
     received: false,
     streamText: '',
