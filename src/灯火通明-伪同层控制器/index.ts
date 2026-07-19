@@ -82,6 +82,7 @@ const selectedHistoryMessageIds: Record<PseudoLayerHistoryKind, number | null> =
   story: null,
   dialogue: null,
 };
+let selectedHistoryKind: PseudoLayerHistoryKind | null = null;
 let browsingHistory = false;
 let deletingMessageId: number | null = null;
 let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === 'true';
@@ -432,11 +433,20 @@ const getStageEntries = (): StageEntry[] => {
   return entries;
 };
 
-const getStageIds = () => getStageEntries().map(entry => entry.representativeMessageId);
 const latestStageId = () => getStageEntries().at(-1)?.representativeMessageId;
 
 const getHistoryEntries = (entries: StageEntry[], history: PseudoLayerHistoryKind) =>
   entries.filter(entry => entry.stage.kind === history);
+
+const getHistoryLatestMessageId = (
+  history: PseudoLayerHistoryKind,
+  entries = getStageEntries(),
+) => getHistoryEntries(entries, history).at(-1)?.representativeMessageId;
+
+const getGenerationAnchor = (
+  history: PseudoLayerHistoryKind,
+  entries = getStageEntries(),
+) => getHistoryLatestMessageId(history, entries) ?? entries.at(-1)?.representativeMessageId;
 
 const resolveHistorySelection = (
   entries: StageEntry[],
@@ -591,10 +601,24 @@ const applyNativeInputState = () => {
 };
 
 const applyStageVisibility = () => {
-  const ids = getStageIds();
+  const entries = getStageEntries();
+  const ids = entries.map(entry => entry.representativeMessageId);
   if (!getRerollLock()) {
-    if (!browsingHistory && !activeGeneration) selectedMessageId = ids.at(-1) ?? null;
-    if (selectedMessageId !== null && !ids.includes(selectedMessageId)) selectedMessageId = ids.at(-1) ?? null;
+    const scopedIds = selectedHistoryKind
+      ? getHistoryEntries(entries, selectedHistoryKind).map(entry => entry.representativeMessageId)
+      : ids;
+    if (!activeGeneration) {
+      if (selectedHistoryKind) {
+        if (selectedMessageId === null || !scopedIds.includes(selectedMessageId)) {
+          selectedMessageId = scopedIds.at(-1) ?? ids.at(-1) ?? null;
+        }
+      } else if (!browsingHistory) {
+        selectedMessageId = ids.at(-1) ?? null;
+      }
+    }
+    if (selectedMessageId !== null && !ids.includes(selectedMessageId)) {
+      selectedMessageId = scopedIds.at(-1) ?? ids.at(-1) ?? null;
+    }
   }
   const hostMessageId = getHostStageId();
   const assistantIds = getAssistantMessages().map(message => message.message_id);
@@ -901,6 +925,7 @@ const commitDedicatedDialogue = async (
 
 const finishDedicatedGeneration = (generation: ActiveGeneration, messageId: number) => {
   selectedMessageId = messageId;
+  selectedHistoryKind = 'dialogue';
   rememberStageSelection(messageId);
   browsingHistory = false;
   viewRevision += 1;
@@ -967,16 +992,20 @@ const beginGeneration = (
     return;
   }
   const prompt = request.prompt.trim();
-  const latest = latestStageId();
+  const entries = getStageEntries();
+  const requestedHistory: PseudoLayerHistoryKind = request.interaction.mode;
+  const anchor = getGenerationAnchor(requestedHistory, entries);
   if (!prompt) {
     send(source, { type: 'error', requestId: request.requestId, message: '输入内容不能为空。' });
     return;
   }
-  if (request.messageId !== latest || selectedMessageId !== latest) {
+  if (anchor === undefined || request.messageId !== anchor || selectedMessageId !== anchor) {
     send(source, {
       type: 'error',
       requestId: request.requestId,
-      message: '历史节点不能发起行动，请先返回最新。',
+      message: requestedHistory === 'dialogue'
+        ? '这不是最新一段交谈，请先返回最新交谈。'
+        : '这不是最新正文，请先返回最新正文。',
     });
     return;
   }
@@ -988,18 +1017,16 @@ const beginGeneration = (
   if (dialogue) {
     try {
       const baselineLastMessageId = getLastMessageId();
-      if (baselineLastMessageId !== request.messageId) {
-        throw new Error('聊天记录刚刚发生了变化，请在最新回合重新发送。');
-      }
+      const baseMessageId = latestStageId() ?? request.messageId;
       const messages = getAllMessages();
-      const mvuSnapshot = getDialogueMvuSnapshot(request.messageId);
+      const mvuSnapshot = getDialogueMvuSnapshot(baseMessageId);
       const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const generation: ActiveGeneration = {
         requestId: request.requestId,
         source,
         operation: 'generate',
         state: 'preparing',
-        baseMessageId: request.messageId,
+        baseMessageId,
         interaction: dialogue,
         rawUserText: prompt,
         engine: 'dedicated',
@@ -1013,6 +1040,7 @@ const beginGeneration = (
         streamReaction: '',
       };
       activeGeneration = generation;
+      selectedHistoryKind = 'dialogue';
       browsingHistory = false;
       sendGenerationState(generation, 'preparing');
       applyStageVisibility();
@@ -1043,6 +1071,7 @@ const beginGeneration = (
     streamText: '',
     streamReaction: '',
   };
+  selectedHistoryKind = 'story';
   browsingHistory = false;
   sendGenerationState(activeGeneration, 'preparing');
   applyStageVisibility();
@@ -1073,8 +1102,8 @@ const beginGeneration = (
 const routeNativeDialoguePrompt = (prompt: string) => {
   if (activeInteraction.mode !== 'dialogue') return false;
   const source = getActiveSource();
-  const latest = latestStageId();
-  if (!source || latest === undefined) return false;
+  const anchor = getGenerationAnchor('dialogue');
+  if (!source || anchor === undefined) return false;
   const requestId = `native-dialogue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   beginGeneration(
     {
@@ -1082,7 +1111,7 @@ const routeNativeDialoguePrompt = (prompt: string) => {
       version: PSEUDO_LAYER_VERSION,
       type: 'generate',
       requestId,
-      messageId: latest,
+      messageId: anchor,
       prompt,
       interaction: { ...activeInteraction },
     },
@@ -1198,6 +1227,7 @@ const beginReroll = (
     lockedView,
   };
   parkSourceFrame(request.messageId, source);
+  selectedHistoryKind = 'story';
   browsingHistory = false;
   sendGenerationState(activeGeneration, 'preparing');
   applyStageVisibility();
@@ -1258,6 +1288,7 @@ const finishMessageInternal = async (messageId: number) => {
     }
     await ensurePseudoMarker(messageId);
     selectedMessageId = messageId;
+    selectedHistoryKind = generation?.interaction.mode ?? null;
     rememberStageSelection(messageId);
     browsingHistory = false;
     viewRevision += 1;
@@ -1302,10 +1333,13 @@ const repairDialogueMetadata = async (messageId: number) => {
 };
 
 const selectStage = (target: number, history?: PseudoLayerHistoryKind) => {
+  const entries = getStageEntries();
   selectedMessageId = target;
+  selectedHistoryKind = history ?? null;
   if (history) selectedHistoryMessageIds[history] = target;
-  else rememberStageSelection(target);
-  browsingHistory = target !== latestStageId();
+  else rememberStageSelection(target, entries);
+  const scopedEntries = history ? getHistoryEntries(entries, history) : entries;
+  browsingHistory = target !== scopedEntries.at(-1)?.representativeMessageId;
   viewRevision += 1;
   broadcastView();
   getMessageElement(getHostStageId() ?? target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1331,21 +1365,13 @@ const selectHistory = (history: PseudoLayerHistoryKind) => {
   const entries = getStageEntries();
   const target = resolveHistorySelection(entries, history);
   if (target === null) {
+    selectedHistoryKind = history;
+    browsingHistory = false;
     viewRevision += 1;
     broadcastView();
     return;
   }
 
-  const latest = entries.at(-1)?.representativeMessageId;
-  if (
-    history === 'dialogue' &&
-    activeInteraction.mode === 'dialogue' &&
-    selectedMessageId === latest
-  ) {
-    viewRevision += 1;
-    broadcastView();
-    return;
-  }
   selectStage(target, history);
 };
 
@@ -1405,6 +1431,7 @@ const deleteLatestTurn = async (
   try {
     await deleteChatMessages(messageIds, { refresh: 'affected' });
     selectedMessageId = latestStageId() ?? null;
+    selectedHistoryKind = null;
     if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
     browsingHistory = false;
     viewRevision += 1;
@@ -1448,7 +1475,9 @@ const handleMessage = (event: MessageEvent<unknown>) => {
       }
     }
     registrations.set(messageId, source);
-    if (!browsingHistory && !activeGeneration) selectedMessageId = latestStageId() ?? messageId;
+    if (selectedHistoryKind === null && !browsingHistory && !activeGeneration) {
+      selectedMessageId = latestStageId() ?? messageId;
+    }
     if (activeGeneration?.operation === 'reroll' && messageId === activeGeneration.baseMessageId) {
       activeGeneration.source = source;
     }
@@ -1539,7 +1568,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
   }
 
   if (request.type === 'set_interaction') {
-    if (activeGeneration || deletingMessageId !== null || browsingHistory) return;
+    if (activeGeneration || deletingMessageId !== null) return;
     const interaction = normalizeDialogueContext(request.interaction);
     if (!interaction) {
       send(source, { type: 'error', message: '交谈目标无效，请重新选择。' });
@@ -1745,6 +1774,7 @@ eventOn(tavern_events.MESSAGE_DELETED, () => {
     return;
   }
   selectedMessageId = latestStageId() ?? null;
+  selectedHistoryKind = null;
   browsingHistory = false;
   viewRevision += 1;
   window.setTimeout(broadcastView, 200);
@@ -1761,6 +1791,7 @@ eventOn(tavern_events.CHAT_CHANGED, () => {
   deletingMessageId = null;
   activeInteraction = STORY_INTERACTION;
   selectedMessageId = null;
+  selectedHistoryKind = null;
   selectedHistoryMessageIds.story = null;
   selectedHistoryMessageIds.dialogue = null;
   browsingHistory = false;

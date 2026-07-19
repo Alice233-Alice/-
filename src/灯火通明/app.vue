@@ -65,7 +65,7 @@
 
     <TabNav v-if="!isImmersive" v-model:active-tab="activeView" :tabs="tabs" />
     <FooterSection v-if="!isImmersive" @open-actions="openView('actions')" />
-    <PseudoCommandDock />
+    <PseudoCommandDock :active-view="activeView" @open-view="openView" />
 
     <ReadingSettingsPanel :visible="showReadingSettings" @close="showReadingSettings = false" />
     <GalleryPreviewDialog />

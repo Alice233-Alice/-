@@ -13,14 +13,34 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
 const openTagPattern = (tag: string) => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
 const closeTagPattern = (tag: string) => `<\\/${escapeRegExp(tag)}\\s*>`;
 
-const readTaggedContent = (text: string, tag: string) => {
-  const open = openTagPattern(tag);
-  const close = closeTagPattern(tag);
-  const complete = text.match(new RegExp(`${open}([\\s\\S]*?)${close}`, 'i'))?.[1];
-  const streaming = text.match(new RegExp(`${open}([\\s\\S]*)$`, 'i'))?.[1];
-  return (complete ?? streaming ?? '')
-    .replace(new RegExp(`<\\/?${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`, 'gi'), '')
+const DIALOGUE_TAGS = ['反应', '正文', '会话状态'] as const;
+
+const stripDialogueTagFragments = (text: string) =>
+  DIALOGUE_TAGS.reduce(
+    (value, tag) => value.replace(new RegExp(`<\\/?${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`, 'gi'), ''),
+    text,
+  )
+    .replace(/<[^>]*$/g, '')
     .trim();
+
+const readBoundedTaggedContent = (
+  text: string,
+  tag: string,
+  stopTags: readonly string[],
+  preferLast = false,
+) => {
+  const matches = [...text.matchAll(new RegExp(openTagPattern(tag), 'gi'))];
+  const match = preferLast ? matches.at(-1) : matches[0];
+  if (!match || match.index === undefined) return '';
+
+  const start = match.index + match[0].length;
+  const remainder = text.slice(start);
+  const boundaries = [
+    remainder.search(new RegExp(closeTagPattern(tag), 'i')),
+    ...stopTags.map(stopTag => remainder.search(new RegExp(openTagPattern(stopTag), 'i'))),
+  ].filter(index => index >= 0);
+  const end = boundaries.length > 0 ? Math.min(...boundaries) : remainder.length;
+  return stripDialogueTagFragments(remainder.slice(0, end));
 };
 
 const unwrapDialogueQuotes = (text: string) => {
@@ -64,15 +84,17 @@ export const extractNarrative = (text: string) => {
 export const extractDialogueContent = (text: string) => {
   const hasReactionTag = /<反应(?=[\s/>])/i.test(text);
   const hasBodyTag = /<正文(?=[\s/>])/i.test(text);
-  const reaction = hasReactionTag ? stripStructuredBlocks(readTaggedContent(text, '反应')) : '';
+  const reaction = hasReactionTag
+    ? stripStructuredBlocks(readBoundedTaggedContent(text, '反应', ['正文', '会话状态']))
+    : '';
   const dialogue = hasBodyTag
-    ? readTaggedContent(text, '正文')
+    ? readBoundedTaggedContent(text, '正文', ['反应', '会话状态'], true)
     : hasReactionTag
       ? ''
       : extractNarrative(text);
   return {
-    reaction: reaction.replace(/<[^>]*$/g, '').trim(),
-    dialogue: unwrapDialogueQuotes(stripStructuredBlocks(dialogue).replace(/<[^>]*$/g, '').trim()),
+    reaction: stripDialogueTagFragments(reaction),
+    dialogue: unwrapDialogueQuotes(stripDialogueTagFragments(stripStructuredBlocks(dialogue))),
   };
 };
 

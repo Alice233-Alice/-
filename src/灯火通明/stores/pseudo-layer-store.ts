@@ -1,6 +1,7 @@
 import {
   DialogueChannel,
   DialogueContext,
+  InteractionMode,
   PSEUDO_LAYER_CHANNEL,
   PSEUDO_LAYER_VERSION,
   PseudoLayerGenerationOperation,
@@ -56,6 +57,13 @@ const EMPTY_VIEW: PseudoLayerView = {
   activeInteraction: STORY_INTERACTION,
 };
 
+const cleanStoredReaction = (value: unknown) =>
+  String(value ?? '')
+    .replace(/<正文(?=[\s/>])[\s\S]*$/i, '')
+    .replace(/<\/?(?:反应|正文|会话状态)(?=[\s/>])[^>]*>/gi, '')
+    .replace(/<[^>]*$/g, '')
+    .trim();
+
 const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionMetadata | null => {
   if (!message) return null;
   const value = (message.extra?.[INTERACTION_KEY] ??
@@ -73,6 +81,7 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
   const canonicalName = String(value.canonicalName ?? '').trim();
   if (!sessionId || !targetName || !canonicalName) return null;
   const userMessageId = Number(value.userMessageId);
+  const reaction = cleanStoredReaction(value.reaction);
   return {
     ...value,
     version: value.version,
@@ -83,6 +92,7 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
     channel: value.channel,
     ...(typeof value.rawUserText === 'string' ? { rawUserText: value.rawUserText } : {}),
     ...(Number.isFinite(userMessageId) ? { userMessageId } : {}),
+    ...(reaction ? { reaction } : {}),
   } as PseudoLayerInteractionMetadata;
 };
 
@@ -153,6 +163,15 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const isDeleting = computed(() => deleteRequestId.value !== '');
   const isSelected = computed(() => view.value.hostMessageId === messageId);
   const isLatest = computed(() => view.value.isLatest && isSelected.value);
+  const isStoryHistoryLatest = computed(
+    () => isSelected.value && (view.value.histories.story.total === 0 || view.value.histories.story.isLatest),
+  );
+  const isDialogueHistoryLatest = computed(
+    () => isSelected.value && (view.value.histories.dialogue.total === 0 || view.value.histories.dialogue.isLatest),
+  );
+  const isCurrentHistoryLatest = computed(() =>
+    view.value.stage.kind === 'dialogue' ? isDialogueHistoryLatest.value : isStoryHistoryLatest.value,
+  );
   const activeDialogue = computed<DialogueContext | null>(() =>
     view.value.activeInteraction.mode === 'dialogue' ? view.value.activeInteraction : null,
   );
@@ -167,22 +186,23 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
         }
       : null,
   );
-  const dialogueContext = computed(() =>
-    !view.value.isLatest && selectedDialogue.value
-      ? selectedDialogue.value
-      : activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value,
-  );
+  const dialogueContext = computed(() => {
+    if (!isDialogueHistoryLatest.value && selectedDialogue.value) return selectedDialogue.value;
+    return activeDialogue.value ?? selectedDialogue.value ?? recentDialogue.value;
+  });
   const isDialogueActive = computed(() => activeDialogue.value !== null);
   const isDialogueView = computed(
     () => isDialogueActive.value || (dialogueContext.value !== null && !isGenerating.value),
   );
-  const canSubmit = computed(
-    () =>
-      controllerReady.value &&
-      isLatest.value &&
-      draftPrompt.value.trim().length > 0 &&
-      !isGenerating.value &&
-      !isDeleting.value,
+  const canSubmitBase = computed(
+    () => controllerReady.value && draftPrompt.value.trim().length > 0 && !isGenerating.value && !isDeleting.value,
+  );
+  const canSubmitStory = computed(() => canSubmitBase.value && isStoryHistoryLatest.value);
+  const canSubmitDialogue = computed(
+    () => canSubmitBase.value && isDialogueHistoryLatest.value && activeDialogue.value !== null,
+  );
+  const canSubmit = computed(() =>
+    activeDialogue.value ? canSubmitDialogue.value : canSubmitStory.value,
   );
   const canReroll = computed(
     () =>
@@ -377,7 +397,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
           !floorMessage.value);
       view.value = response.view;
       if (shouldRefreshFloor) refreshFloor(response.view.selectedMessageId);
-      if (pendingDialogueResume.value && isLatest.value && !isGenerating.value) {
+      if (pendingDialogueResume.value && isDialogueHistoryLatest.value && !isGenerating.value) {
         const pending = pendingDialogueResume.value;
         pendingDialogueResume.value = null;
         window.queueMicrotask(() => beginDialogue(pending, pending.sessionId));
@@ -484,7 +504,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   };
 
   const selectDraft = (title: string, prompt: string) => {
-    if (isGenerating.value || !isLatest.value) return;
+    if (isGenerating.value || !isStoryHistoryLatest.value) return;
     if (view.value.activeInteraction.mode === 'dialogue') {
       view.value = { ...view.value, activeInteraction: STORY_INTERACTION };
       post({ channel: PSEUDO_LAYER_CHANNEL, version: PSEUDO_LAYER_VERSION, type: 'end_interaction' });
@@ -503,7 +523,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   };
 
   function beginDialogue(target: DialogueTarget, sessionId?: string) {
-    if (!isLatest.value || isGenerating.value) return;
+    if (!isDialogueHistoryLatest.value || isGenerating.value) return;
     const interaction: DialogueContext = {
       mode: 'dialogue',
       sessionId: sessionId ?? `dialogue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -531,12 +551,26 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const continueDialogue = () => {
     const context = dialogueContext.value;
     if (!context) return;
-    if (!isLatest.value) {
+    if (!isDialogueHistoryLatest.value) {
       pendingDialogueResume.value = { ...context };
-      returnLatest();
+      returnHistoryLatest('dialogue');
       return;
     }
     beginDialogue(context, context.sessionId);
+  };
+
+  const resetDialogue = () => {
+    const context = dialogueContext.value;
+    if (!context || isGenerating.value || !isDialogueHistoryLatest.value) return;
+    draftPrompt.value = '';
+    selectedTitle.value = '';
+    generationError.value = '';
+    dialogueTurns.value = [];
+    beginDialogue({
+      targetName: context.targetName,
+      canonicalName: context.canonicalName,
+      channel: context.channel,
+    });
   };
 
   const endDialogue = () => {
@@ -547,14 +581,23 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     post({ channel: PSEUDO_LAYER_CHANNEL, version: PSEUDO_LAYER_VERSION, type: 'end_interaction' });
   };
 
-  const submit = () => {
+  const submit = (mode?: InteractionMode) => {
     const prompt = draftPrompt.value.trim();
-    if (!prompt || !canSubmit.value || !Number.isFinite(messageId)) return;
+    const requestedMode = mode ?? (activeDialogue.value ? 'dialogue' : 'story');
+    const maySubmit = requestedMode === 'dialogue' ? canSubmitDialogue.value : canSubmitStory.value;
+    if (!prompt || !maySubmit || !Number.isFinite(messageId)) return;
     const requestId = `action-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const interaction: PseudoLayerInteraction =
-      view.value.activeInteraction.mode === 'dialogue'
-        ? { ...view.value.activeInteraction }
+      requestedMode === 'dialogue' && activeDialogue.value
+        ? { ...activeDialogue.value }
         : STORY_INTERACTION;
+    const history = view.value.histories[requestedMode];
+    const anchorMessageId = history.selectedMessageId >= 0
+      ? history.selectedMessageId
+      : view.value.latestMessageId;
+    if (interaction.mode === 'story' && activeDialogue.value) {
+      view.value = { ...view.value, activeInteraction: STORY_INTERACTION };
+    }
     activeRequestId.value = requestId;
     generationState.value = 'preparing';
     generationOperation.value = 'generate';
@@ -569,7 +612,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       version: PSEUDO_LAYER_VERSION,
       type: 'generate',
       requestId,
-      messageId: view.value.selectedMessageId,
+      messageId: anchorMessageId,
       prompt,
       interaction,
     });
@@ -689,6 +732,9 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     isRerolling,
     isDeleting,
     isLatest,
+    isStoryHistoryLatest,
+    isDialogueHistoryLatest,
+    isCurrentHistoryLatest,
     isSelected,
     activeDialogue,
     selectedDialogue,
@@ -696,6 +742,8 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     isDialogueActive,
     isDialogueView,
     canSubmit,
+    canSubmitStory,
+    canSubmitDialogue,
     canReroll,
     canDelete,
     turnUserMessage,
@@ -706,6 +754,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     clearDraft,
     beginDialogue,
     continueDialogue,
+    resetDialogue,
     endDialogue,
     submit,
     stop,

@@ -1,5 +1,5 @@
 <template>
-  <section class="dialogue-stage" :class="{ historical: !pseudo.isLatest, transmitting: context?.channel === 'transmission' }">
+  <section class="dialogue-stage" :class="{ historical: !pseudo.isDialogueHistoryLatest, transmitting: context?.channel === 'transmission' }">
     <header class="dialogue-header">
       <div class="speaker-heading">
         <span class="channel-mark">
@@ -12,7 +12,7 @@
         <span v-if="relationLabel" class="relation-label">{{ relationLabel }}</span>
       </div>
 
-      <div v-if="pseudo.isLatest" class="dialogue-actions">
+      <div v-if="pseudo.isDialogueHistoryLatest" class="dialogue-actions">
         <button type="button" title="更换交谈对象" :disabled="pseudo.isGenerating" @click="showPicker = true">
           <i class="fa-solid fa-user-group"></i><span>换人</span>
         </button>
@@ -24,6 +24,16 @@
           @click="pseudo.continueDialogue"
         >
           <i class="fa-solid fa-comment-dots"></i><span>继续交谈</span>
+        </button>
+        <button
+          v-if="context"
+          type="button"
+          class="reset-button"
+          title="保留旧记录，用同一角色开启一段新交谈"
+          :disabled="pseudo.isGenerating"
+          @click="pseudo.resetDialogue"
+        >
+          <i class="fa-solid fa-arrow-rotate-left"></i><span>重置</span>
         </button>
         <button
           v-if="pseudo.isDialogueActive"
@@ -60,9 +70,9 @@
           <div v-if="visibleTurns.length === 0 && !pseudo.isGenerating" class="dialogue-empty">
             <i class="fa-solid" :class="context?.channel === 'transmission' ? 'fa-paper-plane' : 'fa-comment-dots'"></i>
             <strong>{{ context?.targetName ? `与${context.targetName}的交谈尚未开始` : '请选择交谈对象' }}</strong>
-            <span>{{ pseudo.isLatest ? '在下方写下想说的话。' : '此历史节点没有可显示的交谈记录。' }}</span>
+            <span>{{ pseudo.isDialogueHistoryLatest ? '在下方写下想说的话。' : '此历史节点没有可显示的交谈记录。' }}</span>
             <button
-              v-if="pseudo.isLatest && !context"
+              v-if="pseudo.isDialogueHistoryLatest && !context"
               type="button"
               class="choose-speaker-button"
               @click="showPicker = true"
@@ -186,7 +196,7 @@ const relation = computed(() => String(companion.value?.关系 ?? '').trim());
 const emotion = computed(() => String(companion.value?.关系上下文?.当前情绪 ?? '').trim());
 const relationLabel = computed(() => [relation.value, emotion.value].filter(Boolean).join(' · '));
 const dialogueKicker = computed(() => {
-  if (!pseudo.isDialogueActive) return pseudo.isLatest ? '最近交谈' : '历史对话';
+  if (!pseudo.isDialogueActive) return pseudo.isDialogueHistoryLatest ? '最近交谈' : '历史对话';
   return context.value?.channel === 'transmission' ? '传讯往来' : '此刻相谈';
 });
 
