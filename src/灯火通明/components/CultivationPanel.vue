@@ -1,276 +1,789 @@
 <template>
-  <div class="panel cultivation-panel">
-    <div class="identity-section">
-      <div class="identity-name">{{ store.本尊.身份.姓名 }}</div>
-      <div class="identity-info">
-        <span>{{ store.本尊.身份.宗门 }}</span>
-        <span class="divider">·</span>
-        <span>{{ store.本尊.身份.出身 }}</span>
-      </div>
-    </div>
+  <div class="panel cultivation-panel" :style="panelStyle">
+    <div class="cultivation-shell">
+      <header class="identity-masthead">
+        <div class="identity-eyebrow"><span></span>本尊道基<span></span></div>
+        <h2>{{ store.本尊.身份.姓名 }}</h2>
+        <p>
+          <span>{{ store.本尊.身份.宗门 }}</span>
+          <i></i>
+          <span>{{ store.本尊.身份.出身 }}</span>
+        </p>
+      </header>
 
-    <div class="realm-section">
-      <div class="realm-title" :style="{ color: realmColor }">
-        <i class="fa-solid fa-yin-yang"></i>
-        {{ store.本尊.境界描述 }}
-      </div>
-      <div class="realm-status">{{ store.本尊.状态 }}</div>
-    </div>
+      <section class="sanctum-grid" aria-label="修炼根基总览">
+        <div class="foundation-column foundation-left">
+          <div v-for="item in leftFoundation" :key="item.label" class="foundation-item is-left">
+            <div class="foundation-icon"><i :class="item.icon"></i></div>
+            <div class="foundation-copy">
+              <span>{{ item.label }}</span>
+              <strong :class="item.toneClass">{{ item.value }}</strong>
+            </div>
+          </div>
+        </div>
 
-    <div class="progress-section">
-      <div class="progress-label">
-        <span>修为进度</span>
-        <span>{{ store.本尊.修为 }} / {{ store.本尊.突破阈值 }}</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: store.本尊.进度, backgroundColor: realmColor }"></div>
-      </div>
-      <div class="progress-percent">{{ store.本尊.进度 }}</div>
-    </div>
+        <div class="realm-core">
+          <div
+            class="realm-orbit"
+            role="progressbar"
+            aria-label="当前修为进度"
+            aria-valuemin="0"
+            :aria-valuemax="store.本尊.突破阈值"
+            :aria-valuenow="store.本尊.修为"
+          >
+            <div class="orbit-mark orbit-mark-top"></div>
+            <div class="orbit-mark orbit-mark-bottom"></div>
+            <div class="realm-disc">
+              <i class="fa-solid fa-yin-yang realm-emblem"></i>
+              <span class="realm-caption">当前境界</span>
+              <strong>{{ store.本尊.境界描述 }}</strong>
+              <span class="realm-percent">{{ displayProgress }}</span>
+            </div>
+          </div>
+          <div class="status-seal">
+            <span class="status-dot"></span>
+            {{ store.本尊.状态 }}
+          </div>
+        </div>
 
-    <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-label">灵根</div>
-        <div class="stat-value" :style="{ color: rootColor }">{{ store.本尊.灵根 }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">体质</div>
-        <div class="stat-value">{{ store.本尊.体质 }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">功法</div>
-        <div class="stat-value">{{ store.本尊.功法 }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">本命兵器</div>
-        <div class="stat-value">{{ store.本尊.本命兵器 }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">灵石</div>
-        <div class="stat-value gold">{{ store.本尊.灵石 }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">寿元</div>
-        <div class="stat-value">{{ store.本尊.寿元状态 }}</div>
-      </div>
+        <div class="foundation-column foundation-right">
+          <div v-for="item in rightFoundation" :key="item.label" class="foundation-item">
+            <div class="foundation-icon"><i :class="item.icon"></i></div>
+            <div class="foundation-copy">
+              <span>{{ item.label }}</span>
+              <strong :class="item.toneClass">{{ item.value }}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="progress-belt" aria-label="周天积累">
+        <div class="progress-heading">
+          <div>
+            <i class="fa-solid fa-wind"></i>
+            <span>周天积累</span>
+          </div>
+          <strong
+            >{{ formatNumber(store.本尊.修为) }} <small>/ {{ formatNumber(store.本尊.突破阈值) }}</small></strong
+          >
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div class="progress-fill"></div>
+          <span v-for="marker in 4" :key="marker" :style="{ left: `${marker * 20}%` }"></span>
+        </div>
+        <div class="progress-foot">
+          <span>灵机循行，周天不息</span>
+          <span v-if="remainingCultivation > 0">距圆满尚需 {{ formatNumber(remainingCultivation) }}</span>
+          <span v-else>气机已臻圆满</span>
+        </div>
+      </section>
+
+      <section v-if="pathNotes.length" class="path-notes" aria-label="当前修炼要点">
+        <div class="path-heading">
+          <i class="fa-solid fa-compass"></i>
+          <span>道途记</span>
+        </div>
+        <div class="path-note-list">
+          <div v-for="note in pathNotes" :key="note.label" class="path-note">
+            <span>{{ note.label }}</span>
+            <strong>{{ note.value }}</strong>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { CSSProperties } from 'vue';
+import { computed } from 'vue';
+
 import { getRealmColor, getRootColor } from '../schema';
 import { useDataStore } from '../store';
+
+interface FoundationItem {
+  label: string;
+  value: string;
+  icon: string;
+  toneClass?: string;
+}
+
+interface PathNote {
+  label: string;
+  value: string;
+}
 
 const store = useDataStore();
 
 const realmColor = computed(() => getRealmColor(store.本尊.等级));
 const rootColor = computed(() => getRootColor(store.本尊.灵根));
+const progressValue = computed(() => {
+  const parsed = Number.parseFloat(String(store.本尊.进度));
+  return Number.isFinite(parsed) ? Math.min(100, Math.max(0, parsed)) : 0;
+});
+const displayProgress = computed(() => `${progressValue.value.toFixed(1)}%`);
+const remainingCultivation = computed(() => Math.max(0, store.本尊.突破阈值 - store.本尊.修为));
+
+const panelStyle = computed(
+  () =>
+    ({
+      '--realm-tone': realmColor.value,
+      '--root-tone': rootColor.value,
+      '--progress-angle': `${progressValue.value * 3.6}deg`,
+      '--progress-value': `${progressValue.value}%`,
+    }) as CSSProperties,
+);
+
+const leftFoundation = computed<FoundationItem[]>(() => [
+  {
+    label: '灵根',
+    value: store.本尊.灵根,
+    icon: 'fa-solid fa-seedling',
+    toneClass: 'root-tone',
+  },
+  {
+    label: '体质',
+    value: store.本尊.体质,
+    icon: 'fa-solid fa-person-rays',
+  },
+  {
+    label: '功法',
+    value: store.本尊.功法,
+    icon: 'fa-solid fa-scroll',
+  },
+]);
+
+const rightFoundation = computed<FoundationItem[]>(() => [
+  {
+    label: '本命兵器',
+    value: store.本尊.本命兵器,
+    icon: 'fa-solid fa-khanda',
+  },
+  {
+    label: '灵石',
+    value: formatNumber(store.本尊.灵石),
+    icon: 'fa-solid fa-gem',
+    toneClass: 'gold-tone',
+  },
+  {
+    label: '寿元',
+    value: store.本尊.寿元状态,
+    icon: 'fa-solid fa-hourglass-half',
+  },
+]);
+
+const pathNotes = computed<PathNote[]>(() => {
+  const cultivation = store.本尊.修炼状态;
+  const notes: PathNote[] = [];
+
+  if (cultivation.突破目标) notes.push({ label: '破境所向', value: cultivation.突破目标 });
+  if (cultivation.瓶颈原因) notes.push({ label: '瓶颈所在', value: cultivation.瓶颈原因 });
+  if (cultivation.上次结果 !== '无') notes.push({ label: '上次问道', value: cultivation.上次结果 });
+
+  return notes;
+});
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('zh-CN').format(value);
+}
 </script>
 
 <style lang="scss" scoped>
 .cultivation-panel {
-  padding: clamp(20px, 3vw, 34px);
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--text-primary);
+}
 
-  .identity-section {
-    text-align: center;
-    margin-bottom: 16px;
+.cultivation-panel::before,
+.cultivation-panel::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
 
-    .identity-name {
-      font-size: 20px;
-      font-weight: bold;
-      color: var(--text-primary);
-      font-family: 'Songti SC', 'STSong', serif;
-      text-shadow: 0 0 18px var(--accent-glow);
-    }
+.cultivation-panel::before {
+  width: min(68vw, 760px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--jade) 12%, transparent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 70px color-mix(in srgb, var(--line-subtle) 16%, transparent),
+    0 0 0 150px color-mix(in srgb, var(--gold) 4%, transparent);
+  opacity: 0.42;
+  transform: rotate(12deg);
+}
 
-    .identity-info {
-      color: var(--text-secondary);
-      font-size: 12px;
-      margin-top: 4px;
+.cultivation-panel::after {
+  inset: 7% 5%;
+  border-top: 1px solid color-mix(in srgb, var(--line-strong) 34%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--line-strong) 24%, transparent);
+  opacity: 0.42;
+}
 
-      .divider {
-        margin: 0 6px;
-        opacity: 0.5;
-      }
-    }
+.cultivation-shell {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1080px);
+  min-height: min(100%, 650px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  padding: 12px 20px;
+}
+
+.identity-masthead {
+  text-align: center;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.identity-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.identity-eyebrow span {
+  width: 42px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-soft));
+}
+
+.identity-eyebrow span:last-child {
+  transform: scaleX(-1);
+}
+
+.identity-masthead h2 {
+  margin: 5px 0 3px;
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--gold) 14%, transparent);
+}
+
+.identity-masthead p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.identity-masthead p i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  box-shadow: 0 0 8px var(--gold);
+}
+
+.sanctum-grid {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(230px, 286px) minmax(210px, 1fr);
+  grid-template-areas: 'left core right';
+  align-items: center;
+  gap: 30px;
+}
+
+.foundation-left {
+  grid-area: left;
+}
+.foundation-right {
+  grid-area: right;
+}
+.realm-core {
+  grid-area: core;
+}
+
+.foundation-column {
+  display: grid;
+  gap: 12px;
+}
+
+.foundation-item {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 4px;
+}
+
+.foundation-item::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line-strong), var(--line-subtle) 66%, transparent);
+  opacity: 0.7;
+}
+
+.foundation-item.is-left {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.foundation-item.is-left::after {
+  background: linear-gradient(270deg, var(--line-strong), var(--line-subtle) 66%, transparent);
+}
+
+.foundation-icon {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 64%, transparent);
+  border-radius: 50%;
+  color: var(--jade);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--jade) 12%, transparent), transparent 68%),
+    color-mix(in srgb, var(--surface-raised) 78%, transparent);
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--jade) 7%, transparent);
+}
+
+.foundation-icon i {
+  font-size: 14px;
+}
+
+.foundation-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.foundation-copy span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.foundation-copy strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.foundation-copy .root-tone {
+  color: color-mix(in srgb, var(--root-tone) 78%, var(--text-primary));
+  text-shadow: 0 0 12px color-mix(in srgb, var(--root-tone) 20%, transparent);
+}
+
+.foundation-copy .gold-tone {
+  color: var(--gold);
+}
+
+.realm-core {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+}
+
+.realm-orbit {
+  position: relative;
+  width: 218px;
+  aspect-ratio: 1;
+  padding: 8px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -90deg,
+    var(--realm-tone) 0deg var(--progress-angle),
+    color-mix(in srgb, var(--line-subtle) 72%, transparent) var(--progress-angle) 360deg
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--realm-tone) 30%, transparent),
+    0 0 30px color-mix(in srgb, var(--realm-tone) 10%, transparent);
+}
+
+.realm-orbit::before,
+.realm-orbit::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.realm-orbit::before {
+  inset: -12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 26%, transparent);
+  border-right-color: transparent;
+  border-left-color: transparent;
+  transform: rotate(36deg);
+}
+
+.realm-orbit::after {
+  inset: 17px;
+  border: 1px dashed color-mix(in srgb, var(--jade) 15%, transparent);
+}
+
+.realm-disc {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 58%, transparent);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--realm-tone) 11%, transparent), transparent 48%),
+    color-mix(in srgb, var(--surface-inset) 94%, transparent);
+  box-shadow:
+    inset 0 0 34px color-mix(in srgb, var(--realm-tone) 8%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.realm-emblem {
+  margin-bottom: 8px;
+  color: color-mix(in srgb, var(--realm-tone) 76%, var(--text-primary));
+  font-size: 27px;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--realm-tone) 28%, transparent));
+  animation: realm-breathe 4s ease-in-out infinite;
+}
+
+.realm-caption {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.realm-disc strong {
+  max-width: 150px;
+  margin-top: 3px;
+  color: var(--text-primary);
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.realm-percent {
+  margin-top: 7px;
+  color: var(--gold);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.orbit-mark {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--gold-soft);
+  background: var(--surface-inset);
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gold) 32%, transparent);
+}
+
+.orbit-mark-top {
+  top: -15px;
+}
+.orbit-mark-bottom {
+  bottom: -15px;
+}
+
+.status-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--gold) 34%, var(--line-subtle));
+  border-radius: 4px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--surface-raised) 84%, transparent);
+  font-size: 12px;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--jade);
+  box-shadow: 0 0 8px var(--jade);
+}
+
+.progress-belt {
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: 12px 16px 11px;
+  border-top: 1px solid var(--line-subtle);
+  border-bottom: 1px solid var(--line-subtle);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--surface-raised) 58%, transparent),
+    transparent
+  );
+}
+
+.progress-heading,
+.progress-heading > div,
+.progress-foot {
+  display: flex;
+  align-items: center;
+}
+
+.progress-heading {
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.progress-heading > div {
+  gap: 7px;
+}
+.progress-heading i {
+  color: var(--jade);
+  font-size: 11px;
+}
+.progress-heading span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.progress-heading strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.progress-heading small {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.progress-track {
+  position: relative;
+  height: 8px;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 52%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--progress-bg) 88%, transparent);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--stage-shadow) 60%, transparent);
+}
+
+.progress-fill {
+  width: var(--progress-value);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--jade) 72%, var(--realm-tone)),
+    var(--realm-tone),
+    var(--gold)
+  );
+  box-shadow: 0 0 12px color-mix(in srgb, var(--realm-tone) 30%, transparent);
+  transition: width 0.5s ease;
+}
+
+.progress-track > span {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-secondary) 54%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+.progress-foot {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.path-notes {
+  width: min(100%, 820px);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: stretch;
+  margin: 0 auto;
+  padding-top: 1px;
+}
+
+.path-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border-right: 1px solid var(--line-subtle);
+  color: var(--gold);
+  font-size: 12px;
+}
+
+.path-note-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.path-note {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 6px 0;
+}
+
+.path-note span {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.path-note strong {
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+@keyframes realm-breathe {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scale(0.96);
   }
-
-  .realm-section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-
-    .realm-title {
-      font-size: 18px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      i {
-        animation: spin 10s linear infinite;
-      }
-    }
-
-    .realm-status {
-      font-size: 12px;
-      padding: 3px 8px;
-      background: var(--button-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      color: var(--accent-color);
-    }
-  }
-
-  .progress-section {
-    margin-bottom: 20px;
-
-    .progress-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-    }
-
-    .progress-bar {
-      height: 8px;
-      background: var(--progress-bg);
-      border-radius: 4px;
-      overflow: hidden;
-
-      .progress-fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.5s ease;
-        box-shadow: 0 0 10px currentColor;
-      }
-    }
-
-    .progress-percent {
-      text-align: right;
-      font-size: 11px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    border-top: 1px solid var(--line-subtle);
-    border-bottom: 1px solid var(--line-subtle);
-
-    .stat-item {
-      text-align: center;
-      padding: 14px 8px;
-      border-right: 1px solid var(--line-subtle);
-      border-bottom: 1px solid var(--line-subtle);
-
-      &:nth-child(3n) { border-right: 0; }
-      &:nth-last-child(-n + 3) { border-bottom: 0; }
-
-      .stat-label {
-        font-size: 11px;
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-      }
-
-      .stat-value {
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text-primary);
-
-        &.gold {
-          color: var(--gold);
-        }
-      }
-    }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
   }
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-// 手机端适配
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 780px) {
   .cultivation-panel {
-    padding: 12px;
+    overflow-y: auto;
+  }
 
-    .identity-section {
-      margin-bottom: 12px;
+  .cultivation-shell {
+    min-height: 100%;
+    justify-content: flex-start;
+    gap: 15px;
+    padding: 8px 4px 14px;
+  }
 
-      .identity-name {
-        font-size: 18px;
-      }
+  .identity-masthead h2 {
+    font-size: 23px;
+  }
 
-      .identity-info {
-        font-size: 11px;
-      }
-    }
+  .sanctum-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'core core'
+      'left right';
+    align-items: start;
+    gap: 18px;
+  }
 
-    .realm-section {
-      gap: 10px;
-      margin-bottom: 12px;
+  .realm-orbit {
+    width: 176px;
+  }
+  .realm-disc strong {
+    font-size: 16px;
+  }
+  .realm-emblem {
+    font-size: 22px;
+  }
 
-      .realm-title {
-        font-size: 16px;
-      }
+  .foundation-column {
+    gap: 5px;
+  }
+  .foundation-item,
+  .foundation-item.is-left {
+    min-height: 58px;
+    flex-direction: row;
+    padding: 7px 2px;
+    text-align: left;
+  }
 
-      .realm-status {
-        font-size: 11px;
-        padding: 2px 6px;
-      }
-    }
+  .foundation-item.is-left::after,
+  .foundation-item::after {
+    background: linear-gradient(90deg, var(--line-strong), var(--line-subtle) 66%, transparent);
+  }
 
-    .progress-section {
-      margin-bottom: 16px;
+  .foundation-icon {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+  }
 
-      .progress-label {
-        font-size: 11px;
-      }
+  .foundation-copy strong {
+    font-size: 13px;
+  }
+  .progress-belt {
+    padding-inline: 10px;
+  }
 
-      .progress-bar {
-        height: 6px;
-      }
+  .path-notes {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
 
-      .progress-percent {
-        font-size: 10px;
-      }
-    }
+  .path-heading {
+    justify-content: center;
+    padding: 6px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-subtle);
+  }
+}
 
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0;
-
-      .stat-item {
-        padding: 8px 6px;
-        border-right: 1px solid var(--line-subtle);
-        border-bottom: 1px solid var(--line-subtle);
-
-        &:nth-child(3n) { border-right: 1px solid var(--line-subtle); }
-        &:nth-child(2n) { border-right: 0; }
-        &:nth-last-child(-n + 3) { border-bottom: 1px solid var(--line-subtle); }
-        &:nth-last-child(-n + 2) { border-bottom: 0; }
-
-        .stat-label {
-          font-size: 10px;
-        }
-
-        .stat-value {
-          font-size: 12px;
-        }
-      }
-    }
+@media screen and (max-width: 480px) {
+  .cultivation-shell {
+    gap: 12px;
+  }
+  .identity-masthead h2 {
+    font-size: 21px;
+  }
+  .identity-eyebrow {
+    font-size: 10px;
+  }
+  .realm-orbit {
+    width: 158px;
+  }
+  .sanctum-grid {
+    gap: 11px;
+  }
+  .foundation-item {
+    gap: 7px;
+  }
+  .foundation-icon {
+    display: none;
+  }
+  .foundation-copy strong {
+    font-size: 12px;
+  }
+  .progress-heading {
+    gap: 8px;
+  }
+  .progress-foot {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .path-note-list {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
 }
 </style>
