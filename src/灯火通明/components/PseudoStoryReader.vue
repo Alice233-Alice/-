@@ -190,9 +190,11 @@
 <script setup lang="ts">
 import type { VariablePatchOperation } from '../message-content';
 import {
+  extractInlineReasoning,
   extractNarrative,
   extractVariableUpdateDiagnostics,
   formatMessageHtml,
+  mergeReasoningText,
   stripStructuredBlocks,
 } from '../message-content';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
@@ -312,11 +314,18 @@ const userPromptPreview = computed(() =>
     .trim(),
 );
 const userPromptHtml = computed(() => formatText(stripStructuredBlocks(userPrompt.value)));
-const reasoningText = computed(() =>
-  isStoryGenerating.value
-    ? pseudo.liveReasoning || pseudo.storyFloorReasoning
-    : pseudo.storyFloorReasoning,
+const inlineStreamReasoning = computed(() =>
+  isStoryGenerating.value ? extractInlineReasoning(displayedStreamText.value) : null,
 );
+const reasoningText = computed(() => {
+  if (!isStoryGenerating.value) return pseudo.storyFloorReasoning;
+  const liveText = mergeReasoningText(
+    pseudo.liveReasoning,
+    inlineStreamReasoning.value?.text ?? '',
+  );
+  if (liveText) return liveText;
+  return pseudo.streamText ? '' : pseudo.storyFloorReasoning;
+});
 const reasoningHtml = computed(() => formatText(reasoningText.value));
 const reasoningTime = computed(() => {
   const duration = isStoryGenerating.value
