@@ -15,8 +15,17 @@ const closeTagPattern = (tag: string) => `<\\/${escapeRegExp(tag)}\\s*>`;
 
 const DIALOGUE_TAGS = ['反应', '正文', '会话状态'] as const;
 
+const REASONING_TAG_NAME_SOURCE = 'think(?:ing)?|reasoning|thought|think_?fox~?';
 const REASONING_OPEN_PATTERN = /<(?:think(?:ing)?|reasoning|thought|think_?fox~?)(?=[\s>])[^>]*>/gi;
 const REASONING_CLOSE_PATTERN = /<\/(?:think(?:ing)?|reasoning|thought|think_?fox~?)\s*>/gi;
+const REASONING_BLOCK_PATTERN = new RegExp(
+  `<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>([\\s\\S]*?)(<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>|$)`,
+  'gi',
+);
+const REASONING_FALLBACK_BOUNDARY = new RegExp(
+  `<(?:正文|visual_cards|pseudo_layer|UpdateVariable|JSONPatch)(?=[\\s/>])`,
+  'i',
+);
 
 // Strip reasoning before Tavern display regexes can expand it into embedded UI markup.
 const stripReasoningPrefix = (text: string) => {
@@ -33,7 +42,11 @@ const stripReasoningPrefix = (text: string) => {
   REASONING_OPEN_PATTERN.lastIndex = 0;
   const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
   REASONING_OPEN_PATTERN.lastIndex = 0;
-  return unfinishedOpening?.index === undefined ? text : text.slice(0, unfinishedOpening.index);
+  if (unfinishedOpening?.index === undefined) return text;
+
+  const remainder = text.slice(unfinishedOpening.index + unfinishedOpening[0].length);
+  const bodyBoundary = remainder.search(REASONING_FALLBACK_BOUNDARY);
+  return bodyBoundary >= 0 ? remainder.slice(bodyBoundary) : text.slice(0, unfinishedOpening.index);
 };
 
 const findEmbeddedDocumentStart = (lowerText: string) => {
@@ -65,6 +78,54 @@ const stripEmbeddedHtmlDocuments = (text: string) => {
     result = `${result.slice(0, removeStart)}${result.slice(removeEnd)}`;
   }
   return result;
+};
+
+export type InlineReasoning = {
+  text: string;
+  isComplete: boolean;
+};
+
+export const mergeReasoningText = (primary: string, secondary: string) => {
+  const first = primary.trim();
+  const second = secondary.trim();
+  if (!first) return second;
+  if (!second || first.includes(second)) return first;
+  if (second.includes(first)) return second;
+  return `${first}\n\n${second}`;
+};
+
+// Some presets keep their visible thought trace inside the assistant message
+// instead of SillyTavern's `extra.reasoning`. Read the raw tag content here so
+// the pseudo layer can render it without running the preset's embedded UI.
+export const extractInlineReasoning = (text: string): InlineReasoning | null => {
+  REASONING_BLOCK_PATTERN.lastIndex = 0;
+  const blocks: string[] = [];
+  let found = false;
+  let isComplete = true;
+  let match: RegExpExecArray | null;
+
+  while ((match = REASONING_BLOCK_PATTERN.exec(text)) !== null) {
+    found = true;
+    const closingTag = match[2];
+    let content = match[1];
+    if (!closingTag) {
+      isComplete = false;
+      const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+      if (boundary >= 0) content = content.slice(0, boundary);
+    }
+
+    const cleaned = stripEmbeddedHtmlDocuments(content)
+      .replace(REASONING_OPEN_PATTERN, '')
+      .replace(REASONING_CLOSE_PATTERN, '')
+      .trim();
+    if (cleaned) blocks.push(cleaned);
+
+    if (!closingTag) break;
+  }
+  REASONING_BLOCK_PATTERN.lastIndex = 0;
+
+  if (!found) return null;
+  return { text: blocks.join('\n\n').trim(), isComplete };
 };
 
 export const stripAuxiliaryPresentation = (text: string) =>

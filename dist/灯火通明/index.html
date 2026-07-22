@@ -1125,9 +1125,11 @@ var __webpack_modules__ = {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
       extractDialogueContent: () => extractDialogueContent,
+      extractInlineReasoning: () => extractInlineReasoning,
       extractNarrative: () => extractNarrative,
       extractVariableUpdateDiagnostics: () => extractVariableUpdateDiagnostics,
       formatMessageHtml: () => formatMessageHtml,
+      mergeReasoningText: () => mergeReasoningText,
       stripAuxiliaryPresentation: () => stripAuxiliaryPresentation,
       stripStructuredBlocks: () => stripStructuredBlocks
     });
@@ -1136,8 +1138,11 @@ var __webpack_modules__ = {
     const openTagPattern = tag => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
     const closeTagPattern = tag => `<\\/${escapeRegExp(tag)}\\s*>`;
     const DIALOGUE_TAGS = [ "反应", "正文", "会话状态" ];
+    const REASONING_TAG_NAME_SOURCE = "think(?:ing)?|reasoning|thought|think_?fox~?";
     const REASONING_OPEN_PATTERN = /<(?:think(?:ing)?|reasoning|thought|think_?fox~?)(?=[\s>])[^>]*>/gi;
     const REASONING_CLOSE_PATTERN = /<\/(?:think(?:ing)?|reasoning|thought|think_?fox~?)\s*>/gi;
+    const REASONING_BLOCK_PATTERN = new RegExp(`<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>([\\s\\S]*?)(<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>|$)`, "gi");
+    const REASONING_FALLBACK_BOUNDARY = new RegExp(`<(?:正文|visual_cards|pseudo_layer|UpdateVariable|JSONPatch)(?=[\\s/>])`, "i");
     const stripReasoningPrefix = text => {
       REASONING_CLOSE_PATTERN.lastIndex = 0;
       let lastClosingEnd = -1;
@@ -1150,7 +1155,10 @@ var __webpack_modules__ = {
       REASONING_OPEN_PATTERN.lastIndex = 0;
       const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
       REASONING_OPEN_PATTERN.lastIndex = 0;
-      return unfinishedOpening?.index === undefined ? text : text.slice(0, unfinishedOpening.index);
+      if (unfinishedOpening?.index === undefined) return text;
+      const remainder = text.slice(unfinishedOpening.index + unfinishedOpening[0].length);
+      const bodyBoundary = remainder.search(REASONING_FALLBACK_BOUNDARY);
+      return bodyBoundary >= 0 ? remainder.slice(bodyBoundary) : text.slice(0, unfinishedOpening.index);
     };
     const findEmbeddedDocumentStart = lowerText => {
       const doctypeIndex = lowerText.indexOf("<!doctype html");
@@ -1176,6 +1184,40 @@ var __webpack_modules__ = {
         result = `${result.slice(0, removeStart)}${result.slice(removeEnd)}`;
       }
       return result;
+    };
+    const mergeReasoningText = (primary, secondary) => {
+      const first = primary.trim();
+      const second = secondary.trim();
+      if (!first) return second;
+      if (!second || first.includes(second)) return first;
+      if (second.includes(first)) return second;
+      return `${first}\n\n${second}`;
+    };
+    const extractInlineReasoning = text => {
+      REASONING_BLOCK_PATTERN.lastIndex = 0;
+      const blocks = [];
+      let found = false;
+      let isComplete = true;
+      let match;
+      while ((match = REASONING_BLOCK_PATTERN.exec(text)) !== null) {
+        found = true;
+        const closingTag = match[2];
+        let content = match[1];
+        if (!closingTag) {
+          isComplete = false;
+          const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+          if (boundary >= 0) content = content.slice(0, boundary);
+        }
+        const cleaned = stripEmbeddedHtmlDocuments(content).replace(REASONING_OPEN_PATTERN, "").replace(REASONING_CLOSE_PATTERN, "").trim();
+        if (cleaned) blocks.push(cleaned);
+        if (!closingTag) break;
+      }
+      REASONING_BLOCK_PATTERN.lastIndex = 0;
+      if (!found) return null;
+      return {
+        text: blocks.join("\n\n").trim(),
+        isComplete
+      };
     };
     const stripAuxiliaryPresentation = text => stripEmbeddedHtmlDocuments(stripReasoningPrefix(text)).trim();
     const stripDialogueTagFragments = text => DIALOGUE_TAGS.reduce((value, tag) => value.replace(new RegExp(`<\\/?${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`, "gi"), ""), text).replace(/<[^>]*$/g, "").trim();
@@ -4711,7 +4753,9 @@ var __webpack_modules__ = {
     const readReasoning = message => {
       const direct = message?.extra ?? {};
       const nested = direct.extra && typeof direct.extra === "object" ? direct.extra : {};
-      const text = String(direct.reasoning ?? nested.reasoning ?? "");
+      const nativeText = String(direct.reasoning ?? nested.reasoning ?? "").trim();
+      const inlineReasoning = (0, _message_content__WEBPACK_IMPORTED_MODULE_1__.extractInlineReasoning)(String(message?.message ?? ""));
+      const text = (0, _message_content__WEBPACK_IMPORTED_MODULE_1__.mergeReasoningText)(nativeText, inlineReasoning?.text ?? "");
       const rawDuration = Number(direct.reasoning_duration ?? nested.reasoning_duration);
       return {
         text,
@@ -8638,7 +8682,14 @@ var __webpack_modules__ = {
         _message_content__WEBPACK_IMPORTED_MODULE_1__.stripStructuredBlocks)(userPrompt.value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
         const userPromptHtml = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => formatText((0, 
         _message_content__WEBPACK_IMPORTED_MODULE_1__.stripStructuredBlocks)(userPrompt.value)));
-        const reasoningText = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => isStoryGenerating.value ? pseudo.liveReasoning || pseudo.storyFloorReasoning : pseudo.storyFloorReasoning);
+        const inlineStreamReasoning = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => isStoryGenerating.value ? (0, 
+        _message_content__WEBPACK_IMPORTED_MODULE_1__.extractInlineReasoning)(displayedStreamText.value) : null);
+        const reasoningText = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => {
+          if (!isStoryGenerating.value) return pseudo.storyFloorReasoning;
+          const liveText = (0, _message_content__WEBPACK_IMPORTED_MODULE_1__.mergeReasoningText)(pseudo.liveReasoning, inlineStreamReasoning.value?.text ?? "");
+          if (liveText) return liveText;
+          return pseudo.streamText ? "" : pseudo.storyFloorReasoning;
+        });
         const reasoningHtml = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => formatText(reasoningText.value));
         const reasoningTime = (0, vue__WEBPACK_IMPORTED_MODULE_0__.computed)(() => {
           const duration = isStoryGenerating.value ? pseudo.reasoningDuration ?? pseudo.storyFloorReasoningDuration : pseudo.storyFloorReasoningDuration;
@@ -8785,6 +8836,7 @@ var __webpack_modules__ = {
           userPrompt,
           userPromptPreview,
           userPromptHtml,
+          inlineStreamReasoning,
           reasoningText,
           reasoningHtml,
           reasoningTime,

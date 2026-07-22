@@ -13,7 +13,11 @@ import {
   PseudoLayerView,
   isPseudoLayerResponse,
 } from '../pseudo-layer-protocol';
-import { extractDialogueContent } from '../message-content';
+import {
+  extractDialogueContent,
+  extractInlineReasoning,
+  mergeReasoningText,
+} from '../message-content';
 
 export type DialogueTurn = {
   assistantMessageId: number;
@@ -99,7 +103,9 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
 const readReasoning = (message: ChatMessage | undefined) => {
   const direct = message?.extra ?? {};
   const nested = direct.extra && typeof direct.extra === 'object' ? direct.extra : {};
-  const text = String(direct.reasoning ?? nested.reasoning ?? '');
+  const nativeText = String(direct.reasoning ?? nested.reasoning ?? '').trim();
+  const inlineReasoning = extractInlineReasoning(String(message?.message ?? ''));
+  const text = mergeReasoningText(nativeText, inlineReasoning?.text ?? '');
   const rawDuration = Number(direct.reasoning_duration ?? nested.reasoning_duration);
   return {
     text,
