@@ -387,6 +387,8 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     controllerReady.value = true;
 
     if (response.type === 'ready') {
+      // A fresh controller handshake supersedes errors left by an older hot-reloaded instance.
+      generationError.value = '';
       if (response.busy && response.requestId) {
         acceptsRequest(response.requestId);
         generationOperation.value = response.operation ?? generationOperation.value;

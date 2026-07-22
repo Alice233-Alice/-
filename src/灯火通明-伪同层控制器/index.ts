@@ -28,8 +28,22 @@ type ResponsePayload = WithoutEnvelope<PseudoLayerResponse>;
 type ChatRefreshMode = 'none' | 'affected' | 'all';
 
 type NativeSwipeMessage = {
+  mes?: string;
+  send_date?: unknown;
+  gen_started?: unknown;
+  gen_finished?: unknown;
+  extra?: Record<string, unknown>;
   swipe_id?: number;
   swipes?: unknown[];
+  swipe_info?: Array<
+    | {
+        send_date?: unknown;
+        gen_started?: unknown;
+        gen_finished?: unknown;
+        extra?: Record<string, unknown>;
+      }
+    | undefined
+  >;
 };
 
 type ActiveGeneration = {
@@ -72,6 +86,15 @@ type StageEntry = {
   stage: PseudoLayerStage;
 };
 
+type ControllerLease = {
+  instanceId: string;
+  dispose: () => void;
+};
+
+type ControllerHostWindow = Window & {
+  __dhlPseudoLayerControllerLease__?: ControllerLease;
+};
+
 const STYLE_ID = 'dhl-pseudo-layer-controller-style';
 const INPUT_STORAGE_KEY = 'denghuolanshan:pseudo-layer:native-input-collapsed';
 const INTERACTION_KEY = 'dhl_pseudo_interaction';
@@ -86,7 +109,12 @@ const STREAM_DISPATCH_INTERVAL_MS = 80;
 const STORY_INTERACTION = { mode: 'story' } as const;
 const tavernWindow = window.parent;
 const tavernDocument = tavernWindow.document;
+const controllerHost = tavernWindow as ControllerHostWindow;
+const controllerFrame = window.frameElement as HTMLIFrameElement | null;
+const controllerInstanceId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 const registrations = new Map<number, ReplyTarget>();
+const controllerEventStops: EventOnReturn[] = [];
+const duplicatePruneTimers: number[] = [];
 
 let activeGeneration: ActiveGeneration | null = null;
 let activeInteraction: PseudoLayerInteraction = STORY_INTERACTION;
@@ -101,6 +129,7 @@ let deletingMessageId: number | null = null;
 let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === 'true';
 let viewRevision = 0;
 let frameObserver: MutationObserver | null = null;
+let duplicateControllerObserver: MutationObserver | null = null;
 let streamDispatchTimer: number | null = null;
 let pendingStreamDispatch: {
   requestId: string;
@@ -108,6 +137,7 @@ let pendingStreamDispatch: {
   text: string;
   reaction?: string;
 } | null = null;
+let controllerDisposed = false;
 
 const send = (source: ReplyTarget | undefined, message: ResponsePayload) => {
   source?.postMessage(
@@ -829,7 +859,7 @@ const triggerNativeReroll = async (messageId: number) => {
     tavernWindow as typeof tavernWindow & {
       SillyTavern?: {
         getContext?: () => {
-          chat?: unknown[];
+          chat?: NativeSwipeMessage[];
           swipe?: {
             right?: (
               event?: Event | null,
@@ -844,7 +874,9 @@ const triggerNativeReroll = async (messageId: number) => {
   if (typeof swipeRight !== 'function') throw new Error('当前酒馆版本没有提供原生重生成接口。');
 
   const nativeButton = getMessageElement(messageId)?.querySelector<HTMLElement>('.swipe_right');
-  const nativeMessage = context?.chat?.at(-1);
+  const nativeMessage = context?.chat?.[messageId];
+  if (!nativeMessage) throw new Error(`没有找到第 ${messageId} 楼的原生消息。`);
+  repairNativeSwipeState(messageId, nativeMessage);
   await swipeRight.call(nativeButton ?? context?.swipe, null, {
     source: 'dhl-pseudo-layer',
     message: nativeMessage,
@@ -857,7 +889,49 @@ const getNativeSwipeMessage = (messageId: number): NativeSwipeMessage | undefine
       SillyTavern?: { getContext?: () => { chat?: NativeSwipeMessage[] } };
     }
   ).SillyTavern?.getContext?.();
-  return context?.chat?.[messageId] ?? context?.chat?.at(-1);
+  return context?.chat?.[messageId];
+};
+
+const isNativeSwipePlaceholder = (value: unknown) =>
+  typeof value === 'string' && value.trim() === '...';
+
+const repairNativeSwipeState = (messageId: number, message: NativeSwipeMessage) => {
+  if (!Array.isArray(message.swipes) || message.swipes.length === 0) return;
+
+  const swipeId = message.swipe_id;
+  const isValid =
+    Number.isInteger(swipeId) &&
+    (swipeId as number) >= 0 &&
+    (swipeId as number) < message.swipes.length &&
+    typeof message.swipes[swipeId as number] === 'string';
+  if (isValid) return;
+
+  const hasFailedTrailingCandidate =
+    message.swipes.length > 1 &&
+    isNativeSwipePlaceholder(message.mes) &&
+    isNativeSwipePlaceholder(message.swipes.at(-1));
+  if (hasFailedTrailingCandidate) {
+    message.swipes.pop();
+    if (Array.isArray(message.swipe_info) && message.swipe_info.length > message.swipes.length) {
+      message.swipe_info.splice(message.swipes.length);
+    }
+  }
+
+  const fallbackSwipeId = message.swipes.findLastIndex(value => typeof value === 'string');
+  if (fallbackSwipeId < 0) throw new Error(`第 ${messageId} 楼没有可恢复的重生成候选。`);
+
+  message.swipe_id = fallbackSwipeId;
+  message.mes = message.swipes[fallbackSwipeId] as string;
+  const swipeInfo = message.swipe_info?.[fallbackSwipeId];
+  if (swipeInfo) {
+    message.send_date = swipeInfo.send_date ?? message.send_date;
+    message.gen_started = swipeInfo.gen_started;
+    message.gen_finished = swipeInfo.gen_finished;
+    message.extra = _.cloneDeep(swipeInfo.extra ?? message.extra ?? {});
+  }
+  console.warn(
+    `[灯火阑珊·伪同层] 已修复第 ${messageId} 楼越界的 swipe_id：${String(swipeId)} -> ${fallbackSwipeId}`,
+  );
 };
 
 const isNativeSwipeMaterialized = (messageId: number) => {
@@ -1880,25 +1954,116 @@ const handleMessageSent = async (messageId: number) => {
   applyStageVisibility();
 };
 
-eventOn(tavern_events.MESSAGE_SENT, messageId => {
+const isControllerLoaderFrame = (frame: HTMLIFrameElement) => {
+  if (frame === controllerFrame) return false;
+  try {
+    const loaderSource = frame.contentDocument?.body?.textContent?.trim().replace(/\\/g, '/') ?? '';
+    return /^import\s+['"][^'"]*灯火通明-伪同层控制器\/index\.js(?:\?[^'"]*)?['"]\s*;?$/u.test(
+      loaderSource,
+    );
+  } catch {
+    return false;
+  }
+};
+
+const pruneDuplicateControllerFrames = () => {
+  tavernDocument.querySelectorAll<HTMLIFrameElement>('iframe').forEach(frame => {
+    if (!isControllerLoaderFrame(frame)) return;
+    console.warn('[灯火阑珊·伪同层] 已卸载重复控制器');
+    frame.remove();
+  });
+};
+
+const scheduleDuplicateControllerPrune = (frame: HTMLIFrameElement) => {
+  if (frame === controllerFrame) return;
+  const pruneFrame = () => {
+    if (controllerDisposed || !frame.isConnected || !isControllerLoaderFrame(frame)) return;
+    console.warn('[灯火阑珊·伪同层] 已卸载延迟载入的重复控制器');
+    frame.remove();
+  };
+  frame.addEventListener('load', pruneFrame, { once: true });
+  [0, 250, 1000, 3000].forEach(delay => {
+    duplicatePruneTimers.push(window.setTimeout(pruneFrame, delay));
+  });
+};
+
+const inspectAddedControllerNode = (node: Node) => {
+  if (node.nodeType !== 1) return;
+  const element = node as Element;
+  if (element.tagName === 'IFRAME') scheduleDuplicateControllerPrune(element as HTMLIFrameElement);
+  element.querySelectorAll<HTMLIFrameElement>('iframe').forEach(scheduleDuplicateControllerPrune);
+};
+
+const installDuplicateControllerObserver = () => {
+  duplicateControllerObserver?.disconnect();
+  duplicateControllerObserver = new MutationObserver(records => {
+    records.forEach(record => record.addedNodes.forEach(inspectAddedControllerNode));
+  });
+  duplicateControllerObserver.observe(tavernDocument.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+};
+
+const disposeController = () => {
+  if (controllerDisposed) return;
+  controllerDisposed = true;
+
+  if (activeGeneration?.engine === 'dedicated') {
+    activeGeneration.cancelled = true;
+    if (activeGeneration.generationId) stopGenerationById(activeGeneration.generationId);
+  }
+  controllerEventStops.splice(0).forEach(subscription => subscription.stop());
+  duplicatePruneTimers.splice(0).forEach(timer => window.clearTimeout(timer));
+  duplicateControllerObserver?.disconnect();
+  duplicateControllerObserver = null;
+  frameObserver?.disconnect();
+  frameObserver = null;
+  discardQueuedStream();
+  tavernWindow.removeEventListener('message', handleMessage);
+  removeNativeDialogueBridge();
+  releaseParkedFrames();
+  tavernDocument.getElementById(STYLE_ID)?.remove();
+  tavernDocument.body.classList.remove(
+    'dhl-pseudo-layer-active',
+    'dhl-native-input-collapsed',
+    ROOT_ACTIVE_CLASS,
+  );
+  tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes').forEach(element => {
+    element.classList.remove(STAGE_CLASS, SELECTED_CLASS, PARKED_FRAME_CLASS);
+  });
+  if (controllerHost.__dhlPseudoLayerControllerLease__?.instanceId === controllerInstanceId) {
+    delete controllerHost.__dhlPseudoLayerControllerLease__;
+  }
+};
+
+controllerHost.__dhlPseudoLayerControllerLease__?.dispose();
+pruneDuplicateControllerFrames();
+controllerHost.__dhlPseudoLayerControllerLease__ = {
+  instanceId: controllerInstanceId,
+  dispose: disposeController,
+};
+installDuplicateControllerObserver();
+
+controllerEventStops.push(eventOn(tavern_events.MESSAGE_SENT, messageId => {
   void handleMessageSent(Number(messageId)).catch(error => {
     console.error('[灯火阑珊·伪同层] 写入交谈楼层元数据失败', error);
   });
-});
+}));
 
-eventOn(tavern_events.GENERATION_STARTED, () => {
+controllerEventStops.push(eventOn(tavern_events.GENERATION_STARTED, () => {
   if (!activeGeneration || activeGeneration.engine !== 'native') return;
   activeGeneration.sent = true;
   sendGenerationState(activeGeneration, 'generating');
-});
+}));
 
-eventOn(tavern_events.STREAM_TOKEN_RECEIVED, text => {
+controllerEventStops.push(eventOn(tavern_events.STREAM_TOKEN_RECEIVED, text => {
   if (!activeGeneration || activeGeneration.engine !== 'native') return;
   activeGeneration.streamText = text;
   queueStream(activeGeneration, text);
-});
+}));
 
-eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, generationId) => {
+controllerEventStops.push(eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, generationId) => {
   const generation = activeGeneration;
   if (
     !generation ||
@@ -1917,9 +2082,9 @@ eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, generationId) => {
   generation.streamText = parsed.dialogue;
   generation.streamReaction = parsed.reaction;
   queueStream(generation, parsed.dialogue, parsed.reaction);
-});
+}));
 
-eventOn(tavern_events.STREAM_REASONING_DONE, (reasoning, duration, messageId, state) => {
+controllerEventStops.push(eventOn(tavern_events.STREAM_REASONING_DONE, (reasoning, duration, messageId, state) => {
   if (activeGeneration?.engine === 'dedicated') return;
   const source = getActiveSource();
   if (!source) return;
@@ -1934,14 +2099,14 @@ eventOn(tavern_events.STREAM_REASONING_DONE, (reasoning, duration, messageId, st
     duration,
     state,
   });
-});
+}));
 
-eventOn(tavern_events.MESSAGE_RECEIVED, messageId => {
+controllerEventStops.push(eventOn(tavern_events.MESSAGE_RECEIVED, messageId => {
   if (activeGeneration?.engine === 'dedicated') return;
   void finishMessage(Number(messageId));
-});
+}));
 
-eventOn(tavern_events.GENERATION_ENDED, messageId => {
+controllerEventStops.push(eventOn(tavern_events.GENERATION_ENDED, messageId => {
   if (activeGeneration?.engine === 'dedicated') return;
   const targetMessageId = Number(messageId);
   void finishMessage(targetMessageId);
@@ -1952,9 +2117,9 @@ eventOn(tavern_events.GENERATION_ENDED, messageId => {
       });
     }, delay);
   });
-});
+}));
 
-eventOn(tavern_events.GENERATION_STOPPED, () => {
+controllerEventStops.push(eventOn(tavern_events.GENERATION_STOPPED, () => {
   const generation = activeGeneration;
   if (!generation || generation.engine !== 'native') return;
   window.setTimeout(() => {
@@ -1968,26 +2133,26 @@ eventOn(tavern_events.GENERATION_STOPPED, () => {
     activeGeneration = null;
     broadcastView();
   }, 3000);
-});
+}));
 
-eventOn(tavern_events.MORE_MESSAGES_LOADED, () => window.setTimeout(broadcastView, 300));
-eventOn(tavern_events.MESSAGE_UPDATED, () => {
+controllerEventStops.push(eventOn(tavern_events.MORE_MESSAGES_LOADED, () => window.setTimeout(broadcastView, 300)));
+controllerEventStops.push(eventOn(tavern_events.MESSAGE_UPDATED, () => {
   viewRevision += 1;
   window.setTimeout(broadcastView, 200);
-});
-eventOn(tavern_events.MESSAGE_EDITED, () => {
+}));
+controllerEventStops.push(eventOn(tavern_events.MESSAGE_EDITED, () => {
   viewRevision += 1;
   window.setTimeout(broadcastView, 200);
-});
-eventOn(tavern_events.MESSAGE_SWIPED, () => {
+}));
+controllerEventStops.push(eventOn(tavern_events.MESSAGE_SWIPED, () => {
   if (activeGeneration?.operation === 'reroll') {
     window.setTimeout(broadcastView, 200);
     return;
   }
   viewRevision += 1;
   window.setTimeout(broadcastView, 200);
-});
-eventOn(tavern_events.MESSAGE_DELETED, () => {
+}));
+controllerEventStops.push(eventOn(tavern_events.MESSAGE_DELETED, () => {
   if (deletingMessageId !== null) return;
   if (activeGeneration?.operation === 'reroll') {
     window.setTimeout(broadcastView, 200);
@@ -1998,8 +2163,8 @@ eventOn(tavern_events.MESSAGE_DELETED, () => {
   browsingHistory = false;
   viewRevision += 1;
   window.setTimeout(broadcastView, 200);
-});
-eventOn(tavern_events.CHAT_CHANGED, () => {
+}));
+controllerEventStops.push(eventOn(tavern_events.CHAT_CHANGED, () => {
   if (activeGeneration?.engine === 'dedicated') {
     activeGeneration.cancelled = true;
     if (activeGeneration.generationId) stopGenerationById(activeGeneration.generationId);
@@ -2019,7 +2184,7 @@ eventOn(tavern_events.CHAT_CHANGED, () => {
   viewRevision += 1;
   applyStageVisibility();
   window.setTimeout(parkLatestStageFrame, 300);
-});
+}));
 
 installStyle();
 applyNativeInputState();
@@ -2027,27 +2192,14 @@ tavernWindow.addEventListener('message', handleMessage);
 installFrameObserver();
 installNativeDialogueBridge();
 window.setTimeout(parkLatestStageFrame, 0);
-
-$(window).on('pagehide', () => {
-  if (activeGeneration?.engine === 'dedicated') {
-    activeGeneration.cancelled = true;
-    if (activeGeneration.generationId) stopGenerationById(activeGeneration.generationId);
-  }
-  frameObserver?.disconnect();
-  frameObserver = null;
-  discardQueuedStream();
-  tavernWindow.removeEventListener('message', handleMessage);
-  removeNativeDialogueBridge();
-  releaseParkedFrames();
-  tavernDocument.getElementById(STYLE_ID)?.remove();
-  tavernDocument.body.classList.remove(
-    'dhl-pseudo-layer-active',
-    'dhl-native-input-collapsed',
-    ROOT_ACTIVE_CLASS,
+[0, 250, 1000, 3000].forEach(delay => {
+  duplicatePruneTimers.push(
+    window.setTimeout(() => {
+      if (!controllerDisposed) pruneDuplicateControllerFrames();
+    }, delay),
   );
-  tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes').forEach(element => {
-    element.classList.remove(STAGE_CLASS, SELECTED_CLASS, PARKED_FRAME_CLASS);
-  });
 });
 
-console.info('[灯火阑珊·伪同层] 原生楼层控制器已连接');
+$(window).on('pagehide', disposeController);
+
+console.info(`[灯火阑珊·伪同层] 原生楼层控制器已连接 v${PSEUDO_LAYER_VERSION}`);

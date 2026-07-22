@@ -1,5 +1,5 @@
 export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
-export const PSEUDO_LAYER_VERSION = 6;
+export const PSEUDO_LAYER_VERSION = 7;
 
 export type InteractionMode = 'story' | 'dialogue';
 export type PseudoLayerHistoryKind = InteractionMode;
