@@ -24,6 +24,8 @@ export const useDataStore = defineStore(
     const POLL_INTERVAL_MS = 4000;
     const STORE_DEBUG_LOG = false;
     const VISUAL_CARDS_TAG_REGEX = /<visual_cards>\s*([\s\S]*?)\s*<\/visual_cards>/;
+    const eventStops: Array<() => void> = [];
+    let disposed = false;
     const debugLog = (...args: unknown[]) => {
       if (!STORE_DEBUG_LOG) return;
       console.info(...args);
@@ -82,6 +84,24 @@ export const useDataStore = defineStore(
     const frameMessageId = Number(window.frameElement?.closest<HTMLElement>('.mes')?.getAttribute('mesid'));
     const message_id = Number.isFinite(frameMessageId) ? frameMessageId : getCurrentMessageId();
     const currentMessageIdNumber = typeof message_id === 'number' ? message_id : Number.NaN;
+
+    // 历史楼层仍保留完整 iframe，但不可见时不应持续解析整份 MVU 数据。
+    const isFrameRendered = (): boolean => {
+      try {
+        const frame = window.frameElement;
+        if (!frame) return true;
+        if (!frame.isConnected) return false;
+        const keeper = frame.parentElement;
+        if (keeper?.classList.contains('dhl-pseudo-frame-keeper')) {
+          return keeper.classList.contains('dhl-pseudo-frame-active');
+        }
+        const rect = frame.getBoundingClientRect();
+        return rect.width > 1 && rect.height > 1;
+      } catch {
+        // 无法判断时保持原行为，避免影响非标准嵌入环境。
+        return true;
+      }
+    };
 
     const getChatMessagesSafe = (target: string | number = message_id) => {
       try {
@@ -362,6 +382,7 @@ export const useDataStore = defineStore(
 
     // 初始化数据（带重试机制）
     const initData = (retryCount = 0) => {
+      if (disposed) return;
       if (viewedMessageId.value !== currentMessageIdNumber) return;
       try {
         const variables = getMessageVariablesSafe(message_id);
@@ -717,6 +738,7 @@ export const useDataStore = defineStore(
     // 等待MVU框架初始化后再加载数据
     waitGlobalInitialized('Mvu')
       .then(() => {
+        if (disposed) return;
         debugLog('[踏月寻仙] MVU 框架已初始化，开始加载数据');
         // 立即开始初始化，不再额外延迟
         initData();
@@ -729,40 +751,42 @@ export const useDataStore = defineStore(
     // 防抖定时器 - 避免短时间内重复加载
     let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
     const debouncedInitData = (delay: number = 200) => {
+      if (disposed || !isFrameRendered()) return;
       if (updateDebounceTimer) {
         clearTimeout(updateDebounceTimer);
       }
       updateDebounceTimer = setTimeout(() => {
-        initData();
         updateDebounceTimer = null;
+        if (disposed || !isFrameRendered()) return;
+        initData();
       }, delay);
     };
 
     // 监听消息更新事件，实时刷新数据
     // 监听本楼层的消息更新事件
-    eventOn(tavern_events.MESSAGE_UPDATED, (id: string | number) => {
+    eventStops.push(eventOn(tavern_events.MESSAGE_UPDATED, (id: string | number) => {
       if (id === message_id) {
         debugLog('[踏月寻仙] 检测到本楼层消息更新，防抖延迟200ms后重新加载');
         debouncedInitData(200);
       }
-    });
+    }).stop);
 
     // 监听本楼层的消息删除事件（重新roll时会触发）
-    eventOn(tavern_events.MESSAGE_DELETED, (id: string | number) => {
+    eventStops.push(eventOn(tavern_events.MESSAGE_DELETED, (id: string | number) => {
       if (id === message_id && viewedMessageId.value === currentMessageIdNumber) {
         debugLog('[踏月寻仙] 检测到本楼层消息删除（可能是重新roll），清空数据');
         rawData.value = null;
         galleryCards.value = [];
       }
-    });
+    }).stop);
 
     // 监听本楼层的消息接收事件
-    eventOn(tavern_events.MESSAGE_RECEIVED, (id: string | number) => {
+    eventStops.push(eventOn(tavern_events.MESSAGE_RECEIVED, (id: string | number) => {
       if (id === message_id) {
         debugLog('[踏月寻仙] 检测到本楼层消息接收，防抖延迟300ms后重新加载');
         debouncedInitData(300);
       }
-    });
+    }).stop);
 
     // 监听 MVU 变量更新事件
     // 🔧 修复：VARIABLE_UPDATE_ENDED 只有 2 个参数 (new_variables, old_variables)，
@@ -770,9 +794,11 @@ export const useDataStore = defineStore(
     // 因此改为：事件触发时重新读取当前楼层的变量，比较是否有变化。
     waitGlobalInitialized('Mvu')
       .then(() => {
+        if (disposed) return;
         debugLog('[踏月寻仙] 开始监听 MVU 变量更新事件');
 
-        eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, () => {
+        eventStops.push(eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, () => {
+          if (!isFrameRendered()) return;
           if (viewedMessageId.value !== currentMessageIdNumber) return;
           try {
             // 重新读取当前楼层的变量（而非使用事件参数，因为事件参数不带楼层信息）
@@ -799,7 +825,7 @@ export const useDataStore = defineStore(
           } catch (e) {
             console.error('[踏月寻仙] 处理 MVU 变量更新失败', e);
           }
-        });
+        }).stop);
       })
       .catch(e => {
         console.warn('[踏月寻仙] MVU 框架未加载，将仅显示静态数据', e);
@@ -808,7 +834,8 @@ export const useDataStore = defineStore(
     // 🔧 新增：轮询检查数据变化（作为事件监听的兜底机制）
     // 与 defineMvuDataStore 保持一致，每 2 秒检查一次变量是否已更新
     // 解决 MVU 解析完成时机晚于初始加载、事件丢失等极端情况
-    useIntervalFn(() => {
+    const { pause: stopPolling } = useIntervalFn(() => {
+      if (disposed || !isFrameRendered()) return;
       if (viewedMessageId.value !== currentMessageIdNumber) return;
       try {
         const variables = getMessageVariablesSafe(message_id);
@@ -827,6 +854,25 @@ export const useDataStore = defineStore(
         // 静默忽略轮询错误
       }
     }, POLL_INTERVAL_MS);
+
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      if (updateDebounceTimer) {
+        clearTimeout(updateDebounceTimer);
+        updateDebounceTimer = null;
+      }
+      stopPolling();
+      eventStops.splice(0).forEach(stop => {
+        try {
+          stop();
+        } catch {
+          // iframe 正在卸载时，父页事件总线可能已经销毁。
+        }
+      });
+      cardCache.clear();
+      galleryImageChangeTokens.clear();
+    };
 
     // 计算属性：安全获取各部分数据
     const 世界时钟 = computed(
@@ -1102,6 +1148,7 @@ export const useDataStore = defineStore(
       clearCustomCompanionPortrait,
       // 调试与强制刷新
       forceRefresh: tryManualParseMvuMessage,
+      dispose,
     };
   }),
 );

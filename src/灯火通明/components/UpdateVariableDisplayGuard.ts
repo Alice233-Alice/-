@@ -126,40 +126,62 @@ function applySanitizedUpdateVariableDisplay(messageId: number): boolean {
   return true;
 }
 
-function scheduleDisplaySanitization(messageId: number, retries: number = 8): void {
+function scheduleDisplaySanitization(
+  messageId: number,
+  retries: number = 8,
+  shouldContinue: () => boolean = () => true,
+): void {
   window.setTimeout(() => {
+    if (!shouldContinue()) return;
     if (applySanitizedUpdateVariableDisplay(messageId) || retries <= 1) {
       return;
     }
-    scheduleDisplaySanitization(messageId, retries - 1);
+    scheduleDisplaySanitization(messageId, retries - 1, shouldContinue);
   }, 80);
 }
 
 export function bootstrapUpdateVariableDisplayGuard() {
   const globalRef = window as unknown as Record<string, unknown>;
-  if (globalRef[DISPLAY_GUARD_INSTALLED_KEY]) return;
+  if (globalRef[DISPLAY_GUARD_INSTALLED_KEY]) return () => undefined;
   globalRef[DISPLAY_GUARD_INSTALLED_KEY] = true;
+  const eventStops: Array<() => void> = [];
+  let disposed = false;
 
   const messageId = getCurrentMessageId();
   if (typeof messageId !== 'number') {
-    return;
+    delete globalRef[DISPLAY_GUARD_INSTALLED_KEY];
+    return () => undefined;
   }
 
   const sanitizeCurrentMessage = () => {
-    scheduleDisplaySanitization(messageId);
+    if (disposed) return;
+    scheduleDisplaySanitization(messageId, 8, () => !disposed);
   };
 
   sanitizeCurrentMessage();
 
-  eventOn(tavern_events.MESSAGE_UPDATED, id => {
+  eventStops.push(eventOn(tavern_events.MESSAGE_UPDATED, id => {
     if (id === messageId) {
       sanitizeCurrentMessage();
     }
-  });
+  }).stop);
 
-  eventOn(tavern_events.MESSAGE_RECEIVED, id => {
+  eventStops.push(eventOn(tavern_events.MESSAGE_RECEIVED, id => {
     if (id === messageId) {
       sanitizeCurrentMessage();
     }
-  });
+  }).stop);
+
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    eventStops.splice(0).forEach(stop => {
+      try {
+        stop();
+      } catch {
+        // iframe 卸载期间忽略父页事件总线的清理竞态。
+      }
+    });
+    delete globalRef[DISPLAY_GUARD_INSTALLED_KEY];
+  };
 }

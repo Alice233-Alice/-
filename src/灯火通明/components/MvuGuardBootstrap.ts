@@ -236,12 +236,31 @@ function createCompanionPatchCommands(
 
 export function bootstrapMvuGuard() {
   const globalRef = window as unknown as Record<string, unknown>;
-  if (globalRef[GUARD_INSTALLED_KEY]) return;
+  if (globalRef[GUARD_INSTALLED_KEY]) return () => undefined;
   globalRef[GUARD_INSTALLED_KEY] = true;
+  const eventStops: Array<() => void> = [];
+  let disposed = false;
+
+  const isActiveStageFrame = () => {
+    try {
+      const frame = window.frameElement;
+      if (!frame) return true;
+      const keeper = frame.parentElement;
+      if (keeper?.classList.contains('dhl-pseudo-frame-keeper')) {
+        return keeper.classList.contains('dhl-pseudo-frame-active');
+      }
+      const rect = frame.getBoundingClientRect();
+      return frame.isConnected && rect.width > 1 && rect.height > 1;
+    } catch {
+      return true;
+    }
+  };
 
   waitGlobalInitialized('Mvu')
     .then(() => {
-      eventOn(Mvu.events.COMMAND_PARSED, (variables: Mvu.MvuData, commands: Mvu.CommandInfo[]) => {
+      if (disposed) return;
+      eventStops.push(eventOn(Mvu.events.COMMAND_PARSED, (variables: Mvu.MvuData, commands: Mvu.CommandInfo[]) => {
+        if (!isActiveStageFrame()) return;
         const normalizedCommands = commands as unknown as GuardMutableCommand[];
         const appendedCommands: GuardMutableCommand[] = [];
 
@@ -288,9 +307,10 @@ export function bootstrapMvuGuard() {
         if (appendedCommands.length > 0) {
           normalizedCommands.push(...appendedCommands);
         }
-      });
+      }).stop);
 
-      eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (newVariables: Mvu.MvuData) => {
+      eventStops.push(eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (newVariables: Mvu.MvuData) => {
+        if (!isActiveStageFrame()) return;
         applyPendingCompanionLevels(newVariables);
         const statData = _.get(newVariables, 'stat_data');
         const parsed = Schema.safeParse(statData);
@@ -300,11 +320,25 @@ export function bootstrapMvuGuard() {
         if (!_.isEqual(statData, parsed.data)) {
           _.set(newVariables, 'stat_data', parsed.data);
         }
-      });
+      }).stop);
 
       console.info('[踏月寻仙] UI MVU 纠错守卫已启用');
     })
     .catch(e => {
+      if (disposed) return;
       console.warn('[踏月寻仙] UI MVU 纠错守卫启用失败', e);
     });
+
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    eventStops.splice(0).forEach(stop => {
+      try {
+        stop();
+      } catch {
+        // iframe 卸载期间忽略父页事件总线的清理竞态。
+      }
+    });
+    delete globalRef[GUARD_INSTALLED_KEY];
+  };
 }

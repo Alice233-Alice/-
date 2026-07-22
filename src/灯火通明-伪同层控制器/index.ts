@@ -76,6 +76,7 @@ const FRAME_KEEPER_CLASS = 'dhl-pseudo-frame-keeper';
 const ACTIVE_KEEPER_CLASS = 'dhl-pseudo-frame-active';
 const STAGE_ROOT_ID = 'dhl-pseudo-stage-root';
 const ROOT_ACTIVE_CLASS = 'dhl-pseudo-stage-root-active';
+const STREAM_DISPATCH_INTERVAL_MS = 80;
 const STORY_INTERACTION = { mode: 'story' } as const;
 const tavernWindow = window.parent;
 const tavernDocument = tavernWindow.document;
@@ -94,6 +95,13 @@ let deletingMessageId: number | null = null;
 let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === 'true';
 let viewRevision = 0;
 let frameObserver: MutationObserver | null = null;
+let streamDispatchTimer: number | null = null;
+let pendingStreamDispatch: {
+  requestId: string;
+  source: ReplyTarget;
+  text: string;
+  reaction?: string;
+} | null = null;
 
 const send = (source: ReplyTarget | undefined, message: ResponsePayload) => {
   source?.postMessage(
@@ -104,6 +112,43 @@ const send = (source: ReplyTarget | undefined, message: ResponsePayload) => {
     } as PseudoLayerResponse,
     '*',
   );
+};
+
+const flushQueuedStream = (generation?: ActiveGeneration | null) => {
+  if (streamDispatchTimer !== null) {
+    window.clearTimeout(streamDispatchTimer);
+    streamDispatchTimer = null;
+  }
+  const pending = pendingStreamDispatch;
+  pendingStreamDispatch = null;
+  if (!pending || (generation && pending.requestId !== generation.requestId)) return;
+  if (!generation && activeGeneration?.requestId !== pending.requestId) return;
+  send(pending.source, {
+    type: 'stream',
+    requestId: pending.requestId,
+    text: pending.text,
+    ...(pending.reaction ? { reaction: pending.reaction } : {}),
+  });
+};
+
+const queueStream = (generation: ActiveGeneration, text: string, reaction = '') => {
+  pendingStreamDispatch = {
+    requestId: generation.requestId,
+    source: generation.source,
+    text,
+    ...(reaction ? { reaction } : {}),
+  };
+  if (streamDispatchTimer !== null) return;
+  streamDispatchTimer = window.setTimeout(() => {
+    streamDispatchTimer = null;
+    flushQueuedStream();
+  }, STREAM_DISPATCH_INTERVAL_MS);
+};
+
+const discardQueuedStream = () => {
+  if (streamDispatchTimer !== null) window.clearTimeout(streamDispatchTimer);
+  streamDispatchTimer = null;
+  pendingStreamDispatch = null;
 };
 
 const sendGenerationState = (
@@ -999,6 +1044,7 @@ const finishDedicatedGeneration = (generation: ActiveGeneration, messageId: numb
   rememberStageSelection(messageId);
   browsingHistory = false;
   viewRevision += 1;
+  flushQueuedStream(generation);
   send(generation.source, { type: 'complete', requestId: generation.requestId, messageId });
   if (activeGeneration === generation) activeGeneration = null;
   broadcastView();
@@ -1041,6 +1087,7 @@ const runDedicatedDialogueGeneration = async (
       console.error('[灯火阑珊·短对话] 回滚未完成，请检查本轮 operationId', rollbackError);
     }
     if (activeGeneration !== generation) return;
+    discardQueuedStream();
     if (generation.cancelled) {
       send(generation.source, {
         type: 'complete',
@@ -1427,6 +1474,7 @@ const finishMessageInternal = async (messageId: number) => {
     browsingHistory = false;
     viewRevision += 1;
     if (generation) {
+      flushQueuedStream(generation);
       send(generation.source, { type: 'complete', requestId: generation.requestId, messageId });
     }
     activeGeneration = null;
@@ -1662,6 +1710,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
       if (generation.generationId) stopGenerationById(generation.generationId);
       window.setTimeout(() => {
         if (activeGeneration !== generation || !generation.cancelled) return;
+        discardQueuedStream();
         send(generation.source, {
           type: 'complete',
           requestId: generation.requestId,
@@ -1801,11 +1850,7 @@ eventOn(tavern_events.GENERATION_STARTED, () => {
 eventOn(tavern_events.STREAM_TOKEN_RECEIVED, text => {
   if (!activeGeneration || activeGeneration.engine !== 'native') return;
   activeGeneration.streamText = text;
-  send(activeGeneration.source, {
-    type: 'stream',
-    requestId: activeGeneration.requestId,
-    text,
-  });
+  queueStream(activeGeneration, text);
 });
 
 eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, generationId) => {
@@ -1826,12 +1871,7 @@ eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (text, generationId) => {
   );
   generation.streamText = parsed.dialogue;
   generation.streamReaction = parsed.reaction;
-  send(generation.source, {
-    type: 'stream',
-    requestId: generation.requestId,
-    text: parsed.dialogue,
-    ...(parsed.reaction ? { reaction: parsed.reaction } : {}),
-  });
+  queueStream(generation, parsed.dialogue, parsed.reaction);
 });
 
 eventOn(tavern_events.STREAM_REASONING_DONE, (reasoning, duration, messageId, state) => {
@@ -1874,6 +1914,7 @@ eventOn(tavern_events.GENERATION_STOPPED, () => {
   if (!generation || generation.engine !== 'native') return;
   window.setTimeout(() => {
     if (!activeGeneration || activeGeneration.requestId !== generation.requestId || generation.received) return;
+    flushQueuedStream(generation);
     send(generation.source, {
       type: 'complete',
       requestId: generation.requestId,
@@ -1921,6 +1962,7 @@ eventOn(tavern_events.CHAT_CHANGED, () => {
   getStageRoot(false)?.remove();
   tavernDocument.body.classList.remove(ROOT_ACTIVE_CLASS);
   registrations.clear();
+  discardQueuedStream();
   activeGeneration = null;
   deletingMessageId = null;
   activeInteraction = STORY_INTERACTION;
@@ -1948,6 +1990,7 @@ $(window).on('pagehide', () => {
   }
   frameObserver?.disconnect();
   frameObserver = null;
+  discardQueuedStream();
   tavernWindow.removeEventListener('message', handleMessage);
   removeNativeDialogueBridge();
   releaseParkedFrames();

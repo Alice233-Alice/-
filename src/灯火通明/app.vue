@@ -316,6 +316,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   pseudoLayerStore.dispose();
+  store.dispose();
   window.parent.removeEventListener('resize', updateViewport);
 });
 </script>

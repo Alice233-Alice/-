@@ -151,8 +151,13 @@
           class="story-scroll"
           @scroll="handleStreamScroll"
           @wheel.passive="handleStreamWheel"
-          @touchstart.passive="handleStreamTouchStart"
+          @touchstart.passive="handleStoryTouchStart"
           @touchmove.passive="handleStreamTouchMove"
+          @touchend.passive="handleStreamTouchEnd"
+          @touchcancel.passive="handleStreamTouchEnd"
+          @pointerdown.passive="handleStoryPointerDown"
+          @pointerup.passive="handleStreamPointerUp"
+          @pointercancel.passive="handleStreamPointerUp"
         >
           <div v-if="isStoryGenerating && !pseudo.streamText" class="story-waiting">
             <i class="fa-solid fa-feather-pointed"></i>
@@ -201,10 +206,14 @@ const appearance = useThemeStore();
 const scrollRef = ref<HTMLElement>();
 const {
   isFollowing: isFollowingStream,
+  isUserInteracting: isInteractingWithStory,
   handleScroll: handleStreamScroll,
   handleWheel: handleStreamWheel,
   handleTouchStart: handleStreamTouchStart,
   handleTouchMove: handleStreamTouchMove,
+  handleTouchEnd: handleStreamTouchEnd,
+  handlePointerDown: handleStreamPointerDown,
+  handlePointerUp: handleStreamPointerUp,
   queueFollow: queueStreamFollow,
   resumeFollowing: resumeStreamFollow,
 } = useStreamFollow(scrollRef);
@@ -223,8 +232,60 @@ const formatText = (text: string, messageId = storyMessageId.value) => {
   return formatMessageHtml(text, messageId);
 };
 
+const displayedStreamText = ref('');
+let pendingStreamText = '';
+let streamRenderTimer: number | undefined;
+let lastStreamRenderAt = 0;
+
+const streamRenderInterval = (length: number) => {
+  if (length >= 8000) return 360;
+  if (length >= 2000) return 260;
+  return 180;
+};
+
+const cancelStreamRender = () => {
+  if (streamRenderTimer === undefined) return;
+  window.clearTimeout(streamRenderTimer);
+  streamRenderTimer = undefined;
+};
+
+const commitPendingStream = () => {
+  streamRenderTimer = undefined;
+  if (!isStoryGenerating.value || isInteractingWithStory.value) return;
+  if (displayedStreamText.value === pendingStreamText) return;
+  displayedStreamText.value = pendingStreamText;
+  lastStreamRenderAt = performance.now();
+  queueStreamFollow();
+};
+
+const scheduleStreamRender = (immediate = false) => {
+  if (!isStoryGenerating.value || isInteractingWithStory.value) return;
+  if (displayedStreamText.value === pendingStreamText) return;
+  if (immediate) {
+    cancelStreamRender();
+    commitPendingStream();
+    return;
+  }
+  if (streamRenderTimer !== undefined) return;
+  const interval = streamRenderInterval(pendingStreamText.length);
+  const elapsed = performance.now() - lastStreamRenderAt;
+  streamRenderTimer = window.setTimeout(commitPendingStream, Math.max(0, interval - elapsed));
+};
+
+const handleStoryTouchStart = (event: TouchEvent) => {
+  cancelStreamRender();
+  handleStreamTouchStart(event);
+};
+
+const handleStoryPointerDown = (event: PointerEvent) => {
+  if (event.pointerType === 'touch' || event.pointerType === 'pen') cancelStreamRender();
+  handleStreamPointerDown(event);
+};
+
 const currentRawMessage = computed(() =>
-  isStoryGenerating.value && pseudo.streamText ? pseudo.streamText : pseudo.storyFloorMessage,
+  isStoryGenerating.value && displayedStreamText.value
+    ? displayedStreamText.value
+    : pseudo.storyFloorMessage,
 );
 const storyHtml = computed(() => formatText(extractNarrative(currentRawMessage.value)));
 const variableDiagnostics = computed(() => extractVariableUpdateDiagnostics(currentRawMessage.value));
@@ -328,15 +389,34 @@ const generationLabel = computed(() => {
 
 watch(
   () => pseudo.streamText,
-  () => {
-    if (isStoryGenerating.value) queueStreamFollow();
+  text => {
+    pendingStreamText = text;
+    if (isStoryGenerating.value) scheduleStreamRender(!displayedStreamText.value);
   },
 );
+
+watch(isInteractingWithStory, interacting => {
+  if (interacting) {
+    cancelStreamRender();
+    return;
+  }
+  scheduleStreamRender(true);
+});
 
 watch(
   () => pseudo.generationState,
   (next, previous) => {
-    if (previous === 'idle' && next !== 'idle') resumeStreamFollow(false);
+    if (previous === 'idle' && next !== 'idle') {
+      pendingStreamText = '';
+      displayedStreamText.value = '';
+      lastStreamRenderAt = 0;
+      resumeStreamFollow(false);
+    }
+    if (next === 'idle') {
+      cancelStreamRender();
+      pendingStreamText = '';
+      displayedStreamText.value = '';
+    }
   },
 );
 
@@ -348,7 +428,10 @@ watch(
 );
 
 onMounted(() => window.addEventListener('keydown', closeContextOnEscape));
-onBeforeUnmount(() => window.removeEventListener('keydown', closeContextOnEscape));
+onBeforeUnmount(() => {
+  cancelStreamRender();
+  window.removeEventListener('keydown', closeContextOnEscape);
+});
 
 defineExpose({ scrollElement: scrollRef });
 </script>
@@ -516,6 +599,9 @@ defineExpose({ scrollElement: scrollRef });
 .context-popover-copy {
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
   padding: 16px 18px 18px;
   color: var(--text-primary);
   font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, serif;
