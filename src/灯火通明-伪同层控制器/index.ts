@@ -25,6 +25,12 @@ import {
 type ReplyTarget = MessageEventSource & Pick<Window, 'postMessage'>;
 type WithoutEnvelope<T> = T extends unknown ? Omit<T, 'channel' | 'version'> : never;
 type ResponsePayload = WithoutEnvelope<PseudoLayerResponse>;
+type ChatRefreshMode = 'none' | 'affected' | 'all';
+
+type NativeSwipeMessage = {
+  swipe_id?: number;
+  swipes?: unknown[];
+};
 
 type ActiveGeneration = {
   requestId: string;
@@ -756,13 +762,16 @@ const buildMessage = (reply: string) => {
   return `${text}\n\n<pseudo_layer>\n灯火阑珊\n</pseudo_layer>`;
 };
 
-const ensurePseudoMarker = async (messageId: number) => {
+const ensurePseudoMarker = async (
+  messageId: number,
+  refresh: ChatRefreshMode = 'affected',
+) => {
   const message = getChatMessages(messageId)[0];
   if (!message || message.role !== 'assistant') return;
   const content = String(message.message ?? '');
   const nextContent = buildMessage(content);
   if (nextContent === content.trim()) return;
-  await setChatMessages([{ message_id: messageId, message: nextContent }], { refresh: 'affected' });
+  await setChatMessages([{ message_id: messageId, message: nextContent }], { refresh });
 };
 
 const writeInteractionMetadata = async (
@@ -840,6 +849,31 @@ const triggerNativeReroll = async (messageId: number) => {
     source: 'dhl-pseudo-layer',
     message: nativeMessage,
   });
+};
+
+const getNativeSwipeMessage = (messageId: number): NativeSwipeMessage | undefined => {
+  const context = (
+    tavernWindow as typeof tavernWindow & {
+      SillyTavern?: { getContext?: () => { chat?: NativeSwipeMessage[] } };
+    }
+  ).SillyTavern?.getContext?.();
+  return context?.chat?.[messageId] ?? context?.chat?.at(-1);
+};
+
+const isNativeSwipeMaterialized = (messageId: number) => {
+  const message = getNativeSwipeMessage(messageId);
+  if (!message) return false;
+  if (!Number.isInteger(message.swipe_id) || !Array.isArray(message.swipes)) return true;
+  return typeof message.swipes[message.swipe_id as number] === 'string';
+};
+
+const waitForNativeSwipeMaterialized = async (messageId: number, timeout = 5000) => {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (isNativeSwipeMaterialized(messageId)) return true;
+    await new Promise(resolve => window.setTimeout(resolve, 50));
+  }
+  return isNativeSwipeMaterialized(messageId);
 };
 
 const getCurrentChatId = () =>
@@ -1413,13 +1447,16 @@ const beginReroll = (
   sendGenerationState(activeGeneration, 'preparing');
   applyStageVisibility();
 
-  void triggerNativeReroll(request.messageId).catch(error => {
+  void triggerNativeReroll(request.messageId).catch(async error => {
+    const materialized = await waitForNativeSwipeMaterialized(request.messageId, 1500);
     const generation = activeGeneration;
     if (!generation || generation.requestId !== request.requestId) return;
-    if (generation.received || generation.streamText.trim()) {
+    if (generation.received || generation.streamText.trim() || materialized) {
       console.warn('[灯火阑珊·伪同层] 酒馆在重生成完成后报告 swipe 收尾异常，已保留新回复', error);
+      if (materialized && !generation.received) void finishMessage(request.messageId);
       return;
     }
+    console.error('[灯火阑珊·伪同层] 原生重生成失败', error);
     send(source, {
       type: 'error',
       requestId: request.requestId,
@@ -1451,6 +1488,13 @@ const finishMessageInternal = async (messageId: number) => {
   }
 
   try {
+    if (
+      generation?.engine === 'native' &&
+      generation.operation === 'reroll' &&
+      !(await waitForNativeSwipeMaterialized(messageId))
+    ) {
+      throw new Error('酒馆尚未完成重生成候选的写入，请稍后再试。');
+    }
     if (generation?.interaction.mode === 'dialogue') {
       await writeInteractionMetadata(messageId, generation.interaction, {
         rawUserText: generation.rawUserText,
@@ -1467,7 +1511,7 @@ const finishMessageInternal = async (messageId: number) => {
         });
       }
     }
-    await ensurePseudoMarker(messageId);
+    await ensurePseudoMarker(messageId, generation?.engine === 'native' ? 'none' : 'affected');
     selectedMessageId = messageId;
     selectedHistoryKind = generation?.interaction.mode ?? null;
     rememberStageSelection(messageId);
@@ -1480,6 +1524,7 @@ const finishMessageInternal = async (messageId: number) => {
     activeGeneration = null;
     broadcastView();
   } catch (error) {
+    console.error('[灯火阑珊·伪同层] 回复收尾失败', error);
     if (generation) {
       send(generation.source, {
         type: 'error',
