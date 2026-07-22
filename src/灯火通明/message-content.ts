@@ -15,6 +15,61 @@ const closeTagPattern = (tag: string) => `<\\/${escapeRegExp(tag)}\\s*>`;
 
 const DIALOGUE_TAGS = ['反应', '正文', '会话状态'] as const;
 
+const REASONING_OPEN_PATTERN = /<(?:think(?:ing)?|reasoning|thought|think_?fox~?)(?=[\s>])[^>]*>/gi;
+const REASONING_CLOSE_PATTERN = /<\/(?:think(?:ing)?|reasoning|thought|think_?fox~?)\s*>/gi;
+
+// Strip reasoning before Tavern display regexes can expand it into embedded UI markup.
+const stripReasoningPrefix = (text: string) => {
+  REASONING_CLOSE_PATTERN.lastIndex = 0;
+  let lastClosingEnd = -1;
+  let closingMatch: RegExpExecArray | null;
+  while ((closingMatch = REASONING_CLOSE_PATTERN.exec(text)) !== null) {
+    lastClosingEnd = closingMatch.index + closingMatch[0].length;
+  }
+  REASONING_CLOSE_PATTERN.lastIndex = 0;
+
+  if (lastClosingEnd >= 0) return text.slice(lastClosingEnd);
+
+  REASONING_OPEN_PATTERN.lastIndex = 0;
+  const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
+  REASONING_OPEN_PATTERN.lastIndex = 0;
+  return unfinishedOpening?.index === undefined ? text : text.slice(0, unfinishedOpening.index);
+};
+
+const findEmbeddedDocumentStart = (lowerText: string) => {
+  const doctypeIndex = lowerText.indexOf('<!doctype html');
+  const htmlIndex = lowerText.search(/<html(?=[\s>])/);
+  if (doctypeIndex < 0) return htmlIndex;
+  if (htmlIndex < 0) return doctypeIndex;
+  return Math.min(doctypeIndex, htmlIndex);
+};
+
+const stripEmbeddedHtmlDocuments = (text: string) => {
+  let result = text;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const lowerText = result.toLowerCase();
+    const documentStart = findEmbeddedDocumentStart(lowerText);
+    if (documentStart < 0) break;
+
+    const fencePrefix = result.slice(Math.max(0, documentStart - 16), documentStart);
+    const fenceMatch = /```(?:html)?\s*$/i.exec(fencePrefix);
+    const removeStart = fenceMatch
+      ? documentStart - (fencePrefix.length - (fenceMatch.index ?? fencePrefix.length))
+      : documentStart;
+    const closingIndex = lowerText.indexOf('</html>', documentStart);
+    if (closingIndex < 0) return result.slice(0, removeStart).trimEnd();
+
+    let removeEnd = closingIndex + '</html>'.length;
+    const trailingFence = /^\s*```/.exec(result.slice(removeEnd));
+    if (trailingFence) removeEnd += trailingFence[0].length;
+    result = `${result.slice(0, removeStart)}${result.slice(removeEnd)}`;
+  }
+  return result;
+};
+
+export const stripAuxiliaryPresentation = (text: string) =>
+  stripEmbeddedHtmlDocuments(stripReasoningPrefix(text)).trim();
+
 export type VariablePatchOperation = {
   op: string;
   path: string;
@@ -165,24 +220,26 @@ export const stripStructuredBlocks = (text: string) => {
 };
 
 export const extractNarrative = (text: string) => {
-  const completeBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
-  const streamingBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
-  return stripStructuredBlocks(completeBody ?? streamingBody ?? text)
+  const source = stripAuxiliaryPresentation(text);
+  const completeBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
+  const streamingBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
+  return stripStructuredBlocks(completeBody ?? streamingBody ?? source)
     .replace(/<\/?正文(?=[\s/>])[^>]*>/gi, '')
     .trim();
 };
 
 export const extractDialogueContent = (text: string) => {
-  const hasReactionTag = /<反应(?=[\s/>])/i.test(text);
-  const hasBodyTag = /<正文(?=[\s/>])/i.test(text);
+  const source = stripAuxiliaryPresentation(text);
+  const hasReactionTag = /<反应(?=[\s/>])/i.test(source);
+  const hasBodyTag = /<正文(?=[\s/>])/i.test(source);
   const reaction = hasReactionTag
-    ? stripStructuredBlocks(readBoundedTaggedContent(text, '反应', ['正文', '会话状态']))
+    ? stripStructuredBlocks(readBoundedTaggedContent(source, '反应', ['正文', '会话状态']))
     : '';
   const dialogue = hasBodyTag
-    ? readBoundedTaggedContent(text, '正文', ['反应', '会话状态'], true)
+    ? readBoundedTaggedContent(source, '正文', ['反应', '会话状态'], true)
     : hasReactionTag
       ? ''
-      : extractNarrative(text);
+      : extractNarrative(source);
   return {
     reaction: stripDialogueTagFragments(reaction),
     dialogue: unwrapDialogueQuotes(stripDialogueTagFragments(stripStructuredBlocks(dialogue))),

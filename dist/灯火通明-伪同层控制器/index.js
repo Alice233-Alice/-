@@ -265,6 +265,7 @@ var __webpack_modules__ = {
       extractNarrative: () => extractNarrative,
       extractVariableUpdateDiagnostics: () => extractVariableUpdateDiagnostics,
       formatMessageHtml: () => formatMessageHtml,
+      stripAuxiliaryPresentation: () => stripAuxiliaryPresentation,
       stripStructuredBlocks: () => stripStructuredBlocks
     });
     const STRUCTURAL_TAGS = [ "visual_cards", "pseudo_layer", "UpdateVariable", "JSONPatch", "StatusPlaceHolderImpl", "反应", "会话状态" ];
@@ -272,6 +273,48 @@ var __webpack_modules__ = {
     const openTagPattern = tag => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
     const closeTagPattern = tag => `<\\/${escapeRegExp(tag)}\\s*>`;
     const DIALOGUE_TAGS = [ "反应", "正文", "会话状态" ];
+    const REASONING_OPEN_PATTERN = /<(?:think(?:ing)?|reasoning|thought|think_?fox~?)(?=[\s>])[^>]*>/gi;
+    const REASONING_CLOSE_PATTERN = /<\/(?:think(?:ing)?|reasoning|thought|think_?fox~?)\s*>/gi;
+    const stripReasoningPrefix = text => {
+      REASONING_CLOSE_PATTERN.lastIndex = 0;
+      let lastClosingEnd = -1;
+      let closingMatch;
+      while ((closingMatch = REASONING_CLOSE_PATTERN.exec(text)) !== null) {
+        lastClosingEnd = closingMatch.index + closingMatch[0].length;
+      }
+      REASONING_CLOSE_PATTERN.lastIndex = 0;
+      if (lastClosingEnd >= 0) return text.slice(lastClosingEnd);
+      REASONING_OPEN_PATTERN.lastIndex = 0;
+      const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
+      REASONING_OPEN_PATTERN.lastIndex = 0;
+      return unfinishedOpening?.index === undefined ? text : text.slice(0, unfinishedOpening.index);
+    };
+    const findEmbeddedDocumentStart = lowerText => {
+      const doctypeIndex = lowerText.indexOf("<!doctype html");
+      const htmlIndex = lowerText.search(/<html(?=[\s>])/);
+      if (doctypeIndex < 0) return htmlIndex;
+      if (htmlIndex < 0) return doctypeIndex;
+      return Math.min(doctypeIndex, htmlIndex);
+    };
+    const stripEmbeddedHtmlDocuments = text => {
+      let result = text;
+      for (let pass = 0; pass < 4; pass += 1) {
+        const lowerText = result.toLowerCase();
+        const documentStart = findEmbeddedDocumentStart(lowerText);
+        if (documentStart < 0) break;
+        const fencePrefix = result.slice(Math.max(0, documentStart - 16), documentStart);
+        const fenceMatch = /```(?:html)?\s*$/i.exec(fencePrefix);
+        const removeStart = fenceMatch ? documentStart - (fencePrefix.length - (fenceMatch.index ?? fencePrefix.length)) : documentStart;
+        const closingIndex = lowerText.indexOf("</html>", documentStart);
+        if (closingIndex < 0) return result.slice(0, removeStart).trimEnd();
+        let removeEnd = closingIndex + "</html>".length;
+        const trailingFence = /^\s*```/.exec(result.slice(removeEnd));
+        if (trailingFence) removeEnd += trailingFence[0].length;
+        result = `${result.slice(0, removeStart)}${result.slice(removeEnd)}`;
+      }
+      return result;
+    };
+    const stripAuxiliaryPresentation = text => stripEmbeddedHtmlDocuments(stripReasoningPrefix(text)).trim();
     const stripDialogueTagFragments = text => DIALOGUE_TAGS.reduce((value, tag) => value.replace(new RegExp(`<\\/?${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`, "gi"), ""), text).replace(/<[^>]*$/g, "").trim();
     const readBoundedTaggedContent = (text, tag, stopTags, preferLast = false) => {
       const matches = [ ...text.matchAll(new RegExp(openTagPattern(tag), "gi")) ];
@@ -367,15 +410,17 @@ var __webpack_modules__ = {
       return result.trim();
     };
     const extractNarrative = text => {
-      const completeBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
-      const streamingBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
-      return stripStructuredBlocks(completeBody ?? streamingBody ?? text).replace(/<\/?正文(?=[\s/>])[^>]*>/gi, "").trim();
+      const source = stripAuxiliaryPresentation(text);
+      const completeBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
+      const streamingBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
+      return stripStructuredBlocks(completeBody ?? streamingBody ?? source).replace(/<\/?正文(?=[\s/>])[^>]*>/gi, "").trim();
     };
     const extractDialogueContent = text => {
-      const hasReactionTag = /<反应(?=[\s/>])/i.test(text);
-      const hasBodyTag = /<正文(?=[\s/>])/i.test(text);
-      const reaction = hasReactionTag ? stripStructuredBlocks(readBoundedTaggedContent(text, "反应", [ "正文", "会话状态" ])) : "";
-      const dialogue = hasBodyTag ? readBoundedTaggedContent(text, "正文", [ "反应", "会话状态" ], true) : hasReactionTag ? "" : extractNarrative(text);
+      const source = stripAuxiliaryPresentation(text);
+      const hasReactionTag = /<反应(?=[\s/>])/i.test(source);
+      const hasBodyTag = /<正文(?=[\s/>])/i.test(source);
+      const reaction = hasReactionTag ? stripStructuredBlocks(readBoundedTaggedContent(source, "反应", [ "正文", "会话状态" ])) : "";
+      const dialogue = hasBodyTag ? readBoundedTaggedContent(source, "正文", [ "反应", "会话状态" ], true) : hasReactionTag ? "" : extractNarrative(source);
       return {
         reaction: stripDialogueTagFragments(reaction),
         dialogue: unwrapDialogueQuotes(stripDialogueTagFragments(stripStructuredBlocks(dialogue)))
@@ -511,7 +556,8 @@ let __webpack_exports__ = {};
   const ACTIVE_KEEPER_CLASS = "dhl-pseudo-frame-active";
   const STAGE_ROOT_ID = "dhl-pseudo-stage-root";
   const ROOT_ACTIVE_CLASS = "dhl-pseudo-stage-root-active";
-  const STREAM_DISPATCH_INTERVAL_MS = 80;
+  const STREAM_DISPATCH_INTERVAL_MS = window.matchMedia?.("(pointer: coarse)").matches ? 240 : 160;
+  const FRAME_CANDIDATE_BATCH_MS = 32;
   const STORY_INTERACTION = {
     mode: "story"
   };
@@ -523,6 +569,9 @@ let __webpack_exports__ = {};
   const registrations = new Map;
   const controllerEventStops = [];
   const duplicatePruneTimers = [];
+  let sourceFrameCache = new WeakMap;
+  const frameMessageIdCache = new WeakMap;
+  const pendingFrameCandidates = new Set;
   let activeGeneration = null;
   let activeInteraction = STORY_INTERACTION;
   let selectedMessageId = null;
@@ -537,6 +586,11 @@ let __webpack_exports__ = {};
   let viewRevision = 0;
   let frameObserver = null;
   let duplicateControllerObserver = null;
+  let frameCandidateTimer = null;
+  let viewRefreshTimer = null;
+  let viewRefreshDeadline = 0;
+  let stageSnapshotCache = null;
+  let stageSnapshotLastMessageId = Number.NaN;
   let streamDispatchTimer = null;
   let pendingStreamDispatch = null;
   let controllerDisposed = false;
@@ -660,7 +714,7 @@ let __webpack_exports__ = {};
   const getFrameKeeper = (messageId, create = true) => {
     const root = getStageRoot(create);
     if (!root) return null;
-    let keeper = [ ...root.querySelectorAll(`:scope > .${FRAME_KEEPER_CLASS}`) ].find(candidate => Number(candidate.dataset.messageId) === messageId);
+    let keeper = root.querySelector(`:scope > .${FRAME_KEEPER_CLASS}[data-message-id='${messageId}']`);
     if (!keeper && create) {
       keeper = tavernDocument.createElement("div");
       keeper.className = FRAME_KEEPER_CLASS;
@@ -670,10 +724,30 @@ let __webpack_exports__ = {};
     return keeper ?? null;
   };
   const getFrameMessageId = frame => {
-    const messageId = Number(frame.dataset.dhlMessageId ?? frame.closest(".mes")?.getAttribute("mesid"));
-    return Number.isFinite(messageId) ? messageId : undefined;
+    const rawMessageId = frame.dataset.dhlMessageId ?? frame.closest(".mes")?.getAttribute("mesid");
+    if (rawMessageId === undefined || rawMessageId === null || rawMessageId.trim() === "") {
+      return frameMessageIdCache.get(frame);
+    }
+    const messageId = Number(rawMessageId);
+    if (Number.isFinite(messageId)) {
+      frameMessageIdCache.set(frame, messageId);
+      return messageId;
+    }
+    return frameMessageIdCache.get(frame);
   };
-  const getFrameForSource = source => [ ...tavernDocument.querySelectorAll(`#chat > .mes .TH-render iframe, #${STAGE_ROOT_ID} > .${FRAME_KEEPER_CLASS} > iframe`) ].find(frame => frame.contentWindow === source);
+  const rememberFrame = frame => {
+    const source = asReplyTarget(frame.contentWindow);
+    if (source) sourceFrameCache.set(source, frame);
+    getFrameMessageId(frame);
+  };
+  const getFrameForSource = source => {
+    const cached = sourceFrameCache.get(source);
+    if (cached?.isConnected && cached.contentWindow === source) return cached;
+    sourceFrameCache.delete(source);
+    const frame = [ ...tavernDocument.querySelectorAll(`#chat > .mes .TH-render iframe, #${STAGE_ROOT_ID} > .${FRAME_KEEPER_CLASS} > iframe`) ].find(candidate => candidate.contentWindow === source);
+    if (frame) rememberFrame(frame);
+    return frame;
+  };
   const hasMountedPseudoApp = frame => {
     try {
       return Boolean(frame?.contentDocument?.querySelector("#app")?.childElementCount);
@@ -697,6 +771,7 @@ let __webpack_exports__ = {};
     if (frame.dataset.dhlControllerOwned === "true") {
       frame.dataset.dhlMessageId = String(messageId);
       keeper.append(frame);
+      rememberFrame(frame);
       return true;
     }
     const ownedFrame = frame.cloneNode(false);
@@ -705,6 +780,7 @@ let __webpack_exports__ = {};
     ownedFrame.dataset.dhlControllerOwned = "true";
     ownedFrame.dataset.dhlMessageId = String(messageId);
     keeper.append(ownedFrame);
+    rememberFrame(ownedFrame);
     message.classList.add(PARKED_FRAME_CLASS);
     return true;
   };
@@ -743,6 +819,15 @@ let __webpack_exports__ = {};
     const lastMessageId = getLastMessageId();
     if (!Number.isFinite(lastMessageId) || lastMessageId < 0) return [];
     return getChatMessages(`0-${lastMessageId}`);
+  };
+  const getAdjacentMessages = messageId => {
+    if (!Number.isFinite(messageId) || messageId < 0) return [];
+    const normalizedMessageId = Math.trunc(messageId);
+    return getChatMessages(`${Math.max(0, normalizedMessageId - 1)}-${normalizedMessageId}`);
+  };
+  const invalidateStageSnapshot = () => {
+    stageSnapshotCache = null;
+    stageSnapshotLastMessageId = Number.NaN;
   };
   const readInteractionMetadata = message => {
     if (!message) return null;
@@ -790,31 +875,25 @@ let __webpack_exports__ = {};
       userMessageId: userMessage.message_id
     };
   };
-  const getAssistantMessages = () => {
-    try {
-      return getAllMessages().filter(message => message.role === "assistant");
-    } catch (error) {
-      console.warn("[灯火阑珊·伪同层] 读取完整聊天楼层失败，暂时使用页面楼层", error);
-      return [ ...tavernDocument.querySelectorAll("#chat > .mes") ].filter(element => element.getAttribute("is_user") === "false" && element.getAttribute("is_system") === "false").map(element => ({
-        message_id: Number(element.getAttribute("mesid")),
-        name: "",
-        role: "assistant",
-        is_hidden: false,
-        message: "",
-        data: {},
-        extra: {}
-      })).filter(message => Number.isFinite(message.message_id));
-    }
-  };
-  const getStageEntries = () => {
+  const getAssistantMessagesFromDom = () => [ ...tavernDocument.querySelectorAll("#chat > .mes") ].filter(element => element.getAttribute("is_user") === "false" && element.getAttribute("is_system") === "false").map(element => ({
+    message_id: Number(element.getAttribute("mesid")),
+    name: "",
+    role: "assistant",
+    is_hidden: false,
+    message: "",
+    data: {},
+    extra: {}
+  })).filter(message => Number.isFinite(message.message_id));
+  const buildStageEntries = (assistantMessages, previousMessages) => {
     const entries = [];
-    let allMessages = [];
-    try {
-      allMessages = getAllMessages();
-    } catch {}
-    const assistantMessages = allMessages.length ? allMessages.filter(message => message.role === "assistant") : getAssistantMessages();
-    assistantMessages.sort((left, right) => left.message_id - right.message_id).forEach(message => {
-      const metadata = resolveAssistantInteractionMetadata(message, allMessages);
+    assistantMessages.forEach(message => {
+      const directMetadata = readInteractionMetadata(message);
+      const previousMessage = previousMessages.get(message.message_id);
+      const inheritedMetadata = !directMetadata && previousMessage?.role === "user" ? readInteractionMetadata(previousMessage) : null;
+      const metadata = directMetadata ?? (inheritedMetadata ? {
+        ...inheritedMetadata,
+        userMessageId: previousMessage.message_id
+      } : null);
       const previous = entries.at(-1);
       if (metadata && previous?.stage.kind === "dialogue" && previous.stage.sessionId === metadata.sessionId) {
         previous.messageIds.push(message.message_id);
@@ -841,6 +920,32 @@ let __webpack_exports__ = {};
     });
     return entries;
   };
+  const getStageSnapshot = () => {
+    const lastMessageId = getLastMessageId();
+    if (stageSnapshotCache && stageSnapshotLastMessageId === lastMessageId) return stageSnapshotCache;
+    let messages = [];
+    let assistantMessages;
+    try {
+      messages = [ ...getAllMessages() ].sort((left, right) => left.message_id - right.message_id);
+      assistantMessages = messages.filter(message => message.role === "assistant");
+    } catch (error) {
+      console.warn("[灯火阑珊·伪同层] 读取完整聊天楼层失败，暂时使用页面楼层", error);
+      assistantMessages = getAssistantMessagesFromDom().sort((left, right) => left.message_id - right.message_id);
+    }
+    const previousMessages = new Map;
+    let previousMessage;
+    messages.forEach(message => {
+      if (previousMessage) previousMessages.set(message.message_id, previousMessage);
+      previousMessage = message;
+    });
+    stageSnapshotCache = {
+      assistantIds: new Set(assistantMessages.map(message => message.message_id)),
+      entries: buildStageEntries(assistantMessages, previousMessages)
+    };
+    stageSnapshotLastMessageId = lastMessageId;
+    return stageSnapshotCache;
+  };
+  const getStageEntries = () => getStageSnapshot().entries;
   const latestStageId = () => getStageEntries().at(-1)?.representativeMessageId;
   const getHistoryEntries = (entries, history) => entries.filter(entry => entry.stage.kind === history);
   const getHistoryLatestMessageId = (history, entries = getStageEntries()) => getHistoryEntries(entries, history).at(-1)?.representativeMessageId;
@@ -878,18 +983,40 @@ let __webpack_exports__ = {};
     if (!entry) return;
     selectedHistoryMessageIds[entry.stage.kind] = entry.representativeMessageId;
   };
-  const parkCandidateFrame = frame => {
+  const parkCandidateFrame = (frame, latestMessageId = latestStageId()) => {
+    rememberFrame(frame);
     const messageId = getFrameMessageId(frame);
     if (messageId === undefined) return;
-    const shouldPark = messageId === latestStageId() || activeGeneration?.operation === "reroll" && messageId === activeGeneration.baseMessageId;
+    const shouldPark = messageId === latestMessageId || activeGeneration?.operation === "reroll" && messageId === activeGeneration.baseMessageId;
     if (!shouldPark) return;
-    if (parkFrame(messageId, frame)) window.setTimeout(applyStageVisibility, 0);
+    if (parkFrame(messageId, frame)) scheduleViewRefresh(0);
+  };
+  const flushFrameCandidates = () => {
+    frameCandidateTimer = null;
+    if (controllerDisposed || pendingFrameCandidates.size === 0) return;
+    const frames = [ ...pendingFrameCandidates ];
+    pendingFrameCandidates.clear();
+    const latestMessageId = latestStageId();
+    frames.forEach(frame => {
+      if (frame.isConnected) parkCandidateFrame(frame, latestMessageId);
+    });
+  };
+  const queueFrameCandidate = frame => {
+    rememberFrame(frame);
+    pendingFrameCandidates.add(frame);
+    if (frameCandidateTimer !== null) return;
+    frameCandidateTimer = window.setTimeout(flushFrameCandidates, FRAME_CANDIDATE_BATCH_MS);
   };
   const inspectAddedFrameNode = node => {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const element = node;
-    if (element.tagName === "IFRAME") parkCandidateFrame(element);
-    element.querySelectorAll("iframe").forEach(parkCandidateFrame);
+    if (element.tagName === "IFRAME") {
+      queueFrameCandidate(element);
+      return;
+    }
+    const containsRelevantFrames = element.matches(".mes, .TH-render") || element.closest(".TH-render") !== null || element.id === STAGE_ROOT_ID || element.classList.contains(FRAME_KEEPER_CLASS);
+    if (!containsRelevantFrames) return;
+    element.querySelectorAll("iframe").forEach(queueFrameCandidate);
   };
   const installFrameObserver = () => {
     frameObserver?.disconnect();
@@ -920,7 +1047,7 @@ let __webpack_exports__ = {};
     registrations.delete(messageId);
     return undefined;
   };
-  const getRegisteredAssistantIds = () => getAssistantMessages().map(message => message.message_id).filter(messageId => getLiveRegistration(messageId) !== undefined);
+  const getRegisteredAssistantIds = () => [ ...registrations.keys() ].filter(messageId => getLiveRegistration(messageId) !== undefined).sort((left, right) => left - right);
   const getRerollLock = () => activeGeneration?.operation === "reroll" ? activeGeneration.lockedView : undefined;
   const getHostStageId = () => {
     if (activeGeneration?.operation === "reroll" && getMessageElement(activeGeneration.baseMessageId)) {
@@ -928,7 +1055,7 @@ let __webpack_exports__ = {};
     }
     return getRegisteredAssistantIds().at(-1) ?? getParkedMessageId();
   };
-  const makeView = () => {
+  const makeView = (entries = getStageEntries()) => {
     const lockedView = getRerollLock();
     if (lockedView) {
       return {
@@ -940,7 +1067,6 @@ let __webpack_exports__ = {};
         } : STORY_INTERACTION
       };
     }
-    const entries = getStageEntries();
     const ids = entries.map(entry => entry.representativeMessageId);
     const latestMessageId = ids.at(-1) ?? -1;
     const selected = selectedMessageId !== null && ids.includes(selectedMessageId) ? selectedMessageId : latestMessageId;
@@ -971,8 +1097,8 @@ let __webpack_exports__ = {};
   const applyNativeInputState = () => {
     tavernDocument.body.classList.toggle("dhl-native-input-collapsed", nativeInputCollapsed);
   };
-  const applyStageVisibility = () => {
-    const entries = getStageEntries();
+  const applyStageVisibility = (snapshot = getStageSnapshot()) => {
+    const entries = snapshot.entries;
     const ids = entries.map(entry => entry.representativeMessageId);
     if (!getRerollLock()) {
       const scopedIds = selectedHistoryKind ? getHistoryEntries(entries, selectedHistoryKind).map(entry => entry.representativeMessageId) : ids;
@@ -990,10 +1116,10 @@ let __webpack_exports__ = {};
       }
     }
     const hostMessageId = getHostStageId();
-    const assistantIds = getAssistantMessages().map(message => message.message_id);
+    const assistantIds = snapshot.assistantIds;
     tavernDocument.querySelectorAll("#chat > .mes").forEach(element => {
       const id = Number(element.getAttribute("mesid"));
-      element.classList.toggle(STAGE_CLASS, assistantIds.includes(id));
+      element.classList.toggle(STAGE_CLASS, assistantIds.has(id));
       element.classList.toggle(SELECTED_CLASS, id === hostMessageId);
     });
     syncParkedStage(hostMessageId);
@@ -1001,12 +1127,31 @@ let __webpack_exports__ = {};
     applyNativeInputState();
   };
   const broadcastView = () => {
-    applyStageVisibility();
-    const view = makeView();
-    getRegisteredAssistantIds().forEach(messageId => send(registrations.get(messageId), {
+    if (viewRefreshTimer !== null) {
+      window.clearTimeout(viewRefreshTimer);
+      viewRefreshTimer = null;
+      viewRefreshDeadline = 0;
+    }
+    const snapshot = getStageSnapshot();
+    applyStageVisibility(snapshot);
+    const view = makeView(snapshot.entries);
+    const registeredIds = getRegisteredAssistantIds();
+    registeredIds.forEach(messageId => send(registrations.get(messageId), {
       type: "view",
       view
     }));
+  };
+  const scheduleViewRefresh = (delay = 0, invalidateSnapshot = false) => {
+    if (invalidateSnapshot) invalidateStageSnapshot();
+    const deadline = Date.now() + Math.max(0, delay);
+    if (viewRefreshTimer !== null && viewRefreshDeadline <= deadline) return;
+    if (viewRefreshTimer !== null) window.clearTimeout(viewRefreshTimer);
+    viewRefreshDeadline = deadline;
+    viewRefreshTimer = window.setTimeout(() => {
+      viewRefreshTimer = null;
+      viewRefreshDeadline = 0;
+      if (!controllerDisposed) broadcastView();
+    }, Math.max(0, deadline - Date.now()));
   };
   const installStyle = () => {
     if (tavernDocument.getElementById(STYLE_ID)) return;
@@ -1277,6 +1422,7 @@ let __webpack_exports__ = {};
     return targetMessageId;
   };
   const finishDedicatedGeneration = (generation, messageId) => {
+    invalidateStageSnapshot();
     selectedMessageId = messageId;
     selectedHistoryKind = "dialogue";
     rememberStageSelection(messageId);
@@ -1652,6 +1798,8 @@ let __webpack_exports__ = {};
     }, 1800);
   };
   const finishingMessages = new Map;
+  const recentlyFinishedMessages = new Map;
+  const FINISH_DEDUP_WINDOW_MS = 2500;
   const finishMessageInternal = async messageId => {
     const generation = activeGeneration;
     if (generation) {
@@ -1667,8 +1815,8 @@ let __webpack_exports__ = {};
           rawUserText: generation.rawUserText,
           userMessageId: generation.userMessageId
         });
-      } else {
-        const messages = getAllMessages();
+      } else if (!generation) {
+        const messages = getAdjacentMessages(messageId);
         const message = messages.find(item => item.message_id === messageId);
         const metadata = resolveAssistantInteractionMetadata(message, messages);
         if (metadata) {
@@ -1679,6 +1827,7 @@ let __webpack_exports__ = {};
         }
       }
       await ensurePseudoMarker(messageId, generation?.engine === "native" ? "none" : "affected");
+      invalidateStageSnapshot();
       selectedMessageId = messageId;
       selectedHistoryKind = generation?.interaction.mode ?? null;
       rememberStageSelection(messageId);
@@ -1710,12 +1859,25 @@ let __webpack_exports__ = {};
   const finishMessage = messageId => {
     const existing = finishingMessages.get(messageId);
     if (existing) return existing;
-    const task = finishMessageInternal(messageId).finally(() => finishingMessages.delete(messageId));
+    const now = Date.now();
+    recentlyFinishedMessages.forEach((finishedAt, finishedMessageId) => {
+      if (now - finishedAt > FINISH_DEDUP_WINDOW_MS * 4) {
+        recentlyFinishedMessages.delete(finishedMessageId);
+      }
+    });
+    const recentlyFinishedAt = recentlyFinishedMessages.get(messageId);
+    if (!activeGeneration && recentlyFinishedAt && now - recentlyFinishedAt < FINISH_DEDUP_WINDOW_MS) {
+      return Promise.resolve();
+    }
+    const task = finishMessageInternal(messageId).finally(() => {
+      finishingMessages.delete(messageId);
+      recentlyFinishedMessages.set(messageId, Date.now());
+    });
     finishingMessages.set(messageId, task);
     return task;
   };
   const repairDialogueMetadata = async messageId => {
-    const messages = getAllMessages();
+    const messages = getAdjacentMessages(messageId);
     const message = messages.find(item => item.message_id === messageId);
     if (!message || readInteractionMetadata(message)) return;
     const metadata = resolveAssistantInteractionMetadata(message, messages);
@@ -1724,6 +1886,7 @@ let __webpack_exports__ = {};
       rawUserText: metadata.rawUserText,
       userMessageId: metadata.userMessageId
     });
+    invalidateStageSnapshot();
     viewRevision += 1;
     broadcastView();
   };
@@ -1813,6 +1976,7 @@ let __webpack_exports__ = {};
       await deleteChatMessages(messageIds, {
         refresh: "affected"
       });
+      invalidateStageSnapshot();
       selectedMessageId = latestStageId() ?? null;
       selectedHistoryKind = null;
       if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
@@ -1831,7 +1995,7 @@ let __webpack_exports__ = {};
       });
     } finally {
       deletingMessageId = null;
-      window.setTimeout(broadcastView, 120);
+      scheduleViewRefresh(120, true);
     }
   };
   const handleMessage = event => {
@@ -2016,6 +2180,7 @@ let __webpack_exports__ = {};
         refresh: "none"
       });
     }
+    invalidateStageSnapshot();
     sendGenerationState(activeGeneration, "generating", source);
     applyStageVisibility();
   };
@@ -2028,8 +2193,13 @@ let __webpack_exports__ = {};
       return false;
     }
   };
+  const getControllerObservationRoot = () => {
+    const parent = controllerFrame?.parentElement;
+    if (!parent || parent === tavernDocument.body || parent === tavernDocument.documentElement) return null;
+    return parent;
+  };
   const pruneDuplicateControllerFrames = () => {
-    tavernDocument.querySelectorAll("iframe").forEach(frame => {
+    getControllerObservationRoot()?.querySelectorAll("iframe").forEach(frame => {
       if (!isControllerLoaderFrame(frame)) return;
       console.warn("[灯火阑珊·伪同层] 已卸载重复控制器");
       frame.remove();
@@ -2045,22 +2215,25 @@ let __webpack_exports__ = {};
     frame.addEventListener("load", pruneFrame, {
       once: true
     });
-    [ 0, 250, 1e3, 3e3 ].forEach(delay => {
-      duplicatePruneTimers.push(window.setTimeout(pruneFrame, delay));
-    });
+    duplicatePruneTimers.push(window.setTimeout(pruneFrame, 0));
   };
   const inspectAddedControllerNode = node => {
     if (node.nodeType !== 1) return;
     const element = node;
-    if (element.tagName === "IFRAME") scheduleDuplicateControllerPrune(element);
-    element.querySelectorAll("iframe").forEach(scheduleDuplicateControllerPrune);
+    if (element.tagName === "IFRAME") {
+      scheduleDuplicateControllerPrune(element);
+      return;
+    }
+    element.querySelectorAll(":scope > iframe, :scope > * > iframe").forEach(scheduleDuplicateControllerPrune);
   };
   const installDuplicateControllerObserver = () => {
     duplicateControllerObserver?.disconnect();
+    const root = getControllerObservationRoot();
+    if (!root) return;
     duplicateControllerObserver = new MutationObserver(records => {
       records.forEach(record => record.addedNodes.forEach(inspectAddedControllerNode));
     });
-    duplicateControllerObserver.observe(tavernDocument.documentElement, {
+    duplicateControllerObserver.observe(root, {
       childList: true,
       subtree: true
     });
@@ -2078,6 +2251,14 @@ let __webpack_exports__ = {};
     duplicateControllerObserver = null;
     frameObserver?.disconnect();
     frameObserver = null;
+    if (frameCandidateTimer !== null) window.clearTimeout(frameCandidateTimer);
+    frameCandidateTimer = null;
+    pendingFrameCandidates.clear();
+    if (viewRefreshTimer !== null) window.clearTimeout(viewRefreshTimer);
+    viewRefreshTimer = null;
+    viewRefreshDeadline = 0;
+    sourceFrameCache = new WeakMap;
+    invalidateStageSnapshot();
     discardQueuedStream();
     tavernWindow.removeEventListener("message", handleMessage);
     removeNativeDialogueBridge();
@@ -2151,14 +2332,15 @@ let __webpack_exports__ = {};
   controllerEventStops.push(eventOn(tavern_events.GENERATION_ENDED, messageId => {
     if (activeGeneration?.engine === "dedicated") return;
     const targetMessageId = Number(messageId);
+    const shouldRepairDialogueMetadata = activeGeneration?.interaction.mode === "dialogue";
     void finishMessage(targetMessageId);
-    [ 350, 1200 ].forEach(delay => {
+    if (shouldRepairDialogueMetadata) {
       window.setTimeout(() => {
         void repairDialogueMetadata(targetMessageId).catch(error => {
           console.warn("[灯火阑珊·伪同层] 交谈楼层元数据补写失败", error);
         });
-      }, delay);
-    });
+      }, 500);
+    }
   }));
   controllerEventStops.push(eventOn(tavern_events.GENERATION_STOPPED, () => {
     const generation = activeGeneration;
@@ -2175,34 +2357,37 @@ let __webpack_exports__ = {};
       broadcastView();
     }, 3e3);
   }));
-  controllerEventStops.push(eventOn(tavern_events.MORE_MESSAGES_LOADED, () => window.setTimeout(broadcastView, 300)));
+  controllerEventStops.push(eventOn(tavern_events.MORE_MESSAGES_LOADED, () => {
+    scheduleViewRefresh(300, true);
+  }));
   controllerEventStops.push(eventOn(tavern_events.MESSAGE_UPDATED, () => {
     viewRevision += 1;
-    window.setTimeout(broadcastView, 200);
+    scheduleViewRefresh(200, true);
   }));
   controllerEventStops.push(eventOn(tavern_events.MESSAGE_EDITED, () => {
     viewRevision += 1;
-    window.setTimeout(broadcastView, 200);
+    scheduleViewRefresh(200, true);
   }));
   controllerEventStops.push(eventOn(tavern_events.MESSAGE_SWIPED, () => {
     if (activeGeneration?.operation === "reroll") {
-      window.setTimeout(broadcastView, 200);
+      scheduleViewRefresh(200, true);
       return;
     }
     viewRevision += 1;
-    window.setTimeout(broadcastView, 200);
+    scheduleViewRefresh(200, true);
   }));
   controllerEventStops.push(eventOn(tavern_events.MESSAGE_DELETED, () => {
     if (deletingMessageId !== null) return;
     if (activeGeneration?.operation === "reroll") {
-      window.setTimeout(broadcastView, 200);
+      scheduleViewRefresh(200, true);
       return;
     }
+    invalidateStageSnapshot();
     selectedMessageId = latestStageId() ?? null;
     selectedHistoryKind = null;
     browsingHistory = false;
     viewRevision += 1;
-    window.setTimeout(broadcastView, 200);
+    scheduleViewRefresh(200);
   }));
   controllerEventStops.push(eventOn(tavern_events.CHAT_CHANGED, () => {
     if (activeGeneration?.engine === "dedicated") {
@@ -2212,6 +2397,11 @@ let __webpack_exports__ = {};
     getStageRoot(false)?.remove();
     tavernDocument.body.classList.remove(ROOT_ACTIVE_CLASS);
     registrations.clear();
+    sourceFrameCache = new WeakMap;
+    pendingFrameCandidates.clear();
+    finishingMessages.clear();
+    recentlyFinishedMessages.clear();
+    invalidateStageSnapshot();
     discardQueuedStream();
     activeGeneration = null;
     deletingMessageId = null;
@@ -2222,7 +2412,8 @@ let __webpack_exports__ = {};
     selectedHistoryMessageIds.dialogue = null;
     browsingHistory = false;
     viewRevision += 1;
-    applyStageVisibility();
+    tavernDocument.body.classList.remove("dhl-pseudo-layer-active");
+    scheduleViewRefresh(50);
     window.setTimeout(parkLatestStageFrame, 300);
   }));
   installStyle();
@@ -2231,11 +2422,9 @@ let __webpack_exports__ = {};
   installFrameObserver();
   installNativeDialogueBridge();
   window.setTimeout(parkLatestStageFrame, 0);
-  [ 0, 250, 1e3, 3e3 ].forEach(delay => {
-    duplicatePruneTimers.push(window.setTimeout(() => {
-      if (!controllerDisposed) pruneDuplicateControllerFrames();
-    }, delay));
-  });
+  duplicatePruneTimers.push(window.setTimeout(() => {
+    if (!controllerDisposed) pruneDuplicateControllerFrames();
+  }, 500));
   $(window).on("pagehide", disposeController);
   console.info(`[灯火阑珊·伪同层] 原生楼层控制器已连接 v${_pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.PSEUDO_LAYER_VERSION}`);
 })();

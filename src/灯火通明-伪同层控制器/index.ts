@@ -86,6 +86,11 @@ type StageEntry = {
   stage: PseudoLayerStage;
 };
 
+type StageSnapshot = {
+  assistantIds: Set<number>;
+  entries: StageEntry[];
+};
+
 type ControllerLease = {
   instanceId: string;
   dispose: () => void;
@@ -105,7 +110,8 @@ const FRAME_KEEPER_CLASS = 'dhl-pseudo-frame-keeper';
 const ACTIVE_KEEPER_CLASS = 'dhl-pseudo-frame-active';
 const STAGE_ROOT_ID = 'dhl-pseudo-stage-root';
 const ROOT_ACTIVE_CLASS = 'dhl-pseudo-stage-root-active';
-const STREAM_DISPATCH_INTERVAL_MS = 80;
+const STREAM_DISPATCH_INTERVAL_MS = window.matchMedia?.('(pointer: coarse)').matches ? 240 : 160;
+const FRAME_CANDIDATE_BATCH_MS = 32;
 const STORY_INTERACTION = { mode: 'story' } as const;
 const tavernWindow = window.parent;
 const tavernDocument = tavernWindow.document;
@@ -115,7 +121,11 @@ const controllerInstanceId = `${Date.now()}-${Math.random().toString(36).slice(2
 const registrations = new Map<number, ReplyTarget>();
 const controllerEventStops: EventOnReturn[] = [];
 const duplicatePruneTimers: number[] = [];
+let sourceFrameCache = new WeakMap<ReplyTarget, HTMLIFrameElement>();
+const frameMessageIdCache = new WeakMap<HTMLIFrameElement, number>();
+const pendingFrameCandidates = new Set<HTMLIFrameElement>();
 
+// Heavy presets emit dense DOM and message-event bursts, so stage work stays cached and coalesced.
 let activeGeneration: ActiveGeneration | null = null;
 let activeInteraction: PseudoLayerInteraction = STORY_INTERACTION;
 let selectedMessageId: number | null = null;
@@ -130,6 +140,11 @@ let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === 'true';
 let viewRevision = 0;
 let frameObserver: MutationObserver | null = null;
 let duplicateControllerObserver: MutationObserver | null = null;
+let frameCandidateTimer: number | null = null;
+let viewRefreshTimer: number | null = null;
+let viewRefreshDeadline = 0;
+let stageSnapshotCache: StageSnapshot | null = null;
+let stageSnapshotLastMessageId = Number.NaN;
 let streamDispatchTimer: number | null = null;
 let pendingStreamDispatch: {
   requestId: string;
@@ -276,8 +291,8 @@ const getStageRoot = (create = true) => {
 const getFrameKeeper = (messageId: number, create = true) => {
   const root = getStageRoot(create);
   if (!root) return null;
-  let keeper = [...root.querySelectorAll<HTMLElement>(`:scope > .${FRAME_KEEPER_CLASS}`)].find(
-    candidate => Number(candidate.dataset.messageId) === messageId,
+  let keeper = root.querySelector<HTMLElement>(
+    `:scope > .${FRAME_KEEPER_CLASS}[data-message-id='${messageId}']`,
   );
   if (!keeper && create) {
     keeper = tavernDocument.createElement('div');
@@ -289,18 +304,38 @@ const getFrameKeeper = (messageId: number, create = true) => {
 };
 
 const getFrameMessageId = (frame: HTMLIFrameElement) => {
-  const messageId = Number(
-    frame.dataset.dhlMessageId ?? frame.closest<HTMLElement>('.mes')?.getAttribute('mesid'),
-  );
-  return Number.isFinite(messageId) ? messageId : undefined;
+  const rawMessageId =
+    frame.dataset.dhlMessageId ?? frame.closest<HTMLElement>('.mes')?.getAttribute('mesid');
+  if (rawMessageId === undefined || rawMessageId === null || rawMessageId.trim() === '') {
+    return frameMessageIdCache.get(frame);
+  }
+  const messageId = Number(rawMessageId);
+  if (Number.isFinite(messageId)) {
+    frameMessageIdCache.set(frame, messageId);
+    return messageId;
+  }
+  return frameMessageIdCache.get(frame);
 };
 
-const getFrameForSource = (source: ReplyTarget) =>
-  [
+const rememberFrame = (frame: HTMLIFrameElement) => {
+  const source = asReplyTarget(frame.contentWindow);
+  if (source) sourceFrameCache.set(source, frame);
+  getFrameMessageId(frame);
+};
+
+const getFrameForSource = (source: ReplyTarget) => {
+  const cached = sourceFrameCache.get(source);
+  if (cached?.isConnected && cached.contentWindow === source) return cached;
+  sourceFrameCache.delete(source);
+
+  const frame = [
     ...tavernDocument.querySelectorAll<HTMLIFrameElement>(
       `#chat > .mes .TH-render iframe, #${STAGE_ROOT_ID} > .${FRAME_KEEPER_CLASS} > iframe`,
     ),
-  ].find(frame => frame.contentWindow === source);
+  ].find(candidate => candidate.contentWindow === source);
+  if (frame) rememberFrame(frame);
+  return frame;
+};
 
 const hasMountedPseudoApp = (frame: HTMLIFrameElement | null | undefined) => {
   try {
@@ -335,6 +370,7 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
   if (frame.dataset.dhlControllerOwned === 'true') {
     frame.dataset.dhlMessageId = String(messageId);
     keeper.append(frame);
+    rememberFrame(frame);
     return true;
   }
 
@@ -344,6 +380,7 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
   ownedFrame.dataset.dhlControllerOwned = 'true';
   ownedFrame.dataset.dhlMessageId = String(messageId);
   keeper.append(ownedFrame);
+  rememberFrame(ownedFrame);
   message.classList.add(PARKED_FRAME_CLASS);
   return true;
 };
@@ -394,6 +431,17 @@ const getAllMessages = (): ChatMessage[] => {
   const lastMessageId = getLastMessageId();
   if (!Number.isFinite(lastMessageId) || lastMessageId < 0) return [];
   return getChatMessages(`0-${lastMessageId}`);
+};
+
+const getAdjacentMessages = (messageId: number): ChatMessage[] => {
+  if (!Number.isFinite(messageId) || messageId < 0) return [];
+  const normalizedMessageId = Math.trunc(messageId);
+  return getChatMessages(`${Math.max(0, normalizedMessageId - 1)}-${normalizedMessageId}`);
+};
+
+const invalidateStageSnapshot = () => {
+  stageSnapshotCache = null;
+  stageSnapshotLastMessageId = Number.NaN;
 };
 
 const readInteractionMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionMetadata | null => {
@@ -450,44 +498,39 @@ const resolveAssistantInteractionMetadata = (
   };
 };
 
-const getAssistantMessages = () => {
-  try {
-    return getAllMessages().filter(message => message.role === 'assistant');
-  } catch (error) {
-    console.warn('[灯火阑珊·伪同层] 读取完整聊天楼层失败，暂时使用页面楼层', error);
-    return [...tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes')]
-      .filter(
-        element =>
-          element.getAttribute('is_user') === 'false' && element.getAttribute('is_system') === 'false',
-      )
-      .map(element => ({
-        message_id: Number(element.getAttribute('mesid')),
-        name: '',
-        role: 'assistant' as const,
-        is_hidden: false,
-        message: '',
-        data: {},
-        extra: {},
-      }))
-      .filter(message => Number.isFinite(message.message_id));
-  }
-};
+const getAssistantMessagesFromDom = (): ChatMessage[] =>
+  [...tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes')]
+    .filter(
+      element =>
+        element.getAttribute('is_user') === 'false' && element.getAttribute('is_system') === 'false',
+    )
+    .map(element => ({
+      message_id: Number(element.getAttribute('mesid')),
+      name: '',
+      role: 'assistant' as const,
+      is_hidden: false,
+      message: '',
+      data: {},
+      extra: {},
+    }))
+    .filter(message => Number.isFinite(message.message_id));
 
-const getStageEntries = (): StageEntry[] => {
+const buildStageEntries = (
+  assistantMessages: ChatMessage[],
+  previousMessages: Map<number, ChatMessage>,
+): StageEntry[] => {
   const entries: StageEntry[] = [];
-  let allMessages: ChatMessage[] = [];
-  try {
-    allMessages = getAllMessages();
-  } catch {
-    // getAssistantMessages() below retains the DOM fallback for early page startup.
-  }
-  const assistantMessages = allMessages.length
-    ? allMessages.filter(message => message.role === 'assistant')
-    : getAssistantMessages();
-  assistantMessages
-    .sort((left, right) => left.message_id - right.message_id)
-    .forEach(message => {
-      const metadata = resolveAssistantInteractionMetadata(message, allMessages);
+  assistantMessages.forEach(message => {
+      const directMetadata = readInteractionMetadata(message);
+      const previousMessage = previousMessages.get(message.message_id);
+      const inheritedMetadata =
+        !directMetadata && previousMessage?.role === 'user'
+          ? readInteractionMetadata(previousMessage)
+          : null;
+      const metadata = directMetadata ??
+        (inheritedMetadata
+          ? { ...inheritedMetadata, userMessageId: previousMessage!.message_id }
+          : null);
       const previous = entries.at(-1);
       if (
         metadata &&
@@ -519,6 +562,39 @@ const getStageEntries = (): StageEntry[] => {
     });
   return entries;
 };
+
+const getStageSnapshot = (): StageSnapshot => {
+  const lastMessageId = getLastMessageId();
+  if (stageSnapshotCache && stageSnapshotLastMessageId === lastMessageId) return stageSnapshotCache;
+
+  let messages: ChatMessage[] = [];
+  let assistantMessages: ChatMessage[];
+  try {
+    messages = [...getAllMessages()].sort((left, right) => left.message_id - right.message_id);
+    assistantMessages = messages.filter(message => message.role === 'assistant');
+  } catch (error) {
+    console.warn('[灯火阑珊·伪同层] 读取完整聊天楼层失败，暂时使用页面楼层', error);
+    assistantMessages = getAssistantMessagesFromDom().sort(
+      (left, right) => left.message_id - right.message_id,
+    );
+  }
+
+  const previousMessages = new Map<number, ChatMessage>();
+  let previousMessage: ChatMessage | undefined;
+  messages.forEach(message => {
+    if (previousMessage) previousMessages.set(message.message_id, previousMessage);
+    previousMessage = message;
+  });
+
+  stageSnapshotCache = {
+    assistantIds: new Set(assistantMessages.map(message => message.message_id)),
+    entries: buildStageEntries(assistantMessages, previousMessages),
+  };
+  stageSnapshotLastMessageId = lastMessageId;
+  return stageSnapshotCache;
+};
+
+const getStageEntries = () => getStageSnapshot().entries;
 
 const latestStageId = () => getStageEntries().at(-1)?.representativeMessageId;
 
@@ -583,21 +659,50 @@ const rememberStageSelection = (messageId: number, entries = getStageEntries()) 
   selectedHistoryMessageIds[entry.stage.kind] = entry.representativeMessageId;
 };
 
-const parkCandidateFrame = (frame: HTMLIFrameElement) => {
+const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestStageId()) => {
+  rememberFrame(frame);
   const messageId = getFrameMessageId(frame);
   if (messageId === undefined) return;
   const shouldPark =
-    messageId === latestStageId() ||
+    messageId === latestMessageId ||
     (activeGeneration?.operation === 'reroll' && messageId === activeGeneration.baseMessageId);
   if (!shouldPark) return;
-  if (parkFrame(messageId, frame)) window.setTimeout(applyStageVisibility, 0);
+  if (parkFrame(messageId, frame)) scheduleViewRefresh(0);
+};
+
+const flushFrameCandidates = () => {
+  frameCandidateTimer = null;
+  if (controllerDisposed || pendingFrameCandidates.size === 0) return;
+  const frames = [...pendingFrameCandidates];
+  pendingFrameCandidates.clear();
+  const latestMessageId = latestStageId();
+  frames.forEach(frame => {
+    if (frame.isConnected) parkCandidateFrame(frame, latestMessageId);
+  });
+};
+
+const queueFrameCandidate = (frame: HTMLIFrameElement) => {
+  rememberFrame(frame);
+  pendingFrameCandidates.add(frame);
+  if (frameCandidateTimer !== null) return;
+  frameCandidateTimer = window.setTimeout(flushFrameCandidates, FRAME_CANDIDATE_BATCH_MS);
 };
 
 const inspectAddedFrameNode = (node: Node) => {
   if (node.nodeType !== Node.ELEMENT_NODE) return;
   const element = node as Element;
-  if (element.tagName === 'IFRAME') parkCandidateFrame(element as HTMLIFrameElement);
-  element.querySelectorAll<HTMLIFrameElement>('iframe').forEach(parkCandidateFrame);
+  if (element.tagName === 'IFRAME') {
+    queueFrameCandidate(element as HTMLIFrameElement);
+    return;
+  }
+
+  const containsRelevantFrames =
+    element.matches('.mes, .TH-render') ||
+    element.closest('.TH-render') !== null ||
+    element.id === STAGE_ROOT_ID ||
+    element.classList.contains(FRAME_KEEPER_CLASS);
+  if (!containsRelevantFrames) return;
+  element.querySelectorAll<HTMLIFrameElement>('iframe').forEach(queueFrameCandidate);
 };
 
 const installFrameObserver = () => {
@@ -631,9 +736,9 @@ const getLiveRegistration = (messageId: number) => {
 };
 
 const getRegisteredAssistantIds = () =>
-  getAssistantMessages()
-    .map(message => message.message_id)
-    .filter(messageId => getLiveRegistration(messageId) !== undefined);
+  [...registrations.keys()]
+    .filter(messageId => getLiveRegistration(messageId) !== undefined)
+    .sort((left, right) => left - right);
 
 const getRerollLock = () =>
   activeGeneration?.operation === 'reroll' ? activeGeneration.lockedView : undefined;
@@ -645,7 +750,7 @@ const getHostStageId = () => {
   return getRegisteredAssistantIds().at(-1) ?? getParkedMessageId();
 };
 
-const makeView = (): PseudoLayerView => {
+const makeView = (entries = getStageEntries()): PseudoLayerView => {
   const lockedView = getRerollLock();
   if (lockedView) {
     return {
@@ -657,7 +762,6 @@ const makeView = (): PseudoLayerView => {
     };
   }
 
-  const entries = getStageEntries();
   const ids = entries.map(entry => entry.representativeMessageId);
   const latestMessageId = ids.at(-1) ?? -1;
   const selected = selectedMessageId !== null && ids.includes(selectedMessageId) ? selectedMessageId : latestMessageId;
@@ -687,8 +791,8 @@ const applyNativeInputState = () => {
   tavernDocument.body.classList.toggle('dhl-native-input-collapsed', nativeInputCollapsed);
 };
 
-const applyStageVisibility = () => {
-  const entries = getStageEntries();
+const applyStageVisibility = (snapshot = getStageSnapshot()) => {
+  const entries = snapshot.entries;
   const ids = entries.map(entry => entry.representativeMessageId);
   if (!getRerollLock()) {
     const scopedIds = selectedHistoryKind
@@ -708,11 +812,11 @@ const applyStageVisibility = () => {
     }
   }
   const hostMessageId = getHostStageId();
-  const assistantIds = getAssistantMessages().map(message => message.message_id);
+  const assistantIds = snapshot.assistantIds;
 
   tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes').forEach(element => {
     const id = Number(element.getAttribute('mesid'));
-    element.classList.toggle(STAGE_CLASS, assistantIds.includes(id));
+    element.classList.toggle(STAGE_CLASS, assistantIds.has(id));
     element.classList.toggle(SELECTED_CLASS, id === hostMessageId);
   });
   syncParkedStage(hostMessageId);
@@ -721,9 +825,29 @@ const applyStageVisibility = () => {
 };
 
 const broadcastView = () => {
-  applyStageVisibility();
-  const view = makeView();
-  getRegisteredAssistantIds().forEach(messageId => send(registrations.get(messageId), { type: 'view', view }));
+  if (viewRefreshTimer !== null) {
+    window.clearTimeout(viewRefreshTimer);
+    viewRefreshTimer = null;
+    viewRefreshDeadline = 0;
+  }
+  const snapshot = getStageSnapshot();
+  applyStageVisibility(snapshot);
+  const view = makeView(snapshot.entries);
+  const registeredIds = getRegisteredAssistantIds();
+  registeredIds.forEach(messageId => send(registrations.get(messageId), { type: 'view', view }));
+};
+
+const scheduleViewRefresh = (delay = 0, invalidateSnapshot = false) => {
+  if (invalidateSnapshot) invalidateStageSnapshot();
+  const deadline = Date.now() + Math.max(0, delay);
+  if (viewRefreshTimer !== null && viewRefreshDeadline <= deadline) return;
+  if (viewRefreshTimer !== null) window.clearTimeout(viewRefreshTimer);
+  viewRefreshDeadline = deadline;
+  viewRefreshTimer = window.setTimeout(() => {
+    viewRefreshTimer = null;
+    viewRefreshDeadline = 0;
+    if (!controllerDisposed) broadcastView();
+  }, Math.max(0, deadline - Date.now()));
 };
 
 const installStyle = () => {
@@ -1147,6 +1271,7 @@ const commitDedicatedDialogueReroll = async (
 };
 
 const finishDedicatedGeneration = (generation: ActiveGeneration, messageId: number) => {
+  invalidateStageSnapshot();
   selectedMessageId = messageId;
   selectedHistoryKind = 'dialogue';
   rememberStageSelection(messageId);
@@ -1553,6 +1678,8 @@ const beginReroll = (
 };
 
 const finishingMessages = new Map<number, Promise<void>>();
+const recentlyFinishedMessages = new Map<number, number>();
+const FINISH_DEDUP_WINDOW_MS = 2500;
 
 const finishMessageInternal = async (messageId: number) => {
   const generation = activeGeneration;
@@ -1574,8 +1701,8 @@ const finishMessageInternal = async (messageId: number) => {
         rawUserText: generation.rawUserText,
         userMessageId: generation.userMessageId,
       });
-    } else {
-      const messages = getAllMessages();
+    } else if (!generation) {
+      const messages = getAdjacentMessages(messageId);
       const message = messages.find(item => item.message_id === messageId);
       const metadata = resolveAssistantInteractionMetadata(message, messages);
       if (metadata) {
@@ -1586,6 +1713,7 @@ const finishMessageInternal = async (messageId: number) => {
       }
     }
     await ensurePseudoMarker(messageId, generation?.engine === 'native' ? 'none' : 'affected');
+    invalidateStageSnapshot();
     selectedMessageId = messageId;
     selectedHistoryKind = generation?.interaction.mode ?? null;
     rememberStageSelection(messageId);
@@ -1614,13 +1742,28 @@ const finishMessageInternal = async (messageId: number) => {
 const finishMessage = (messageId: number) => {
   const existing = finishingMessages.get(messageId);
   if (existing) return existing;
-  const task = finishMessageInternal(messageId).finally(() => finishingMessages.delete(messageId));
+
+  const now = Date.now();
+  recentlyFinishedMessages.forEach((finishedAt, finishedMessageId) => {
+    if (now - finishedAt > FINISH_DEDUP_WINDOW_MS * 4) {
+      recentlyFinishedMessages.delete(finishedMessageId);
+    }
+  });
+  const recentlyFinishedAt = recentlyFinishedMessages.get(messageId);
+  if (!activeGeneration && recentlyFinishedAt && now - recentlyFinishedAt < FINISH_DEDUP_WINDOW_MS) {
+    return Promise.resolve();
+  }
+
+  const task = finishMessageInternal(messageId).finally(() => {
+    finishingMessages.delete(messageId);
+    recentlyFinishedMessages.set(messageId, Date.now());
+  });
   finishingMessages.set(messageId, task);
   return task;
 };
 
 const repairDialogueMetadata = async (messageId: number) => {
-  const messages = getAllMessages();
+  const messages = getAdjacentMessages(messageId);
   const message = messages.find(item => item.message_id === messageId);
   if (!message || readInteractionMetadata(message)) return;
   const metadata = resolveAssistantInteractionMetadata(message, messages);
@@ -1629,6 +1772,7 @@ const repairDialogueMetadata = async (messageId: number) => {
     rawUserText: metadata.rawUserText,
     userMessageId: metadata.userMessageId,
   });
+  invalidateStageSnapshot();
   viewRevision += 1;
   broadcastView();
 };
@@ -1731,6 +1875,7 @@ const deleteLatestTurn = async (
   deletingMessageId = assistant.message_id;
   try {
     await deleteChatMessages(messageIds, { refresh: 'affected' });
+    invalidateStageSnapshot();
     selectedMessageId = latestStageId() ?? null;
     selectedHistoryKind = null;
     if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
@@ -1749,7 +1894,7 @@ const deleteLatestTurn = async (
     });
   } finally {
     deletingMessageId = null;
-    window.setTimeout(broadcastView, 120);
+    scheduleViewRefresh(120, true);
   }
 };
 
@@ -1950,6 +2095,7 @@ const handleMessageSent = async (messageId: number) => {
     );
   }
 
+  invalidateStageSnapshot();
   sendGenerationState(activeGeneration, 'generating', source);
   applyStageVisibility();
 };
@@ -1966,8 +2112,14 @@ const isControllerLoaderFrame = (frame: HTMLIFrameElement) => {
   }
 };
 
+const getControllerObservationRoot = () => {
+  const parent = controllerFrame?.parentElement;
+  if (!parent || parent === tavernDocument.body || parent === tavernDocument.documentElement) return null;
+  return parent;
+};
+
 const pruneDuplicateControllerFrames = () => {
-  tavernDocument.querySelectorAll<HTMLIFrameElement>('iframe').forEach(frame => {
+  getControllerObservationRoot()?.querySelectorAll<HTMLIFrameElement>('iframe').forEach(frame => {
     if (!isControllerLoaderFrame(frame)) return;
     console.warn('[灯火阑珊·伪同层] 已卸载重复控制器');
     frame.remove();
@@ -1982,24 +2134,29 @@ const scheduleDuplicateControllerPrune = (frame: HTMLIFrameElement) => {
     frame.remove();
   };
   frame.addEventListener('load', pruneFrame, { once: true });
-  [0, 250, 1000, 3000].forEach(delay => {
-    duplicatePruneTimers.push(window.setTimeout(pruneFrame, delay));
-  });
+  duplicatePruneTimers.push(window.setTimeout(pruneFrame, 0));
 };
 
 const inspectAddedControllerNode = (node: Node) => {
   if (node.nodeType !== 1) return;
   const element = node as Element;
-  if (element.tagName === 'IFRAME') scheduleDuplicateControllerPrune(element as HTMLIFrameElement);
-  element.querySelectorAll<HTMLIFrameElement>('iframe').forEach(scheduleDuplicateControllerPrune);
+  if (element.tagName === 'IFRAME') {
+    scheduleDuplicateControllerPrune(element as HTMLIFrameElement);
+    return;
+  }
+  element
+    .querySelectorAll<HTMLIFrameElement>(':scope > iframe, :scope > * > iframe')
+    .forEach(scheduleDuplicateControllerPrune);
 };
 
 const installDuplicateControllerObserver = () => {
   duplicateControllerObserver?.disconnect();
+  const root = getControllerObservationRoot();
+  if (!root) return;
   duplicateControllerObserver = new MutationObserver(records => {
     records.forEach(record => record.addedNodes.forEach(inspectAddedControllerNode));
   });
-  duplicateControllerObserver.observe(tavernDocument.documentElement, {
+  duplicateControllerObserver.observe(root, {
     childList: true,
     subtree: true,
   });
@@ -2019,6 +2176,14 @@ const disposeController = () => {
   duplicateControllerObserver = null;
   frameObserver?.disconnect();
   frameObserver = null;
+  if (frameCandidateTimer !== null) window.clearTimeout(frameCandidateTimer);
+  frameCandidateTimer = null;
+  pendingFrameCandidates.clear();
+  if (viewRefreshTimer !== null) window.clearTimeout(viewRefreshTimer);
+  viewRefreshTimer = null;
+  viewRefreshDeadline = 0;
+  sourceFrameCache = new WeakMap<ReplyTarget, HTMLIFrameElement>();
+  invalidateStageSnapshot();
   discardQueuedStream();
   tavernWindow.removeEventListener('message', handleMessage);
   removeNativeDialogueBridge();
@@ -2109,14 +2274,15 @@ controllerEventStops.push(eventOn(tavern_events.MESSAGE_RECEIVED, messageId => {
 controllerEventStops.push(eventOn(tavern_events.GENERATION_ENDED, messageId => {
   if (activeGeneration?.engine === 'dedicated') return;
   const targetMessageId = Number(messageId);
+  const shouldRepairDialogueMetadata = activeGeneration?.interaction.mode === 'dialogue';
   void finishMessage(targetMessageId);
-  [350, 1200].forEach(delay => {
+  if (shouldRepairDialogueMetadata) {
     window.setTimeout(() => {
       void repairDialogueMetadata(targetMessageId).catch(error => {
         console.warn('[灯火阑珊·伪同层] 交谈楼层元数据补写失败', error);
       });
-    }, delay);
-  });
+    }, 500);
+  }
 }));
 
 controllerEventStops.push(eventOn(tavern_events.GENERATION_STOPPED, () => {
@@ -2135,34 +2301,37 @@ controllerEventStops.push(eventOn(tavern_events.GENERATION_STOPPED, () => {
   }, 3000);
 }));
 
-controllerEventStops.push(eventOn(tavern_events.MORE_MESSAGES_LOADED, () => window.setTimeout(broadcastView, 300)));
+controllerEventStops.push(eventOn(tavern_events.MORE_MESSAGES_LOADED, () => {
+  scheduleViewRefresh(300, true);
+}));
 controllerEventStops.push(eventOn(tavern_events.MESSAGE_UPDATED, () => {
   viewRevision += 1;
-  window.setTimeout(broadcastView, 200);
+  scheduleViewRefresh(200, true);
 }));
 controllerEventStops.push(eventOn(tavern_events.MESSAGE_EDITED, () => {
   viewRevision += 1;
-  window.setTimeout(broadcastView, 200);
+  scheduleViewRefresh(200, true);
 }));
 controllerEventStops.push(eventOn(tavern_events.MESSAGE_SWIPED, () => {
   if (activeGeneration?.operation === 'reroll') {
-    window.setTimeout(broadcastView, 200);
+    scheduleViewRefresh(200, true);
     return;
   }
   viewRevision += 1;
-  window.setTimeout(broadcastView, 200);
+  scheduleViewRefresh(200, true);
 }));
 controllerEventStops.push(eventOn(tavern_events.MESSAGE_DELETED, () => {
   if (deletingMessageId !== null) return;
   if (activeGeneration?.operation === 'reroll') {
-    window.setTimeout(broadcastView, 200);
+    scheduleViewRefresh(200, true);
     return;
   }
+  invalidateStageSnapshot();
   selectedMessageId = latestStageId() ?? null;
   selectedHistoryKind = null;
   browsingHistory = false;
   viewRevision += 1;
-  window.setTimeout(broadcastView, 200);
+  scheduleViewRefresh(200);
 }));
 controllerEventStops.push(eventOn(tavern_events.CHAT_CHANGED, () => {
   if (activeGeneration?.engine === 'dedicated') {
@@ -2172,6 +2341,11 @@ controllerEventStops.push(eventOn(tavern_events.CHAT_CHANGED, () => {
   getStageRoot(false)?.remove();
   tavernDocument.body.classList.remove(ROOT_ACTIVE_CLASS);
   registrations.clear();
+  sourceFrameCache = new WeakMap<ReplyTarget, HTMLIFrameElement>();
+  pendingFrameCandidates.clear();
+  finishingMessages.clear();
+  recentlyFinishedMessages.clear();
+  invalidateStageSnapshot();
   discardQueuedStream();
   activeGeneration = null;
   deletingMessageId = null;
@@ -2182,7 +2356,8 @@ controllerEventStops.push(eventOn(tavern_events.CHAT_CHANGED, () => {
   selectedHistoryMessageIds.dialogue = null;
   browsingHistory = false;
   viewRevision += 1;
-  applyStageVisibility();
+  tavernDocument.body.classList.remove('dhl-pseudo-layer-active');
+  scheduleViewRefresh(50);
   window.setTimeout(parkLatestStageFrame, 300);
 }));
 
@@ -2192,13 +2367,11 @@ tavernWindow.addEventListener('message', handleMessage);
 installFrameObserver();
 installNativeDialogueBridge();
 window.setTimeout(parkLatestStageFrame, 0);
-[0, 250, 1000, 3000].forEach(delay => {
-  duplicatePruneTimers.push(
-    window.setTimeout(() => {
-      if (!controllerDisposed) pruneDuplicateControllerFrames();
-    }, delay),
-  );
-});
+duplicatePruneTimers.push(
+  window.setTimeout(() => {
+    if (!controllerDisposed) pruneDuplicateControllerFrames();
+  }, 500),
+);
 
 $(window).on('pagehide', disposeController);
 

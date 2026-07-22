@@ -1128,6 +1128,7 @@ var __webpack_modules__ = {
       extractNarrative: () => extractNarrative,
       extractVariableUpdateDiagnostics: () => extractVariableUpdateDiagnostics,
       formatMessageHtml: () => formatMessageHtml,
+      stripAuxiliaryPresentation: () => stripAuxiliaryPresentation,
       stripStructuredBlocks: () => stripStructuredBlocks
     });
     const STRUCTURAL_TAGS = [ "visual_cards", "pseudo_layer", "UpdateVariable", "JSONPatch", "StatusPlaceHolderImpl", "反应", "会话状态" ];
@@ -1135,6 +1136,48 @@ var __webpack_modules__ = {
     const openTagPattern = tag => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
     const closeTagPattern = tag => `<\\/${escapeRegExp(tag)}\\s*>`;
     const DIALOGUE_TAGS = [ "反应", "正文", "会话状态" ];
+    const REASONING_OPEN_PATTERN = /<(?:think(?:ing)?|reasoning|thought|think_?fox~?)(?=[\s>])[^>]*>/gi;
+    const REASONING_CLOSE_PATTERN = /<\/(?:think(?:ing)?|reasoning|thought|think_?fox~?)\s*>/gi;
+    const stripReasoningPrefix = text => {
+      REASONING_CLOSE_PATTERN.lastIndex = 0;
+      let lastClosingEnd = -1;
+      let closingMatch;
+      while ((closingMatch = REASONING_CLOSE_PATTERN.exec(text)) !== null) {
+        lastClosingEnd = closingMatch.index + closingMatch[0].length;
+      }
+      REASONING_CLOSE_PATTERN.lastIndex = 0;
+      if (lastClosingEnd >= 0) return text.slice(lastClosingEnd);
+      REASONING_OPEN_PATTERN.lastIndex = 0;
+      const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
+      REASONING_OPEN_PATTERN.lastIndex = 0;
+      return unfinishedOpening?.index === undefined ? text : text.slice(0, unfinishedOpening.index);
+    };
+    const findEmbeddedDocumentStart = lowerText => {
+      const doctypeIndex = lowerText.indexOf("<!doctype html");
+      const htmlIndex = lowerText.search(/<html(?=[\s>])/);
+      if (doctypeIndex < 0) return htmlIndex;
+      if (htmlIndex < 0) return doctypeIndex;
+      return Math.min(doctypeIndex, htmlIndex);
+    };
+    const stripEmbeddedHtmlDocuments = text => {
+      let result = text;
+      for (let pass = 0; pass < 4; pass += 1) {
+        const lowerText = result.toLowerCase();
+        const documentStart = findEmbeddedDocumentStart(lowerText);
+        if (documentStart < 0) break;
+        const fencePrefix = result.slice(Math.max(0, documentStart - 16), documentStart);
+        const fenceMatch = /```(?:html)?\s*$/i.exec(fencePrefix);
+        const removeStart = fenceMatch ? documentStart - (fencePrefix.length - (fenceMatch.index ?? fencePrefix.length)) : documentStart;
+        const closingIndex = lowerText.indexOf("</html>", documentStart);
+        if (closingIndex < 0) return result.slice(0, removeStart).trimEnd();
+        let removeEnd = closingIndex + "</html>".length;
+        const trailingFence = /^\s*```/.exec(result.slice(removeEnd));
+        if (trailingFence) removeEnd += trailingFence[0].length;
+        result = `${result.slice(0, removeStart)}${result.slice(removeEnd)}`;
+      }
+      return result;
+    };
+    const stripAuxiliaryPresentation = text => stripEmbeddedHtmlDocuments(stripReasoningPrefix(text)).trim();
     const stripDialogueTagFragments = text => DIALOGUE_TAGS.reduce((value, tag) => value.replace(new RegExp(`<\\/?${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`, "gi"), ""), text).replace(/<[^>]*$/g, "").trim();
     const readBoundedTaggedContent = (text, tag, stopTags, preferLast = false) => {
       const matches = [ ...text.matchAll(new RegExp(openTagPattern(tag), "gi")) ];
@@ -1230,15 +1273,17 @@ var __webpack_modules__ = {
       return result.trim();
     };
     const extractNarrative = text => {
-      const completeBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
-      const streamingBody = text.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
-      return stripStructuredBlocks(completeBody ?? streamingBody ?? text).replace(/<\/?正文(?=[\s/>])[^>]*>/gi, "").trim();
+      const source = stripAuxiliaryPresentation(text);
+      const completeBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
+      const streamingBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
+      return stripStructuredBlocks(completeBody ?? streamingBody ?? source).replace(/<\/?正文(?=[\s/>])[^>]*>/gi, "").trim();
     };
     const extractDialogueContent = text => {
-      const hasReactionTag = /<反应(?=[\s/>])/i.test(text);
-      const hasBodyTag = /<正文(?=[\s/>])/i.test(text);
-      const reaction = hasReactionTag ? stripStructuredBlocks(readBoundedTaggedContent(text, "反应", [ "正文", "会话状态" ])) : "";
-      const dialogue = hasBodyTag ? readBoundedTaggedContent(text, "正文", [ "反应", "会话状态" ], true) : hasReactionTag ? "" : extractNarrative(text);
+      const source = stripAuxiliaryPresentation(text);
+      const hasReactionTag = /<反应(?=[\s/>])/i.test(source);
+      const hasBodyTag = /<正文(?=[\s/>])/i.test(source);
+      const reaction = hasReactionTag ? stripStructuredBlocks(readBoundedTaggedContent(source, "反应", [ "正文", "会话状态" ])) : "";
+      const dialogue = hasBodyTag ? readBoundedTaggedContent(source, "正文", [ "反应", "会话状态" ], true) : hasReactionTag ? "" : extractNarrative(source);
       return {
         reaction: stripDialogueTagFragments(reaction),
         dialogue: unwrapDialogueQuotes(stripDialogueTagFragments(stripStructuredBlocks(dialogue)))
