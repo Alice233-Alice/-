@@ -48,7 +48,6 @@
       </div>
     </div>
     <div v-else class="empty-hint">当前场景暂无角色卡片</div>
-
   </div>
 </template>
 
@@ -76,15 +75,24 @@ const openPreview = (index: number) => {
 
 <style lang="scss" scoped>
 .gallery-panel {
+  width: 100%;
+  height: 100%;
+  min-height: 0 !important;
   padding: 16px !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+  container-type: size;
 
   .gallery-container {
-    display: inline-flex;
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    display: flex;
     flex-direction: row;
+    align-items: safe center;
+    justify-content: safe center;
     gap: 20px;
     overflow-x: auto;
     overflow-y: hidden;
@@ -111,19 +119,30 @@ const openPreview = (index: number) => {
   }
 
   .gallery-card {
+    --gallery-portrait-width: clamp(150px, min(48cqw, calc((100cqh - 48px) * 0.6667)), 540px);
+    --gallery-control-rail-width: 43px;
+
     flex-shrink: 0;
-    width: 280px;
+    width: auto;
     perspective: 1000px;
     position: relative;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     cursor: pointer;
   }
 
+  .gallery-card::before {
+    content: '';
+    width: var(--gallery-control-rail-width);
+    flex: 0 0 var(--gallery-control-rail-width);
+    pointer-events: none;
+  }
+
   .card-inner {
     position: relative;
-    width: 100%;
+    width: var(--gallery-portrait-width);
+    flex: 0 0 var(--gallery-portrait-width);
     aspect-ratio: 2 / 3;
     transition: transform 0.6s ease;
     transform-style: preserve-3d;
@@ -137,9 +156,10 @@ const openPreview = (index: number) => {
 
   .card-image-controls {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 2px;
-    margin-top: 8px;
+    margin-left: 8px;
     padding: 3px;
     border: 1px solid var(--line-subtle);
     border-radius: 6px;
@@ -174,13 +194,12 @@ const openPreview = (index: number) => {
         outline: none;
       }
     }
-
   }
 
   .gallery-card:hover .card-image-controls,
   .gallery-card:focus-within .card-image-controls {
     opacity: 1;
-    transform: translateY(1px);
+    transform: translateX(1px);
   }
 
   .card-face {
@@ -270,7 +289,6 @@ const openPreview = (index: number) => {
     color: var(--text-secondary);
     font-style: italic;
   }
-
 }
 
 .preview-overlay {
@@ -478,15 +496,21 @@ const openPreview = (index: number) => {
 // 手机端适配
 @media screen and (max-width: 480px) {
   .gallery-panel {
-    padding: 12px !important;
+    padding: 8px !important;
 
     .gallery-container {
       gap: 14px;
-      padding-top: 12px;
+      padding: 8px 0 6px;
     }
 
     .gallery-card {
-      width: 200px;
+      --gallery-portrait-width: clamp(150px, min(72cqw, calc((100cqh - 82px) * 0.6667)), 310px);
+
+      flex-direction: column;
+    }
+
+    .gallery-card::before {
+      display: none;
     }
 
     .card-front {
@@ -513,15 +537,20 @@ const openPreview = (index: number) => {
     }
 
     .card-image-controls {
+      flex-direction: row;
       margin-top: 6px;
+      margin-left: 0;
 
       button {
         width: 26px;
         height: 26px;
       }
-
     }
 
+    .gallery-card:hover .card-image-controls,
+    .gallery-card:focus-within .card-image-controls {
+      transform: translateY(1px);
+    }
   }
 
   .preview-overlay {
@@ -565,15 +594,6 @@ const openPreview = (index: number) => {
 @media (hover: none) {
   .gallery-panel .card-image-controls {
     opacity: 0.9;
-  }
-}
-
-// 超小屏幕适配
-@media screen and (max-width: 360px) {
-  .gallery-panel {
-    .gallery-card {
-      width: 160px;
-    }
   }
 }
 </style>

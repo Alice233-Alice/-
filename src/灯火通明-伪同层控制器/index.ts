@@ -134,6 +134,7 @@ const selectedHistoryMessageIds: Record<PseudoLayerHistoryKind, number | null> =
 let selectedHistoryKind: PseudoLayerHistoryKind | null = null;
 let browsingHistory = false;
 let deletingMessageId: number | null = null;
+let updatingMessageId: number | null = null;
 const nativeInputMedia = tavernWindow.matchMedia(MOBILE_VIEWPORT_QUERY);
 const shouldApplyMobileInputDefault =
   nativeInputMedia.matches && localStorage.getItem(MOBILE_INPUT_DEFAULT_APPLIED_KEY) === null;
@@ -153,6 +154,7 @@ let duplicateControllerObserver: MutationObserver | null = null;
 let frameCandidateTimer: number | null = null;
 let viewRefreshTimer: number | null = null;
 let viewRefreshDeadline = 0;
+let mobileStageAlignFrame: number | null = null;
 let stageSnapshotCache: StageSnapshot | null = null;
 let stageSnapshotLastMessageId = Number.NaN;
 let streamDispatchTimer: number | null = null;
@@ -759,6 +761,15 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
 
 const applyNativeInputState = () => {
   tavernDocument.body.classList.toggle('dhl-native-input-collapsed', nativeInputCollapsed);
+
+  const chat = tavernDocument.querySelector<HTMLElement>('#chat');
+  if (!chat) return;
+  chat.scrollTop = 0;
+  if (mobileStageAlignFrame !== null) tavernWindow.cancelAnimationFrame(mobileStageAlignFrame);
+  mobileStageAlignFrame = tavernWindow.requestAnimationFrame(() => {
+    mobileStageAlignFrame = null;
+    if (!controllerDisposed && chat.isConnected) chat.scrollTop = 0;
+  });
 };
 
 const handleNativeInputViewportChange = (event: MediaQueryListEvent) => {
@@ -880,6 +891,27 @@ const installStyle = () => {
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .TH-render,
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .TH-render > iframe { width: 100% !important; }
     body.dhl-native-input-collapsed #form_sheld { display: none !important; }
+    body.dhl-pseudo-layer-active.dhl-native-input-collapsed {
+      --bottomFormBlockSize: 0px !important;
+    }
+    body.dhl-pseudo-layer-active.dhl-native-input-collapsed #chat {
+      height: 100% !important;
+      max-height: 100% !important;
+    }
+    body.${ROOT_ACTIVE_CLASS} #${STAGE_ROOT_ID},
+    body.${ROOT_ACTIVE_CLASS} #${STAGE_ROOT_ID} > .${FRAME_KEEPER_CLASS}.${ACTIVE_KEEPER_CLASS},
+    body.${ROOT_ACTIVE_CLASS} #${STAGE_ROOT_ID} > .${FRAME_KEEPER_CLASS}.${ACTIVE_KEEPER_CLASS} > iframe {
+      height: 100% !important;
+      min-height: 0 !important;
+      max-height: 100% !important;
+    }
+    body.dhl-pseudo-layer-active #chat {
+      overflow: hidden !important;
+      overflow-anchor: none !important;
+      overscroll-behavior: none !important;
+      scrollbar-width: none !important;
+    }
+    body.dhl-pseudo-layer-active #chat::-webkit-scrollbar { display: none !important; }
   `;
   tavernDocument.head.append(style);
 };
@@ -890,6 +922,17 @@ const buildMessage = (reply: string) => {
     return text;
   }
   return `${text}\n\n<pseudo_layer>\n灯火阑珊\n</pseudo_layer>`;
+};
+
+const buildEditedMessage = (content: string) => {
+  if (
+    /<visual_cards>[\s\S]*?<\/visual_cards>/i.test(content) ||
+    /<pseudo_layer>[\s\S]*?<\/pseudo_layer>/i.test(content)
+  ) {
+    return content;
+  }
+  const separator = content.length === 0 ? '' : content.endsWith('\n') ? '\n' : '\n\n';
+  return `${content}${separator}<pseudo_layer>\n灯火阑珊\n</pseudo_layer>`;
 };
 
 const ensurePseudoMarker = async (messageId: number, refresh: ChatRefreshMode = 'affected') => {
@@ -1303,7 +1346,7 @@ const runDedicatedDialogueGeneration = async (
 };
 
 const beginGeneration = (request: Extract<PseudoLayerRequest, { type: 'generate' }>, source: ReplyTarget) => {
-  if (activeGeneration || deletingMessageId !== null) {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
     send(source, { type: 'error', requestId: request.requestId, message: '已有一场生成正在进行。' });
     return;
   }
@@ -1444,7 +1487,7 @@ const interceptNativeDialogueSend = (event: Event) => {
   if (!prompt || prompt.startsWith('/')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
-  if (activeGeneration || deletingMessageId !== null || browsingHistory) {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null || browsingHistory) {
     toastr.warning(browsingHistory ? '请先返回最新回合再继续交谈。' : '当前仍有操作正在进行。');
     return;
   }
@@ -1490,7 +1533,7 @@ const removeNativeDialogueBridge = () => {
 };
 
 const beginReroll = (request: Extract<PseudoLayerRequest, { type: 'reroll' }>, source: ReplyTarget) => {
-  if (activeGeneration || deletingMessageId !== null) {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
     send(source, { type: 'error', requestId: request.requestId, message: '已有一场生成正在进行。' });
     return;
   }
@@ -1745,7 +1788,7 @@ const selectStage = (target: number, history?: PseudoLayerHistoryKind) => {
 };
 
 const navigate = (request: Extract<PseudoLayerRequest, { type: 'navigate' }>) => {
-  if (activeGeneration || deletingMessageId !== null) return;
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) return;
   const entries = getStageEntries();
   const historyEntries = request.history ? getHistoryEntries(entries, request.history) : entries;
   const ids = historyEntries.map(entry => entry.representativeMessageId);
@@ -1758,7 +1801,7 @@ const navigate = (request: Extract<PseudoLayerRequest, { type: 'navigate' }>) =>
 };
 
 const selectHistory = (history: PseudoLayerHistoryKind) => {
-  if (activeGeneration || deletingMessageId !== null) return;
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) return;
   const entries = getStageEntries();
   const target = resolveHistorySelection(entries, history);
   if (target === null) {
@@ -1776,7 +1819,7 @@ const deleteLatestTurn = async (
   request: Extract<PseudoLayerRequest, { type: 'delete_message' }>,
   source: ReplyTarget,
 ) => {
-  if (activeGeneration || deletingMessageId !== null) {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
     send(source, { type: 'error', requestId: request.requestId, message: '当前仍有操作正在进行。' });
     return;
   }
@@ -1849,6 +1892,62 @@ const deleteLatestTurn = async (
   }
 };
 
+const updateMessageContent = async (
+  request: Extract<PseudoLayerRequest, { type: 'update_message' }>,
+  source: ReplyTarget,
+) => {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
+    send(source, { type: 'error', requestId: request.requestId, message: '当前仍有操作正在进行。' });
+    return;
+  }
+
+  const messageId = Math.trunc(request.messageId);
+  const entry = getStageEntries().find(candidate => candidate.representativeMessageId === messageId);
+  if (!Number.isFinite(messageId) || !entry || selectedMessageId !== messageId) {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: '当前回合已经变化，请重新打开原文编辑器。',
+    });
+    return;
+  }
+
+  const message = getChatMessages(messageId)[0];
+  if (!message || message.role !== 'assistant') {
+    send(source, { type: 'error', requestId: request.requestId, message: '没有找到需要编辑的角色回复。' });
+    return;
+  }
+
+  const chatId = getCurrentChatId();
+  updatingMessageId = messageId;
+  try {
+    await setChatMessages([{ message_id: messageId, message: buildEditedMessage(String(request.content ?? '')) }], {
+      refresh: 'affected',
+    });
+    if (getCurrentChatId() !== chatId) throw new Error('保存期间聊天已经切换，本次编辑未完成。');
+
+    invalidateStageSnapshot();
+    selectedMessageId = messageId;
+    rememberStageSelection(messageId);
+    viewRevision += 1;
+    send(source, {
+      type: 'message_updated',
+      requestId: request.requestId,
+      messageId,
+    });
+    broadcastView();
+  } catch (error) {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    updatingMessageId = null;
+    scheduleViewRefresh(120, true);
+  }
+};
+
 const handleMessage = (event: MessageEvent<unknown>) => {
   if (!isPseudoLayerRequest(event.data)) return;
   const request = event.data;
@@ -1864,7 +1963,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
       if (previousFrame?.closest(`#${STAGE_ROOT_ID}`) && hasMountedPseudoApp(previousFrame)) {
         send(source, {
           type: 'ready',
-          busy: activeGeneration !== null || deletingMessageId !== null,
+          busy: activeGeneration !== null || deletingMessageId !== null || updatingMessageId !== null,
           requestId: activeGeneration?.requestId,
           operation: activeGeneration?.operation,
         });
@@ -1880,7 +1979,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
     }
     send(source, {
       type: 'ready',
-      busy: activeGeneration !== null || deletingMessageId !== null,
+      busy: activeGeneration !== null || deletingMessageId !== null || updatingMessageId !== null,
       requestId: activeGeneration?.requestId,
       operation: activeGeneration?.operation,
     });
@@ -1913,6 +2012,11 @@ const handleMessage = (event: MessageEvent<unknown>) => {
 
   if (request.type === 'delete_message') {
     void deleteLatestTurn(request, source);
+    return;
+  }
+
+  if (request.type === 'update_message') {
+    void updateMessageContent(request, source);
     return;
   }
 
@@ -1953,7 +2057,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
   }
 
   if (request.type === 'return_latest') {
-    if (activeGeneration || deletingMessageId !== null) return;
+    if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) return;
     if (request.history) {
       const entries = getStageEntries();
       const target = getHistoryEntries(entries, request.history).at(-1)?.representativeMessageId;
@@ -1966,7 +2070,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
   }
 
   if (request.type === 'set_interaction') {
-    if (activeGeneration || deletingMessageId !== null) return;
+    if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) return;
     const interaction = normalizeDialogueContext(request.interaction);
     if (!interaction) {
       send(source, { type: 'error', message: '交谈目标无效，请重新选择。' });
@@ -1979,7 +2083,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
   }
 
   if (request.type === 'end_interaction') {
-    if (deletingMessageId !== null) return;
+    if (deletingMessageId !== null || updatingMessageId !== null) return;
     setActiveInteraction(STORY_INTERACTION);
     viewRevision += 1;
     broadcastView();
@@ -2133,6 +2237,8 @@ const disposeController = () => {
   if (viewRefreshTimer !== null) window.clearTimeout(viewRefreshTimer);
   viewRefreshTimer = null;
   viewRefreshDeadline = 0;
+  if (mobileStageAlignFrame !== null) tavernWindow.cancelAnimationFrame(mobileStageAlignFrame);
+  mobileStageAlignFrame = null;
   sourceFrameCache = new WeakMap<ReplyTarget, HTMLIFrameElement>();
   invalidateStageSnapshot();
   discardQueuedStream();
@@ -2324,6 +2430,7 @@ controllerEventStops.push(
     discardQueuedStream();
     activeGeneration = null;
     deletingMessageId = null;
+    updatingMessageId = null;
     activeInteraction = STORY_INTERACTION;
     selectedMessageId = null;
     selectedHistoryKind = null;

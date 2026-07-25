@@ -9,6 +9,7 @@
       'map-expanded': activeView === 'map',
       'reduce-motion': themeStore.preferences.reduceMotion,
       'light-theme': themeStore.currentTheme.mode === 'light',
+      'pseudo-stage-fit': isPseudoStage,
     }"
     :style="themeStyles"
   >
@@ -25,6 +26,7 @@
       @open-map="openView('map')"
       @open-preset="openView('preset')"
       @open-settings="showReadingSettings = true"
+      @open-editor="showRawMessageEditor = true"
       @toggle-immersive="toggleImmersive"
     />
 
@@ -66,9 +68,15 @@
 
     <TabNav v-if="!isImmersive" v-model:active-tab="activeView" :tabs="tabs" />
     <FooterSection v-if="!isImmersive" @open-actions="openView('actions')" />
-    <PseudoCommandDock :active-view="activeView" @open-view="openView" />
+    <PseudoCommandDock
+      :active-view="activeView"
+      :mobile-layout="isMobileViewport"
+      :immersive="isImmersive"
+      @open-view="openView"
+    />
 
     <ReadingSettingsPanel :visible="showReadingSettings" @close="showReadingSettings = false" />
+    <RawMessageEditor :visible="showRawMessageEditor" @close="showRawMessageEditor = false" />
     <GalleryPreviewDialog />
   </div>
 </template>
@@ -87,6 +95,7 @@ import MapPanel from './components/MapPanel.vue';
 import PresetPanel from './components/PresetPanel.vue';
 import PseudoCommandDock from './components/PseudoCommandDock.vue';
 import PseudoStoryReader from './components/PseudoStoryReader.vue';
+import RawMessageEditor from './components/RawMessageEditor.vue';
 import ReadingSettingsPanel from './components/ReadingSettingsPanel.vue';
 import SkillsPanel from './components/SkillsPanel.vue';
 import StageHeader from './components/StageHeader.vue';
@@ -133,6 +142,7 @@ const viewportMode = ref<ViewportMode>(getViewportMode());
 const activeView = ref<StageView>('story');
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
 const showReadingSettings = ref(false);
+const showRawMessageEditor = ref(false);
 const modeViewport = ref<HTMLElement>();
 const scrollPositions = new Map<StageView, number>();
 const hasEnteredStreaming = ref(false);
@@ -140,10 +150,12 @@ const readParentViewportHeight = () => Math.round(window.parent.visualViewport?.
 const parentViewportHeight = ref(readParentViewportHeight());
 const appViewportWidth = ref(window.parent.innerWidth);
 const isMobileViewport = computed(() => viewportMode.value === 'mobile');
+const isPseudoStage = ref(Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root')));
 
 const tabs: Array<{ id: StageView; label: string; icon: string }> = [
   { id: 'story', label: '正文', icon: 'fa-solid fa-book-open' },
   { id: 'dialogue', label: '交谈', icon: 'fa-solid fa-comments' },
+  { id: 'gallery', label: '图鉴', icon: 'fa-solid fa-images' },
   { id: 'cultivation', label: '修炼', icon: 'fa-solid fa-yin-yang' },
   { id: 'skills', label: '神通', icon: 'fa-solid fa-hand-sparkles' },
   { id: 'inventory', label: '储物', icon: 'fa-solid fa-box-open' },
@@ -151,7 +163,6 @@ const tabs: Array<{ id: StageView; label: string; icon: string }> = [
   { id: 'trace', label: '行踪', icon: 'fa-solid fa-shoe-prints' },
   { id: 'map', label: '地图', icon: 'fa-solid fa-map-location-dot' },
   { id: 'tribulation', label: '历劫', icon: 'fa-solid fa-bolt' },
-  { id: 'gallery', label: '图鉴', icon: 'fa-solid fa-images' },
   { id: 'actions', label: '行动', icon: 'fa-solid fa-compass' },
 ];
 
@@ -163,6 +174,9 @@ const themeArtMap = {
   starAltar: starAltarArt,
 } as const;
 const updateViewport = () => {
+  const parentChat = window.parent.document.querySelector<HTMLElement>('#chat');
+  isPseudoStage.value = Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root'));
+  if (isPseudoStage.value && parentChat) parentChat.scrollTop = 0;
   parentViewportHeight.value = readParentViewportHeight();
   appViewportWidth.value = window.parent.innerWidth;
   const nextMode = getViewportMode();
@@ -347,6 +361,7 @@ onMounted(() => {
   pseudoLayerStore.start();
   window.parent.addEventListener('resize', updateViewport);
   window.parent.visualViewport?.addEventListener('resize', updateViewport);
+  window.parent.requestAnimationFrame(updateViewport);
 });
 onBeforeUnmount(() => {
   pseudoLayerStore.dispose();
@@ -378,6 +393,10 @@ onBeforeUnmount(() => {
     box-shadow 0.25s ease;
   font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
   font-size: 13px;
+}
+
+.cultivation-status.pseudo-stage-fit {
+  height: 100dvh;
 }
 
 .cultivation-status.map-expanded {

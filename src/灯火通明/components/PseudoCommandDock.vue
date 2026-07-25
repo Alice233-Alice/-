@@ -81,7 +81,9 @@
         <span v-if="pseudo.isGenerating" class="generation-label">
           <i class="fa-solid fa-circle-notch fa-spin"></i>{{ generationLabel }}
         </span>
+        <MobilePortraitButton v-if="showDockPortrait" />
         <button
+          v-else
           type="button"
           class="native-input-command"
           :title="pseudo.view.nativeInputCollapsed ? '显示酒馆输入区' : '收起酒馆输入区'"
@@ -129,12 +131,15 @@
 
 <script setup lang="ts">
 import type { PseudoLayerHistoryKind } from '../pseudo-layer-protocol';
-import { usePseudoLayerStore } from '../store';
+import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import DialogueTargetPicker from './DialogueTargetPicker.vue';
+import MobilePortraitButton from './MobilePortraitButton.vue';
 
-const props = defineProps<{ activeView: string }>();
+const props = defineProps<{ activeView: string; mobileLayout?: boolean; immersive?: boolean }>();
 const emit = defineEmits<{ (event: 'open-view', view: 'story' | 'dialogue'): void }>();
 const pseudo = usePseudoLayerStore();
+const data = useDataStore();
+const appearance = useThemeStore();
 const textareaRef = ref<HTMLTextAreaElement>();
 const isFocused = ref(false);
 const showTargetPicker = ref(false);
@@ -143,6 +148,13 @@ const historyKind = computed<PseudoLayerHistoryKind>(() => {
   return pseudo.view.stage.kind;
 });
 const isDialogueWorkspace = computed(() => historyKind.value === 'dialogue');
+const showDockPortrait = computed(
+  () =>
+    Boolean(props.mobileLayout) &&
+    Boolean(props.immersive) &&
+    appearance.preferences.showPortraitRail &&
+    data.hasGalleryCards,
+);
 const workspaceHistory = computed(() => pseudo.view.histories[historyKind.value]);
 const isWorkspaceLatest = computed(() => workspaceHistory.value.total === 0 || workspaceHistory.value.isLatest);
 const isExpanded = computed(

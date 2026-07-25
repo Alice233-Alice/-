@@ -89,11 +89,19 @@
           </div>
 
           <label class="toggle-setting">
-            <span><strong>在场立绘</strong><small>正文旁显示当前角色</small></span>
+            <span><strong>在场立绘</strong><small>手机端固定于命令栏，桌面端显示于正文旁</small></span>
             <input
               :checked="appearance.preferences.showPortraitRail"
               type="checkbox"
               @change="updateBoolean('showPortraitRail', $event)"
+            />
+          </label>
+          <label class="toggle-setting">
+            <span><strong>酒馆输入区</strong><small>在伪同层下方显示原生输入框</small></span>
+            <input
+              :checked="!pseudo.view.nativeInputCollapsed"
+              type="checkbox"
+              @change="pseudo.toggleNativeInput"
             />
           </label>
           <label class="toggle-setting">
@@ -117,12 +125,13 @@
 </template>
 
 <script setup lang="ts">
-import { useThemeStore } from '../store';
+import { usePseudoLayerStore, useThemeStore } from '../store';
 import type { ReadingMeasure, ReadingPreferences } from '../stores/theme-store';
 
 defineProps<{ visible: boolean }>();
 defineEmits<{ (event: 'close'): void }>();
 const appearance = useThemeStore();
+const pseudo = usePseudoLayerStore();
 const measures: Array<{ value: ReadingMeasure; label: string }> = [
   { value: 'narrow', label: '窄' },
   { value: 'standard', label: '标准' },

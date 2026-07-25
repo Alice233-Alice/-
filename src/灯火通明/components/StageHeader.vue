@@ -50,6 +50,15 @@
     <div class="stage-utilities">
       <span class="danger-badge" :style="{ '--danger-color': dangerColor }">险 {{ data.本尊.行踪.危险度 ?? 10 }}</span>
       <button
+        class="edit-button"
+        type="button"
+        title="查看与编辑当前楼层原文"
+        :disabled="!pseudo.canEditMessage"
+        @click="$emit('open-editor')"
+      >
+        <i class="fa-solid fa-pen-to-square"></i>
+      </button>
+      <button
         class="delete-button"
         type="button"
         :title="pseudo.canDelete ? deleteButtonTitle : '至少保留一个回合，且只能删除最新回合'"
@@ -73,7 +82,33 @@
       <button class="map-button" type="button" title="打开地图" @click="$emit('open-map')">
         <i class="fa-solid fa-map-location-dot"></i>
       </button>
-      <button type="button" title="外观设置" @click="$emit('open-settings')"><i class="fa-solid fa-font"></i></button>
+      <button class="appearance-button" type="button" title="外观设置" @click="$emit('open-settings')">
+        <i class="fa-solid fa-font"></i>
+      </button>
+      <div ref="mobileToolGroup" class="mobile-tool-group">
+        <button
+          class="mobile-tool-trigger"
+          type="button"
+          title="预设与外观"
+          aria-haspopup="menu"
+          :aria-expanded="mobileToolsOpen"
+          @click.stop="mobileToolsOpen = !mobileToolsOpen"
+        >
+          <i class="fa-solid" :class="mobileToolsOpen ? 'fa-folder-open' : 'fa-folder'"></i>
+        </button>
+        <Transition name="mobile-tool-menu">
+          <div v-if="mobileToolsOpen" class="mobile-tool-menu" role="menu" aria-label="预设与外观">
+            <button type="button" role="menuitem" @click="openPreset">
+              <i class="fa-solid fa-sliders"></i>
+              <span>开局预设</span>
+            </button>
+            <button type="button" role="menuitem" @click="openAppearance">
+              <i class="fa-solid fa-font"></i>
+              <span>外观设置</span>
+            </button>
+          </div>
+        </Transition>
+      </div>
       <button type="button" :title="immersive ? '退出沉浸阅读' : '进入沉浸阅读'" @click="$emit('toggle-immersive')">
         <i class="fa-solid" :class="immersive ? 'fa-compress' : 'fa-expand'"></i>
       </button>
@@ -110,16 +145,19 @@ import { useDataStore, usePseudoLayerStore } from '../store';
 import type { PseudoLayerHistoryKind } from '../pseudo-layer-protocol';
 
 const props = defineProps<{ activeView: string; immersive: boolean; parentRegion: string; dangerColor: string }>();
-defineEmits<{
+const emit = defineEmits<{
   (event: 'open-map'): void;
   (event: 'open-preset'): void;
   (event: 'open-settings'): void;
+  (event: 'open-editor'): void;
   (event: 'toggle-immersive'): void;
 }>();
 
 const data = useDataStore();
 const pseudo = usePseudoLayerStore();
 const deleteDialogOpen = ref(false);
+const mobileToolsOpen = ref(false);
+const mobileToolGroup = ref<HTMLElement | null>(null);
 const deleteDialogTitleId = `delete-stage-${Math.random().toString(36).slice(2, 8)}`;
 const historyKind = computed<PseudoLayerHistoryKind>(() => {
   if (props.activeView === 'dialogue') return 'dialogue';
@@ -163,6 +201,30 @@ const confirmDelete = () => {
   if (!pseudo.canDelete) return;
   pseudo.deleteCurrent();
 };
+const openPreset = () => {
+  mobileToolsOpen.value = false;
+  emit('open-preset');
+};
+const openAppearance = () => {
+  mobileToolsOpen.value = false;
+  emit('open-settings');
+};
+const handleMobileToolPointerDown = (event: PointerEvent) => {
+  if (!mobileToolsOpen.value || mobileToolGroup.value?.contains(event.target as Node)) return;
+  mobileToolsOpen.value = false;
+};
+const handleMobileToolKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') mobileToolsOpen.value = false;
+};
+
+onMounted(() => {
+  document.addEventListener('pointerdown', handleMobileToolPointerDown);
+  document.addEventListener('keydown', handleMobileToolKeydown);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', handleMobileToolPointerDown);
+  document.removeEventListener('keydown', handleMobileToolKeydown);
+});
 
 watch(
   () => pseudo.canDelete,
@@ -342,6 +404,9 @@ const showParent = computed(() => {
   justify-content: flex-end;
   gap: 5px;
 }
+.mobile-tool-group {
+  display: none;
+}
 .danger-badge {
   margin-right: 4px;
   padding: 4px 8px;
@@ -441,6 +506,8 @@ const showParent = computed(() => {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     padding: 6px 8px;
+    z-index: 40 !important;
+    overflow: visible;
   }
   .scene-location {
     display: none;
@@ -461,6 +528,71 @@ const showParent = computed(() => {
   .stage-utilities {
     gap: 3px;
   }
+  .stage-utilities .preset-button,
+  .stage-utilities .appearance-button {
+    display: none;
+  }
+  .mobile-tool-group {
+    position: relative;
+    display: block;
+    flex: 0 0 auto;
+  }
+  .mobile-tool-menu {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 13px);
+    right: -38px;
+    width: 136px;
+    padding: 5px;
+    display: grid;
+    gap: 3px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--surface-raised) 96%, transparent);
+    box-shadow:
+      0 14px 36px color-mix(in srgb, var(--stage-shadow) 78%, transparent),
+      inset 0 0 0 1px var(--line-subtle);
+  }
+  .mobile-tool-menu::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    right: 50px;
+    width: 8px;
+    height: 8px;
+    border-top: 1px solid var(--line-strong);
+    border-left: 1px solid var(--line-strong);
+    background: var(--surface-raised);
+    transform: rotate(45deg);
+  }
+  .stage-utilities .mobile-tool-menu button {
+    width: 100%;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 0 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .mobile-tool-menu button i {
+    width: 16px;
+    color: var(--gold);
+    text-align: center;
+  }
+  .mobile-tool-menu-enter-active,
+  .mobile-tool-menu-leave-active {
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+    transform-origin: top right;
+  }
+  .mobile-tool-menu-enter-from,
+  .mobile-tool-menu-leave-to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
   .danger-badge {
     padding: 3px 6px;
   }
@@ -474,6 +606,38 @@ const showParent = computed(() => {
   }
 }
 
+@media screen and (max-width: 520px) {
+  .stage-header {
+    min-height: 58px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: none;
+    align-content: normal;
+    gap: 4px;
+  }
+  .turn-cluster {
+    min-width: 0;
+  }
+  .turn-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .turn-navigation {
+    margin-left: 0;
+    flex: 0 0 auto;
+  }
+  .stage-utilities {
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 3px;
+  }
+}
+
+@media screen and (max-width: 450px) {
+  .crane-mark {
+    display: none;
+  }
+}
+
 @media screen and (max-width: 390px) {
   .crane-mark,
   .danger-badge {
@@ -481,10 +645,6 @@ const showParent = computed(() => {
   }
   .turn-cluster {
     gap: 4px;
-  }
-  .stage-utilities button {
-    width: 28px;
-    height: 28px;
   }
 }
 </style>

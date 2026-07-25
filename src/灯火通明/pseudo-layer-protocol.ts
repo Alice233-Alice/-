@@ -1,5 +1,5 @@
 export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
-export const PSEUDO_LAYER_VERSION = 7;
+export const PSEUDO_LAYER_VERSION = 8;
 
 export type InteractionMode = 'story' | 'dialogue';
 export type PseudoLayerHistoryKind = InteractionMode;
@@ -129,6 +129,14 @@ export type PseudoLayerRequest =
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
       version: number;
+      type: 'update_message';
+      requestId: string;
+      messageId: number;
+      content: string;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
       type: 'navigate';
       messageId: number;
       direction: 'previous' | 'next';
@@ -209,6 +217,13 @@ export type PseudoLayerResponse =
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
       version: number;
+      type: 'message_updated';
+      requestId: string;
+      messageId: number;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
       type: 'error';
       requestId?: string;
       message: string;
@@ -227,6 +242,7 @@ const REQUEST_TYPES = new Set([
   'stop',
   'reroll',
   'delete_message',
+  'update_message',
   'navigate',
   'select_history',
   'return_latest',
@@ -234,7 +250,17 @@ const REQUEST_TYPES = new Set([
   'end_interaction',
   'toggle_native_input',
 ]);
-const RESPONSE_TYPES = new Set(['ready', 'view', 'state', 'stream', 'reasoning', 'complete', 'deleted', 'error']);
+const RESPONSE_TYPES = new Set([
+  'ready',
+  'view',
+  'state',
+  'stream',
+  'reasoning',
+  'complete',
+  'deleted',
+  'message_updated',
+  'error',
+]);
 
 export const isPseudoLayerRequest = (value: unknown): value is PseudoLayerRequest =>
   hasEnvelope(value) && REQUEST_TYPES.has(String(value.type));
