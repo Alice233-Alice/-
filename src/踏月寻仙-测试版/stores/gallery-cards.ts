@@ -1,4 +1,4 @@
-import { getCharacterImages, resetDualSoulSession } from '../character-assets';
+import { getCharacterImageCandidates, getCharacterImages, resetDualSoulSession } from '../character-assets';
 
 export interface VisualCard {
     name: string;
@@ -11,6 +11,8 @@ export interface GalleryCard {
     name: string;
     front: string;
     back: string;
+    frontCandidates: string[];
+    backCandidates: string[];
     backText: string;
     isFlipped: boolean;
     frontName?: string;
@@ -21,6 +23,8 @@ export interface CustomPortraitOverride {
     front?: string;
     back?: string;
 }
+
+const imagePreloadCache = new Map<string, Promise<void>>();
 
 const VISUAL_CARDS_TAG_REGEX = /<visual_cards>\s*([\s\S]*?)\s*<\/visual_cards>/i;
 const STRUCTURAL_CHAR_MAP: Record<string, string> = {
@@ -294,11 +298,19 @@ function convertToGalleryCards(
         const portraitOverride = customPortraits[card.name];
         const front = String(portraitOverride?.front ?? '').trim() || images.front;
         const back = String(portraitOverride?.back ?? '').trim() || String(portraitOverride?.front ?? '').trim() || images.back;
+        const frontCandidates = portraitOverride
+            ? [front]
+            : createCandidateList(front, getCharacterImageCandidates(card.name, 'front', images.frontName));
+        const backCandidates = portraitOverride
+            ? [back]
+            : createCandidateList(back, getCharacterImageCandidates(card.name, 'back', images.backName));
 
         result.push({
             name: card.name,
             front,
             back,
+            frontCandidates,
+            backCandidates,
             backText: card.back_text || '',
             isFlipped: false,
             frontName: images.frontName,
@@ -307,6 +319,14 @@ function convertToGalleryCards(
     }
 
     return result;
+}
+
+function createCandidateList(selectedImage: string, candidates: readonly string[]): string[] {
+    const uniqueCandidates = [...new Set(candidates.filter(Boolean))];
+    if (!uniqueCandidates.includes(selectedImage)) {
+        uniqueCandidates.unshift(selectedImage);
+    }
+    return uniqueCandidates;
 }
 
 export function extractGalleryCardsFromContent(
@@ -319,12 +339,45 @@ export function extractGalleryCardsFromContent(
 }
 
 export function preloadGalleryCardImages(cards: GalleryCard[]): void {
-    cards.forEach(card => {
-        const frontImg = new Image();
-        frontImg.src = card.front;
+    const preloadUrls = new Set<string>();
 
-        const backImg = new Image();
-        backImg.src = card.back;
+    cards.forEach(card => {
+        collectNearbyImages(card.frontCandidates, card.front).forEach(url => preloadUrls.add(url));
+        collectNearbyImages(card.backCandidates, card.back).forEach(url => preloadUrls.add(url));
     });
-    console.info('[图鉴] 开始预加载', cards.length * 2, '张图片');
+
+    preloadUrls.forEach(url => void preloadGalleryImage(url));
+    console.info('[图鉴] 开始预加载', preloadUrls.size, '张当前及相邻图片');
+}
+
+export function preloadGalleryImage(url: string): Promise<void> {
+    const cachedPromise = imagePreloadCache.get(url);
+    if (cachedPromise) return cachedPromise;
+
+    const preloadPromise = new Promise<void>(resolve => {
+        const image = new Image();
+        image.onload = () => {
+            if (typeof image.decode === 'function') {
+                image.decode().catch(() => undefined).finally(() => resolve());
+                return;
+            }
+            resolve();
+        };
+        image.onerror = () => resolve();
+        image.src = url;
+    });
+
+    imagePreloadCache.set(url, preloadPromise);
+    return preloadPromise;
+}
+
+function collectNearbyImages(candidates: string[], currentImage: string): string[] {
+    if (candidates.length <= 1) return [currentImage];
+
+    const currentIndex = Math.max(0, candidates.indexOf(currentImage));
+    return [
+        currentImage,
+        candidates[(currentIndex - 1 + candidates.length) % candidates.length],
+        candidates[(currentIndex + 1) % candidates.length],
+    ];
 }

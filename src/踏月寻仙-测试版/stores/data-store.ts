@@ -3,6 +3,7 @@ import _ from 'lodash';
 import {
   extractGalleryCardsFromContent,
   preloadGalleryCardImages,
+  preloadGalleryImage,
   type CustomPortraitOverride,
   type GalleryCard,
 } from './gallery-cards';
@@ -262,6 +263,7 @@ export const useDataStore = defineStore(
 
     // 卡片缓存 - 避免重复解析
     const cardCache = new Map<string, GalleryCard[]>();
+    const galleryImageChangeTokens = new Map<string, number>();
 
     // 将可用数据保存为“最后一次有效快照”（聊天级），用于手动解析/楼层被隐藏时兜底
     const saveLastValidSnapshot = (data: SchemaType, sourceMessageId?: number) => {
@@ -642,6 +644,43 @@ export const useDataStore = defineStore(
       }
     };
 
+    const changeGalleryCardImage = async (index: number, direction: -1 | 1 | 'random') => {
+      const card = galleryCards.value[index];
+      if (!card) return;
+
+      const side = card.isFlipped ? 'back' : 'front';
+      const candidates = side === 'front' ? card.frontCandidates : card.backCandidates;
+      if (candidates.length <= 1) return;
+
+      const currentImage = side === 'front' ? card.front : card.back;
+      const currentIndex = Math.max(0, candidates.indexOf(currentImage));
+      const nextIndex =
+        direction === 'random'
+          ? (currentIndex + 1 + Math.floor(Math.random() * (candidates.length - 1))) % candidates.length
+          : (currentIndex + direction + candidates.length) % candidates.length;
+      const nextImage = candidates[nextIndex];
+      const requestKey = `${index}:${side}`;
+      const requestToken = (galleryImageChangeTokens.get(requestKey) ?? 0) + 1;
+      galleryImageChangeTokens.set(requestKey, requestToken);
+
+      await preloadGalleryImage(nextImage);
+      if (galleryImageChangeTokens.get(requestKey) !== requestToken || galleryCards.value[index] !== card) return;
+
+      if (side === 'front') {
+        card.front = nextImage;
+      } else {
+        card.back = nextImage;
+      }
+
+      const preloadIndexes = [
+        (nextIndex - 1 + candidates.length) % candidates.length,
+        (nextIndex + 1) % candidates.length,
+      ];
+      preloadIndexes.forEach(candidateIndex => {
+        void preloadGalleryImage(candidates[candidateIndex]);
+      });
+    };
+
     // 等待MVU框架初始化后再加载数据
     waitGlobalInitialized('Mvu')
       .then(() => {
@@ -1007,6 +1046,7 @@ export const useDataStore = defineStore(
       galleryCards,
       hasGalleryCards,
       toggleCardFlip,
+      changeGalleryCardImage,
       parseCurrentMessageCards,
       // 行动提示系统
       可参与机遇,

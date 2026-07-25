@@ -50,6 +50,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "typescript.tsdk": "node_modules/typescript/lib",
+  "liveServer.settings.cors": true,
   "explorer.decorations.colors": false,
   "explorer.decorations.badges": true
 }

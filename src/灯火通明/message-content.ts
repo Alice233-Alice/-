@@ -23,9 +23,11 @@ const REASONING_BLOCK_PATTERN = new RegExp(
   'gi',
 );
 const REASONING_FALLBACK_BOUNDARY = new RegExp(
-  `<(?:正文|visual_cards|pseudo_layer|UpdateVariable|JSONPatch)(?=[\\s/>])`,
+  `<(?:content|正文|visual_cards|pseudo_layer|UpdateVariable|JSONPatch)(?=[\\s/>])`,
   'i',
 );
+const REASONING_ORPHAN_PREFIX_CUE = /^\s*(?:【开始思考】|\[OS\])/i;
+const REASONING_BODY_AFTER_CLOSE_PATTERN = new RegExp(`^\\s*${REASONING_FALLBACK_BOUNDARY.source}`, 'i');
 
 // Strip reasoning before Tavern display regexes can expand it into embedded UI markup.
 const stripReasoningPrefix = (text: string) => {
@@ -85,6 +87,24 @@ export type InlineReasoning = {
   isComplete: boolean;
 };
 
+const extractOrphanClosingReasoning = (text: string): InlineReasoning | null => {
+  REASONING_CLOSE_PATTERN.lastIndex = 0;
+  const closingMatch = REASONING_CLOSE_PATTERN.exec(text);
+  REASONING_CLOSE_PATTERN.lastIndex = 0;
+  if (!closingMatch || closingMatch.index <= 0) return null;
+
+  const prefix = text.slice(0, closingMatch.index);
+  const suffix = text.slice(closingMatch.index + closingMatch[0].length);
+  if (!REASONING_ORPHAN_PREFIX_CUE.test(prefix) && !REASONING_BODY_AFTER_CLOSE_PATTERN.test(suffix)) return null;
+
+  const cleaned = stripEmbeddedHtmlDocuments(prefix)
+    .replace(REASONING_ORPHAN_PREFIX_CUE, '')
+    .replace(REASONING_OPEN_PATTERN, '')
+    .replace(REASONING_CLOSE_PATTERN, '')
+    .trim();
+  return cleaned ? { text: cleaned, isComplete: true } : null;
+};
+
 export const mergeReasoningText = (primary: string, secondary: string) => {
   const first = primary.trim();
   const second = secondary.trim();
@@ -124,7 +144,7 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
   }
   REASONING_BLOCK_PATTERN.lastIndex = 0;
 
-  if (!found) return null;
+  if (!found) return extractOrphanClosingReasoning(text);
   return { text: blocks.join('\n\n').trim(), isComplete };
 };
 

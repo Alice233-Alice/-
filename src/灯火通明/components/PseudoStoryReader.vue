@@ -114,9 +114,7 @@
               <code>{{ formatPatchPath(operation.path) }}</code>
             </div>
             <pre v-if="hasOperationValue(operation)">{{ formatPatchValue(operation.value) }}</pre>
-            <p v-else-if="operation.from" class="operation-from">
-              来源：{{ formatPatchPath(operation.from) }}
-            </p>
+            <p v-else-if="operation.from" class="operation-from">来源：{{ formatPatchPath(operation.from) }}</p>
             <p v-else class="operation-empty">该路径不携带新值</p>
           </li>
         </ol>
@@ -201,7 +199,7 @@ import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import { useStreamFollow } from '../composables/use-stream-follow';
 import ScenePortraitRail from './ScenePortraitRail.vue';
 
-const props = defineProps<{ immersive?: boolean }>();
+const props = defineProps<{ immersive?: boolean; mobileLayout?: boolean }>();
 const pseudo = usePseudoLayerStore();
 const data = useDataStore();
 const appearance = useThemeStore();
@@ -223,7 +221,7 @@ type ContextPanel = 'prompt' | 'reasoning' | 'variable';
 
 const contextPanel = ref<ContextPanel | null>(null);
 const showPortrait = computed(
-  () => !props.immersive && appearance.preferences.showPortraitRail && data.hasGalleryCards,
+  () => !props.immersive && !props.mobileLayout && appearance.preferences.showPortraitRail && data.hasGalleryCards,
 );
 
 const storyMessageId = computed(() =>
@@ -285,9 +283,7 @@ const handleStoryPointerDown = (event: PointerEvent) => {
 };
 
 const currentRawMessage = computed(() =>
-  isStoryGenerating.value && displayedStreamText.value
-    ? displayedStreamText.value
-    : pseudo.storyFloorMessage,
+  isStoryGenerating.value && displayedStreamText.value ? displayedStreamText.value : pseudo.storyFloorMessage,
 );
 const storyHtml = computed(() => formatText(extractNarrative(currentRawMessage.value)));
 const variableDiagnostics = computed(() => extractVariableUpdateDiagnostics(currentRawMessage.value));
@@ -319,17 +315,14 @@ const inlineStreamReasoning = computed(() =>
 );
 const reasoningText = computed(() => {
   if (!isStoryGenerating.value) return pseudo.storyFloorReasoning;
-  const liveText = mergeReasoningText(
-    pseudo.liveReasoning,
-    inlineStreamReasoning.value?.text ?? '',
-  );
+  const liveText = mergeReasoningText(pseudo.liveReasoning, inlineStreamReasoning.value?.text ?? '');
   if (liveText) return liveText;
   return pseudo.streamText ? '' : pseudo.storyFloorReasoning;
 });
 const reasoningHtml = computed(() => formatText(reasoningText.value));
 const reasoningTime = computed(() => {
   const duration = isStoryGenerating.value
-    ? pseudo.reasoningDuration ?? pseudo.storyFloorReasoningDuration
+    ? (pseudo.reasoningDuration ?? pseudo.storyFloorReasoningDuration)
     : pseudo.storyFloorReasoningDuration;
   if (!duration) return '';
   return `${Math.max(1, Math.round(duration / 1000))} 秒`;
@@ -361,7 +354,10 @@ const operationLabels: Record<string, string> = {
   test: '校验',
 };
 const normalizeOperation = (operation: string) =>
-  operation.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'unknown';
+  operation
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '') || 'unknown';
 const operationLabel = (operation: string) =>
   operationLabels[normalizeOperation(operation)] ?? (operation.trim() || '未知');
 const decodePointerSegment = (segment: string) => segment.replace(/~1/g, '/').replace(/~0/g, '~');
@@ -465,7 +461,11 @@ defineExpose({ scrollElement: scrollRef });
   z-index: 0;
   pointer-events: none;
 }
-.story-reader::before { inset: 0; background: var(--reading-material); opacity: 0.9; }
+.story-reader::before {
+  inset: 0;
+  background: var(--reading-material);
+  opacity: 0.9;
+}
 .story-reader::after {
   top: 18px;
   bottom: 18px;
@@ -474,7 +474,10 @@ defineExpose({ scrollElement: scrollRef });
   background: linear-gradient(transparent, var(--line-strong) 18%, var(--line-subtle) 82%, transparent);
   opacity: 0.46;
 }
-.story-reader > * { position: relative; z-index: 1; }
+.story-reader > * {
+  position: relative;
+  z-index: 1;
+}
 
 .turn-context-bar {
   flex-shrink: 0;
@@ -509,8 +512,14 @@ defineExpose({ scrollElement: scrollRef });
   text-align: left;
 }
 
-.turn-prompt-trigger > i { flex: none; color: var(--jade); }
-.turn-context-label { flex: none; color: var(--text-accent); }
+.turn-prompt-trigger > i {
+  flex: none;
+  color: var(--jade);
+}
+.turn-context-label {
+  flex: none;
+  color: var(--text-accent);
+}
 .turn-prompt-preview {
   min-width: 0;
   overflow: hidden;
@@ -529,11 +538,21 @@ defineExpose({ scrollElement: scrollRef });
   border-left: 1px solid var(--line-subtle);
 }
 
-.reasoning-trigger > i:first-child { color: var(--jade); }
-.variable-trigger > i:first-child { color: var(--gold); }
-.variable-count { color: var(--gold-soft); font-size: 10px; white-space: nowrap; }
+.reasoning-trigger > i:first-child {
+  color: var(--jade);
+}
+.variable-trigger > i:first-child {
+  color: var(--gold);
+}
+.variable-count {
+  color: var(--gold-soft);
+  font-size: 10px;
+  white-space: nowrap;
+}
 .variable-trigger.has-error > i:first-child,
-.variable-trigger.has-error .variable-count { color: var(--semantic-danger); }
+.variable-trigger.has-error .variable-count {
+  color: var(--semantic-danger);
+}
 .turn-prompt-trigger:hover,
 .reasoning-trigger:hover,
 .variable-trigger:hover,
@@ -550,7 +569,9 @@ defineExpose({ scrollElement: scrollRef });
   transition: transform 0.18s ease;
 }
 .reasoning-trigger[aria-expanded='true'] .context-chevron,
-.variable-trigger[aria-expanded='true'] .context-chevron { transform: rotate(180deg); }
+.variable-trigger[aria-expanded='true'] .context-chevron {
+  transform: rotate(180deg);
+}
 
 .context-scrim {
   position: absolute !important;
@@ -576,7 +597,9 @@ defineExpose({ scrollElement: scrollRef });
   border-radius: 6px;
   color: var(--text-primary);
   background: color-mix(in srgb, var(--surface-raised) 96%, transparent);
-  box-shadow: 0 18px 54px var(--stage-shadow), inset 0 0 0 1px var(--line-subtle);
+  box-shadow:
+    0 18px 54px var(--stage-shadow),
+    inset 0 0 0 1px var(--line-subtle);
 }
 
 .context-popover-header {
@@ -590,9 +613,19 @@ defineExpose({ scrollElement: scrollRef });
   color: var(--text-accent);
   font-size: 12px;
 }
-.context-popover-header > span:first-child { display: flex; align-items: center; gap: 7px; }
-.context-popover-header > span:first-child i { color: var(--jade); }
-.context-popover-time { margin-left: auto; color: var(--gold-soft); font-size: 10px; }
+.context-popover-header > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.context-popover-header > span:first-child i {
+  color: var(--jade);
+}
+.context-popover-time {
+  margin-left: auto;
+  color: var(--gold-soft);
+  font-size: 10px;
+}
 .context-popover-header button {
   width: 30px;
   height: 30px;
@@ -602,8 +635,12 @@ defineExpose({ scrollElement: scrollRef });
   background: transparent;
   cursor: pointer;
 }
-.context-popover-time + button { margin-left: 0; }
-.context-popover-header button:hover { color: var(--text-primary); }
+.context-popover-time + button {
+  margin-left: 0;
+}
+.context-popover-header button:hover {
+  color: var(--text-primary);
+}
 
 .context-popover-copy {
   min-height: 0;
@@ -619,10 +656,16 @@ defineExpose({ scrollElement: scrollRef });
   scrollbar-color: var(--line-strong) transparent;
   scrollbar-width: thin;
 }
-.context-popover-copy :deep(p) { margin: 0 0 0.9em; }
-.context-popover-copy :deep(p:last-child) { margin-bottom: 0; }
+.context-popover-copy :deep(p) {
+  margin: 0 0 0.9em;
+}
+.context-popover-copy :deep(p:last-child) {
+  margin-bottom: 0;
+}
 
-.variable-popover { max-height: min(64vh, 520px); }
+.variable-popover {
+  max-height: min(64vh, 520px);
+}
 .variable-diagnostics {
   min-height: 0;
   overflow-y: auto;
@@ -644,7 +687,11 @@ defineExpose({ scrollElement: scrollRef });
   font-size: 11px;
   font-weight: 600;
 }
-.analysis-segments { display: flex; flex-wrap: wrap; gap: 6px; }
+.analysis-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .analysis-segments span {
   padding: 4px 8px;
   border: 1px solid var(--line-subtle);
@@ -663,9 +710,19 @@ defineExpose({ scrollElement: scrollRef });
   color: var(--text-secondary);
   font-size: 11px;
 }
-.variable-overview > span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--text-accent); }
-.variable-overview > span:first-child i { color: var(--jade); }
-.variable-overview strong { color: var(--gold-soft); font-weight: 600; }
+.variable-overview > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-accent);
+}
+.variable-overview > span:first-child i {
+  color: var(--jade);
+}
+.variable-overview strong {
+  color: var(--gold-soft);
+  font-weight: 600;
+}
 .diagnostic-state {
   margin-left: auto;
   display: inline-flex;
@@ -673,9 +730,15 @@ defineExpose({ scrollElement: scrollRef });
   gap: 5px;
   white-space: nowrap;
 }
-.diagnostic-state.valid { color: var(--semantic-success); }
-.diagnostic-state.receiving { color: var(--jade); }
-.diagnostic-state.invalid { color: var(--semantic-danger); }
+.diagnostic-state.valid {
+  color: var(--semantic-success);
+}
+.diagnostic-state.receiving {
+  color: var(--jade);
+}
+.diagnostic-state.invalid {
+  color: var(--semantic-danger);
+}
 
 .variable-operation-list {
   margin: 0;
@@ -690,7 +753,12 @@ defineExpose({ scrollElement: scrollRef });
   border: 1px solid var(--line-subtle);
   background: color-mix(in srgb, var(--surface-inset) 58%, transparent);
 }
-.operation-heading { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.operation-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .operation-index {
   width: 20px;
   height: 20px;
@@ -709,10 +777,16 @@ defineExpose({ scrollElement: scrollRef });
   font-size: 10px;
   text-align: center;
 }
-.operation-kind.op-delta { color: var(--jade); }
-.operation-kind.op-remove { color: var(--semantic-danger); }
+.operation-kind.op-delta {
+  color: var(--jade);
+}
+.operation-kind.op-remove {
+  color: var(--semantic-danger);
+}
 .operation-kind.op-insert,
-.operation-kind.op-add { color: var(--semantic-success); }
+.operation-kind.op-add {
+  color: var(--semantic-success);
+}
 .operation-heading code {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -730,11 +804,24 @@ defineExpose({ scrollElement: scrollRef });
   border-left: 1px solid var(--line-strong);
   color: var(--text-secondary);
   background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font:
+    11px/1.6 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
 }
 .operation-from,
-.operation-empty { margin: 7px 0 0 28px; color: var(--text-secondary); font-size: 10px; }
-.variable-empty { padding: 22px; color: var(--text-secondary); text-align: center; font-size: 11px; }
+.operation-empty {
+  margin: 7px 0 0 28px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.variable-empty {
+  padding: 22px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 11px;
+}
 .diagnostic-error {
   margin-top: 10px;
   padding: 9px 11px;
@@ -746,16 +833,25 @@ defineExpose({ scrollElement: scrollRef });
   background: color-mix(in srgb, var(--semantic-danger) 8%, transparent);
   font-size: 11px;
 }
-.raw-patch { margin-top: 10px; border-top: 1px solid var(--line-subtle); }
+.raw-patch {
+  margin-top: 10px;
+  border-top: 1px solid var(--line-subtle);
+}
 .raw-patch summary {
   padding: 10px 2px 0;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 10px;
 }
-.raw-patch pre { margin-left: 0; max-height: 220px; }
+.raw-patch pre {
+  margin-left: 0;
+  max-height: 220px;
+}
 
-.reasoning-time { color: var(--gold-soft); font-size: 10px; }
+.reasoning-time {
+  color: var(--gold-soft);
+  font-size: 10px;
+}
 
 .story-layout {
   min-width: 0;
@@ -806,9 +902,14 @@ defineExpose({ scrollElement: scrollRef });
   box-shadow: 0 10px 28px var(--stage-shadow);
   cursor: pointer;
 }
-.resume-stream-follow:hover { color: var(--gold); background: var(--button-hover); }
+.resume-stream-follow:hover {
+  color: var(--gold);
+  background: var(--button-hover);
+}
 
-.story-portrait { grid-area: portrait; }
+.story-portrait {
+  grid-area: portrait;
+}
 
 .story-copy {
   max-width: var(--reading-measure);
@@ -820,16 +921,33 @@ defineExpose({ scrollElement: scrollRef });
   text-align: justify;
   text-wrap: pretty;
 
-  :deep(p) { margin: 0 0 1.2em; }
+  :deep(p) {
+    margin: 0 0 1.2em;
+  }
   text-shadow: 0 1px 1px color-mix(in srgb, var(--stage-shadow) 16%, transparent);
 
-  :deep(q) { color: var(--text-accent); quotes: none; }
-  :deep(q::before), :deep(q::after) { content: none; }
-  :deep(blockquote) { margin: 20px 0; padding: 4px 0 4px 16px; border-left: 2px solid var(--gold); color: var(--text-accent); background: transparent; }
-  :deep(em) { color: var(--gold-soft); }
+  :deep(q) {
+    color: var(--text-accent);
+    quotes: none;
+  }
+  :deep(q::before),
+  :deep(q::after) {
+    content: none;
+  }
+  :deep(blockquote) {
+    margin: 20px 0;
+    padding: 4px 0 4px 16px;
+    border-left: 2px solid var(--gold);
+    color: var(--text-accent);
+    background: transparent;
+  }
+  :deep(em) {
+    color: var(--gold-soft);
+  }
 }
 
-.story-waiting, .story-empty {
+.story-waiting,
+.story-empty {
   height: 100%;
   display: flex;
   align-items: center;
@@ -838,7 +956,9 @@ defineExpose({ scrollElement: scrollRef });
   color: var(--text-secondary);
 }
 
-.story-waiting i { color: var(--gold); }
+.story-waiting i {
+  color: var(--gold);
+}
 
 .stream-status {
   min-height: 30px;
@@ -854,27 +974,74 @@ defineExpose({ scrollElement: scrollRef });
 }
 
 @media screen and (max-width: 760px) {
-  .story-layout.with-portrait {
-    grid-template-areas: 'portrait' 'copy';
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+  .story-copy {
+    font-size: max(var(--reading-font-size), 17px);
+    text-align: left;
   }
-  .story-scroll { padding: 22px 18px 36px; }
-  .resume-stream-follow { right: 10px; bottom: 10px; }
-  .turn-prompt-trigger { padding-inline: 10px; gap: 6px; }
-  .reasoning-trigger { padding-inline: 10px; }
-  .variable-trigger { padding-inline: 9px; }
+
+  .story-scroll {
+    padding: 22px 16px 42px;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .turn-context-bar {
+    min-height: 40px;
+  }
+  .turn-prompt-trigger,
+  .reasoning-trigger,
+  .variable-trigger {
+    min-height: 40px;
+    font-size: 12px;
+  }
+  .resume-stream-follow {
+    right: 10px;
+    bottom: 10px;
+  }
+  .turn-prompt-trigger {
+    padding-inline: 10px;
+    gap: 6px;
+  }
+  .reasoning-trigger {
+    padding-inline: 10px;
+  }
+  .variable-trigger {
+    padding-inline: 9px;
+  }
   .reasoning-label,
-  .variable-label { display: none; }
-  .context-popover { top: 42px; left: 8px; right: 8px; max-height: min(56vh, 420px); }
-  .context-popover-copy { padding: 14px; font-size: 12px; }
-  .variable-popover { max-height: min(66vh, 520px); }
-  .variable-diagnostics { padding: 10px; }
-  .analysis-segments { gap: 5px; }
-  .analysis-segments span { padding: 3px 6px; font-size: 10px; }
-  .operation-heading { align-items: flex-start; }
+  .variable-label {
+    display: none;
+  }
+  .context-popover {
+    top: 42px;
+    left: 8px;
+    right: 8px;
+    max-height: min(56vh, 420px);
+  }
+  .context-popover-copy {
+    padding: 14px;
+    font-size: 12px;
+  }
+  .variable-popover {
+    max-height: min(66vh, 520px);
+  }
+  .variable-diagnostics {
+    padding: 10px;
+  }
+  .analysis-segments {
+    gap: 5px;
+  }
+  .analysis-segments span {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+  .operation-heading {
+    align-items: flex-start;
+  }
   .variable-operation pre,
   .operation-from,
-  .operation-empty { margin-left: 0; }
+  .operation-empty {
+    margin-left: 0;
+  }
 }
 </style>

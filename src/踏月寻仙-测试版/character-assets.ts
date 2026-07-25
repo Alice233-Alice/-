@@ -105,6 +105,30 @@ function isCharacterImagePool(pool: unknown): pool is CharacterImagePool {
   return Array.isArray(candidate.front) && Array.isArray(candidate.back);
 }
 
+/**
+ * 获取角色某一面的完整候选图片池，供图鉴手动浏览使用。
+ * 虞汐颜会根据当前显示的魂体返回对应图片池。
+ */
+export function getCharacterImageCandidates(
+  characterName: string,
+  type: 'front' | 'back',
+  soulName?: string,
+): readonly string[] {
+  const resolvedName = resolveCharacterName(characterName);
+  const pool = CHARACTER_IMAGE_POOLS[resolvedName];
+
+  if (!pool) return [];
+  if (isCharacterImagePool(pool)) return pool[type];
+
+  if (resolvedName === '虞汐颜') {
+    const preferredSoul = soulName === '虞汐' || soulName === '虞颜' ? soulName : inferPreferredSoul(characterName);
+    if (!preferredSoul) return [];
+    return pool[`${preferredSoul}_${type}`];
+  }
+
+  return [];
+}
+
 function getRandomImage(characterName: string, type: 'front' | 'back'): string {
   const pool = CHARACTER_IMAGE_POOLS[characterName];
   if (!pool || !isCharacterImagePool(pool)) {

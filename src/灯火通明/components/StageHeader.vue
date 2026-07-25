@@ -39,7 +39,10 @@
       <span class="scene-kicker">此刻所在</span>
       <strong>
         <i class="fa-solid fa-location-dot"></i>
-        <template v-if="showParent"><span>{{ parentRegion }}</span><b>·</b></template>
+        <template v-if="showParent"
+          ><span>{{ parentRegion }}</span
+          ><b>·</b></template
+        >
         {{ data.本尊.行踪.当前区域 }}
       </strong>
     </button>
@@ -64,8 +67,12 @@
       >
         <i class="fa-solid fa-rotate-right"></i>
       </button>
-      <button class="preset-button" type="button" title="开局预设" @click="$emit('open-preset')"><i class="fa-solid fa-sliders"></i></button>
-      <button class="map-button" type="button" title="打开地图" @click="$emit('open-map')"><i class="fa-solid fa-map-location-dot"></i></button>
+      <button class="preset-button" type="button" title="开局预设" @click="$emit('open-preset')">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+      <button class="map-button" type="button" title="打开地图" @click="$emit('open-map')">
+        <i class="fa-solid fa-map-location-dot"></i>
+      </button>
       <button type="button" title="外观设置" @click="$emit('open-settings')"><i class="fa-solid fa-font"></i></button>
       <button type="button" :title="immersive ? '退出沉浸阅读' : '进入沉浸阅读'" @click="$emit('toggle-immersive')">
         <i class="fa-solid" :class="immersive ? 'fa-compress' : 'fa-expand'"></i>
@@ -119,16 +126,17 @@ const historyKind = computed<PseudoLayerHistoryKind>(() => {
   if (props.activeView === 'story') return 'story';
   return pseudo.view.stage.kind;
 });
-const history = computed(() =>
-  pseudo.view.histories?.[historyKind.value] ?? {
-    selectedMessageId: pseudo.view.selectedMessageId,
-    latestMessageId: pseudo.view.latestMessageId,
-    index: pseudo.view.index,
-    total: pseudo.view.total,
-    previousMessageId: pseudo.view.previousMessageId,
-    nextMessageId: pseudo.view.nextMessageId,
-    isLatest: pseudo.view.isLatest,
-  },
+const history = computed(
+  () =>
+    pseudo.view.histories?.[historyKind.value] ?? {
+      selectedMessageId: pseudo.view.selectedMessageId,
+      latestMessageId: pseudo.view.latestMessageId,
+      index: pseudo.view.index,
+      total: pseudo.view.total,
+      previousMessageId: pseudo.view.previousMessageId,
+      nextMessageId: pseudo.view.nextMessageId,
+      isLatest: pseudo.view.isLatest,
+    },
 );
 const stageTitle = computed(() => {
   if (props.activeView === 'story') return `第 ${history.value.index || 1} 回`;
@@ -142,9 +150,7 @@ const stageTitle = computed(() => {
     ? `与${pseudo.view.stage.targetName} · ${pseudo.view.stage.turnCount}轮`
     : `第 ${pseudo.view.histories?.story.index || pseudo.view.index || 1} 回`;
 });
-const deleteButtonTitle = computed(() =>
-  pseudo.view.stage.kind === 'dialogue' ? '删除最后一轮交谈' : '删除本回正文',
-);
+const deleteButtonTitle = computed(() => (pseudo.view.stage.kind === 'dialogue' ? '删除最后一轮交谈' : '删除本回正文'));
 const deleteDialogTitle = computed(() =>
   pseudo.view.stage.kind === 'dialogue' ? '删除最后一轮交谈？' : '删除本回剧情？',
 );
@@ -182,7 +188,9 @@ const showParent = computed(() => {
   padding: 8px 14px;
   border-bottom: 1px solid var(--line-strong);
   background: var(--header-bg);
-  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--gold) 12%, transparent), 0 8px 26px color-mix(in srgb, var(--stage-shadow) 54%, transparent);
+  box-shadow:
+    inset 0 -1px 0 color-mix(in srgb, var(--gold) 12%, transparent),
+    0 8px 26px color-mix(in srgb, var(--stage-shadow) 54%, transparent);
   overflow: hidden;
 }
 
@@ -191,7 +199,14 @@ const showParent = computed(() => {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, transparent 0 5%, color-mix(in srgb, var(--gold) 7%, transparent) 18%, transparent 34% 66%, color-mix(in srgb, var(--jade) 6%, transparent) 82%, transparent 95%),
+    linear-gradient(
+      90deg,
+      transparent 0 5%,
+      color-mix(in srgb, var(--gold) 7%, transparent) 18%,
+      transparent 34% 66%,
+      color-mix(in srgb, var(--jade) 6%, transparent) 82%,
+      transparent 95%
+    ),
     var(--grain-material);
   pointer-events: none;
 }
@@ -208,18 +223,59 @@ const showParent = computed(() => {
   opacity: 0.62;
 }
 
-.stage-header > * { position: relative; z-index: 1; }
+.stage-header > * {
+  position: relative;
+  z-index: 1;
+}
 
-.turn-cluster, .turn-navigation, .stage-utilities { display: flex; align-items: center; }
-.turn-cluster { min-width: 0; gap: 9px; }
-.crane-mark { width: 34px; height: 34px; flex-shrink: 0; object-fit: contain; filter: drop-shadow(0 3px 8px var(--stage-shadow)) sepia(0.16); }
-.turn-copy { min-width: 74px; display: grid; gap: 1px; }
-.turn-copy span { color: var(--gold-soft); font-family: 'Songti SC', 'STSong', serif; font-size: 10px; }
-.turn-copy strong { max-width: 150px; overflow: hidden; color: var(--text-primary); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.turn-navigation { gap: 3px; }
-.turn-navigation span { min-width: 36px; color: var(--text-secondary); font-size: 10px; text-align: center; font-variant-numeric: tabular-nums; }
+.turn-cluster,
+.turn-navigation,
+.stage-utilities {
+  display: flex;
+  align-items: center;
+}
+.turn-cluster {
+  min-width: 0;
+  gap: 9px;
+}
+.crane-mark {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 8px var(--stage-shadow)) sepia(0.16);
+}
+.turn-copy {
+  min-width: 74px;
+  display: grid;
+  gap: 1px;
+}
+.turn-copy span {
+  color: var(--gold-soft);
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 10px;
+}
+.turn-copy strong {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.turn-navigation {
+  gap: 3px;
+}
+.turn-navigation span {
+  min-width: 36px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 
-.turn-navigation button, .stage-utilities button {
+.turn-navigation button,
+.stage-utilities button {
   width: 30px;
   height: 30px;
   display: grid;
@@ -231,8 +287,15 @@ const showParent = computed(() => {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 4%, transparent);
   cursor: pointer;
 
-  &:hover:not(:disabled) { border-color: var(--line-strong); color: var(--gold); background: var(--button-hover); }
-  &:disabled { opacity: 0.28; cursor: not-allowed; }
+  &:hover:not(:disabled) {
+    border-color: var(--line-strong);
+    color: var(--gold);
+    background: var(--button-hover);
+  }
+  &:disabled {
+    opacity: 0.28;
+    cursor: not-allowed;
+  }
 }
 
 .scene-location {
@@ -247,15 +310,52 @@ const showParent = computed(() => {
   cursor: pointer;
   text-shadow: 0 1px 10px var(--stage-shadow);
 }
-.scene-kicker { color: var(--text-secondary); font-size: 9px; }
-.scene-location strong { max-width: 100%; overflow: hidden; color: var(--gold); font-family: 'Songti SC', 'STSong', serif; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
-.scene-location strong i { margin-right: 5px; color: var(--jade); }
-.scene-location strong span { color: var(--text-accent); font-weight: 400; }
-.scene-location strong b { padding: 0 5px; color: var(--text-secondary); font-weight: 400; }
+.scene-kicker {
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+.scene-location strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--gold);
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scene-location strong i {
+  margin-right: 5px;
+  color: var(--jade);
+}
+.scene-location strong span {
+  color: var(--text-accent);
+  font-weight: 400;
+}
+.scene-location strong b {
+  padding: 0 5px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
 
-.stage-utilities { min-width: 0; justify-content: flex-end; gap: 5px; }
-.danger-badge { margin-right: 4px; padding: 4px 8px; border: 1px solid color-mix(in srgb, var(--danger-color) 60%, transparent); border-radius: 999px; color: var(--danger-color); background: color-mix(in srgb, var(--danger-color) 10%, transparent); font-size: 10px; white-space: nowrap; }
-.delete-button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--semantic-danger) 56%, var(--line-strong)) !important; color: var(--semantic-danger) !important; }
+.stage-utilities {
+  min-width: 0;
+  justify-content: flex-end;
+  gap: 5px;
+}
+.danger-badge {
+  margin-right: 4px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--danger-color) 60%, transparent);
+  border-radius: 999px;
+  color: var(--danger-color);
+  background: color-mix(in srgb, var(--danger-color) 10%, transparent);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.delete-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--semantic-danger) 56%, var(--line-strong)) !important;
+  color: var(--semantic-danger) !important;
+}
 
 .delete-dialog-backdrop {
   position: fixed;
@@ -277,7 +377,9 @@ const showParent = computed(() => {
   border-radius: 7px;
   color: var(--text-primary);
   background: color-mix(in srgb, var(--surface-raised) 96%, transparent);
-  box-shadow: 0 26px 80px var(--stage-shadow), inset 0 0 0 1px var(--line-subtle);
+  box-shadow:
+    0 26px 80px var(--stage-shadow),
+    inset 0 0 0 1px var(--line-subtle);
 }
 .delete-dialog-mark {
   width: 42px;
@@ -289,9 +391,24 @@ const showParent = computed(() => {
   color: var(--semantic-danger);
   background: color-mix(in srgb, var(--semantic-danger) 10%, var(--surface-inset));
 }
-.delete-dialog-copy h2 { margin: 0 0 6px; color: var(--text-accent); font-size: 15px; }
-.delete-dialog-copy p { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.7; }
-.delete-dialog-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.delete-dialog-copy h2 {
+  margin: 0 0 6px;
+  color: var(--text-accent);
+  font-size: 15px;
+}
+.delete-dialog-copy p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.delete-dialog-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
 .delete-dialog-actions button {
   min-height: 34px;
   padding: 0 13px;
@@ -301,7 +418,10 @@ const showParent = computed(() => {
   background: var(--surface-inset);
   cursor: pointer;
 }
-.delete-dialog-actions button:disabled { opacity: 0.48; cursor: wait; }
+.delete-dialog-actions button:disabled {
+  opacity: 0.48;
+  cursor: wait;
+}
 .delete-dialog-actions .confirm-delete {
   display: inline-flex;
   align-items: center;
@@ -310,23 +430,61 @@ const showParent = computed(() => {
   color: var(--text-primary);
   background: color-mix(in srgb, var(--semantic-danger) 18%, var(--surface-inset));
 }
-.delete-dialog-actions .confirm-delete:hover:not(:disabled) { color: #fff; background: var(--semantic-danger); }
+.delete-dialog-actions .confirm-delete:hover:not(:disabled) {
+  color: #fff;
+  background: var(--semantic-danger);
+}
 
 @media screen and (max-width: 760px) {
-  .stage-header { min-height: 58px; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 6px 8px; }
-  .scene-location { display: none; }
-  .crane-mark { width: 28px; height: 28px; }
-  .turn-copy span { display: none; }
-  .turn-copy { min-width: 46px; }
-  .turn-navigation span { display: none; }
-  .stage-utilities { gap: 3px; }
-  .danger-badge { padding: 3px 6px; }
-  .stage-utilities .map-button { display: none; }
+  .stage-header {
+    min-height: 58px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .scene-location {
+    display: none;
+  }
+  .crane-mark {
+    width: 28px;
+    height: 28px;
+  }
+  .turn-copy span {
+    display: none;
+  }
+  .turn-copy {
+    min-width: 46px;
+  }
+  .turn-navigation span {
+    display: none;
+  }
+  .stage-utilities {
+    gap: 3px;
+  }
+  .danger-badge {
+    padding: 3px 6px;
+  }
+  .stage-utilities .map-button {
+    display: none;
+  }
+  .turn-navigation button,
+  .stage-utilities button {
+    width: 34px;
+    height: 34px;
+  }
 }
 
 @media screen and (max-width: 390px) {
-  .crane-mark, .danger-badge { display: none; }
-  .turn-cluster { gap: 4px; }
-  .stage-utilities button { width: 28px; height: 28px; }
+  .crane-mark,
+  .danger-badge {
+    display: none;
+  }
+  .turn-cluster {
+    gap: 4px;
+  }
+  .stage-utilities button {
+    width: 28px;
+    height: 28px;
+  }
 }
 </style>

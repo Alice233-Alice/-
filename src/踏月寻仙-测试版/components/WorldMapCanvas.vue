@@ -6,7 +6,7 @@
           <i class="fa-solid fa-map-location-dot"></i>
           三界山海图
         </div>
-        <div class="map-subtitle">{{ currentRealmLabel }} · {{ currentDomainLabel }}</div>
+        <div class="map-subtitle">{{ activeMapView.label }} · {{ currentRealmLabel }} · {{ currentDomainLabel }}</div>
       </div>
       <div class="map-status">
         <span class="danger-pill" :style="{ backgroundColor: dangerColor }">险度 {{ currentDanger }}</span>
@@ -15,18 +15,29 @@
     </div>
 
     <div class="map-stage">
+      <Transition name="map-view-fade" mode="out-in">
       <svg
-        class="map-canvas expanded-map-canvas"
+        :key="activeViewId"
+        :class="['map-canvas', 'expanded-map-canvas', `map-canvas-${activeViewId}`]"
         viewBox="0 0 420 300"
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="踏月寻仙三界山海全图"
+        :aria-label="activeMapView.ariaLabel"
       >
         <defs>
           <radialGradient id="expandedWorldGlow" cx="50%" cy="48%" r="72%">
             <stop offset="0%" stop-color="rgba(255, 205, 140, 0.18)" />
             <stop offset="58%" stop-color="rgba(128, 84, 74, 0.08)" />
             <stop offset="100%" stop-color="rgba(28, 8, 10, 0)" />
+          </radialGradient>
+          <linearGradient id="expandedMapTone" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="rgba(29, 13, 25, 0.08)" />
+            <stop offset="62%" stop-color="rgba(64, 28, 24, 0.02)" />
+            <stop offset="100%" stop-color="rgba(26, 8, 12, 0.22)" />
+          </linearGradient>
+          <radialGradient id="expandedMapVignette" cx="50%" cy="48%" r="70%">
+            <stop offset="62%" stop-color="rgba(18, 8, 10, 0)" />
+            <stop offset="100%" stop-color="rgba(15, 5, 8, 0.42)" />
           </radialGradient>
           <linearGradient id="expandedEarthMass" x1="0" x2="1" y1="0.1" y2="1">
             <stop offset="0%" stop-color="rgba(211, 168, 107, 0.16)" />
@@ -50,30 +61,41 @@
         <rect class="expanded-map-grid" x="0" y="0" width="420" height="300" />
         <image
           class="painted-map-bg"
-          :href="paintedMapBg"
+          :href="activeMapView.image"
           x="0"
           y="0"
           width="420"
           height="300"
           preserveAspectRatio="xMidYMid slice"
         />
+        <rect class="painted-map-tone" x="0" y="0" width="420" height="300" />
+        <rect class="painted-map-vignette" x="0" y="0" width="420" height="300" />
         <path
+          v-if="activeMapView.showRealmLayers"
           class="expanded-layer expanded-layer-sky"
           d="M0 18 C48 1 116 9 172 14 C247 0 352 0 419 24 L418 66 C286 63 137 60 5 67Z"
         />
         <path
+          v-if="activeMapView.showRealmLayers"
           class="expanded-layer expanded-layer-earth"
           :d="earthOuterPath"
         />
         <path
+          v-if="activeMapView.showRealmLayers"
           class="expanded-layer expanded-layer-abyss"
           d="M0 249 C71 213 156 216 208 233 C280 207 380 214 420 248 L420 300 L0 300Z"
         />
 
         <g class="expanded-layer-labels">
-          <text x="17" y="20">九霄</text>
-          <text x="18" y="113">地界</text>
-          <text x="18" y="286">幽界</text>
+          <text v-for="label in activeMapView.layerLabels" :key="label.text" :x="label.x" :y="label.y">
+            {{ label.text }}
+          </text>
+        </g>
+
+        <g class="expanded-sea-labels" aria-hidden="true">
+          <text v-for="label in activeMapView.seaLabels" :key="label.text" :x="label.x" :y="label.y">
+            {{ label.text }}
+          </text>
         </g>
 
         <g class="expanded-areas">
@@ -101,7 +123,7 @@
 
         <g class="expanded-earth-boundaries" aria-hidden="true">
           <path
-            v-for="boundary in earthRegionBoundaries"
+            v-for="boundary in activeRegionBoundaries"
             :key="boundary.id"
             class="expanded-earth-boundary"
             :d="boundary.path"
@@ -166,11 +188,34 @@
           class="expanded-current-marker"
           :transform="`translate(${expandedCurrentArea.labelX} ${expandedCurrentArea.labelY})`"
         >
+          <path class="expanded-current-pointer" d="M0 -4 V-8" />
+          <rect class="expanded-current-tag" x="-13" y="-17" width="26" height="8" rx="2.2" />
+          <text x="0" y="-11.7" text-anchor="middle">当前位置</text>
           <circle class="expanded-current-ring" r="8" />
           <circle class="expanded-current-core" r="2.2" />
-          <text x="0" y="-11" text-anchor="middle">当前位置</text>
         </g>
       </svg>
+      </Transition>
+    </div>
+
+    <div class="map-view-switcher" role="group" aria-label="切换地图视图">
+      <button type="button" class="map-view-arrow" title="上一张地图" aria-label="上一张地图" @click="shiftMapView(-1)">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button
+        type="button"
+        class="map-view-current"
+        :title="`切换地图，当前为${activeMapView.label}`"
+        :aria-label="`切换地图，当前为${activeMapView.label}`"
+        @click="shiftMapView(1)"
+      >
+        <i :class="activeMapView.icon"></i>
+        <span>{{ activeMapView.label }}</span>
+        <small>{{ activeViewIndex + 1 }}/{{ mapViewOrder.length }}</small>
+      </button>
+      <button type="button" class="map-view-arrow" title="下一张地图" aria-label="下一张地图" @click="shiftMapView(1)">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
     </div>
 
     <div class="map-detail">
@@ -207,11 +252,39 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import paintedMapBg from '../assets/world-map-painted-bg-v2.png?url';
+import earthMapBg from '../assets/world-map-earth.png?url';
+import overviewMapBg from '../assets/world-map-painted-bg-v3.png?url';
+import underworldMapBg from '../assets/world-map-underworld.png?url';
 import { getDangerColor } from '../schema';
 
 type AreaKind = 'land' | 'core' | 'sea' | 'border' | 'celestial' | 'abyss';
 type RouteKind = 'mortal' | 'sea' | 'celestial' | 'abyss' | 'border';
+type MapViewId = 'overview' | 'earth' | 'underworld';
+
+interface MapLabel {
+  text: string;
+  x: number;
+  y: number;
+}
+
+interface MapAreaLayout {
+  path: string;
+  labelX: number;
+  labelY: number;
+}
+
+interface MapViewDefinition {
+  id: MapViewId;
+  label: string;
+  icon: string;
+  image: string;
+  ariaLabel: string;
+  areaIds: string[];
+  layout: Record<string, MapAreaLayout>;
+  layerLabels: MapLabel[];
+  seaLabels: MapLabel[];
+  showRealmLayers: boolean;
+}
 
 interface MapArea {
   id: string;
@@ -668,14 +741,7 @@ const earthRegionBoundaries = [
   { id: 'east-south', path: 'M252 170 C285 185 325 186 365 174' },
 ];
 
-const expandedAreaLayout: Record<
-  string,
-  {
-    path: string;
-    labelX: number;
-    labelY: number;
-  }
-> = {
+const overviewAreaLayout: Record<string, MapAreaLayout> = {
   天渊: {
     path: 'M2 21 C28 4 73 9 118 31 C103 48 61 62 17 58 C2 54 0 37 2 21Z',
     labelX: 39,
@@ -698,8 +764,8 @@ const expandedAreaLayout: Record<
   },
   四海: {
     path: `M1 104 C63 70 134 55 201 58 C287 53 374 72 414 112 C420 148 407 208 343 228 C272 255 138 251 57 220 C0 196 0 139 1 104Z ${earthOuterPath}`,
-    labelX: 356,
-    labelY: 159,
+    labelX: 395,
+    labelY: 112,
   },
   北冥: {
     path: 'M110 82 C150 65 222 65 278 80 L270 112 C246 124 209 127 178 121 C147 116 123 104 110 82Z',
@@ -767,7 +833,7 @@ const expandedAreaLayout: Record<
     labelY: 284,
   },
   无尽炎渊: {
-    path: 'M294 238 C316 222 354 228 369 248 C362 276 323 287 296 272 C278 260 280 246 294 238Z',
+    path: 'M258 235 C281 219 320 219 345 231 C352 244 350 261 342 276 C317 291 281 290 257 274 C242 263 243 247 258 235Z',
     labelX: 307,
     labelY: 266,
   },
@@ -778,22 +844,93 @@ const expandedAreaLayout: Record<
   },
 };
 
-const expandedMapAreas = computed(() =>
-  mapAreas.map(area => {
-    const layout = expandedAreaLayout[area.id];
-    if (!layout) return area;
-    return {
-      ...area,
-      path: layout.path,
-      labelX: layout.labelX,
-      labelY: layout.labelY,
-      markerX: layout.labelX,
-      markerY: layout.labelY,
-    };
-  }),
-);
+const earthAreaLayout: Record<string, MapAreaLayout> = {
+  四海: {
+    path: 'M0 0 H420 V300 H0 Z',
+    labelX: 18,
+    labelY: 286,
+  },
+  北冥: {
+    path: 'M48 22 C91 4 150 6 203 8 C256 7 318 16 347 39 C328 58 301 73 274 83 C229 91 172 93 127 81 C92 72 61 54 48 22Z',
+    labelX: 205,
+    labelY: 52,
+  },
+  西庚: {
+    path: 'M46 60 C76 55 104 61 127 78 C137 104 145 143 145 178 C136 201 118 219 91 232 C62 223 43 199 36 168 C35 126 37 88 46 60Z',
+    labelX: 78,
+    labelY: 151,
+  },
+  神州: {
+    path: 'M127 78 C166 88 230 88 274 83 C279 112 277 150 272 190 C249 216 216 226 176 219 C154 207 143 192 145 178 C146 143 138 105 127 78Z',
+    labelX: 204,
+    labelY: 151,
+  },
+  东苍: {
+    path: 'M274 83 C302 62 335 58 367 74 C390 100 395 140 387 178 C373 201 344 219 307 228 C289 220 278 207 272 190 C277 150 279 112 274 83Z',
+    labelX: 327,
+    labelY: 151,
+  },
+  南炎: {
+    path: 'M91 232 C111 216 128 204 145 178 C159 203 176 219 202 226 C229 224 255 210 272 190 C282 209 292 220 307 228 C291 262 254 283 207 286 C158 282 119 267 91 232Z',
+    labelX: 205,
+    labelY: 251,
+  },
+  雪线: {
+    path: 'M124 77 C163 87 220 88 278 77 L269 94 C221 104 169 103 132 94Z',
+    labelX: 160,
+    labelY: 94,
+  },
+  苍茫古径: {
+    path: 'M267 116 C281 112 295 120 305 139 C302 158 291 174 276 184 L269 169 C276 151 276 134 267 116Z',
+    labelX: 277,
+    labelY: 154,
+  },
+  赤金走廊: {
+    path: 'M92 203 C111 188 129 181 146 174 L160 193 C140 205 125 219 111 235 L93 226Z',
+    labelX: 108,
+    labelY: 214,
+  },
+  龙眠海峡: {
+    path: 'M366 105 C395 111 410 133 407 161 C403 184 393 199 376 205 C368 190 365 171 367 151 C370 132 370 117 366 105Z',
+    labelX: 378,
+    labelY: 158,
+  },
+  雷暴海: {
+    path: 'M279 211 C309 202 356 207 397 234 C398 260 378 282 342 291 C313 284 289 263 276 238Z',
+    labelX: 326,
+    labelY: 249,
+  },
+};
 
-const expandedRoutes: RouteLine[] = [
+const underworldAreaLayout: Record<string, MapAreaLayout> = {
+  归墟: {
+    path: 'M145 7 C176 0 240 0 278 17 C300 39 291 76 267 93 C235 105 181 101 151 82 C131 62 127 27 145 7Z',
+    labelX: 210,
+    labelY: 55,
+  },
+  碎金渊: {
+    path: 'M0 37 C27 24 80 27 112 49 C132 77 137 129 126 174 C111 203 79 220 43 211 C18 197 5 168 0 134Z',
+    labelX: 58,
+    labelY: 132,
+  },
+  黄泉古迹: {
+    path: 'M132 94 C162 80 234 80 278 100 C294 126 291 171 269 198 C232 214 172 210 139 191 C122 166 119 122 132 94Z',
+    labelX: 207,
+    labelY: 151,
+  },
+  无尽炎渊: {
+    path: 'M89 205 C128 190 184 193 211 209 C248 188 307 194 332 218 C350 244 345 280 329 300 H81 C66 274 67 229 89 205Z',
+    labelX: 210,
+    labelY: 259,
+  },
+  神木枯冢: {
+    path: 'M291 45 C320 26 383 29 420 47 V216 C394 225 347 219 316 198 C292 170 281 87 291 45Z',
+    labelX: 355,
+    labelY: 137,
+  },
+};
+
+const overviewRoutes: RouteLine[] = [
   { id: '神州-东苍', from: '神州', to: '东苍', kind: 'mortal', path: 'M210 157 C236 149 265 149 292 155' },
   { id: '神州-西庚', from: '神州', to: '西庚', kind: 'mortal', path: 'M190 157 C154 156 103 154 60 153' },
   { id: '神州-北冥', from: '神州', to: '北冥', kind: 'mortal', path: 'M199 146 C193 132 184 117 173 107' },
@@ -806,11 +943,122 @@ const expandedRoutes: RouteLine[] = [
   { id: '东苍-雷暴', from: '东苍', to: '雷暴海', kind: 'sea', path: 'M306 167 C310 183 309 195 304 204' },
   { id: '南炎-雷暴', from: '南炎', to: '雷暴海', kind: 'sea', path: 'M198 220 C238 207 274 200 304 204' },
   { id: '北冥-归墟', from: '北冥', to: '归墟', kind: 'abyss', path: 'M173 111 C158 150 141 219 126 263' },
-  { id: '四海-碎金', from: '四海', to: '碎金渊', kind: 'abyss', path: 'M356 159 C242 190 126 229 45 266' },
+  { id: '四海-碎金', from: '四海', to: '碎金渊', kind: 'abyss', path: 'M29 209 C34 229 40 249 45 266' },
   { id: '神州-黄泉', from: '神州', to: '黄泉古迹', kind: 'abyss', path: 'M199 170 C199 214 205 253 213 284' },
   { id: '南炎-炎渊', from: '南炎', to: '无尽炎渊', kind: 'abyss', path: 'M185 220 C222 238 270 250 307 266' },
   { id: '东苍-枯冢', from: '东苍', to: '神木枯冢', kind: 'abyss', path: 'M303 166 C331 204 354 238 375 267' },
 ];
+
+const earthRoutes: RouteLine[] = [
+  { id: '神州-东苍', from: '神州', to: '东苍', kind: 'mortal', path: 'M218 151 C251 145 289 146 327 151' },
+  { id: '神州-西庚', from: '神州', to: '西庚', kind: 'mortal', path: 'M190 151 C154 148 115 149 78 151' },
+  { id: '神州-北冥', from: '神州', to: '北冥', kind: 'mortal', path: 'M204 137 C204 107 204 76 205 52' },
+  { id: '神州-南炎', from: '神州', to: '南炎', kind: 'mortal', path: 'M204 166 C204 196 205 224 205 251' },
+  { id: '东苍-龙眠', from: '东苍', to: '龙眠海峡', kind: 'sea', path: 'M341 151 C355 148 367 151 378 158' },
+  { id: '东苍-雷暴', from: '东苍', to: '雷暴海', kind: 'sea', path: 'M337 174 C338 200 333 226 326 249' },
+  { id: '南炎-雷暴', from: '南炎', to: '雷暴海', kind: 'sea', path: 'M224 251 C259 246 294 246 326 249' },
+];
+
+const mapViewOrder: MapViewId[] = ['overview', 'earth', 'underworld'];
+
+const mapViews: Record<MapViewId, MapViewDefinition> = {
+  overview: {
+    id: 'overview',
+    label: '三界总览',
+    icon: 'fa-solid fa-map-location-dot',
+    image: overviewMapBg,
+    ariaLabel: '踏月寻仙三界总览图',
+    areaIds: [
+      '天渊',
+      '星陨废墟',
+      '太古战场',
+      '天道裂隙',
+      '四海',
+      '北冥',
+      '西庚',
+      '神州',
+      '东苍',
+      '南炎',
+      '碎金渊',
+      '归墟',
+      '黄泉古迹',
+      '无尽炎渊',
+      '神木枯冢',
+    ],
+    layout: overviewAreaLayout,
+    layerLabels: [
+      { text: '九霄', x: 17, y: 20 },
+      { text: '地界', x: 18, y: 113 },
+      { text: '幽界', x: 18, y: 286 },
+    ],
+    seaLabels: [
+      { text: '北冥冰海', x: 211, y: 76 },
+      { text: '潮音海', x: 29, y: 209 },
+      { text: '龙眠海', x: 400, y: 181 },
+      { text: '蓬莱幻海', x: 361, y: 218 },
+    ],
+    showRealmLayers: true,
+  },
+  earth: {
+    id: 'earth',
+    label: '地界舆图',
+    icon: 'fa-solid fa-earth-asia',
+    image: earthMapBg,
+    ariaLabel: '踏月寻仙地界平面舆图',
+    areaIds: ['四海', '北冥', '西庚', '神州', '东苍', '南炎', '雪线', '苍茫古径', '赤金走廊', '龙眠海峡', '雷暴海'],
+    layout: earthAreaLayout,
+    layerLabels: [{ text: '地界', x: 14, y: 22 }],
+    seaLabels: [
+      { text: '北冥冰海', x: 208, y: 14 },
+      { text: '潮音海', x: 20, y: 151 },
+      { text: '龙眠海', x: 402, y: 145 },
+      { text: '蓬莱幻海', x: 378, y: 287 },
+    ],
+    showRealmLayers: false,
+  },
+  underworld: {
+    id: 'underworld',
+    label: '幽界渊图',
+    icon: 'fa-solid fa-layer-group',
+    image: underworldMapBg,
+    ariaLabel: '踏月寻仙幽界五渊图',
+    areaIds: ['碎金渊', '归墟', '黄泉古迹', '无尽炎渊', '神木枯冢'],
+    layout: underworldAreaLayout,
+    layerLabels: [{ text: '幽界', x: 14, y: 22 }],
+    seaLabels: [],
+    showRealmLayers: false,
+  },
+};
+
+const activeViewId = ref<MapViewId>('overview');
+const activeMapView = computed(() => mapViews[activeViewId.value]);
+const activeViewIndex = computed(() => mapViewOrder.indexOf(activeViewId.value));
+
+const expandedMapAreas = computed(() =>
+  activeMapView.value.areaIds
+    .map(id => mapAreas.find(area => area.id === id))
+    .filter((area): area is MapArea => Boolean(area))
+    .map(area => {
+      const layout = activeMapView.value.layout[area.id];
+      if (!layout) return area;
+      return {
+        ...area,
+        path: layout.path,
+        labelX: layout.labelX,
+        labelY: layout.labelY,
+        markerX: layout.labelX,
+        markerY: layout.labelY,
+      };
+    }),
+);
+
+const expandedRoutes = computed<RouteLine[]>(() => {
+  if (activeViewId.value === 'overview') return overviewRoutes;
+  if (activeViewId.value === 'earth') return earthRoutes;
+  return [];
+});
+
+const activeRegionBoundaries = computed(() => (activeViewId.value === 'overview' ? earthRegionBoundaries : []));
 
 const selectedAreaId = ref('');
 
@@ -833,13 +1081,35 @@ const currentAreaId = computed(() => {
 
 const currentArea = computed(() => mapAreas.find(area => area.id === currentAreaId.value));
 
+const viewForAreaId = (areaId: string): MapViewId => {
+  const area = mapAreas.find(item => item.id === areaId);
+  if (area?.kind === 'abyss') return 'underworld';
+  if (area?.kind === 'celestial') return 'overview';
+  if (area) return 'earth';
+  return 'overview';
+};
+
+const defaultAreaByView: Record<MapViewId, string> = {
+  overview: '神州',
+  earth: '神州',
+  underworld: '归墟',
+};
+
 watch(
   currentAreaId,
   value => {
+    activeViewId.value = viewForAreaId(value);
     selectedAreaId.value = value || '神州';
   },
   { immediate: true },
 );
+
+watch(activeViewId, viewId => {
+  const visibleAreaIds = mapViews[viewId].areaIds;
+  selectedAreaId.value = visibleAreaIds.includes(currentAreaId.value)
+    ? currentAreaId.value
+    : defaultAreaByView[viewId];
+});
 
 const selectedArea = computed(
   () => mapAreas.find(area => area.id === selectedAreaId.value) ?? currentArea.value ?? mapAreas[3],
@@ -852,6 +1122,11 @@ const currentRealmLabel = computed(() => currentArea.value?.realmLabel ?? '行�
 const dangerColor = computed(() => getDangerColor(props.currentDanger ?? 10));
 const selectArea = (id: string) => {
   selectedAreaId.value = id;
+};
+
+const shiftMapView = (direction: number) => {
+  const nextIndex = (activeViewIndex.value + direction + mapViewOrder.length) % mapViewOrder.length;
+  activeViewId.value = mapViewOrder[nextIndex];
 };
 
 const areaPaintStyle = (area: MapArea): Record<string, string> => ({
@@ -947,6 +1222,7 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 /* 星图灵脉核心样式 */
 .map-stage {
   position: relative;
+  isolation: isolate;
   width: 100%;
   flex: 0 0 auto;
   height: clamp(500px, 48vw, 760px);
@@ -961,6 +1237,101 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
     100% 100%,
     20px 20px,
     20px 20px;
+  box-shadow:
+    inset 0 1px rgba(255, 225, 205, 0.05),
+    inset 0 -1px rgba(255, 225, 205, 0.05);
+}
+
+.map-view-fade-enter-active,
+.map-view-fade-leave-active {
+  transition:
+    opacity 0.2s ease,
+    filter 0.2s ease;
+}
+
+.map-view-fade-enter-from,
+.map-view-fade-leave-to {
+  opacity: 0;
+  filter: brightness(0.72);
+}
+
+.map-view-switcher {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 58px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+}
+
+.map-view-arrow,
+.map-view-current {
+  height: 36px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: var(--button-bg);
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-primary);
+    border-color: var(--border-active);
+    background: var(--button-hover);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+  }
+}
+
+.map-view-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  padding: 0;
+  font-size: 12px;
+}
+
+.map-view-current {
+  display: inline-grid;
+  grid-template-columns: 16px minmax(68px, auto) 28px;
+  align-items: center;
+  gap: 7px;
+  min-width: 154px;
+  padding: 0 11px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+
+  i {
+    color: var(--accent-color);
+  }
+
+  span {
+    white-space: nowrap;
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 500;
+    text-align: right;
+  }
 }
 
 .map-canvas {
@@ -1351,8 +1722,31 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 }
 
 .painted-map-bg {
-  opacity: 0.9;
-  filter: saturate(0.9) contrast(0.92) brightness(0.82);
+  opacity: 0.97;
+  filter: saturate(0.92) contrast(1.03) brightness(0.9);
+}
+
+.map-canvas-overview .painted-map-bg {
+  filter: saturate(0.94) contrast(1.02) brightness(0.94);
+}
+
+.map-canvas-earth .painted-map-bg {
+  filter: saturate(0.96) contrast(1.02) brightness(0.96);
+}
+
+.map-canvas-underworld .painted-map-bg {
+  filter: saturate(0.92) contrast(1.04) brightness(0.95);
+}
+
+.painted-map-tone {
+  fill: url(#expandedMapTone);
+  pointer-events: none;
+  mix-blend-mode: color;
+}
+
+.painted-map-vignette {
+  fill: url(#expandedMapVignette);
+  pointer-events: none;
 }
 
 .expanded-layer {
@@ -1382,25 +1776,48 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   pointer-events: none;
 
   text {
-    fill: rgba(255, 223, 207, 0.42);
+    fill: rgba(255, 224, 205, 0.52);
     font-family: 'Noto Serif SC', 'STKaiti', serif;
-    font-size: 7px;
+    font-size: 6.5px;
     font-weight: 900;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
+    paint-order: stroke;
+    stroke: rgba(30, 9, 12, 0.64);
+    stroke-width: 0.7;
+  }
+}
+
+.expanded-sea-labels {
+  pointer-events: none;
+
+  text {
+    fill: rgba(169, 214, 221, 0.68);
+    font-family: 'Noto Serif SC', 'STKaiti', 'KaiTi', serif;
+    font-size: 4.4px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: rgba(17, 12, 16, 0.86);
+    stroke-width: 0.72;
+    stroke-linejoin: round;
   }
 }
 
 .expanded-route {
   fill: none;
-  stroke-width: 0.55;
+  stroke-width: 0.42;
   stroke-linecap: round;
-  stroke-dasharray: 3.5 3;
-  opacity: 0.18;
+  stroke-dasharray: 2.2 3.4;
+  opacity: 0.08;
+  transition:
+    opacity 0.22s ease,
+    stroke-width 0.22s ease;
 
   &.current {
-    stroke-width: 0.9;
-    opacity: 0.64;
-    stroke-dasharray: 5 2;
+    stroke-width: 0.72;
+    opacity: 0.68;
+    stroke-dasharray: 4 2.4;
   }
 }
 
@@ -1428,8 +1845,8 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 .expanded-area-shape {
   fill: var(--area-fill, rgba(255, 214, 160, 0.16));
   stroke: var(--area-stroke, rgba(255, 223, 198, 0.54));
-  stroke-width: 0.55;
-  stroke-dasharray: 3.8 3;
+  stroke-width: 0.42;
+  stroke-dasharray: 2.4 2.8;
   stroke-linejoin: round;
   fill-rule: evenodd;
   opacity: 0.98;
@@ -1475,15 +1892,15 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 .expanded-area:hover .expanded-area-shape,
 .expanded-area.selected .expanded-area-shape {
   fill: var(--area-fill, rgba(255, 210, 160, 0.28));
-  stroke: rgba(255, 231, 205, 0.76);
-  stroke-width: 0.75;
+  stroke: rgba(247, 217, 178, 0.9);
+  stroke-width: 0.68;
   filter: url(#expandedSoftGlow);
 }
 
 .expanded-area.current .expanded-area-shape {
   fill: var(--area-fill, rgba(255, 190, 190, 0.32));
-  stroke: rgba(255, 211, 211, 0.9);
-  stroke-width: 0.95;
+  stroke: rgba(255, 180, 150, 0.96);
+  stroke-width: 0.76;
   filter: url(#expandedSoftGlow);
 }
 
@@ -1493,9 +1910,9 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 
 .expanded-earth-boundary {
   fill: none;
-  stroke: rgba(255, 229, 196, 0.34);
-  stroke-width: 0.42;
-  stroke-dasharray: 2.5 2.7;
+  stroke: rgba(255, 229, 196, 0.28);
+  stroke-width: 0.34;
+  stroke-dasharray: 1.8 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -1557,21 +1974,23 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   outline: none;
 
   circle {
-    fill: rgba(225, 169, 164, 0.95);
-    stroke: rgba(255, 227, 218, 0.62);
-    stroke-width: 0.35;
+    fill: rgba(235, 177, 165, 0.96);
+    stroke: rgba(255, 237, 222, 0.76);
+    stroke-width: 0.32;
+    filter: drop-shadow(0 0 1.2px rgba(27, 7, 10, 0.92));
   }
 
   text {
-    fill: rgba(255, 238, 231, 0.95);
+    fill: rgba(255, 241, 232, 0.98);
     font-family: 'Noto Serif SC', 'STKaiti', 'KaiTi', serif;
-    font-size: 5.3px;
+    font-size: 5.2px;
     font-weight: 800;
     letter-spacing: 0;
     paint-order: stroke;
-    stroke: rgba(42, 11, 14, 0.82);
-    stroke-width: 0.9;
+    stroke: rgba(30, 8, 11, 0.9);
+    stroke-width: 0.96;
     stroke-linejoin: round;
+    filter: drop-shadow(0 0.6px 0.45px rgba(0, 0, 0, 0.62));
   }
 
   &.selected text,
@@ -1590,26 +2009,36 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   filter: url(#expandedSoftGlow);
 
   text {
-    fill: rgba(255, 228, 223, 0.96);
-    font-size: 4.3px;
+    fill: rgba(255, 232, 219, 0.98);
+    font-size: 3.6px;
     font-weight: 800;
-    paint-order: stroke;
-    stroke: rgba(44, 10, 14, 0.86);
-    stroke-width: 0.7;
-    stroke-linejoin: round;
+    letter-spacing: 0;
   }
 }
 
-.expanded-current-ring {
+.expanded-current-tag {
+  fill: rgba(44, 13, 17, 0.88);
+  stroke: rgba(255, 186, 157, 0.82);
+  stroke-width: 0.42;
+}
+
+.expanded-current-pointer {
   fill: none;
-  stroke: rgba(255, 205, 198, 0.88);
-  stroke-width: 0.8;
-  stroke-dasharray: 2.2 1.5;
+  stroke: rgba(255, 190, 163, 0.9);
+  stroke-width: 0.45;
+  stroke-linecap: round;
+}
+
+.expanded-current-ring {
+  fill: rgba(255, 176, 148, 0.08);
+  stroke: rgba(255, 195, 169, 0.92);
+  stroke-width: 0.62;
+  stroke-dasharray: 1.6 1.2;
   animation: expanded-current-pulse 2.4s ease-in-out infinite;
 }
 
 .expanded-current-core {
-  fill: rgba(255, 201, 195, 0.96);
+  fill: rgba(255, 190, 163, 1);
   stroke: rgba(70, 14, 18, 0.7);
   stroke-width: 0.28;
 }
@@ -1641,77 +2070,78 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   }
 
   .expanded-area-shape {
-    fill-opacity: 0.1;
-    stroke-opacity: 0.72;
-    stroke-width: 0.5;
-    mix-blend-mode: screen;
+    fill-opacity: 0.035;
+    stroke-opacity: 0.48;
+    stroke-width: 0.42;
+    mix-blend-mode: normal;
   }
 
   .expanded-kind-celestial .expanded-area-shape,
   .expanded-kind-abyss .expanded-area-shape {
-    fill-opacity: 0.13;
+    fill-opacity: 0.06;
+    stroke-opacity: 0.58;
   }
 
   .expanded-kind-sea .expanded-area-shape {
-    fill-opacity: 0.08;
-    stroke-opacity: 0.64;
+    fill-opacity: 0.02;
+    stroke-opacity: 0.38;
   }
 
   .expanded-area:hover .expanded-area-shape,
   .expanded-area.selected .expanded-area-shape {
-    fill-opacity: 0.2;
-    stroke-opacity: 0.96;
-    stroke-width: 0.78;
+    fill-opacity: 0.13;
+    stroke-opacity: 0.94;
+    stroke-width: 0.68;
   }
 
   .expanded-area.current .expanded-area-shape {
-    fill-opacity: 0.24;
-    stroke-opacity: 1;
-    stroke-width: 1;
+    fill-opacity: 0.12;
+    stroke-opacity: 0.96;
+    stroke-width: 0.76;
   }
 
   .expanded-earth-boundary {
-    stroke: rgba(255, 238, 214, 0.46);
-    stroke-width: 0.36;
-    stroke-opacity: 0.74;
+    stroke: rgba(255, 232, 204, 0.38);
+    stroke-width: 0.3;
+    stroke-opacity: 0.54;
   }
 
   .expanded-route {
-    opacity: 0.16;
+    opacity: 0.07;
   }
 
   .expanded-route-abyss {
-    stroke: rgba(215, 147, 255, 0.8);
-    opacity: 0.46;
-    stroke-width: 0.78;
-    stroke-dasharray: 4.8 3.2;
-    filter: drop-shadow(0 0 2px rgba(205, 130, 242, 0.35));
+    stroke: rgba(201, 150, 235, 0.72);
+    opacity: 0.14;
+    stroke-width: 0.54;
+    stroke-dasharray: 3.4 3;
   }
 
   .expanded-route.current {
-    opacity: 0.66;
+    opacity: 0.7;
+    filter: drop-shadow(0 0 1.5px rgba(255, 205, 166, 0.38));
   }
 
   .expanded-terrain {
-    opacity: 0.14;
+    display: none;
   }
 
   .expanded-label text {
-    stroke: rgba(20, 6, 8, 0.92);
-    stroke-width: 1.05;
+    stroke: rgba(18, 5, 7, 0.94);
+    stroke-width: 1;
   }
 }
 
 @keyframes expanded-current-pulse {
   0%,
   100% {
-    opacity: 0.82;
-    transform: scale(0.94);
+    opacity: 0.84;
+    transform: scale(0.96);
   }
 
   50% {
     opacity: 1;
-    transform: scale(1.16);
+    transform: scale(1.08);
   }
 }
 

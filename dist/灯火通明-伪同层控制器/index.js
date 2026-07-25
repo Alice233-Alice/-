@@ -262,9 +262,11 @@ var __webpack_modules__ = {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
       extractDialogueContent: () => extractDialogueContent,
+      extractInlineReasoning: () => extractInlineReasoning,
       extractNarrative: () => extractNarrative,
       extractVariableUpdateDiagnostics: () => extractVariableUpdateDiagnostics,
       formatMessageHtml: () => formatMessageHtml,
+      mergeReasoningText: () => mergeReasoningText,
       stripAuxiliaryPresentation: () => stripAuxiliaryPresentation,
       stripStructuredBlocks: () => stripStructuredBlocks
     });
@@ -273,8 +275,13 @@ var __webpack_modules__ = {
     const openTagPattern = tag => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
     const closeTagPattern = tag => `<\\/${escapeRegExp(tag)}\\s*>`;
     const DIALOGUE_TAGS = [ "反应", "正文", "会话状态" ];
+    const REASONING_TAG_NAME_SOURCE = "think(?:ing)?|reasoning|thought|think_?fox~?";
     const REASONING_OPEN_PATTERN = /<(?:think(?:ing)?|reasoning|thought|think_?fox~?)(?=[\s>])[^>]*>/gi;
     const REASONING_CLOSE_PATTERN = /<\/(?:think(?:ing)?|reasoning|thought|think_?fox~?)\s*>/gi;
+    const REASONING_BLOCK_PATTERN = new RegExp(`<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>([\\s\\S]*?)(<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>|$)`, "gi");
+    const REASONING_FALLBACK_BOUNDARY = new RegExp(`<(?:content|正文|visual_cards|pseudo_layer|UpdateVariable|JSONPatch)(?=[\\s/>])`, "i");
+    const REASONING_ORPHAN_PREFIX_CUE = /^\s*(?:【开始思考】|\[OS\])/i;
+    const REASONING_BODY_AFTER_CLOSE_PATTERN = new RegExp(`^\\s*${REASONING_FALLBACK_BOUNDARY.source}`, "i");
     const stripReasoningPrefix = text => {
       REASONING_CLOSE_PATTERN.lastIndex = 0;
       let lastClosingEnd = -1;
@@ -287,7 +294,10 @@ var __webpack_modules__ = {
       REASONING_OPEN_PATTERN.lastIndex = 0;
       const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
       REASONING_OPEN_PATTERN.lastIndex = 0;
-      return unfinishedOpening?.index === undefined ? text : text.slice(0, unfinishedOpening.index);
+      if (unfinishedOpening?.index === undefined) return text;
+      const remainder = text.slice(unfinishedOpening.index + unfinishedOpening[0].length);
+      const bodyBoundary = remainder.search(REASONING_FALLBACK_BOUNDARY);
+      return bodyBoundary >= 0 ? remainder.slice(bodyBoundary) : text.slice(0, unfinishedOpening.index);
     };
     const findEmbeddedDocumentStart = lowerText => {
       const doctypeIndex = lowerText.indexOf("<!doctype html");
@@ -313,6 +323,54 @@ var __webpack_modules__ = {
         result = `${result.slice(0, removeStart)}${result.slice(removeEnd)}`;
       }
       return result;
+    };
+    const extractOrphanClosingReasoning = text => {
+      REASONING_CLOSE_PATTERN.lastIndex = 0;
+      const closingMatch = REASONING_CLOSE_PATTERN.exec(text);
+      REASONING_CLOSE_PATTERN.lastIndex = 0;
+      if (!closingMatch || closingMatch.index <= 0) return null;
+      const prefix = text.slice(0, closingMatch.index);
+      const suffix = text.slice(closingMatch.index + closingMatch[0].length);
+      if (!REASONING_ORPHAN_PREFIX_CUE.test(prefix) && !REASONING_BODY_AFTER_CLOSE_PATTERN.test(suffix)) return null;
+      const cleaned = stripEmbeddedHtmlDocuments(prefix).replace(REASONING_ORPHAN_PREFIX_CUE, "").replace(REASONING_OPEN_PATTERN, "").replace(REASONING_CLOSE_PATTERN, "").trim();
+      return cleaned ? {
+        text: cleaned,
+        isComplete: true
+      } : null;
+    };
+    const mergeReasoningText = (primary, secondary) => {
+      const first = primary.trim();
+      const second = secondary.trim();
+      if (!first) return second;
+      if (!second || first.includes(second)) return first;
+      if (second.includes(first)) return second;
+      return `${first}\n\n${second}`;
+    };
+    const extractInlineReasoning = text => {
+      REASONING_BLOCK_PATTERN.lastIndex = 0;
+      const blocks = [];
+      let found = false;
+      let isComplete = true;
+      let match;
+      while ((match = REASONING_BLOCK_PATTERN.exec(text)) !== null) {
+        found = true;
+        const closingTag = match[2];
+        let content = match[1];
+        if (!closingTag) {
+          isComplete = false;
+          const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+          if (boundary >= 0) content = content.slice(0, boundary);
+        }
+        const cleaned = stripEmbeddedHtmlDocuments(content).replace(REASONING_OPEN_PATTERN, "").replace(REASONING_CLOSE_PATTERN, "").trim();
+        if (cleaned) blocks.push(cleaned);
+        if (!closingTag) break;
+      }
+      REASONING_BLOCK_PATTERN.lastIndex = 0;
+      if (!found) return extractOrphanClosingReasoning(text);
+      return {
+        text: blocks.join("\n\n").trim(),
+        isComplete
+      };
     };
     const stripAuxiliaryPresentation = text => stripEmbeddedHtmlDocuments(stripReasoningPrefix(text)).trim();
     const stripDialogueTagFragments = text => DIALOGUE_TAGS.reduce((value, tag) => value.replace(new RegExp(`<\\/?${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`, "gi"), ""), text).replace(/<[^>]*$/g, "").trim();
@@ -548,6 +606,8 @@ let __webpack_exports__ = {};
   var _dialogue_engine__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./dialogue-engine */ "./src/灯火通明-伪同层控制器/dialogue-engine.ts");
   const STYLE_ID = "dhl-pseudo-layer-controller-style";
   const INPUT_STORAGE_KEY = "denghuolanshan:pseudo-layer:native-input-collapsed";
+  const MOBILE_INPUT_DEFAULT_APPLIED_KEY = "denghuolanshan:pseudo-layer:mobile-native-input-default-v1";
+  const MOBILE_VIEWPORT_QUERY = "(max-width: 760px)";
   const INTERACTION_KEY = "dhl_pseudo_interaction";
   const STAGE_CLASS = "dhl-pseudo-stage";
   const SELECTED_CLASS = "dhl-pseudo-selected";
@@ -582,7 +642,14 @@ let __webpack_exports__ = {};
   let selectedHistoryKind = null;
   let browsingHistory = false;
   let deletingMessageId = null;
-  let nativeInputCollapsed = localStorage.getItem(INPUT_STORAGE_KEY) === "true";
+  const nativeInputMedia = tavernWindow.matchMedia(MOBILE_VIEWPORT_QUERY);
+  const shouldApplyMobileInputDefault = nativeInputMedia.matches && localStorage.getItem(MOBILE_INPUT_DEFAULT_APPLIED_KEY) === null;
+  let nativeInputFollowsViewport = shouldApplyMobileInputDefault || localStorage.getItem(INPUT_STORAGE_KEY) === null;
+  let nativeInputCollapsed = shouldApplyMobileInputDefault ? true : nativeInputFollowsViewport ? nativeInputMedia.matches : localStorage.getItem(INPUT_STORAGE_KEY) === "true";
+  if (shouldApplyMobileInputDefault) {
+    localStorage.setItem(MOBILE_INPUT_DEFAULT_APPLIED_KEY, "true");
+    localStorage.setItem(INPUT_STORAGE_KEY, "true");
+  }
   let viewRevision = 0;
   let frameObserver = null;
   let duplicateControllerObserver = null;
@@ -1096,6 +1163,11 @@ let __webpack_exports__ = {};
   };
   const applyNativeInputState = () => {
     tavernDocument.body.classList.toggle("dhl-native-input-collapsed", nativeInputCollapsed);
+  };
+  const handleNativeInputViewportChange = event => {
+    if (!nativeInputFollowsViewport) return;
+    nativeInputCollapsed = event.matches;
+    broadcastView();
   };
   const applyStageVisibility = (snapshot = getStageSnapshot()) => {
     const entries = snapshot.entries;
@@ -2126,6 +2198,7 @@ let __webpack_exports__ = {};
       broadcastView();
       return;
     }
+    nativeInputFollowsViewport = false;
     nativeInputCollapsed = !nativeInputCollapsed;
     localStorage.setItem(INPUT_STORAGE_KEY, String(nativeInputCollapsed));
     broadcastView();
@@ -2261,6 +2334,7 @@ let __webpack_exports__ = {};
     invalidateStageSnapshot();
     discardQueuedStream();
     tavernWindow.removeEventListener("message", handleMessage);
+    nativeInputMedia.removeEventListener("change", handleNativeInputViewportChange);
     removeNativeDialogueBridge();
     releaseParkedFrames();
     tavernDocument.getElementById(STYLE_ID)?.remove();
@@ -2419,6 +2493,7 @@ let __webpack_exports__ = {};
   installStyle();
   applyNativeInputState();
   tavernWindow.addEventListener("message", handleMessage);
+  nativeInputMedia.addEventListener("change", handleNativeInputViewportChange);
   installFrameObserver();
   installNativeDialogueBridge();
   window.setTimeout(parkLatestStageFrame, 0);

@@ -23,7 +23,12 @@
         <button type="button" title="继续这段交谈" :disabled="pseudo.isGenerating" @click="pseudo.continueDialogue">
           <i class="fa-solid fa-comment-dots"></i>
         </button>
-        <button type="button" title="保留旧记录，另开一段交谈" :disabled="pseudo.isGenerating" @click="pseudo.resetDialogue">
+        <button
+          type="button"
+          title="保留旧记录，另开一段交谈"
+          :disabled="pseudo.isGenerating"
+          @click="pseudo.resetDialogue"
+        >
           <i class="fa-solid fa-comment-medical"></i>
         </button>
       </div>
@@ -56,7 +61,11 @@
             <i class="fa-solid fa-comments"></i><span>交谈</span>
           </button>
         </div>
-        <span class="connection-dot" :class="pseudo.controllerReady ? 'connected' : 'disconnected'" :title="connectionLabel">
+        <span
+          class="connection-dot"
+          :class="pseudo.controllerReady ? 'connected' : 'disconnected'"
+          :title="connectionLabel"
+        >
           <i class="fa-solid" :class="pseudo.controllerReady ? 'fa-link' : 'fa-link-slash'"></i>
         </span>
         <textarea
@@ -80,7 +89,13 @@
         >
           <i class="fa-solid" :class="pseudo.view.nativeInputCollapsed ? 'fa-eye' : 'fa-eye-slash'"></i>
         </button>
-        <button v-if="pseudo.isGenerating" type="button" class="primary-command stop" title="停止生成" @click="pseudo.stop">
+        <button
+          v-if="pseudo.isGenerating"
+          type="button"
+          class="primary-command stop"
+          title="停止生成"
+          @click="pseudo.stop"
+        >
           <i class="fa-solid fa-stop"></i><span>停止</span>
         </button>
         <button
@@ -144,9 +159,7 @@ const inputPlaceholder = computed(() => {
   if (!isDialogueWorkspace.value) return '写下此刻想做的事……';
   const dialogue = pseudo.activeDialogue;
   if (!dialogue) return '先选择一位交谈对象……';
-  return dialogue.channel === 'transmission'
-    ? `向${dialogue.targetName}传讯……`
-    : `对${dialogue.targetName}说……`;
+  return dialogue.channel === 'transmission' ? `向${dialogue.targetName}传讯……` : `对${dialogue.targetName}说……`;
 });
 const primaryLabel = computed(() => {
   if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
@@ -194,12 +207,8 @@ const primaryDisabled = computed(() => {
   if (isDialogueWorkspace.value && !pseudo.isDialogueActive) return false;
   return isDialogueWorkspace.value ? !pseudo.canSubmitDialogue : !pseudo.canSubmitStory;
 });
-const historyLabel = computed(() =>
-  historyKind.value === 'dialogue' ? '正在阅览旧交谈' : '正在阅览旧正文',
-);
-const returnLatestLabel = computed(() =>
-  historyKind.value === 'dialogue' ? '返回最新交谈' : '返回最新正文',
-);
+const historyLabel = computed(() => (historyKind.value === 'dialogue' ? '正在阅览旧交谈' : '正在阅览旧正文'));
+const returnLatestLabel = computed(() => (historyKind.value === 'dialogue' ? '返回最新交谈' : '返回最新正文'));
 
 const chooseStory = () => {
   if (pseudo.isGenerating) return;
@@ -243,7 +252,12 @@ watch(
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 7%, transparent);
 }
 
-.command-row { min-height: 38px; display: flex; align-items: stretch; gap: 7px; }
+.command-row {
+  min-height: 38px;
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+}
 .interaction-segments {
   flex: none;
   display: grid;
@@ -267,12 +281,30 @@ watch(
   font-size: 10px;
   cursor: pointer;
 }
-.interaction-segments button:last-child { border-right: 0; }
-.interaction-segments button.active { color: var(--gold); background: var(--button-active); }
-.interaction-segments button:disabled { opacity: 0.42; cursor: not-allowed; }
-.connection-dot { width: 30px; display: grid; place-items: center; flex-shrink: 0; color: var(--text-secondary); }
-.connection-dot.connected { color: var(--jade); }
-.connection-dot.disconnected { color: var(--semantic-danger); }
+.interaction-segments button:last-child {
+  border-right: 0;
+}
+.interaction-segments button.active {
+  color: var(--gold);
+  background: var(--button-active);
+}
+.interaction-segments button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.connection-dot {
+  width: 30px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+.connection-dot.connected {
+  color: var(--jade);
+}
+.connection-dot.disconnected {
+  color: var(--semantic-danger);
+}
 
 textarea {
   min-width: 0;
@@ -290,21 +322,53 @@ textarea {
   box-shadow: inset 0 1px 8px color-mix(in srgb, var(--stage-shadow) 24%, transparent);
   font: inherit;
   line-height: 1.55;
-  transition: height 0.18s ease, border-color 0.18s ease;
+  transition:
+    height 0.18s ease,
+    border-color 0.18s ease;
 
-  &:focus { border-color: var(--line-strong); }
+  &:focus {
+    border-color: var(--line-strong);
+  }
 }
 
-.expanded textarea { height: 78px; }
-.selected-intent { min-height: 30px; margin: 0 37px 6px; display: flex; align-items: center; gap: 8px; color: var(--text-accent); font-size: 11px; }
-.selected-intent > i { color: var(--gold); }
-.selected-intent strong { flex: 1; }
-.selected-intent button { border: 0; color: var(--text-secondary); background: transparent; cursor: pointer; }
-.dialogue-intent > i { color: var(--jade); }
-.dialogue-intent button:hover:not(:disabled) { color: var(--gold); }
-.dialogue-intent button:disabled { opacity: 0.35; cursor: not-allowed; }
+.expanded textarea {
+  height: 78px;
+}
+.selected-intent {
+  min-height: 30px;
+  margin: 0 37px 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-accent);
+  font-size: 11px;
+}
+.selected-intent > i {
+  color: var(--gold);
+}
+.selected-intent strong {
+  flex: 1;
+}
+.selected-intent button {
+  border: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+.dialogue-intent > i {
+  color: var(--jade);
+}
+.dialogue-intent button:hover:not(:disabled) {
+  color: var(--gold);
+}
+.dialogue-intent button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 
-.native-input-command, .primary-command, .history-command button {
+.native-input-command,
+.primary-command,
+.history-command button {
   min-width: 38px;
   min-height: 38px;
   display: inline-flex;
@@ -318,27 +382,97 @@ textarea {
   cursor: pointer;
 }
 
-.primary-command { min-width: 82px; border-color: var(--line-strong); color: var(--gold); background: var(--button-active); }
-.primary-command:disabled { opacity: 0.35; cursor: not-allowed; }
-.primary-command.stop { color: var(--text-primary); border-color: color-mix(in srgb, var(--semantic-danger) 55%, transparent); background: color-mix(in srgb, var(--semantic-danger) 36%, var(--surface-inset)); }
-.generation-label { display: flex; align-items: center; gap: 5px; color: var(--jade); font-size: 10px; white-space: nowrap; }
-.command-error { margin: 7px 37px 0; display: flex; gap: 7px; color: var(--semantic-danger); font-size: 11px; }
-.history-command { min-height: 42px; display: flex; align-items: center; justify-content: space-between; color: var(--text-secondary); }
-.history-command span i { margin-right: 6px; color: var(--gold-soft); }
-.history-command button { padding: 0 12px; color: var(--gold); }
+.primary-command {
+  min-width: 82px;
+  border-color: var(--line-strong);
+  color: var(--gold);
+  background: var(--button-active);
+}
+.primary-command:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.primary-command.stop {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--semantic-danger) 55%, transparent);
+  background: color-mix(in srgb, var(--semantic-danger) 36%, var(--surface-inset));
+}
+.generation-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--jade);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.command-error {
+  margin: 7px 37px 0;
+  display: flex;
+  gap: 7px;
+  color: var(--semantic-danger);
+  font-size: 11px;
+}
+.history-command {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-secondary);
+}
+.history-command span i {
+  margin-right: 6px;
+  color: var(--gold-soft);
+}
+.history-command button {
+  padding: 0 12px;
+  color: var(--gold);
+}
 
 @media screen and (max-width: 600px) {
-  .command-dock { padding: 7px 8px 8px; }
-  .interaction-segments { grid-template-columns: repeat(2, 30px); }
-  .interaction-segments button { padding: 0; }
-  .interaction-segments button span { display: none; }
-  .connection-dot { width: 24px; }
-  .primary-command { min-width: 42px; }
-  .primary-command span, .generation-label { display: none; }
-  .selected-intent, .command-error { margin-right: 0; margin-left: 31px; }
+  .command-dock {
+    padding: 7px 8px max(8px, env(safe-area-inset-bottom));
+  }
+  .command-row {
+    min-height: 44px;
+    gap: 6px;
+  }
+  .interaction-segments {
+    grid-template-columns: repeat(2, 30px);
+  }
+  .interaction-segments button {
+    padding: 0;
+  }
+  .interaction-segments button span {
+    display: none;
+  }
+  .connection-dot {
+    width: 24px;
+  }
+  textarea {
+    height: 44px;
+    min-height: 44px;
+    padding: 9px 10px;
+    font-size: 16px;
+  }
+  .native-input-command,
+  .primary-command {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .primary-command span,
+  .generation-label {
+    display: none;
+  }
+  .selected-intent,
+  .command-error {
+    margin-right: 0;
+    margin-left: 31px;
+  }
 }
 
 @media screen and (max-width: 420px) {
-  .connection-dot { display: none; }
+  .connection-dot {
+    display: none;
+  }
 }
 </style>
