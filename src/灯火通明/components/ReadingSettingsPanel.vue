@@ -49,6 +49,21 @@
             <small>只影响正文阅读席</small>
           </div>
 
+          <div class="setting-group">
+            <span>阅读模式</span>
+            <div class="segmented-control">
+              <button
+                v-for="item in readingModes"
+                :key="item.value"
+                type="button"
+                :class="{ active: currentReadingMode === item.value }"
+                @click="appearance.setReadingMode(viewportMode, item.value)"
+              >
+                <i :class="item.icon"></i> {{ item.label }}
+              </button>
+            </div>
+          </div>
+
           <label class="range-setting">
             <span>正文字号 <output>{{ appearance.preferences.fontSize }}px</output></span>
             <input
@@ -73,15 +88,50 @@
             />
           </label>
 
-          <div class="setting-group">
-            <span>阅读宽度</span>
-            <div class="segmented-control">
+          <div class="reading-width-setting">
+            <div class="reading-width-heading">
+              <span>
+                <strong>阅读宽度</strong>
+                <small>调节正文占用内容区的比例</small>
+              </span>
+              <output>{{ appearance.preferences.measureWidth }}%</output>
+            </div>
+            <input
+              :value="appearance.preferences.measureWidth"
+              type="range"
+              min="50"
+              max="100"
+              step="1"
+              aria-label="阅读宽度"
+              @input="updateMeasureWidth"
+            />
+            <div class="width-preset-row">
               <button
                 v-for="item in measures"
                 :key="item.value"
                 type="button"
-                :class="{ active: appearance.preferences.measure === item.value }"
-                @click="appearance.updatePreferences({ measure: item.value })"
+                :class="{ active: appearance.preferences.measureWidth === item.width }"
+                @click="selectMeasure(item)"
+              >
+                <span>{{ item.label }}</span>
+                <small>{{ item.width }}%</small>
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-group reasoning-appearance-setting">
+            <span>
+              <strong>思维链外观</strong>
+              <small>优先保留预设已有美化</small>
+            </span>
+            <div class="segmented-control">
+              <button
+                v-for="item in reasoningAppearances"
+                :key="item.value"
+                type="button"
+                :title="item.description"
+                :class="{ active: appearance.preferences.reasoningAppearance === item.value }"
+                @click="appearance.updatePreferences({ reasoningAppearance: item.value })"
               >
                 {{ item.label }}
               </button>
@@ -115,7 +165,7 @@
         </div>
 
         <footer>
-          <button type="button" @click="appearance.resetPreferences">
+          <button type="button" @click="resetDefaults">
             <i class="fa-solid fa-rotate-left"></i> 恢复阅读默认值
           </button>
         </footer>
@@ -126,23 +176,50 @@
 
 <script setup lang="ts">
 import { usePseudoLayerStore, useThemeStore } from '../store';
-import type { ReadingMeasure, ReadingPreferences } from '../stores/theme-store';
+import type {
+  ReasoningAppearanceMode,
+  ReadingMeasure,
+  ReadingMode,
+  ReadingPreferences,
+  ReadingViewportMode,
+} from '../stores/theme-store';
 
-defineProps<{ visible: boolean }>();
+const props = defineProps<{ visible: boolean; viewportMode: ReadingViewportMode }>();
 defineEmits<{ (event: 'close'): void }>();
 const appearance = useThemeStore();
 const pseudo = usePseudoLayerStore();
-const measures: Array<{ value: ReadingMeasure; label: string }> = [
-  { value: 'narrow', label: '窄' },
-  { value: 'standard', label: '标准' },
-  { value: 'wide', label: '宽' },
+const measures: Array<{ value: ReadingMeasure; label: string; width: number }> = [
+  { value: 'narrow', label: '窄', width: 58 },
+  { value: 'standard', label: '标准', width: 76 },
+  { value: 'wide', label: '宽', width: 100 },
 ];
+const readingModes: Array<{ value: ReadingMode; label: string; icon: string }> = [
+  { value: 'paged', label: '翻页', icon: 'fa-solid fa-book-open' },
+  { value: 'scroll', label: '翻滚', icon: 'fa-solid fa-scroll' },
+];
+const reasoningAppearances: Array<{ value: ReasoningAppearanceMode; label: string; description: string }> = [
+  { value: 'auto', label: '自动适配', description: '有预设美化时原样保留，否则使用灯火主题' },
+  { value: 'preset', label: '保留预设', description: '优先使用预设格式，普通内容保持基础排版' },
+  { value: 'theme', label: '灯火主题', description: '统一使用随当前界面主题变化的心灯样式' },
+];
+const currentReadingMode = computed(() => appearance.readingModes[props.viewportMode]);
+const viewportMode = computed(() => props.viewportMode);
 
 const updateNumber = (key: 'fontSize' | 'lineHeight', event: Event) => {
   appearance.updatePreferences({ [key]: Number((event.target as HTMLInputElement).value) });
 };
+const updateMeasureWidth = (event: Event) => {
+  appearance.updatePreferences({ measureWidth: Number((event.target as HTMLInputElement).value) });
+};
+const selectMeasure = (item: (typeof measures)[number]) => {
+  appearance.updatePreferences({ measure: item.value, measureWidth: item.width });
+};
 const updateBoolean = (key: keyof Pick<ReadingPreferences, 'showPortraitRail' | 'reduceMotion'>, event: Event) => {
   appearance.updatePreferences({ [key]: (event.target as HTMLInputElement).checked });
+};
+const resetDefaults = () => {
+  appearance.resetPreferences();
+  appearance.resetReadingMode(props.viewportMode);
 };
 </script>
 
@@ -225,15 +302,63 @@ const updateBoolean = (key: keyof Pick<ReadingPreferences, 'showPortraitRail' | 
 .theme-check { position: absolute; top: 8px; right: 8px; color: var(--preview-accent); font-size: 10px; }
 
 .reading-settings { padding-bottom: 4px; }
-.range-setting, .setting-group, .toggle-setting { padding: 12px 0; border-bottom: 1px solid var(--line-subtle); }
+.range-setting, .setting-group, .reading-width-setting, .toggle-setting { padding: 12px 0; border-bottom: 1px solid var(--line-subtle); }
 .range-setting { display: grid; gap: 9px; }
 .range-setting > span { display: flex; justify-content: space-between; color: var(--text-accent); }
 .range-setting output { color: var(--gold); font-variant-numeric: tabular-nums; }
 .range-setting input { width: 100%; accent-color: var(--gold); }
+.reading-width-setting { display: grid; gap: 10px; }
+.reading-width-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.reading-width-heading > span { display: grid; gap: 2px; }
+.reading-width-heading small { color: var(--text-secondary); font-size: 10px; }
+.reading-width-heading output {
+  min-width: 46px;
+  color: var(--gold);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.reading-width-setting > input {
+  width: 100%;
+  accent-color: var(--gold);
+}
+.width-preset-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.width-preset-row button {
+  min-height: 34px;
+  padding: 5px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  background: var(--surface-inset);
+  cursor: pointer;
+}
+.width-preset-row button small {
+  color: color-mix(in srgb, var(--text-secondary) 76%, transparent);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 9px;
+}
+.width-preset-row button.active {
+  border-color: color-mix(in srgb, var(--gold) 48%, var(--line-subtle));
+  color: var(--gold);
+  background: var(--button-active);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 8%, transparent);
+}
+.width-preset-row button.active small { color: var(--gold-soft); }
 .setting-group { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-accent); }
 .segmented-control { display: flex; padding: 2px; border: 1px solid var(--line-subtle); border-radius: 6px; background: var(--surface-inset); }
 .segmented-control button { min-width: 48px; padding: 6px 10px; border: 0; border-radius: 4px; color: var(--text-secondary); background: transparent; cursor: pointer; }
 .segmented-control button.active { color: var(--gold); background: var(--button-active); }
+.reasoning-appearance-setting > span { display: grid; gap: 2px; }
+.reasoning-appearance-setting > span small { color: var(--text-secondary); font-size: 10px; }
+.reasoning-appearance-setting .segmented-control button { min-width: 66px; }
 .toggle-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
 .toggle-setting > span { display: grid; gap: 2px; }
 .toggle-setting small { color: var(--text-secondary); }
@@ -249,5 +374,8 @@ const updateBoolean = (key: keyof Pick<ReadingPreferences, 'showPortraitRail' | 
   .theme-setting, .reading-settings { padding: 14px 12px; }
   .theme-grid { grid-template-columns: 1fr; }
   .theme-card { grid-template-columns: 82px minmax(0, 1fr); }
+  .reasoning-appearance-setting { align-items: stretch; flex-direction: column; }
+  .reasoning-appearance-setting .segmented-control { width: 100%; }
+  .reasoning-appearance-setting .segmented-control button { min-width: 0; flex: 1; padding-inline: 6px; }
 }
 </style>

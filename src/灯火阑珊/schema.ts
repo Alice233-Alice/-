@@ -7,7 +7,13 @@ import { z } from 'zod';
 
 // 子模块导入
 import { CharacterLibEntrySchema, CompanionSchema, DEFAULT_CHARACTER_LIB, NpcSchema } from './schema/characters';
-import { computeRealmInfo, migrateCultivationProgress, normalizeCultivationState } from './schema/common';
+import {
+  computeRealmInfo,
+  finiteNumber,
+  migrateCultivationProgress,
+  NormalizedStringListSchema,
+  normalizeCultivationState,
+} from './schema/common';
 import { ProtagonistSchema } from './schema/protagonist';
 import {
   DifficultySystemSchema,
@@ -15,6 +21,7 @@ import {
   QuestSchema,
   ReputationSystemSchema,
   SystemSettingsSchema,
+  unwrapOpportunityPatchPayload,
 } from './schema/systems';
 import {
   DEFAULT_LOCATIONS,
@@ -28,12 +35,19 @@ import {
 } from './schema/world';
 
 // 重新导出所有子模块的公开内容
-export { CharacterLibEntrySchema, CompanionSchema, CustomPortraitSchema, DEFAULT_CHARACTER_LIB, NpcSchema } from './schema/characters';
+export {
+  CharacterLibEntrySchema,
+  CompanionSchema,
+  CustomPortraitSchema,
+  DEFAULT_CHARACTER_LIB,
+  NpcSchema,
+} from './schema/characters';
 export {
   CultivationStateSchema,
   computeRealmInfo,
   describeRealmByLevel,
   extractSpiritStoneFromInventory,
+  finiteNumber,
   getCultivationStatusLabel,
   getRealmThreshold,
   InventorySchema,
@@ -41,8 +55,12 @@ export {
   ItemSchema,
   migrateCultivationProgress,
   migrateLegacyCultivationProgress,
+  NormalizedStringListSchema,
   normalizeSpiritStoneState,
   normalizeCultivationState,
+  normalizeRealmLevel,
+  RealmTransitionSchema,
+  SkillListSchema,
   SkillSchema,
   品阶映射,
   熟练度映射,
@@ -56,6 +74,7 @@ export {
   ReputationEntrySchema,
   ReputationSystemSchema,
   SystemSettingsSchema,
+  unwrapOpportunityPatchPayload,
 } from './schema/systems';
 export {
   calculateBaseCombatPower,
@@ -96,8 +115,23 @@ const COMPANION_ALIAS_GROUPS = [
   { canonical: AN_CHICHI_CANONICAL_NAME, aliases: AN_CHICHI_ALIASES },
 ] as const;
 const LATEST_CULTIVATION_SYSTEM_VERSION = 3;
+const LATEST_SCHEMA_VERSION = 2;
 const DEFAULT_COMPANION = CompanionSchema.parse({});
 const CJK_TEXT_PATTERN = /[\u3400-\u4dbf\u4e00-\u9fff]/;
+const MAX_OPPORTUNITIES = 4;
+const ACTION_TEXT_LIMIT = 48;
+const ACTION_HINT_LIMIT = 28;
+const SITUATION_TEXT_LIMIT = 64;
+
+function normalizePromptText(value: unknown, maxLength: number): string {
+  return Array.from(
+    String(value ?? '')
+      .replace(/\s+/gu, ' ')
+      .trim(),
+  )
+    .slice(0, maxLength)
+    .join('');
+}
 
 function preferNonDefaultString(incoming: unknown, current: string, fallback: string): string {
   const normalizedIncoming = String(incoming ?? '').trim();
@@ -178,6 +212,7 @@ function mergeCompanionData(
         String(base.修炼状态?.上次结果 ?? fallbackCultivationState.上次结果),
         fallbackCultivationState.上次结果,
       ),
+      境界变动: incoming.修炼状态?.境界变动?.类型 !== '无' ? incoming.修炼状态.境界变动 : base.修炼状态?.境界变动,
     },
     {
       legacyAttemptBreakthrough: merged.尝试突破,
@@ -261,7 +296,9 @@ function mergeCharacterLibEntry(
     属: preferNonDefaultString(incoming.属, String(base.属 ?? ''), ''),
     法: preferNonDefaultString(incoming.法, String(base.法 ?? ''), ''),
     器: preferNonDefaultString(incoming.器, String(base.器 ?? ''), ''),
-    通: Array.from(new Set([...(base.通 ?? []), ...(incoming.通 ?? [])].map(value => String(value).trim()).filter(Boolean))),
+    通: Array.from(
+      new Set([...(base.通 ?? []), ...(incoming.通 ?? [])].map(value => String(value).trim()).filter(Boolean)),
+    ),
     自定义立绘: {
       正面: String(incoming.自定义立绘?.正面 ?? '').trim() || String(base.自定义立绘?.正面 ?? '').trim(),
       背面: String(incoming.自定义立绘?.背面 ?? '').trim() || String(base.自定义立绘?.背面 ?? '').trim(),
@@ -388,20 +425,20 @@ export const Schema = z
   .object({
     世界时钟: z
       .object({
-        纪元: z.string().prefault('末法时代'),
-        年份: z.coerce.number().prefault(1),
-        月份: z.coerce
-          .number()
-          .transform(v => _.clamp(v, 1, 12))
+        纪元: z.string().prefault('盛法时代'),
+        年份: finiteNumber(1)
+          .transform(v => Math.max(1, Math.floor(v)))
           .prefault(1),
-        日期: z.coerce
-          .number()
-          .transform(v => _.clamp(v, 1, 30))
+        月份: finiteNumber(1)
+          .transform(v => _.clamp(Math.floor(v), 1, 12))
+          .prefault(1),
+        日期: finiteNumber(1)
+          .transform(v => _.clamp(Math.floor(v), 1, 30))
           .prefault(1),
         时辰: z.string().prefault('子时'),
       })
       .prefault({
-        纪元: '末法时代',
+        纪元: '盛法时代',
         年份: 1,
         月份: 1,
         日期: 1,
@@ -413,9 +450,9 @@ export const Schema = z
         z.string().describe('区域名'),
         z.object({
           layer: z.enum(['天层', '地层', '下层']).prefault('地层'),
-          danger: z.coerce.number().transform(v => _.clamp(v, 0, 100)),
+          danger: finiteNumber(0).transform(v => _.clamp(v, 0, 100)),
           desc: z.string().prefault(''),
-          connections: z.array(z.string()).prefault([]),
+          connections: NormalizedStringListSchema,
         }),
       )
       .prefault({}),
@@ -493,13 +530,40 @@ export const Schema = z
     难度系统: DifficultySystemSchema,
 
     // ========== 行动提示系统 ==========
-    可参与机遇: z
-      .array(OpportunitySchema)
-      .prefault([])
-      .transform(list => list.filter(item => !!item.名称)),
+    可参与机遇: z.preprocess(
+      unwrapOpportunityPatchPayload,
+      z
+        .array(OpportunitySchema)
+        .prefault([])
+        .transform(list => {
+          const seen = new Set<string>();
+
+          return list
+            .flatMap(item => {
+              const action = normalizePromptText(item.行动, ACTION_TEXT_LIMIT);
+              if (!action || seen.has(action)) {
+                return [];
+              }
+
+              seen.add(action);
+              const hint = normalizePromptText(item.提示, ACTION_HINT_LIMIT);
+              return [
+                {
+                  行动: action,
+                  类型: item.类型,
+                  ...(hint ? { 提示: hint } : {}),
+                },
+              ];
+            })
+            .slice(0, MAX_OPPORTUNITIES);
+        }),
+    ),
 
     // 当前处境描述（用于行动提示面板顶部显示）
-    当前处境: z.string().prefault(''),
+    当前处境: z
+      .string()
+      .prefault('')
+      .transform(value => normalizePromptText(value, SITUATION_TEXT_LIMIT)),
 
     // 系统设置
     _系统设置: SystemSettingsSchema,
@@ -507,7 +571,7 @@ export const Schema = z
     _好感度快照: z
       .record(
         z.string().describe('红颜名'),
-        z.coerce.number().transform(v => _.clamp(v, -200, 200)),
+        finiteNumber(0).transform(v => _.clamp(v, -200, 200)),
       )
       .prefault({}),
   })
@@ -525,6 +589,7 @@ export const Schema = z
     data._系统设置 = {
       ...(data._系统设置 ?? {}),
       修炼系统版本: LATEST_CULTIVATION_SYSTEM_VERSION,
+      变量结构版本: LATEST_SCHEMA_VERSION,
       _临时状态手动覆盖签名: String(data._系统设置?._临时状态手动覆盖签名 ?? ''),
     };
 

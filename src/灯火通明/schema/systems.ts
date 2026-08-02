@@ -161,58 +161,65 @@ export const ReputationSystemSchema = z
   });
 
 // 可参与机遇 Schema
-type OpportunityType = '探索' | '任务' | '交易' | '结交' | '争夺' | '修炼' | '红颜' | '随机';
+export type OpportunityType = '探索' | '交涉' | '战斗' | '修炼' | '整备' | '亲密';
 
 const 机遇类型映射: Record<string, OpportunityType> = {
   探索: '探索',
-  任务: '任务',
-  交易: '交易',
-  结交: '结交',
-  争夺: '争夺',
-  修炼: '修炼',
-  红颜: '红颜',
-  随机: '随机',
   行动: '探索',
   冒险: '探索',
-  日常: '任务',
-  日常互动: '红颜',
-  战斗: '争夺',
-  挑战: '争夺',
-  社交: '结交',
-  互动: '结交',
-  邀约: '结交',
-  邂逅: '结交',
   机缘: '探索',
   机遇: '探索',
   奇遇: '探索',
   秘境: '探索',
   寻宝: '探索',
-  采购: '交易',
-  易物: '交易',
-  买卖: '交易',
-  委托: '任务',
-  悬赏: '任务',
-  临危受命: '任务',
-  支线: '任务',
-  主线: '任务',
-  双修: '红颜',
-  亲密: '红颜',
-  调情: '红颜',
-  random: '随机',
+  交涉: '交涉',
+  结交: '交涉',
+  交谈: '交涉',
+  社交: '交涉',
+  互动: '交涉',
+  邀约: '交涉',
+  邂逅: '交涉',
+  战斗: '战斗',
+  争夺: '战斗',
+  挑战: '战斗',
+  修炼: '修炼',
+  整备: '整备',
+  交易: '整备',
+  采购: '整备',
+  易物: '整备',
+  买卖: '整备',
+  红颜: '亲密',
+  双修: '亲密',
+  亲密: '亲密',
+  调情: '亲密',
 };
 
 const 机遇类型推断规则: Array<{ type: OpportunityType; pattern: RegExp }> = [
   {
-    type: '红颜',
+    type: '亲密',
     pattern:
-      /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜/,
+      /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|亲吻|亲密|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜/,
   },
-  { type: '修炼', pattern: /修炼|闭关|打坐|吐纳|冲关|破境|突破|压境|稳固|悟道|渡劫|根基|丹药|灵阵|参悟/ },
-  { type: '交易', pattern: /坊市|易物|交易|买卖|采购|拍卖|丹药铺|商会|补给|售卖|收购|置换/ },
-  { type: '争夺', pattern: /争夺|夺取|抢夺|截杀|斗法|厮杀|围攻|追杀|迎战|强敌|魔修|冲突|守擂|比斗/ },
-  { type: '任务', pattern: /任务|委托|悬赏|求援|护送|调查|追查|营救|临危|急报|收尾|善后|赴约|赴命/ },
-  { type: '结交', pattern: /结交|拜访|邀约|会面|结识|拉拢|试探|求见|访友|赴宴|论道|同游/ },
-  { type: '随机', pattern: /随缘|随机|碰运气|听天由命/ },
+  {
+    type: '修炼',
+    pattern: /修炼|闭关|打坐|吐纳|调息|冲关|破境|突破|压境|稳固|悟道|渡劫|根基|炼化|参悟/,
+  },
+  {
+    type: '整备',
+    pattern: /整备|修复|炼器|疗伤|丹药|灵阵|阵纹|坊市|易物|交易|买卖|采购|拍卖|商会|补给|售卖|收购|置换/,
+  },
+  {
+    type: '战斗',
+    pattern: /战斗|争夺|夺取|抢夺|截杀|斗法|厮杀|围攻|追杀|迎战|强敌|魔修|冲突|守擂|比斗/,
+  },
+  {
+    type: '交涉',
+    pattern: /交涉|交谈|结交|拜访|邀约|会面|结识|拉拢|试探|求见|访友|赴宴|询问|劝说|谈判|论道|同游/,
+  },
+  {
+    type: '探索',
+    pattern: /探索|探查|调查|追查|搜寻|寻找|寻路|赶路|潜入|护送|营救|赴约|秘境|线索|遗迹|洞穴/,
+  },
 ];
 
 function normalizeOpportunityText(value: unknown): string {
@@ -221,9 +228,7 @@ function normalizeOpportunityText(value: unknown): string {
 
 function inferOpportunityType(rawType: string, payload: Record<string, string>): OpportunityType {
   const mappedType = 机遇类型映射[rawType];
-  if (mappedType) {
-    return mappedType;
-  }
+  if (mappedType) return mappedType;
 
   const text = Object.values(payload)
     .map(value => normalizeOpportunityText(value))
@@ -231,55 +236,53 @@ function inferOpportunityType(rawType: string, payload: Record<string, string>):
     .join('｜');
 
   for (const rule of 机遇类型推断规则) {
-    if (rule.pattern.test(text)) {
-      return rule.type;
-    }
+    if (rule.pattern.test(text)) return rule.type;
   }
 
   return '探索';
 }
 
-export const OpportunitySchema = z
-  .object({
-    名称: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault(''),
-    来源: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault(''), // 如：剧情推进、任务触发、NPC邀请、地点发现、时限事件
-    类型: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault('探索'),
-    描述: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault(''),
-    回报预期: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault(''), // 如：中等灵石收益、可能获得功法线索
-    风险评估: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault(''), // 如：低风险、有战斗可能
-    时限: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .optional(), // 如：本日结束前、三日内
-    关联事件: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .optional(), // 关联的世界事件或任务
-    优先级: z.coerce
-      .number()
-      .transform(v => _.clamp(v, 1, 5))
-      .prefault(3), // 1-5，5最高
-  })
-  .transform(item => {
-    const payload = {
+function buildLegacyOpportunityHint(timeLimit: string, risk: string): string {
+  const parts = [
+    /^(?:无|无时限|不限)$/u.test(timeLimit) ? '' : timeLimit,
+    /^(?:无|无风险)$/u.test(risk) ? '' : risk,
+  ].filter(Boolean);
+  return _.uniq(parts).join(' · ');
+}
+
+const CompactOpportunitySchema = z.object({
+  行动: z.coerce.string().transform(normalizeOpportunityText),
+  类型: z.coerce.string().transform(normalizeOpportunityText).prefault('探索'),
+  提示: z.coerce.string().transform(normalizeOpportunityText).optional(),
+});
+
+const LegacyOpportunitySchema = z.object({
+  名称: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
+  来源: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
+  类型: z.coerce.string().transform(normalizeOpportunityText).prefault('探索'),
+  描述: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
+  回报预期: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
+  风险评估: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
+  时限: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  关联事件: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  优先级: z.coerce.number().optional(),
+});
+
+export const OpportunitySchema = z.union([CompactOpportunitySchema, LegacyOpportunitySchema]).transform(item => {
+  if ('行动' in item) {
+    const hint = normalizeOpportunityText(item.提示);
+    return {
+      行动: item.行动,
+      类型: inferOpportunityType(item.类型, { 行动: item.行动, 提示: hint }),
+      ...(hint ? { 提示: hint } : {}),
+    };
+  }
+
+  const action = item.描述 || item.名称;
+  const hint = buildLegacyOpportunityHint(item.时限 ?? '', item.风险评估);
+  return {
+    行动: action,
+    类型: inferOpportunityType(item.类型, {
       名称: item.名称,
       来源: item.来源,
       描述: item.描述,
@@ -287,13 +290,10 @@ export const OpportunitySchema = z
       风险评估: item.风险评估,
       时限: item.时限 ?? '',
       关联事件: item.关联事件 ?? '',
-    };
-
-    return {
-      ...item,
-      类型: inferOpportunityType(item.类型, payload),
-    };
-  });
+    }),
+    ...(hint ? { 提示: hint } : {}),
+  };
+});
 
 // 系统设置 Schema
 export const SystemSettingsSchema = z

@@ -90,22 +90,42 @@
             <article class="dialogue-turn character-turn">
               <div class="bubble-heading">
                 <span>{{ context?.targetName }}</span>
+                <small v-if="turn.tokenCount !== null" class="reply-token-count" title="本层回复 Token">
+                  {{ turn.tokenCount }}t
+                </small>
                 <button
-                  v-if="turn.reasoning"
+                  v-if="turn.reasoning && !turnUsesOwnDisclosure(turn)"
                   type="button"
-                  :title="expandedReasoningId === turn.assistantMessageId ? '收起推演思绪' : '查看推演思绪'"
+                  class="reasoning-mini-trigger"
+                  :class="{ active: expandedReasoningId === turn.assistantMessageId }"
+                  :aria-expanded="expandedReasoningId === turn.assistantMessageId"
+                  :title="expandedReasoningId === turn.assistantMessageId ? '收起灵台观照' : '展开灵台观照'"
                   @click="toggleReasoning(turn.assistantMessageId)"
                 >
-                  <i class="fa-solid fa-brain"></i>
-                  <span v-if="turn.reasoningDuration">{{ formatDuration(turn.reasoningDuration) }}</span>
+                  <i class="fa-solid fa-fire-flame-curved"></i>
+                  <span>观照</span>
+                  <span v-if="turn.reasoningDuration" class="reasoning-mini-time">
+                    {{ formatDuration(turn.reasoningDuration) }}
+                  </span>
                 </button>
               </div>
               <p v-if="turn.reaction" class="dialogue-reaction">{{ turn.reaction }}</p>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div class="dialogue-bubble formatted" v-html="formatReply(turn.replyText, turn.assistantMessageId)"></div>
-              <div v-if="expandedReasoningId === turn.assistantMessageId" class="turn-reasoning">
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <div v-html="formatReasoning(turn.reasoning, turn.assistantMessageId)"></div>
+              <div v-if="turn.reasoning && turnUsesOwnDisclosure(turn)" class="turn-reasoning">
+                <ReasoningDisplay
+                  :text="turn.reasoning"
+                  :raw-message="turn.rawMessage"
+                  :message-id="turn.assistantMessageId"
+                  :open-preset-disclosure="false"
+                />
+              </div>
+              <div v-else-if="expandedReasoningId === turn.assistantMessageId" class="turn-reasoning">
+                <ReasoningDisplay
+                  :text="turn.reasoning"
+                  :raw-message="turn.rawMessage"
+                  :message-id="turn.assistantMessageId"
+                />
               </div>
             </article>
           </template>
@@ -124,10 +144,31 @@
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div v-if="liveReplyHtml" class="dialogue-bubble formatted" v-html="liveReplyHtml"></div>
             <div v-else class="dialogue-bubble waiting-dots" aria-label="等待回应"><i></i><i></i><i></i></div>
-            <details v-if="pseudo.liveReasoning" class="live-reasoning">
-              <summary><i class="fa-solid fa-brain"></i> 推演思绪</summary>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <div v-html="formatReasoning(pseudo.liveReasoning, pseudo.view.selectedMessageId)"></div>
+            <div v-if="pseudo.liveReasoning && liveUsesOwnDisclosure" class="turn-reasoning">
+              <ReasoningDisplay
+                :text="pseudo.liveReasoning"
+                :raw-message="pseudo.streamText"
+                :message-id="pseudo.view.selectedMessageId"
+                :open-preset-disclosure="false"
+                :streaming="liveReasoningStreaming"
+              />
+            </div>
+            <details v-else-if="pseudo.liveReasoning" ref="liveReasoningDetails" class="live-reasoning">
+              <summary>
+                <span class="live-reasoning-glyph"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                <strong>灵台观照</strong>
+                <small v-if="liveReasoningStreaming">
+                  推演中<span v-if="pseudo.reasoningDuration"> · {{ formatDuration(pseudo.reasoningDuration) }}</span>
+                </small>
+                <small v-else-if="pseudo.reasoningDuration">{{ formatDuration(pseudo.reasoningDuration) }}</small>
+                <i class="fa-solid fa-chevron-down"></i>
+              </summary>
+              <ReasoningDisplay
+                :text="pseudo.liveReasoning"
+                :raw-message="pseudo.streamText"
+                :message-id="pseudo.view.selectedMessageId"
+                :streaming="liveReasoningStreaming"
+              />
             </details>
           </article>
         </div>
@@ -166,10 +207,11 @@
 <script setup lang="ts">
 import { getCharacterImageCandidates } from '../character-assets';
 import { useStreamFollow } from '../composables/use-stream-follow';
-import { formatMessageHtml } from '../message-content';
+import { formatMessageHtml, hasInlineReasoningPresetDisclosure } from '../message-content';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import type { DialogueTurn } from '../store';
 import DialogueTargetPicker from './DialogueTargetPicker.vue';
+import ReasoningDisplay from './ReasoningDisplay.vue';
 
 const pseudo = usePseudoLayerStore();
 const data = useDataStore();
@@ -185,6 +227,7 @@ const {
   resumeFollowing: resumeStreamFollow,
 } = useStreamFollow(scrollRef);
 const expandedReasoningId = ref<number | null>(null);
+const liveReasoningDetails = ref<HTMLDetailsElement | null>(null);
 const showPicker = ref(false);
 
 const context = computed(() => pseudo.dialogueContext);
@@ -228,21 +271,46 @@ const pendingUserText = computed(() => pseudo.generationUserMessage.trim() || ps
 const liveReplyHtml = computed(() =>
   formatMessageHtml(pseudo.streamText, pseudo.view.selectedMessageId),
 );
+const liveReasoningStreaming = computed(
+  () => pseudo.isGenerating && pseudo.liveReasoningState === 'thinking',
+);
 const liveStatus = computed(() => {
   if (pseudo.generationState === 'preparing') return context.value?.channel === 'transmission' ? '传讯送出' : '静候回应';
   if (pseudo.generationState === 'saving') return '落定记录';
   if (pseudo.generationState === 'stopping') return '收束回应';
+  if (liveReasoningStreaming.value && !pseudo.streamText) return '推演中';
   return context.value?.channel === 'transmission' ? '回信中' : '回应中';
 });
 
 const formatReply = (text: string, messageId: number) => formatMessageHtml(text, messageId);
-const formatReasoning = (text: string, messageId: number) => formatMessageHtml(text, messageId);
 const formatDuration = (duration: number) => `${Math.max(1, Math.round(duration / 1000))} 秒`;
+const messageUsesOwnDisclosure = (rawMessage: string, messageId: number) =>
+  appearance.preferences.reasoningAppearance !== 'theme' && hasInlineReasoningPresetDisclosure(rawMessage, messageId);
+const turnUsesOwnDisclosure = (turn: DialogueTurn) =>
+  messageUsesOwnDisclosure(turn.rawMessage, turn.assistantMessageId);
+const liveUsesOwnDisclosure = computed(() =>
+  messageUsesOwnDisclosure(pseudo.streamText, pseudo.view.selectedMessageId),
+);
 const toggleReasoning = (messageId: number) => {
   expandedReasoningId.value = expandedReasoningId.value === messageId ? null : messageId;
 };
 
-watch([() => pseudo.streamText, () => pseudo.streamReaction, () => pseudo.dialogueTurns.length], queueStreamFollow);
+let autoOpenedReasoningRequest = '';
+watch(
+  [() => pseudo.activeRequestId, () => pseudo.liveReasoning],
+  ([requestId, reasoning]) => {
+    if (!requestId || !reasoning || autoOpenedReasoningRequest === requestId) return;
+    autoOpenedReasoningRequest = requestId;
+    void nextTick(() => {
+      if (liveReasoningDetails.value) liveReasoningDetails.value.open = true;
+      queueStreamFollow();
+    });
+  },
+);
+watch(
+  [() => pseudo.streamText, () => pseudo.streamReaction, () => pseudo.liveReasoning, () => pseudo.dialogueTurns.length],
+  queueStreamFollow,
+);
 watch(
   () => context.value?.sessionId,
   () => resumeStreamFollow(false),
@@ -251,6 +319,7 @@ watch(
   () => pseudo.generationState,
   (next, previous) => {
     if (previous === 'idle' && next !== 'idle') resumeStreamFollow(false);
+    if (next === 'idle') autoOpenedReasoningRequest = '';
   },
 );
 watch(
@@ -418,6 +487,11 @@ watch(
 }
 .bubble-heading { width: 100%; min-height: 21px; display: flex; align-items: center; gap: 8px; }
 .bubble-heading > span:first-child { color: var(--text-accent); }
+.reply-token-count {
+  color: var(--text-secondary);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 9px;
+}
 .bubble-heading button {
   min-height: 21px;
   padding: 0 6px;
@@ -432,6 +506,30 @@ watch(
   cursor: pointer;
 }
 .bubble-heading button:hover { color: var(--jade); }
+.bubble-heading button.reasoning-mini-trigger {
+  min-height: 25px;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--jade) 28%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--jade);
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--jade) 13%, transparent), transparent 48%),
+    color-mix(in srgb, var(--surface-inset) 82%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 4%, transparent);
+}
+.bubble-heading button.reasoning-mini-trigger:hover,
+.bubble-heading button.reasoning-mini-trigger.active {
+  border-color: color-mix(in srgb, var(--gold) 46%, var(--line-strong));
+  color: var(--gold);
+  background: color-mix(in srgb, var(--button-active) 82%, var(--surface-inset));
+  box-shadow: 0 0 13px color-mix(in srgb, var(--accent-glow) 24%, transparent);
+}
+.reasoning-mini-time {
+  padding-left: 5px;
+  border-left: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  color: var(--gold-soft);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+}
 .dialogue-bubble {
   padding: 11px 14px;
   border: 1px solid var(--line-subtle);
@@ -479,7 +577,63 @@ watch(
   font-size: 11px;
   line-height: 1.7;
 }
-.live-reasoning summary { color: var(--jade); cursor: pointer; }
+
+/* Preset cards provide their own surface; keep the dialogue shell from
+ * creating a second dark frame around them. */
+.turn-reasoning:has(.reasoning-presentation[data-presentation='preset']) {
+  padding: 0;
+  border-left: 0;
+  color: inherit;
+  background: transparent;
+}
+.live-reasoning summary {
+  min-height: 34px;
+  padding: 4px 9px 4px 4px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--jade) 30%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--text-accent);
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--jade) 14%, transparent), transparent 46%),
+    linear-gradient(110deg, color-mix(in srgb, var(--surface-raised) 90%, transparent), var(--surface-inset));
+  cursor: pointer;
+  list-style: none;
+}
+.live-reasoning summary::-webkit-details-marker { display: none; }
+.live-reasoning summary > .live-reasoning-glyph {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--jade) 40%, transparent);
+  border-radius: 50%;
+  color: var(--jade);
+}
+.live-reasoning summary strong {
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.live-reasoning summary small {
+  padding-left: 7px;
+  border-left: 1px solid color-mix(in srgb, var(--gold) 24%, transparent);
+  color: var(--gold-soft);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+}
+.live-reasoning summary > i:last-child {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 8px;
+  transition: transform 0.2s ease;
+}
+.live-reasoning[open] summary {
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 52%, var(--line-strong));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent-glow) 28%, transparent);
+}
+.live-reasoning[open] summary > i:last-child { transform: rotate(180deg); }
 .live-status { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; color: var(--jade) !important; }
 .waiting-dots { min-width: 72px; display: flex; align-items: center; justify-content: center; gap: 5px; }
 .waiting-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--jade); animation: dialogue-pulse 1.1s ease-in-out infinite; }

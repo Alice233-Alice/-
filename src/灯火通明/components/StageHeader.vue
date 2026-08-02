@@ -1,12 +1,15 @@
 <template>
-  <header class="stage-header">
+  <header class="stage-header" :class="`reading-${readingMode}`">
     <div class="turn-cluster">
       <img class="crane-mark" src="https://pub-4d14ab94aa29488b977bc5be9f2a06ef.r2.dev/picgo/仙鹤.png" alt="" />
       <div class="turn-copy">
         <span>灯火阑珊</span>
         <strong :title="stageTitle">{{ stageTitle }}</strong>
+        <small v-if="pseudo.view.tokenCount !== undefined" class="turn-token-count" title="本层回复 Token">
+          {{ pseudo.view.tokenCount }}t
+        </small>
       </div>
-      <div class="turn-navigation">
+      <div v-if="readingMode === 'paged'" class="turn-navigation">
         <button
           type="button"
           :disabled="history.previousMessageId === undefined || pseudo.isGenerating"
@@ -33,48 +36,85 @@
           <i class="fa-solid fa-forward-step"></i>
         </button>
       </div>
+      <div class="reading-mode-switch" role="group" aria-label="阅读模式">
+        <button
+          type="button"
+          :class="{ active: readingMode === 'paged' }"
+          title="翻页阅读"
+          @click="$emit('set-reading-mode', 'paged')"
+        >
+          <i class="fa-solid fa-book-open"></i>
+        </button>
+        <button
+          type="button"
+          :class="{ active: readingMode === 'scroll' }"
+          title="翻滚长卷"
+          @click="$emit('set-reading-mode', 'scroll')"
+        >
+          <i class="fa-solid fa-scroll"></i>
+        </button>
+      </div>
     </div>
 
-    <button class="scene-location" type="button" title="打开行踪地图" @click="$emit('open-map')">
+    <button
+      class="scene-location"
+      type="button"
+      :title="`当前位置：${currentLocation}（打开行踪地图）`"
+      @click="$emit('open-map')"
+    >
       <span class="scene-kicker">此刻所在</span>
-      <strong>
+      <strong class="scene-location-full">
         <i class="fa-solid fa-location-dot"></i>
         <template v-if="showParent"
           ><span>{{ parentRegion }}</span
           ><b>·</b></template
         >
-        {{ data.本尊.行踪.当前区域 }}
+        {{ currentLocation }}
+      </strong>
+      <strong class="scene-location-compact" :title="currentLocation">
+        <i class="fa-solid fa-location-dot"></i>
+        <span>{{ compactLocation }}</span>
       </strong>
     </button>
 
     <div class="stage-utilities">
       <span class="danger-badge" :style="{ '--danger-color': dangerColor }">险 {{ data.本尊.行踪.危险度 ?? 10 }}</span>
+      <template v-if="readingMode === 'paged'">
+        <button
+          class="edit-button"
+          type="button"
+          title="查看与编辑当前楼层原文"
+          :disabled="!pseudo.canEditMessage"
+          @click="$emit('open-editor')"
+        >
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        <button
+          class="delete-button"
+          type="button"
+          :title="pseudo.canDelete ? deleteButtonTitle : '至少保留一个回合，且只能删除最新回合'"
+          :disabled="!pseudo.canDelete"
+          @click="deleteDialogOpen = true"
+        >
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+        <button
+          class="reroll-button"
+          type="button"
+          :title="pseudo.view.stage.kind === 'dialogue' ? '重生成本次回应' : '重生成本回正文'"
+          :disabled="!pseudo.canReroll"
+          @click="pseudo.reroll()"
+        >
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </template>
       <button
-        class="edit-button"
+        class="greeting-index-button"
         type="button"
-        title="查看与编辑当前楼层原文"
-        :disabled="!pseudo.canEditMessage"
-        @click="$emit('open-editor')"
+        title="开场白索引"
+        @click="$emit('open-greeting-index')"
       >
-        <i class="fa-solid fa-pen-to-square"></i>
-      </button>
-      <button
-        class="delete-button"
-        type="button"
-        :title="pseudo.canDelete ? deleteButtonTitle : '至少保留一个回合，且只能删除最新回合'"
-        :disabled="!pseudo.canDelete"
-        @click="deleteDialogOpen = true"
-      >
-        <i class="fa-solid fa-trash-can"></i>
-      </button>
-      <button
-        class="reroll-button"
-        type="button"
-        :title="pseudo.view.stage.kind === 'dialogue' ? '重生成本次回应' : '重生成本回正文'"
-        :disabled="!pseudo.canReroll"
-        @click="pseudo.reroll"
-      >
-        <i class="fa-solid fa-rotate-right"></i>
+        <i class="fa-solid fa-list-ol"></i>
       </button>
       <button class="preset-button" type="button" title="开局预设" @click="$emit('open-preset')">
         <i class="fa-solid fa-sliders"></i>
@@ -89,15 +129,42 @@
         <button
           class="mobile-tool-trigger"
           type="button"
-          title="预设与外观"
+          title="阅读与设置"
           aria-haspopup="menu"
           :aria-expanded="mobileToolsOpen"
           @click.stop="mobileToolsOpen = !mobileToolsOpen"
         >
-          <i class="fa-solid" :class="mobileToolsOpen ? 'fa-folder-open' : 'fa-folder'"></i>
+          <i class="fa-solid" :class="mobileToolsOpen ? 'fa-xmark' : 'fa-ellipsis-vertical'"></i>
         </button>
         <Transition name="mobile-tool-menu">
-          <div v-if="mobileToolsOpen" class="mobile-tool-menu" role="menu" aria-label="预设与外观">
+          <div v-if="mobileToolsOpen" class="mobile-tool-menu" role="menu" aria-label="阅读、预设与外观">
+            <button
+              type="button"
+              role="menuitemradio"
+              class="mobile-reading-mode"
+              :class="{ active: readingMode === 'paged' }"
+              :aria-checked="readingMode === 'paged'"
+              @click="selectReadingMode('paged')"
+            >
+              <i class="fa-solid fa-book-open"></i>
+              <span>翻页阅读</span>
+            </button>
+            <button
+              type="button"
+              role="menuitemradio"
+              class="mobile-reading-mode"
+              :class="{ active: readingMode === 'scroll' }"
+              :aria-checked="readingMode === 'scroll'"
+              @click="selectReadingMode('scroll')"
+            >
+              <i class="fa-solid fa-scroll"></i>
+              <span>翻滚长卷</span>
+            </button>
+            <span class="mobile-tool-divider" role="separator"></span>
+            <button type="button" role="menuitem" @click="openGreetingIndex">
+              <i class="fa-solid fa-list-ol"></i>
+              <span>开场白索引</span>
+            </button>
             <button type="button" role="menuitem" @click="openPreset">
               <i class="fa-solid fa-sliders"></i>
               <span>开局预设</span>
@@ -143,14 +210,23 @@
 <script setup lang="ts">
 import { useDataStore, usePseudoLayerStore } from '../store';
 import type { PseudoLayerHistoryKind } from '../pseudo-layer-protocol';
+import type { ReadingMode } from '../stores/theme-store';
 
-const props = defineProps<{ activeView: string; immersive: boolean; parentRegion: string; dangerColor: string }>();
+const props = defineProps<{
+  activeView: string;
+  immersive: boolean;
+  parentRegion: string;
+  dangerColor: string;
+  readingMode: ReadingMode;
+}>();
 const emit = defineEmits<{
   (event: 'open-map'): void;
+  (event: 'open-greeting-index'): void;
   (event: 'open-preset'): void;
   (event: 'open-settings'): void;
   (event: 'open-editor'): void;
   (event: 'toggle-immersive'): void;
+  (event: 'set-reading-mode', mode: ReadingMode): void;
 }>();
 
 const data = useDataStore();
@@ -177,6 +253,9 @@ const history = computed(
     },
 );
 const stageTitle = computed(() => {
+  if (props.readingMode === 'scroll' && props.activeView === 'timeline') {
+    return `历程 · ${pseudo.view.total || 1} 段`;
+  }
   if (props.activeView === 'story') return `第 ${history.value.index || 1} 回`;
   if (props.activeView === 'dialogue') {
     const dialogue = pseudo.dialogueContext;
@@ -197,6 +276,14 @@ const deleteDialogDescription = computed(() =>
     ? '将同时删除最后一条用户发言与角色回应；会话中的其余轮次会保留。此操作无法恢复。'
     : '将同时删除本回起念与正文，避免留下无法看见的用户楼层。此操作无法恢复。',
 );
+const currentLocation = computed(() => String(data.本尊.行踪.当前区域 || '').trim() || '未知之地');
+const compactLocation = computed(() => {
+  const segments = currentLocation.value
+    .split(/[·•›/]/)
+    .map(segment => segment.trim())
+    .filter(Boolean);
+  return segments.at(-1) ?? currentLocation.value;
+});
 const confirmDelete = () => {
   if (!pseudo.canDelete) return;
   pseudo.deleteCurrent();
@@ -205,9 +292,17 @@ const openPreset = () => {
   mobileToolsOpen.value = false;
   emit('open-preset');
 };
+const openGreetingIndex = () => {
+  mobileToolsOpen.value = false;
+  emit('open-greeting-index');
+};
 const openAppearance = () => {
   mobileToolsOpen.value = false;
   emit('open-settings');
+};
+const selectReadingMode = (mode: ReadingMode) => {
+  mobileToolsOpen.value = false;
+  emit('set-reading-mode', mode);
 };
 const handleMobileToolPointerDown = (event: PointerEvent) => {
   if (!mobileToolsOpen.value || mobileToolGroup.value?.contains(event.target as Node)) return;
@@ -234,7 +329,7 @@ watch(
 );
 const showParent = computed(() => {
   const parent = props.parentRegion.trim();
-  const current = String(data.本尊.行踪.当前区域 || '').trim();
+  const current = currentLocation.value;
   return Boolean(parent && current && parent !== current && !current.startsWith(`${parent}·`));
 });
 </script>
@@ -292,6 +387,7 @@ const showParent = computed(() => {
 
 .turn-cluster,
 .turn-navigation,
+.reading-mode-switch,
 .stage-utilities {
   display: flex;
   align-items: center;
@@ -325,8 +421,23 @@ const showParent = computed(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.turn-token-count {
+  width: max-content;
+  color: var(--text-secondary);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 9px;
+  line-height: 1;
+}
 .turn-navigation {
   gap: 3px;
+}
+.reading-mode-switch {
+  flex: 0 0 auto;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface-inset) 68%, transparent);
 }
 .turn-navigation span {
   min-width: 36px;
@@ -337,6 +448,7 @@ const showParent = computed(() => {
 }
 
 .turn-navigation button,
+.reading-mode-switch button,
 .stage-utilities button {
   width: 30px;
   height: 30px;
@@ -358,6 +470,17 @@ const showParent = computed(() => {
     opacity: 0.28;
     cursor: not-allowed;
   }
+}
+.reading-mode-switch button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.reading-mode-switch button.active {
+  color: var(--gold);
+  background: var(--button-active);
 }
 
 .scene-location {
@@ -384,6 +507,9 @@ const showParent = computed(() => {
   font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.scene-location-compact {
+  display: none;
 }
 .scene-location strong i {
   margin-right: 5px;
@@ -503,14 +629,40 @@ const showParent = computed(() => {
 @media screen and (max-width: 760px) {
   .stage-header {
     min-height: 58px;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
     padding: 6px 8px;
     z-index: 40 !important;
     overflow: visible;
   }
   .scene-location {
+    min-width: 0;
+    padding: 4px 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .scene-kicker,
+  .scene-location-full {
     display: none;
+  }
+  .scene-location-compact {
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+  }
+  .scene-location-compact i {
+    margin-right: 0;
+  }
+  .scene-location .scene-location-compact span {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--gold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .crane-mark {
     width: 28px;
@@ -529,7 +681,11 @@ const showParent = computed(() => {
     gap: 3px;
   }
   .stage-utilities .preset-button,
+  .stage-utilities .greeting-index-button,
   .stage-utilities .appearance-button {
+    display: none;
+  }
+  .reading-mode-switch {
     display: none;
   }
   .mobile-tool-group {
@@ -542,7 +698,7 @@ const showParent = computed(() => {
     z-index: 30;
     top: calc(100% + 13px);
     right: -38px;
-    width: 136px;
+    width: 148px;
     padding: 5px;
     display: grid;
     gap: 3px;
@@ -581,6 +737,19 @@ const showParent = computed(() => {
     color: var(--gold);
     text-align: center;
   }
+  .mobile-tool-menu button.active {
+    border-color: color-mix(in srgb, var(--gold) 46%, var(--line-subtle));
+    color: var(--text-primary);
+    background: var(--button-active);
+  }
+  .mobile-tool-menu button.active i {
+    color: var(--gold);
+  }
+  .mobile-tool-divider {
+    height: 1px;
+    margin: 2px 5px;
+    background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+  }
   .mobile-tool-menu-enter-active,
   .mobile-tool-menu-leave-active {
     transition:
@@ -609,7 +778,7 @@ const showParent = computed(() => {
 @media screen and (max-width: 520px) {
   .stage-header {
     min-height: 58px;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: none;
     align-content: normal;
     gap: 4px;
@@ -619,7 +788,7 @@ const showParent = computed(() => {
   }
   .turn-copy {
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
   }
   .turn-navigation {
     margin-left: 0;
@@ -645,6 +814,14 @@ const showParent = computed(() => {
   }
   .turn-cluster {
     gap: 4px;
+  }
+  .turn-navigation button,
+  .stage-utilities button {
+    width: 30px;
+  }
+  .scene-location-compact {
+    gap: 3px;
+    font-size: 10px;
   }
 }
 </style>

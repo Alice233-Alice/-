@@ -10,6 +10,7 @@
       'reduce-motion': themeStore.preferences.reduceMotion,
       'light-theme': themeStore.currentTheme.mode === 'light',
       'pseudo-stage-fit': isPseudoStage,
+      'scroll-reading': readingMode === 'scroll',
     }"
     :style="themeStyles"
   >
@@ -23,20 +24,31 @@
       :immersive="isImmersive"
       :parent-region="parentRegion"
       :danger-color="dangerColor"
+      :reading-mode="readingMode"
       @open-map="openView('map')"
+      @open-greeting-index="showGreetingIndex = true"
       @open-preset="openView('preset')"
       @open-settings="showReadingSettings = true"
-      @open-editor="showRawMessageEditor = true"
+      @open-editor="openCurrentEditor"
       @toggle-immersive="toggleImmersive"
+      @set-reading-mode="setReadingMode"
     />
 
     <main class="stage-main">
       <div
         ref="modeViewport"
         class="stage-viewport"
-        :class="{ 'reading-mode': activeView === 'story' || activeView === 'dialogue' }"
+        :class="{ 'reading-mode': readingViewActive }"
         @scroll="rememberScroll"
       >
+        <TimelineReader
+          v-if="activeView === 'timeline'"
+          :anchor-message-id="timelineAnchorMessageId"
+          :immersive="isImmersive"
+          :mobile-layout="isMobileViewport"
+          @active-entry="timelineActiveMessageId = $event"
+          @edit-message="openTimelineEditor"
+        />
         <PseudoStoryReader v-if="activeView === 'story'" :immersive="isImmersive" :mobile-layout="isMobileViewport" />
         <DialogueStage v-else-if="activeView === 'dialogue'" />
         <PresetPanel v-else-if="activeView === 'preset'" />
@@ -72,11 +84,22 @@
       :active-view="activeView"
       :mobile-layout="isMobileViewport"
       :immersive="isImmersive"
+      :reading-mode="readingMode"
       @open-view="openView"
     />
 
-    <ReadingSettingsPanel :visible="showReadingSettings" @close="showReadingSettings = false" />
-    <RawMessageEditor :visible="showRawMessageEditor" @close="showRawMessageEditor = false" />
+    <ReadingSettingsPanel
+      :visible="showReadingSettings"
+      :viewport-mode="viewportMode"
+      @close="showReadingSettings = false"
+    />
+    <GreetingIndexDialog :visible="showGreetingIndex" @close="showGreetingIndex = false" />
+    <RawMessageEditor
+      :visible="showRawMessageEditor"
+      :target-message-id="editorTarget?.messageId"
+      :target-label="editorTarget?.label"
+      @close="closeRawEditor"
+    />
     <GalleryPreviewDialog />
   </div>
 </template>
@@ -90,6 +113,7 @@ import DialogueStage from './components/DialogueStage.vue';
 import FooterSection from './components/FooterSection.vue';
 import GalleryPanel from './components/GalleryPanel.vue';
 import GalleryPreviewDialog from './components/GalleryPreviewDialog.vue';
+import GreetingIndexDialog from './components/GreetingIndexDialog.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
 import MapPanel from './components/MapPanel.vue';
 import PresetPanel from './components/PresetPanel.vue';
@@ -100,6 +124,7 @@ import ReadingSettingsPanel from './components/ReadingSettingsPanel.vue';
 import SkillsPanel from './components/SkillsPanel.vue';
 import StageHeader from './components/StageHeader.vue';
 import TabNav from './components/TabNav.vue';
+import TimelineReader from './components/TimelineReader.vue';
 import WorldMapCanvas from './components/WorldMapCanvas.vue';
 import duskInkArt from './assets/dusk-ink-landscape.svg?url';
 import lanternArt from './assets/lantern-water-town.svg?url';
@@ -108,8 +133,10 @@ import starAltarArt from './assets/star-altar-chart.svg?url';
 import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from './store';
+import type { ReadingMode } from './stores/theme-store';
 
 export type StageView =
+  | 'timeline'
   | 'story'
   | 'dialogue'
   | 'preset'
@@ -139,10 +166,15 @@ const readImmersivePreference = (mode: ViewportMode) => {
   return mode === 'mobile';
 };
 const viewportMode = ref<ViewportMode>(getViewportMode());
-const activeView = ref<StageView>('story');
+const readingMode = computed<ReadingMode>(() => themeStore.readingModes[viewportMode.value]);
+const activeView = ref<StageView>(readingMode.value === 'scroll' ? 'timeline' : 'story');
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
 const showReadingSettings = ref(false);
+const showGreetingIndex = ref(false);
 const showRawMessageEditor = ref(false);
+const editorTarget = ref<{ messageId: number; label: string } | null>(null);
+const timelineAnchorMessageId = ref(-1);
+const timelineActiveMessageId = ref(-1);
 const modeViewport = ref<HTMLElement>();
 const scrollPositions = new Map<StageView, number>();
 const hasEnteredStreaming = ref(false);
@@ -152,9 +184,7 @@ const appViewportWidth = ref(window.parent.innerWidth);
 const isMobileViewport = computed(() => viewportMode.value === 'mobile');
 const isPseudoStage = ref(Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root')));
 
-const tabs: Array<{ id: StageView; label: string; icon: string }> = [
-  { id: 'story', label: '正文', icon: 'fa-solid fa-book-open' },
-  { id: 'dialogue', label: '交谈', icon: 'fa-solid fa-comments' },
+const utilityTabs: Array<{ id: StageView; label: string; icon: string }> = [
   { id: 'gallery', label: '图鉴', icon: 'fa-solid fa-images' },
   { id: 'cultivation', label: '修炼', icon: 'fa-solid fa-yin-yang' },
   { id: 'skills', label: '神通', icon: 'fa-solid fa-hand-sparkles' },
@@ -165,8 +195,16 @@ const tabs: Array<{ id: StageView; label: string; icon: string }> = [
   { id: 'tribulation', label: '历劫', icon: 'fa-solid fa-bolt' },
   { id: 'actions', label: '行动', icon: 'fa-solid fa-compass' },
 ];
+const tabs = computed<Array<{ id: StageView; label: string; icon: string }>>(() => [
+  ...(readingMode.value === 'scroll'
+    ? [{ id: 'timeline' as const, label: '历程', icon: 'fa-solid fa-scroll' }]
+    : [
+        { id: 'story' as const, label: '正文', icon: 'fa-solid fa-book-open' },
+        { id: 'dialogue' as const, label: '交谈', icon: 'fa-solid fa-comments' },
+      ]),
+  ...utilityTabs,
+]);
 
-const measureMap = { narrow: '58ch', standard: '72ch', wide: '86ch' } as const;
 const themeArtMap = {
   lantern: lanternArt,
   duskInk: duskInkArt,
@@ -247,7 +285,7 @@ const themeStyles = computed(() => {
     '--theme-art': `url("${themeArtMap[theme.id]}")`,
     '--reading-font-size': `${themeStore.preferences.fontSize}px`,
     '--reading-line-height': String(themeStore.preferences.lineHeight),
-    '--reading-measure': measureMap[themeStore.preferences.measure],
+    '--reading-measure': `${themeStore.preferences.measureWidth}%`,
   };
 });
 
@@ -261,7 +299,9 @@ const parentRegion = computed(
       store.世界地图 as Record<string, { layer?: string }>,
     ) || '',
 );
+const isReadingView = (view: StageView) => view === 'timeline' || view === 'story' || view === 'dialogue';
 const dangerColor = computed(() => getDangerColor(store.本尊.行踪.危险度 ?? 10));
+const readingViewActive = computed(() => isReadingView(activeView.value));
 
 const setImmersivePreference = (value: boolean) => {
   isImmersive.value = value;
@@ -270,35 +310,73 @@ const setImmersivePreference = (value: boolean) => {
 const restoreReadingPreference = () => {
   isImmersive.value = readImmersivePreference(viewportMode.value);
 };
+const setReadingMode = (mode: ReadingMode) => {
+  themeStore.setReadingMode(viewportMode.value, mode);
+};
 const openView = (view: StageView) => {
-  if (view === 'story' || view === 'dialogue') restoreReadingPreference();
+  const target =
+    readingMode.value === 'scroll' && (view === 'story' || view === 'dialogue') ? ('timeline' as const) : view;
+  if (isReadingView(target)) restoreReadingPreference();
   else isImmersive.value = false;
-  activeView.value = view;
+  activeView.value = target;
 };
 const toggleImmersive = () => {
-  if (!isImmersive.value && activeView.value !== 'story' && activeView.value !== 'dialogue') {
-    activeView.value = 'story';
+  if (!isImmersive.value && !isReadingView(activeView.value)) {
+    activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'story';
   }
   setImmersivePreference(!isImmersive.value);
 };
 const rememberScroll = () => {
-  if (!['story', 'dialogue'].includes(activeView.value) && modeViewport.value) {
+  if (!isReadingView(activeView.value) && modeViewport.value) {
     scrollPositions.set(activeView.value, modeViewport.value.scrollTop);
   }
 };
+const openCurrentEditor = () => {
+  editorTarget.value = null;
+  showRawMessageEditor.value = true;
+};
+const openTimelineEditor = (messageId: number, label: string) => {
+  editorTarget.value = { messageId, label };
+  showRawMessageEditor.value = true;
+};
+const closeRawEditor = () => {
+  showRawMessageEditor.value = false;
+  editorTarget.value = null;
+};
 
 watch(activeView, (next, previous) => {
-  if (!['story', 'dialogue'].includes(previous) && modeViewport.value) {
+  if (!isReadingView(previous) && modeViewport.value) {
     scrollPositions.set(previous, modeViewport.value.scrollTop);
   }
   nextTick(() => {
     if (modeViewport.value) {
-      modeViewport.value.scrollTop = ['story', 'dialogue'].includes(next) ? 0 : (scrollPositions.get(next) ?? 0);
+      modeViewport.value.scrollTop = isReadingView(next) ? 0 : (scrollPositions.get(next) ?? 0);
     }
   });
-  if ((next === 'story' || next === 'dialogue') && next !== previous) {
+  if (readingMode.value === 'paged' && (next === 'story' || next === 'dialogue') && next !== previous) {
     pseudoLayerStore.selectHistory(next);
   }
+});
+
+watch(readingMode, (next, previous) => {
+  if (next === previous) return;
+  if (next === 'scroll') {
+    const anchor =
+      pseudoLayerStore.view.selectedMessageId >= 0
+        ? pseudoLayerStore.view.selectedMessageId
+        : pseudoLayerStore.view.latestMessageId;
+    timelineAnchorMessageId.value = anchor;
+    timelineActiveMessageId.value = anchor;
+    if (activeView.value === 'story' || activeView.value === 'dialogue') activeView.value = 'timeline';
+    return;
+  }
+
+  if (activeView.value !== 'timeline') return;
+  const target =
+    timelineActiveMessageId.value >= 0 ? timelineActiveMessageId.value : pseudoLayerStore.view.latestMessageId;
+  const entry = pseudoLayerStore.timelineEntries.find(candidate => candidate.messageIds.includes(target));
+  pseudoLayerStore.selectTimelineEntry(target);
+  activeView.value = entry?.stage.kind === 'dialogue' ? 'dialogue' : 'story';
 });
 
 watch(
@@ -307,13 +385,21 @@ watch(
     if (next === 'generating') {
       hasEnteredStreaming.value = true;
       activeView.value =
-        pseudoLayerStore.activeDialogue || pseudoLayerStore.view.stage.kind === 'dialogue' ? 'dialogue' : 'story';
+        readingMode.value === 'scroll'
+          ? 'timeline'
+          : pseudoLayerStore.activeDialogue || pseudoLayerStore.view.stage.kind === 'dialogue'
+            ? 'dialogue'
+            : 'story';
       restoreReadingPreference();
     }
     if (previous !== 'idle' && next === 'idle' && hasEnteredStreaming.value && pseudoLayerStore.isLatest) {
       hasEnteredStreaming.value = false;
       activeView.value =
-        pseudoLayerStore.activeDialogue || pseudoLayerStore.view.stage.kind === 'dialogue' ? 'dialogue' : 'story';
+        readingMode.value === 'scroll'
+          ? 'timeline'
+          : pseudoLayerStore.activeDialogue || pseudoLayerStore.view.stage.kind === 'dialogue'
+            ? 'dialogue'
+            : 'story';
       restoreReadingPreference();
     }
   },
@@ -323,11 +409,11 @@ watch(
   () => pseudoLayerStore.activeDialogue?.sessionId,
   (sessionId, previousSessionId) => {
     if (sessionId && sessionId !== previousSessionId) {
-      activeView.value = 'dialogue';
+      activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'dialogue';
       restoreReadingPreference();
       return;
     }
-    if (!sessionId && previousSessionId && activeView.value === 'dialogue') {
+    if (readingMode.value === 'paged' && !sessionId && previousSessionId && activeView.value === 'dialogue') {
       activeView.value = 'story';
       restoreReadingPreference();
     }
@@ -338,6 +424,14 @@ watch(
   [() => pseudoLayerStore.view.selectedMessageId, () => pseudoLayerStore.view.stage.kind],
   ([messageId, kind], [previousMessageId]) => {
     if (messageId < 0 || messageId === previousMessageId) return;
+    if (readingMode.value === 'scroll') {
+      if (timelineAnchorMessageId.value < 0) {
+        timelineAnchorMessageId.value = messageId;
+        timelineActiveMessageId.value = messageId;
+      }
+      if (isReadingView(activeView.value)) activeView.value = 'timeline';
+      return;
+    }
     activeView.value = kind === 'dialogue' ? 'dialogue' : 'story';
     restoreReadingPreference();
   },
@@ -348,11 +442,14 @@ watch(
   [
     () => pseudoLayerStore.view.hostMessageId,
     () => pseudoLayerStore.view.selectedMessageId,
+    () => pseudoLayerStore.view.latestMessageId,
     () => pseudoLayerStore.view.revision,
+    readingMode,
   ],
-  ([hostMessageId, selectedMessageId]) => {
-    if (hostMessageId !== pseudoLayerStore.messageId || selectedMessageId < 0) return;
-    store.viewMessage(selectedMessageId);
+  ([hostMessageId, selectedMessageId, latestMessageId, , mode]) => {
+    const targetMessageId = mode === 'scroll' ? latestMessageId : selectedMessageId;
+    if (hostMessageId !== pseudoLayerStore.messageId || targetMessageId < 0) return;
+    store.viewMessage(targetMessageId);
   },
   { immediate: true },
 );
@@ -539,6 +636,9 @@ onBeforeUnmount(() => {
 .cultivation-status[data-view='dialogue'] {
   --view-accent: var(--jade);
 }
+.cultivation-status[data-view='timeline'] {
+  --view-accent: var(--gold);
+}
 .cultivation-status[data-view='inventory'],
 .cultivation-status[data-view='map'] {
   --view-accent: var(--gold);
@@ -555,7 +655,8 @@ onBeforeUnmount(() => {
   --view-accent: var(--semantic-info);
 }
 
-.cultivation-status:not([data-view='story']):not([data-view='dialogue']) .stage-viewport::before {
+.cultivation-status:not([data-view='story']):not([data-view='dialogue']):not([data-view='timeline'])
+  .stage-viewport::before {
   content: '';
   position: sticky;
   top: 0;

@@ -1,0 +1,136 @@
+# 南宫云裳生图提示词3 — 定制服饰「朱羽稚凤」系列·半身立绘篇
+# 核心特征：10岁女童体态（娇小萝莉）、稚气圆脸、黑发如瀑、凤羽发簪、玉饰、丹凤眼、赤红凤纹华服/宫装、赤足、周身环绕朱雀神火
+# 设计理念：朱雀公主的幼年定制华服——朱红童襦衬稚凤未啼的娇憨，金铃与火羽是皇权的稚化。既有大夏七公主的贵气，又保留稚童的纯真灵动，与朱雀神火形成"神火护幼凤"的反差意象
+# 编写原则：每个场景围绕一个核心氛围，标签精炼不堆砌。保留黑发如瀑、凤羽发簪、玉饰、丹凤眼、朱雀神火全部锚点，仅变化服饰细节与姿态
+# 特别注意（必读）：本文件全部条目均使用 upper body 构图。该底模对 upper body 跑出的效果极为友好，面部细节、肩颈线条、丝织物质感均能稳定呈现。禁止使用 full body 或 cowboy shot 构图。背景一律限定纯黑背景或素色单色底（米白/月白/浅灰），不做场景堆砌，聚焦人物上半身与服饰细节
+# 专属负面提示词：(worst quality, low quality, normal quality, caucasian:1), lowres, bad anatomy, (bad hands, missing fingers, extra digits:1.2), signature, watermarks, ugly, imperfect eyes, unnatural face, unnatural body, error, extra limb, missing limbs, mature female, milf, muscular, colored skin, modern clothes, sci-fi
+
+# ==========================================
+# 【服饰设计】朱羽稚凤 · 朱雀小公主定制华服
+# 发饰：凤羽发簪（保留锚点）缀细金流苏，发间点金铃小步摇
+# 上装：朱红交领童襦，金线凤羽暗纹、银丝滚边，窄袖衬里＋宽袖外衣
+# 颈饰：金铃项圈（轻动即响，稚气皇权的标志物）
+# 外披：半透金纱小披肩，绣流云羽纹，火光下流光
+# 配饰：腕间金铃镯、胸前玉环（玉饰锚点）、腰间金流苏
+# 标志物：手持朱雀火羽（丹凤眼配色呼应）
+# 色系：朱红 #C73B2B 主 / 鎏金 #D9A94E 骨 / 纱金 #F2D8A7 透 / 神火赤橙过渡
+# ==========================================
+
+# ==========================================
+# 第一式：凤雏正立——基础立绘（纯黑背景）
+# 色气来源：金纱披肩半掩肩颈，稚凤端立，懵懂贵气
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_基础立绘_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, gentle expression, soft smile, looking at viewer, (crimson child princess hanfu:1.4), (red cross-collar short jacket with gold phoenix feather embroidery:1.3), silver piping, (gold bell collar necklace:1.3), (translucent gold gauze shawl with feather pattern:1.2), wide sleeves, (gold bell bracelet:1.2), jade pendant, (holding a glowing vermillion phoenix feather:1.3), (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_基础立绘_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, half-slipped (crimson child princess hanfu:1.4), open clothes, bare shoulders, collarbone, (gold bell collar necklace:1.3), (translucent gold gauze shawl slipping off one shoulder:1.2), half-lidded eyes, heavy blush, looking at viewer, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 第二式：凤羽轻拈——素色背景（米白单色底）
+# 色气来源：低眉拈羽，金纱垂落肩头，稚气里一丝专注的静谧
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_凤羽轻拈_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, gentle downward gaze, slight smile, (fingertips holding a glowing vermillion phoenix feather:1.3), (crimson child princess hanfu:1.4), (red cross-collar short jacket with gold phoenix feather embroidery:1.3), silver piping, (gold bell collar necklace:1.3), (translucent gold gauze shawl:1.2), wide sleeves, (gold bell bracelet:1.2), jade pendant, (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_凤羽轻拈_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, half-slipped (crimson child princess hanfu:1.4), open clothes, bare shoulders, collarbone, (gold bell collar necklace:1.3), (translucent gold gauze shawl pooled around elbows:1.2), (fingertips holding a glowing vermillion phoenix feather:1.3), half-lidded eyes, heavy blush, looking at viewer, (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 第三式：金铃回眸——纯黑背景（回眸侧颈）
+# 色气来源：回首一顾，金铃轻响，稚凤懵懂不知自身流光
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_金铃回眸_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, from behind, looking back at viewer over shoulder, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, hair falling over one shoulder, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, curious expression, gentle smile, (crimson child princess hanfu:1.4), (red cross-collar short jacket with gold phoenix feather embroidery:1.3), silver piping, (gold bell collar necklace:1.3), (translucent gold gauze shawl with feather pattern:1.2), wide sleeves, (gold bell bracelet:1.2), jade pendant, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_金铃回眸_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, from behind, looking back at viewer over shoulder, long black hair, flowing hair, hair falling over one shoulder, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, half-slipped (crimson child princess hanfu:1.4), open clothes, bare shoulders, exposed shoulder blades, collarbone, (gold bell collar necklace:1.3), (translucent gold gauze shawl draped over arms:1.2), half-lidded eyes, heavy blush, teasing gaze, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 色气系列·朱羽稚凤延伸（upper body · 纯黑/素色背景）
+# 色气来源总纲：稚凤不知自身流光——华服包裹的娇小躯体在朱雀神火映照下若隐若现，懵懂无自觉的诱惑，纯真与无意识挑逗的矛盾
+# ==========================================
+
+# ==========================================
+# 第一式：金纱浴火——湿透金纱（纯黑背景）
+# 色气来源：金纱湿透贴身，勾勒纤薄未熟的肩颈，水珠沿锁骨滑落，纯真无自觉
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_金纱浴火_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, wet hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, fresh innocent expression, light blush, looking at viewer, (wet translucent gold gauze shawl clinging to body:1.4), (wet crimson child princess hanfu:1.3), wet fabric clinging to shoulders, water droplets on skin, steam wisps, (gold bell collar necklace:1.3), (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_金纱浴火_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, heavy blush, glistening skin, wet skin, water droplets on skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, wet hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, half-slipped (crimson child princess hanfu:1.4), open clothes, bare shoulders, collarbone, (wet translucent gold gauze shawl clinging to bare body:1.4), (fabric see-through revealing flat chest:1.3), wet fabric clinging, water streaming down, steam wisps, (gold bell collar necklace:1.3), half-lidded eyes, heavy blush, looking at viewer, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 第二式：火羽掩春——羽遮胸前（素色背景）
+# 色气来源：以朱雀火羽半掩胸前——幼兽对暴露的本能遮掩，欲盖弥彰
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_火羽掩春_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, shy embarrassed expression, eyes slightly lowered, light blush, (glowing vermillion phoenix feather held across chest:1.4), (crimson child princess hanfu with collar loosened:1.3), off shoulder, exposed collarbone, (gold bell collar necklace:1.3), (gold bell bracelet:1.2), jade pendant, (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_火羽掩春_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, heavy blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, (glowing vermillion phoenix feather held against chest barely covering nipples:1.4), open clothes, fully bare shoulders and chest, (nipple visible beside feather:1.3), (gold bell collar necklace:1.3), (crimson child princess hanfu fallen around elbows:1.2), half-lidded eyes, heavy blush, shy submissive gaze, looking at viewer, (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 第三式：金铃解佩——衣襟半解（纯黑背景）
+# 色气来源：纤指勾住颈间金铃绦带——稚童把玩饰物的天真，衣襟却随动作缓缓散开
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_金铃解佩_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, innocent curious expression, slight smile, (fingertips tugging the ribbon of gold bell collar necklace:1.4), (crimson child princess hanfu with collar loosened:1.3), off shoulder, exposed collarbone, (translucent gold gauze shawl slipping:1.2), (gold bell bracelet:1.2), (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_金铃解佩_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, heavy blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, open (crimson child princess hanfu:1.4), open clothes, fully bare shoulders and chest, (nipple visible through parted crimson fabric:1.3), (gold bell collar necklace held loosely in hand:1.4), (translucent gold gauze shawl pooled around arms:1.2), half-lidded eyes, heavy blush, innocent confused expression, looking at viewer, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 第四式：稚凤出浴——湿发沐火（素色背景）
+# 色气来源：湿发贴颈，薄衣透体——出浴后毫无防备的稚嫩躯体
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_稚凤出浴_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, damp hair, hair clinging to neck and shoulders, phoenix hairpin with gold tassels slightly tilted, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, fresh sleepy expression, gentle smile, (wet translucent white silk inner robe:1.4), (thin white under-robe clinging to body:1.3), wet fabric, water droplets on collarbone, (gold bell collar necklace:1.3), steam wisps, (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_稚凤出浴_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, heavy blush, glistening skin, wet skin, water droplets on skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, damp hair, hair clinging to neck and shoulders, phoenix hairpin with gold tassels tilted, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, open (wet translucent white silk inner robe:1.4), see-through wet fabric, (nipple outline visible through wet fabric:1.3), bare shoulders, collarbone, (gold bell collar necklace:1.3), half-lidded eyes, heavy blush, sleepy innocent gaze, looking at viewer, steam wisps, (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 第五式：罗襦半褪——双肩滑落（纯黑背景）
+# 色气来源：华服自双肩滑落至肘间——不是被褪下，是娇小躯体撑不住宽大皇服的松垮
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_罗襦半褪_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, embarrassed flustered expression, blush, (crimson child princess hanfu slipping off both shoulders:1.4), off shoulder, exposed collarbone and upper arms, (hands clutching the sleeves at elbows:1.3), (gold bell collar necklace:1.3), (translucent gold gauze shawl hanging off one arm:1.2), (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_罗襦半褪_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, heavy blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, (crimson child princess hanfu fallen to elbows:1.4), completely bare shoulders and chest, (nipple visible:1.3), (arms crossed shyly covering flat chest:1.3), (gold bell collar necklace:1.3), (translucent gold gauze shawl draped over arms:1.2), half-lidded eyes, heavy blush, tearful embarrassed gaze, looking at viewer, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 色气系列·续（upper body · 纯黑/素色背景）
+# ==========================================
+
+# ==========================================
+# 第六式：青丝绕指——黑发缠指含梢（纯黑背景）
+# 色气来源：黑发如瀑是她的本命——垂眸以指尖缠一绺发丝，发梢无意识含入口中。玩发是幼女最寻常的小动作，偏生最挠人
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_青丝绕指_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, dreamy absent-minded expression, light blush, (fingertips twirling a lock of long black hair:1.4), (hair strand wrapping around finger:1.3), (crimson child princess hanfu:1.4), (red cross-collar short jacket with gold phoenix feather embroidery:1.3), silver piping, (gold bell collar necklace:1.3), (translucent gold gauze shawl:1.2), wide sleeves, (gold bell bracelet:1.2), jade pendant, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_青丝绕指_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, heavy blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, half-slipped (crimson child princess hanfu:1.4), open clothes, bare shoulders, collarbone, (hair strand held between lips:1.4), (lips parted around hair strand:1.3), glossy lips, (fingers playing with a lock of hair at chest:1.3), (gold bell collar necklace:1.3), (translucent gold gauze shawl slipping off one shoulder:1.2), half-lidded eyes, heavy blush, dreamy gaze, looking at viewer, (black background:1.2), dark background, contrast, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# 第七式：肚兜半解——赤焰流云系带松脱（素色背景）
+# 色气来源：系带松脱，金线流云肚兜将坠未坠——稚童不知春光已泄，只顾低头把玩系带
+# ==========================================
+
+南宫云裳_稚童_朱羽稚凤_肚兜半解_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, innocent curious expression, slight blush, (red silk dudou:1.4), (chinese traditional undergarment:1.3), golden cloud patterns, flame embroidery, (dudou strings loosened:1.4), (dudou hanging askew revealing one bare shoulder:1.3), exposed collarbone, (fingertips fiddling with the neck strap:1.3), (gold bell collar necklace:1.3), (gold bell bracelet:1.2), (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+南宫云裳_稚童_朱羽稚凤_肚兜半解_nsfw:
+  nsfw, nude, flat chest, nipples, small body, (10 years old, loli, child, petite:1.3), (childish round face:1.2), petite body, innocent nudity, heavy blush, glistening skin, fantasy, textures, volumetric light, 1girl, solo, upper body, portrait, long black hair, flowing hair, phoenix hairpin with gold tassels, jade ornament, (detailed eyes:1.2), phoenix eyes, pale skin, (red silk dudou barely hanging from neck strap:1.4), (dudou pushed aside revealing flat chest:1.3), (nipple visible:1.3), fully bare shoulders and chest, golden cloud patterns on fallen fabric, (fingers still holding the loosened strap:1.3), (gold bell collar necklace:1.3), half-lidded eyes, heavy blush, confused embarrassed expression, looking at viewer, (plain background:1.2), solid pale cream background, minimal, soft studio lighting, sacred flames, vermillion fire, phoenix aura, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail

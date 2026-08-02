@@ -6,9 +6,12 @@ import { z } from 'zod';
 import {
   CultivationStateSchema,
   InventorySchema,
-  SkillSchema,
+  NormalizedStringListSchema,
+  SkillListSchema,
   computeRealmInfo,
+  finiteNumber,
   normalizeCultivationState,
+  normalizeRealmLevel,
   normalizeSpiritStoneState,
 } from './common';
 
@@ -156,16 +159,17 @@ const CombatStatusSchema = z
       .string()
       .transform(v => 战斗状态映射[v] || '非战斗')
       .prefault('非战斗'),
-    灵力值: z.coerce
-      .number()
+    灵力值: finiteNumber(100)
       .transform(v => _.clamp(v, 0, 100))
       .prefault(100),
     伤势等级: z
       .string()
       .transform(v => 伤势映射[v] || '无伤')
       .prefault('无伤'),
-    已用底牌: z.array(z.string()).prefault([]),
-    战斗回合: z.coerce.number().prefault(0),
+    已用底牌: NormalizedStringListSchema,
+    战斗回合: finiteNumber(0)
+      .transform(v => Math.max(0, Math.floor(v)))
+      .prefault(0),
   })
   .prefault({
     正在战斗: false,
@@ -203,27 +207,23 @@ const TribulationSchema = z
       .string()
       .transform(v => 劫难等级映射[v] || '无')
       .prefault('无'),
-    当前阶段: z.coerce
-      .number()
+    当前阶段: finiteNumber(0)
       .transform(v => _.clamp(v, 0, 9))
       .prefault(0),
-    总阶段数: z.coerce
-      .number()
+    总阶段数: finiteNumber(0)
       .transform(v => _.clamp(v, 0, 9))
       .prefault(0),
-    劫力承受: z.coerce
-      .number()
+    劫力承受: finiteNumber(100)
       .transform(v => _.clamp(v, 0, 100))
       .prefault(100),
-    已用护道: z.array(z.string()).prefault([]),
+    已用护道: NormalizedStringListSchema,
     劫难描述: z.string().prefault(''),
     触发原因: z.string().prefault(''),
     上次渡劫结果: z
       .string()
       .transform(v => 渡劫结果映射[v] || '无')
       .prefault('无'),
-    渡劫冷却: z.coerce
-      .number()
+    渡劫冷却: finiteNumber(0)
       .transform(v => Math.max(0, v))
       .prefault(0),
     失败惩罚记录: z.string().prefault(''),
@@ -270,8 +270,10 @@ const LocationTrackSchema = z
     当前区域: z.string().prefault('未知之地'),
     所属层级: z.string().prefault('地层'),
     环境描述: z.string().prefault(''),
-    危险度: z.coerce.number().prefault(10),
-    可用通道: z.array(z.string()).prefault([]),
+    危险度: finiteNumber(10)
+      .transform(v => _.clamp(v, 0, 100))
+      .prefault(10),
+    可用通道: NormalizedStringListSchema,
     导航信息: z.string().prefault(''),
   })
   .prefault({
@@ -299,25 +301,19 @@ const IdentitySchema = z
 // 本尊 Schema
 export const ProtagonistSchema = z
   .object({
-    等级: z.coerce
-      .number()
-      .transform(v => _.clamp(v, 1, 48))
-      .prefault(1),
-    修为: z.coerce
-      .number()
+    等级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
+    修为: finiteNumber(0)
       .transform(v => Math.max(0, v))
       .prefault(0),
     灵根: z.string().prefault('五行杂灵根'),
     体质: z.string().prefault('凡体'),
     功法: z.string().prefault('无'),
     本命兵器: z.string().prefault('无'),
-    神通列表: z.record(z.string().describe('神通名'), SkillSchema).prefault({}),
-    灵石: z.coerce
-      .number()
+    神通列表: SkillListSchema,
+    灵石: finiteNumber(0)
       .transform(v => Math.max(0, v))
       .prefault(0),
-    已活岁月: z.coerce
-      .number()
+    已活岁月: finiteNumber(0)
       .transform(v => Math.max(0, v))
       .prefault(0),
     尝试突破: z.boolean().prefault(false),
@@ -347,6 +343,11 @@ export const ProtagonistSchema = z
       瓶颈原因: '',
       突破目标: '',
       上次结果: '无',
+      境界变动: {
+        类型: '无',
+        目标等级: 0,
+        依据: '',
+      },
     },
     行踪: {
       当前区域: '未知之地',

@@ -589,6 +589,22 @@ export const useDataStore = defineStore(
       }
     };
 
+    const refreshViewedMessage = () => {
+      const targetMessageId = Number(viewedMessageId.value);
+      if (!Number.isFinite(targetMessageId) || targetMessageId < 0) return;
+      viewMessage(targetMessageId);
+    };
+
+    const forceRefreshViewedMessage = async () => {
+      const targetMessageId = Number(viewedMessageId.value);
+      if (!Number.isFinite(targetMessageId) || targetMessageId < 0) return;
+      if (targetMessageId !== currentMessageIdNumber) {
+        viewMessage(targetMessageId);
+        return;
+      }
+      await tryManualParseMvuMessage();
+    };
+
     // 备用方案：继承或使用默认值（仅用于显示，不保存）
     const fallbackToInheritOrDefault = () => {
       console.warn('[踏月寻仙] 启用备用方案');
@@ -764,29 +780,35 @@ export const useDataStore = defineStore(
 
     // 监听消息更新事件，实时刷新数据
     // 监听本楼层的消息更新事件
-    eventStops.push(eventOn(tavern_events.MESSAGE_UPDATED, (id: string | number) => {
-      if (id === message_id) {
-        debugLog('[踏月寻仙] 检测到本楼层消息更新，防抖延迟200ms后重新加载');
-        debouncedInitData(200);
-      }
-    }).stop);
+    eventStops.push(
+      eventOn(tavern_events.MESSAGE_UPDATED, (id: string | number) => {
+        if (id === message_id) {
+          debugLog('[踏月寻仙] 检测到本楼层消息更新，防抖延迟200ms后重新加载');
+          debouncedInitData(200);
+        }
+      }).stop,
+    );
 
     // 监听本楼层的消息删除事件（重新roll时会触发）
-    eventStops.push(eventOn(tavern_events.MESSAGE_DELETED, (id: string | number) => {
-      if (id === message_id && viewedMessageId.value === currentMessageIdNumber) {
-        debugLog('[踏月寻仙] 检测到本楼层消息删除（可能是重新roll），清空数据');
-        rawData.value = null;
-        galleryCards.value = [];
-      }
-    }).stop);
+    eventStops.push(
+      eventOn(tavern_events.MESSAGE_DELETED, (id: string | number) => {
+        if (id === message_id && viewedMessageId.value === currentMessageIdNumber) {
+          debugLog('[踏月寻仙] 检测到本楼层消息删除（可能是重新roll），清空数据');
+          rawData.value = null;
+          galleryCards.value = [];
+        }
+      }).stop,
+    );
 
     // 监听本楼层的消息接收事件
-    eventStops.push(eventOn(tavern_events.MESSAGE_RECEIVED, (id: string | number) => {
-      if (id === message_id) {
-        debugLog('[踏月寻仙] 检测到本楼层消息接收，防抖延迟300ms后重新加载');
-        debouncedInitData(300);
-      }
-    }).stop);
+    eventStops.push(
+      eventOn(tavern_events.MESSAGE_RECEIVED, (id: string | number) => {
+        if (id === message_id) {
+          debugLog('[踏月寻仙] 检测到本楼层消息接收，防抖延迟300ms后重新加载');
+          debouncedInitData(300);
+        }
+      }).stop,
+    );
 
     // 监听 MVU 变量更新事件
     // 🔧 修复：VARIABLE_UPDATE_ENDED 只有 2 个参数 (new_variables, old_variables)，
@@ -797,35 +819,37 @@ export const useDataStore = defineStore(
         if (disposed) return;
         debugLog('[踏月寻仙] 开始监听 MVU 变量更新事件');
 
-        eventStops.push(eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, () => {
-          if (!isFrameRendered()) return;
-          if (viewedMessageId.value !== currentMessageIdNumber) return;
-          try {
-            // 重新读取当前楼层的变量（而非使用事件参数，因为事件参数不带楼层信息）
-            const variables = getMessageVariablesSafe(message_id);
-            const statData = _.get(variables, 'stat_data', null);
-            const messageContent = getCurrentMessageContent();
+        eventStops.push(
+          eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, () => {
+            if (!isFrameRendered()) return;
+            if (viewedMessageId.value !== currentMessageIdNumber) return;
+            try {
+              // 重新读取当前楼层的变量（而非使用事件参数，因为事件参数不带楼层信息）
+              const variables = getMessageVariablesSafe(message_id);
+              const statData = _.get(variables, 'stat_data', null);
+              const messageContent = getCurrentMessageContent();
 
-            if (statData && Object.keys(statData).length > 0) {
-              try {
-                const parsedData = tryParseStatData(statData, messageContent);
+              if (statData && Object.keys(statData).length > 0) {
+                try {
+                  const parsedData = tryParseStatData(statData, messageContent);
 
-                // 只在数据实际变化时才更新，避免无意义的重渲染
-                if (parsedData && !_.isEqual(rawData.value, parsedData)) {
-                  debugLog('[踏月寻仙] MVU 变量更新 → 当前楼层数据已变化，更新显示');
-                  rawData.value = _.cloneDeep(parsedData);
-                  saveLastValidSnapshot(parsedData, currentMessageIdNumber);
+                  // 只在数据实际变化时才更新，避免无意义的重渲染
+                  if (parsedData && !_.isEqual(rawData.value, parsedData)) {
+                    debugLog('[踏月寻仙] MVU 变量更新 → 当前楼层数据已变化，更新显示');
+                    rawData.value = _.cloneDeep(parsedData);
+                    saveLastValidSnapshot(parsedData, currentMessageIdNumber);
+                  }
+                } catch (parseError) {
+                  console.error('[踏月寻仙] Schema 解析失败', parseError);
                 }
-              } catch (parseError) {
-                console.error('[踏月寻仙] Schema 解析失败', parseError);
               }
-            }
 
-            parseCurrentMessageCards();
-          } catch (e) {
-            console.error('[踏月寻仙] 处理 MVU 变量更新失败', e);
-          }
-        }).stop);
+              parseCurrentMessageCards();
+            } catch (e) {
+              console.error('[踏月寻仙] 处理 MVU 变量更新失败', e);
+            }
+          }).stop,
+        );
       })
       .catch(e => {
         console.warn('[踏月寻仙] MVU 框架未加载，将仅显示静态数据', e);
@@ -878,7 +902,7 @@ export const useDataStore = defineStore(
     const 世界时钟 = computed(
       () =>
         rawData.value?.世界时钟 ?? {
-          纪元: '末法时代',
+          纪元: '盛法时代',
           年份: 1,
           月份: 1,
           日期: 1,
@@ -925,6 +949,7 @@ export const useDataStore = defineStore(
         rawData.value?._系统设置 ?? {
           启用行动提示: true,
           修炼系统版本: 3,
+          变量结构版本: 2,
           _临时状态手动覆盖签名: '',
         },
     );
@@ -942,13 +967,14 @@ export const useDataStore = defineStore(
             rawData.value._系统设置 = {
               启用行动提示: newVal,
               修炼系统版本: 3,
+              变量结构版本: 2,
               _临时状态手动覆盖签名: '',
             };
           } else {
             rawData.value._系统设置.启用行动提示 = newVal;
             rawData.value._系统设置.修炼系统版本 = Number(rawData.value._系统设置.修炼系统版本 ?? 3) || 3;
-            rawData.value._系统设置._临时状态手动覆盖签名 =
-              rawData.value._系统设置._临时状态手动覆盖签名 ?? '';
+            rawData.value._系统设置.变量结构版本 = Number(rawData.value._系统设置.变量结构版本 ?? 2) || 2;
+            rawData.value._系统设置._临时状态手动覆盖签名 = rawData.value._系统设置._临时状态手动覆盖签名 ?? '';
           }
         }
 
@@ -960,6 +986,11 @@ export const useDataStore = defineStore(
           variables,
           'stat_data._系统设置.修炼系统版本',
           Number(_.get(variables, 'stat_data._系统设置.修炼系统版本', 3)) || 3,
+        );
+        _.set(
+          variables,
+          'stat_data._系统设置.变量结构版本',
+          Number(_.get(variables, 'stat_data._系统设置.变量结构版本', 2)) || 2,
         );
         await Mvu.replaceMvuData(variables, { type: 'message', message_id });
 
@@ -1123,7 +1154,7 @@ export const useDataStore = defineStore(
       任务列表,
       声望系统,
       hasData,
-      refresh: initData,
+      refresh: refreshViewedMessage,
       viewMessage,
       // 图鉴相关
       galleryCards,
@@ -1147,7 +1178,7 @@ export const useDataStore = defineStore(
       updateCustomCompanionPortrait,
       clearCustomCompanionPortrait,
       // 调试与强制刷新
-      forceRefresh: tryManualParseMvuMessage,
+      forceRefresh: forceRefreshViewedMessage,
       dispose,
     };
   }),

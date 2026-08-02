@@ -1,0 +1,37 @@
+变量输出格式:
+  rule:
+    - 回复末尾只能有一个 <UpdateVariable>，内部依次为 <Analysis>、<JSONPatch>
+    - <Analysis> 不超过 80 字且只概括实际 patch；修炼写数值/阶段/成败，不写派生境界名
+    - <JSONPatch> 是合法 JSON 数组；op 仅限 replace、delta、insert、remove，path 为 / 开头的 JSON Pointer
+    - 前三种 op 必带 value，remove 不带；使用双引号，无注释、单引号、尾逗号或伪代码
+    - 仅 patch 本轮变化；同一路径不冲突，不同时修改父路径及其子路径；遵守《变量更新规则》并禁写全部派生字段
+    - /当前处境、/可参与机遇 只能整项 replace；境界名必须匹配最终等级，不确定时只写破境/跌境
+    - /可参与机遇 的 value 必须直接是行动对象数组，严禁在 value 中再次嵌套 op/path/value
+    - 持续游玩时 /可参与机遇 必须有 1~4 项，不得用 [] 清空
+    - 等级变化须同批提交 /修炼状态/境界变动；成功突破原子同步 等级、修为=0、阶段=稳固中、上次结果=成功、尝试突破=false
+    - 每轮审计任务；remove 最后一项且已有后续目标时，同批 insert 接续任务
+  format: |-
+    <UpdateVariable>
+    <Analysis>灵石-20|获得青玉丹|处境更新</Analysis>
+    <JSONPatch>[
+      {"op":"delta","path":"/本尊/灵石","value":-20},
+      {"op":"insert","path":"/本尊/背包/青玉丹","value":{"名称":"青玉丹","数量":1,"描述":"稳固灵力"}},
+      {"op":"replace","path":"/当前处境","value":"已进入秘境石室，周围灵压异常。"},
+      {"op":"replace","path":"/可参与机遇","value":[
+        {"行动":"检查石室残留阵纹，寻找安全出口。","类型":"探索","提示":"阵纹仍有微弱灵力"},
+        {"行动":"服下青玉丹调息，稳固紊乱灵力。","类型":"修炼"}
+      ]}
+    ]</JSONPatch>
+    </UpdateVariable>
+  境界事务示例:
+    普通突破: >-
+      <JSONPatch>[{"op":"replace","path":"/本尊/等级","value":5},{"op":"replace","path":"/本尊/修为","value":0},{"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},{"op":"replace","path":"/本尊/修炼状态/上次结果","value":"成功"},{"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"突破","目标等级":5,"依据":""}},{"op":"replace","path":"/本尊/尝试突破","value":false}]</JSONPatch>
+    跨级突破: >-
+      <JSONPatch>[{"op":"replace","path":"/本尊/等级","value":7},{"op":"replace","path":"/本尊/修为","value":0},{"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},{"op":"replace","path":"/本尊/修炼状态/上次结果","value":"成功"},{"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跨级突破","目标等级":7,"依据":"炼化完整真君传承"}},{"op":"replace","path":"/本尊/尝试突破","value":false}]</JSONPatch>
+    跌境: >-
+      <JSONPatch>[{"op":"replace","path":"/本尊/等级","value":4},{"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},{"op":"replace","path":"/本尊/修炼状态/上次结果","value":"失败"},{"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跌境","目标等级":4,"依据":"反噬导致根基崩毁"}},{"op":"replace","path":"/本尊/尝试突破","value":false}]</JSONPatch>
+  任务生命周期示例:
+    新建: >-
+      <JSONPatch>[{"op":"insert","path":"/任务列表/追查古签异象","value":{"名称":"追查古签异象","类型":"主线","目标":"查明古签来历及异象关联。","状态":"进行中"}}]</JSONPatch>
+    接续: >-
+      <JSONPatch>[{"op":"remove","path":"/任务列表/查验观月台异象"},{"op":"insert","path":"/任务列表/寻访古签来处","value":{"名称":"寻访古签来处","类型":"主线","目标":"循残留灵机找到制签者线索。","状态":"进行中"}}]</JSONPatch>

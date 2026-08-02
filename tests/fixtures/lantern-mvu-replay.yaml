@@ -1,0 +1,403 @@
+场景:
+  - 名称: 普通突破原子结算并纠正处境
+    旧变量:
+      本尊:
+        等级: 4
+        修为: 400
+        修炼状态: { 阶段: 突破中, 上次结果: 无 }
+        尝试突破: true
+      当前处境: 正在冲击筑基
+    更新: |-
+      <UpdateVariable>
+      <Analysis>突破成功|等级+1|处境更新</Analysis>
+      <JSONPatch>[
+        {"op":"replace","path":"/本尊/等级","value":5},
+        {"op":"replace","path":"/本尊/修为","value":0},
+        {"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},
+        {"op":"replace","path":"/本尊/修炼状态/上次结果","value":"成功"},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"突破","目标等级":5,"依据":""}},
+        {"op":"replace","path":"/本尊/尝试突破","value":false},
+        {"op":"replace","path":"/当前处境","value":"本尊已突破至练气大圆满，正在稳固气海。"}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /本尊/等级: 5
+        /本尊/境界描述: 筑基初期
+        /本尊/修为: 0
+        /本尊/修炼状态/境界变动/类型: 无
+        /当前处境: 本尊已突破至筑基初期，正在稳固气海。
+
+  - 名称: 有依据的跨级突破
+    旧变量:
+      本尊:
+        等级: 4
+        修为: 400
+        修炼状态: { 阶段: 突破中, 上次结果: 无 }
+        尝试突破: true
+    更新: |-
+      <UpdateVariable>
+      <Analysis>炼化传承|连续突破</Analysis>
+      <JSONPatch>[
+        {"op":"replace","path":"/本尊/等级","value":7},
+        {"op":"replace","path":"/本尊/修为","value":0},
+        {"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},
+        {"op":"replace","path":"/本尊/修炼状态/上次结果","value":"成功"},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跨级突破","目标等级":7,"依据":"完整炼化上古真君传承"}},
+        {"op":"replace","path":"/本尊/尝试突破","value":false}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /本尊/等级: 7
+        /本尊/境界描述: 筑基后期
+
+  - 名称: 缺少依据的跨级自动收敛
+    旧变量:
+      本尊:
+        等级: 4
+        修为: 400
+        修炼状态: { 阶段: 突破中, 上次结果: 无 }
+        尝试突破: true
+    更新: |-
+      <UpdateVariable>
+      <Analysis>尝试连续突破</Analysis>
+      <JSONPatch>[
+        {"op":"replace","path":"/本尊/等级","value":8},
+        {"op":"replace","path":"/本尊/修为","value":0},
+        {"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},
+        {"op":"replace","path":"/本尊/修炼状态/上次结果","value":"成功"},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跨级突破","目标等级":8,"依据":""}},
+        {"op":"replace","path":"/本尊/尝试突破","value":false}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /本尊/等级: 5
+      包含警告: [跨级依据]
+
+  - 名称: 有依据的跌境
+    旧变量:
+      本尊:
+        等级: 5
+        修为: 300
+        修炼状态: { 阶段: 突破中, 上次结果: 无 }
+        尝试突破: true
+    更新: |-
+      <UpdateVariable>
+      <Analysis>根基受损|等级-1</Analysis>
+      <JSONPatch>[
+        {"op":"replace","path":"/本尊/等级","value":4},
+        {"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},
+        {"op":"replace","path":"/本尊/修炼状态/上次结果","value":"失败"},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跌境","目标等级":4,"依据":"雷劫反噬导致根基崩毁"}},
+        {"op":"replace","path":"/本尊/尝试突破","value":false}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /本尊/等级: 4
+        /本尊/修炼状态/上次结果: 失败
+
+  - 名称: 无依据跌境恢复旧等级
+    旧变量:
+      本尊:
+        等级: 5
+        修为: 300
+    更新: |-
+      <UpdateVariable>
+      <Analysis>境界下降</Analysis>
+      <JSONPatch>[
+        {"op":"replace","path":"/本尊/等级","value":3},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跌境","目标等级":3,"依据":""}}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /本尊/等级: 5
+      包含警告: [跌境依据]
+
+  - 名称: 派生境界字段写入被改成无操作
+    旧变量:
+      本尊: { 等级: 5 }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>错误写入派生境界</Analysis>
+      <JSONPatch>[{"op":"replace","path":"/本尊/境界描述","value":"练气初期"}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      命令守卫介入: true
+      值:
+        /本尊/境界描述: 筑基初期
+
+  - 名称: 空任务栏建立持续主线
+    旧变量:
+      任务列表: {}
+    语义: { 应创建任务: true }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>接受追查古签委托|建立主线</Analysis>
+      <JSONPatch>[{"op":"insert","path":"/任务列表/追查古签异象","value":{"名称":"追查古签异象","类型":"主线","目标":"查明古签来历及洞府异象关联。","状态":"进行中"}}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /任务列表/追查古签异象/状态: 进行中
+
+  - 名称: 推进现有任务而非重复建立
+    旧变量:
+      任务列表:
+        追查古签异象: { 名称: 追查古签异象, 类型: 主线, 目标: 检查古签残留灵机。, 状态: 进行中 }
+    语义: { 应推进任务: 追查古签异象 }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>任务推进|锁定灵机去向</Analysis>
+      <JSONPatch>[{"op":"replace","path":"/任务列表/追查古签异象/目标","value":"前往剑峰石室确认灵机终点。"}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /任务列表/追查古签异象/目标: 前往剑峰石室确认灵机终点。
+
+  - 名称: 完成最后任务并接续
+    旧变量:
+      任务列表:
+        查验观月台异象: { 名称: 查验观月台异象, 类型: 主线, 目标: 找到异象源头。, 状态: 进行中 }
+    语义: { 应接续任务: true }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>旧任务完成|接续追查</Analysis>
+      <JSONPatch>[
+        {"op":"remove","path":"/任务列表/查验观月台异象"},
+        {"op":"insert","path":"/任务列表/寻访古签来处","value":{"名称":"寻访古签来处","类型":"主线","目标":"循残留灵机找到制签者线索。","状态":"进行中"}}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      不存在: [/任务列表/查验观月台异象]
+      值:
+        /任务列表/寻访古签来处/状态: 进行中
+
+  - 名称: 已形成持续目标却漏建任务
+    旧变量:
+      任务列表: {}
+    语义: { 应创建任务: true }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>处境更新</Analysis>
+      <JSONPatch>[{"op":"replace","path":"/当前处境","value":"已决定追查古签来历。"}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: false
+      错误包含: [要求创建任务]
+
+  - 名称: 单步日常行动不强建任务
+    旧变量:
+      任务列表: {}
+    语义: { 禁止新任务: true }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>处境更新</Analysis>
+      <JSONPatch>[{"op":"replace","path":"/当前处境","value":"已在观月台完成一轮调息。"}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+
+  - 名称: 获得物品与灵石消费同步
+    旧变量:
+      本尊:
+        灵石: 100
+        背包: {}
+    语义:
+      必须记录库存: [青玉丹]
+    更新: |-
+      <UpdateVariable>
+      <Analysis>灵石-20|获得青玉丹</Analysis>
+      <JSONPatch>[
+        {"op":"delta","path":"/本尊/灵石","value":-20},
+        {"op":"insert","path":"/本尊/背包/青玉丹","value":{"名称":"青玉丹","数量":2,"描述":"稳固灵力"}}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /本尊/灵石: 80
+        /本尊/背包/青玉丹/数量: 2
+
+  - 名称: 非法世界库条目局部移除
+    旧变量:
+      地点库: {}
+    更新: |-
+      <UpdateVariable>
+      <Analysis>写入损坏地点</Analysis>
+      <JSONPatch>[{"op":"insert","path":"/地点库/破损地点","value":null}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      Schema修复: true
+      不存在: [/地点库/破损地点]
+      包含警告: [非法新增字段]
+
+  - 名称: 繁体路径与红颜别名归一
+    旧变量:
+      红颜:
+        虞汐颜:
+          等级: 1
+          好感度: 10
+          关系: 初识
+      _好感度快照: { 虞汐颜: 10 }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>虞汐好感+4</Analysis>
+      <JSONPatch>[{"op":"delta","path":"/紅顏/虞汐/好感度","value":4}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      命令守卫介入: true
+      值:
+        /红颜/虞汐颜/好感度: 14
+
+  - 名称: 已存在红颜的重复 insert 被拆成字段更新
+    旧变量:
+      红颜:
+        虞汐颜:
+          等级: 1
+          好感度: 10
+          关系: 初识
+      _好感度快照: { 虞汐颜: 10 }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>虞汐关系变化|好感+2</Analysis>
+      <JSONPatch>[{"op":"insert","path":"/红颜/虞汐","value":{"好感度":12,"关系":"同行者"}}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      命令守卫介入: true
+      值:
+        /红颜/虞汐颜/好感度: 12
+        /红颜/虞汐颜/关系: 同行者
+
+  - 名称: 父子路径冲突被协议层拒绝
+    旧变量: {}
+    更新: |-
+      <UpdateVariable>
+      <Analysis>冲突更新</Analysis>
+      <JSONPatch>[
+        {"op":"replace","path":"/本尊/身份","value":{"姓名":"甲","宗门":"散修","出身":"凡人"}},
+        {"op":"replace","path":"/本尊/身份/姓名","value":"乙"}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: false
+      错误包含: [路径冲突]
+
+  - 名称: 非法 JSON 被协议层拒绝
+    旧变量: {}
+    更新: |-
+      <UpdateVariable>
+      <Analysis>非法格式</Analysis>
+      <JSONPatch>[{"op":"replace","path":"/当前处境","value":"缺少结尾"},]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: false
+      错误包含: [不是合法 JSON]
+
+  - 名称: 重复任务 insert 被执行层拒绝
+    旧变量:
+      任务列表:
+        追查异象: { 名称: 追查异象, 类型: 主线, 目标: 找到源头。, 状态: 进行中 }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>错误重复建任务</Analysis>
+      <JSONPatch>[{"op":"insert","path":"/任务列表/追查异象","value":{"名称":"追查异象","类型":"主线","目标":"重复目标。","状态":"进行中"}}]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: false
+      错误包含: [insert 目标已存在]
+
+  - 名称: 双重嵌套的行动 patch 自动拆包
+    旧变量:
+      可参与机遇:
+        - { 行动: '上一轮旧行动。', 类型: 探索 }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>处境与机遇更新</Analysis>
+      <JSONPatch>[{
+        "op":"replace",
+        "path":"/可参与机遇",
+        "value":[{
+          "op":"replace",
+          "path":"/可参与机遇",
+          "value":[
+            {"行动":"闭目调息，将新悟真意化入气海。","类型":"修炼","提示":"稳固进境"},
+            {"行动":"追上师尊请教不争之意。","类型":"交涉"}
+          ]
+        }]
+      }]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      命令守卫介入: true
+      值:
+        /可参与机遇/0/行动: 闭目调息，将新悟真意化入气海。
+        /可参与机遇/0/类型: 修炼
+        /可参与机遇/1/行动: 追上师尊请教不争之意。
+
+  - 名称: 逐下标嵌套的行动 patch 自动重建
+    旧变量:
+      可参与机遇:
+        - { 行动: '上一轮旧行动。', 类型: 探索 }
+    更新: |-
+      <UpdateVariable>
+      <Analysis>处境与机遇更新</Analysis>
+      <JSONPatch>[{
+        "op":"replace",
+        "path":"/可参与机遇",
+        "value":[
+          {"op":"replace","path":"/可参与机遇/0","value":{"行动":"借琴音稳固不争雷网。","类型":"修炼","提示":"师尊在侧"}},
+          {"op":"replace","path":"/可参与机遇/1","value":{"行动":"主动迎接剑指考校。","类型":"战斗"}},
+          {"op":"replace","path":"/可参与机遇/2","value":{"行动":"请教自然与蛰藏的关联。","类型":"交涉"}}
+        ]
+      }]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      命令守卫介入: true
+      值:
+        /可参与机遇/0/行动: 借琴音稳固不争雷网。
+        /可参与机遇/1/类型: 战斗
+        /可参与机遇/2/行动: 请教自然与蛰藏的关联。
+
+  - 名称: 失败突破清理临时凭证
+    旧变量:
+      本尊:
+        等级: 4
+        修为: 400
+        修炼状态:
+          阶段: 突破中
+          上次结果: 无
+          境界变动: { 类型: 突破, 目标等级: 5, 依据: '' }
+        尝试突破: true
+    更新: |-
+      <UpdateVariable>
+      <Analysis>突破失败|修为-40</Analysis>
+      <JSONPatch>[
+        {"op":"delta","path":"/本尊/修为","value":-40},
+        {"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},
+        {"op":"replace","path":"/本尊/修炼状态/上次结果","value":"失败"},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"突破","目标等级":5,"依据":""}},
+        {"op":"replace","path":"/本尊/尝试突破","value":false}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      值:
+        /本尊/等级: 4
+        /本尊/修炼状态/境界变动/类型: 无
+        /本尊/尝试突破: false

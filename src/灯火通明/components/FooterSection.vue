@@ -13,7 +13,7 @@
     <div class="footer-center">
       <div class="world-time">
         <i :class="timeIconClass"></i>
-        <span>{{ store.世界时钟.纪元 }} · 第{{ store.世界时钟.年份 }}年 · {{ dayNightLabel }}</span>
+        <span>{{ eraLabel }} · 第{{ store.世界时钟.年份 }}年 · {{ dayNightLabel }}</span>
       </div>
       <span class="footer-signature">灯火阑珊</span>
     </div>
@@ -40,6 +40,11 @@
 import { useDataStore } from '../store';
 
 const store = useDataStore();
+
+const eraLabel = computed(() => {
+  const era = String(store.世界时钟.纪元 || '').trim();
+  return era === '末法时代' ? '盛法时代' : era || '盛法时代';
+});
 
 const dayNightLabel = computed(() => {
   const shichen = String(store.世界时钟.时辰 || '');

@@ -7,6 +7,9 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "dump": "node dump_schema.ts",
+    "test:lantern-schema": "ts-node --files --project tsconfig.schema-test.json tests/lantern-schema.test.ts",
+    "test:lantern-mvu": "pnpm run test:lantern-schema && ts-node --files --project tsconfig.schema-test.json tests/lantern-mvu-replay.test.ts",
+    "test:lantern-mvu:fuzz": "ts-node --files --project tsconfig.schema-test.json tests/lantern-mvu-fuzz.test.ts",
     "sync": "node tavern_sync.mjs"
   },
   "browserslist": [

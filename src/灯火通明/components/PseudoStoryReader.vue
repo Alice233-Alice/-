@@ -1,8 +1,7 @@
 <template>
   <section class="story-reader" :class="{ streaming: isStoryGenerating }">
-    <div v-if="userPrompt || reasoningText || variableDiagnostics" class="turn-context-bar">
+    <div v-if="userPrompt" class="turn-context-bar">
       <button
-        v-if="userPrompt"
         type="button"
         class="turn-prompt-trigger"
         :aria-expanded="contextPanel === 'prompt'"
@@ -13,48 +12,18 @@
         <span class="turn-context-label">本回起念</span>
         <span class="turn-prompt-preview">{{ userPromptPreview }}</span>
       </button>
-
-      <button
-        v-if="reasoningText"
-        type="button"
-        class="reasoning-trigger"
-        :aria-expanded="contextPanel === 'reasoning'"
-        title="查看推演思绪"
-        @click="toggleContext('reasoning')"
-      >
-        <i class="fa-solid fa-brain"></i>
-        <span class="reasoning-label">推演思绪</span>
-        <span v-if="reasoningTime" class="reasoning-time">{{ reasoningTime }}</span>
-        <i class="fa-solid fa-chevron-down context-chevron"></i>
-      </button>
-
-      <button
-        v-if="variableDiagnostics"
-        type="button"
-        class="variable-trigger"
-        :class="{ 'has-error': variableDiagnostics.parseError }"
-        :aria-expanded="contextPanel === 'variable'"
-        title="查看本回变量更新诊断"
-        @click="toggleContext('variable')"
-      >
-        <i class="fa-solid fa-code-branch"></i>
-        <span class="variable-label">天道推演</span>
-        <span class="variable-count">{{ variableStatusLabel }}</span>
-        <i class="fa-solid fa-chevron-down context-chevron"></i>
-      </button>
     </div>
 
     <button
-      v-if="contextPanel"
+      v-if="contextPanel === 'prompt'"
       type="button"
       class="context-scrim"
       aria-label="关闭回合脉络"
       @click="contextPanel = null"
     ></button>
     <section
-      v-if="contextPanel"
+      v-if="contextPanel === 'prompt'"
       class="context-popover"
-      :class="{ 'variable-popover': contextPanel === 'variable' }"
       role="dialog"
       :aria-label="contextTitle"
     >
@@ -63,81 +32,13 @@
           <i :class="contextIcon"></i>
           {{ contextTitle }}
         </span>
-        <span v-if="contextPanel === 'reasoning' && reasoningTime" class="context-popover-time">
-          {{ reasoningTime }}
-        </span>
         <button type="button" title="关闭" aria-label="关闭" @click="contextPanel = null">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </header>
-      <div v-if="contextPanel === 'variable' && variableDiagnostics" class="variable-diagnostics">
-        <section v-if="analysisSegments.length" class="variable-analysis">
-          <h3>推演摘要</h3>
-          <div class="analysis-segments">
-            <span v-for="(segment, index) in analysisSegments" :key="`${index}-${segment}`">
-              {{ segment }}
-            </span>
-          </div>
-        </section>
-
-        <div class="variable-overview">
-          <span>
-            <i class="fa-solid fa-list-check"></i>
-            变量更新清单
-          </span>
-          <strong>{{ variableDiagnostics.operations.length }} 项</strong>
-          <span v-if="!variableDiagnostics.isComplete" class="diagnostic-state receiving">
-            <i class="fa-solid fa-circle-notch fa-spin"></i>
-            接收中
-          </span>
-          <span v-else-if="variableDiagnostics.parseError" class="diagnostic-state invalid">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            结构异常
-          </span>
-          <span v-else class="diagnostic-state valid">
-            <i class="fa-solid fa-circle-check"></i>
-            结构正常
-          </span>
-        </div>
-
-        <ol v-if="variableDiagnostics.operations.length" class="variable-operation-list">
-          <li
-            v-for="(operation, index) in variableDiagnostics.operations"
-            :key="`${index}-${operation.op}-${operation.path}`"
-            class="variable-operation"
-          >
-            <div class="operation-heading">
-              <span class="operation-index">{{ index + 1 }}</span>
-              <span class="operation-kind" :class="`op-${normalizeOperation(operation.op)}`">
-                {{ operationLabel(operation.op) }}
-              </span>
-              <code>{{ formatPatchPath(operation.path) }}</code>
-            </div>
-            <pre v-if="hasOperationValue(operation)">{{ formatPatchValue(operation.value) }}</pre>
-            <p v-else-if="operation.from" class="operation-from">来源：{{ formatPatchPath(operation.from) }}</p>
-            <p v-else class="operation-empty">该路径不携带新值</p>
-          </li>
-        </ol>
-
-        <div v-else-if="variableDiagnostics.isComplete && !variableDiagnostics.parseError" class="variable-empty">
-          本回未提交变量变更。
-        </div>
-
-        <div v-if="variableDiagnostics.parseError" class="diagnostic-error" role="alert">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <span>{{ variableDiagnostics.parseError }}</span>
-        </div>
-
-        <details v-if="variableDiagnostics.rawPatch" class="raw-patch">
-          <summary>原始 JSONPatch</summary>
-          <pre>{{ variableDiagnostics.rawPatch }}</pre>
-        </details>
-      </div>
-      <template v-else>
-        <!-- 酒馆格式化接口已完成与原生楼层相同的 HTML 处理。 -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="context-popover-copy" v-html="contextHtml"></div>
-      </template>
+      <!-- 酒馆格式化接口已完成与原生楼层相同的 HTML 处理。 -->
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <div class="context-popover-copy" v-html="userPromptHtml"></div>
     </section>
 
     <div class="story-layout" :class="{ 'with-portrait': showPortrait }">
@@ -157,13 +58,89 @@
           @pointerup.passive="handleStreamPointerUp"
           @pointercancel.passive="handleStreamPointerUp"
         >
-          <div v-if="isStoryGenerating && !pseudo.streamText" class="story-waiting">
+          <div v-if="isStoryGenerating && !pseudo.streamText && !pseudo.liveReasoning" class="story-waiting">
             <i class="fa-solid fa-feather-pointed"></i>
             <span>气机正在汇聚，等待第一缕回响……</span>
           </div>
-          <!-- eslint-disable-next-line vue/no-v-html -->
-          <article v-else-if="storyHtml" class="story-copy" v-html="storyHtml"></article>
-          <div v-else class="story-empty">此回尚无可供阅读的正文。</div>
+          <template v-else>
+            <section
+              v-if="reasoningText && !reasoningUsesOwnDisclosure"
+              class="story-inline-context reasoning-inline-context"
+            >
+              <div class="reasoning-rail">
+                <button
+                  type="button"
+                  class="reasoning-trigger"
+                  :aria-expanded="contextPanel === 'reasoning'"
+                  title="展开灵台观照"
+                  @click="toggleContext('reasoning')"
+                >
+                  <span class="reasoning-trigger-glyph"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                  <span class="reasoning-title">
+                    <strong>灵台观照</strong>
+                    <small>一念入定 · 照见推演脉络</small>
+                  </span>
+                  <span class="reasoning-ornament" aria-hidden="true"><i></i><b>◇</b><i></i></span>
+                  <span v-if="liveReasoningStreaming" class="reasoning-state">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    观照流转中<span v-if="reasoningTime"> · {{ reasoningTime }}</span>
+                  </span>
+                  <span v-else-if="reasoningTime" class="reasoning-time">
+                    <small>推演历时</small>
+                    <strong>{{ reasoningTime }}</strong>
+                  </span>
+                  <span v-else class="reasoning-state">观照已成</span>
+                  <i class="fa-solid fa-chevron-down context-chevron"></i>
+                </button>
+              </div>
+              <div v-if="contextPanel === 'reasoning'" class="inline-context-detail reasoning-inline-detail">
+                <ReasoningDisplay
+                  :text="reasoningText"
+                  :raw-message="reasoningRawMessage"
+                  :message-id="storyMessageId"
+                  :streaming="liveReasoningStreaming"
+                />
+              </div>
+            </section>
+
+            <section v-else-if="reasoningText" class="inline-preset-reasoning">
+              <ReasoningDisplay
+                :text="reasoningText"
+                :raw-message="reasoningRawMessage"
+                :message-id="storyMessageId"
+                :open-preset-disclosure="false"
+                :streaming="liveReasoningStreaming"
+              />
+            </section>
+
+            <!-- eslint-disable-next-line vue/no-v-html -->
+            <article v-if="storyHtml" class="story-copy" v-html="storyHtml"></article>
+            <div v-else-if="!isStoryGenerating && !branchChoices.length" class="story-empty">
+              此回尚无可供阅读的正文。
+            </div>
+            <BranchChoicePanel v-if="branchChoices.length" :choices="branchChoices" />
+
+            <section v-if="variableDiagnostics" class="story-inline-context variable-inline-context">
+              <button
+                type="button"
+                class="variable-trigger variable-inline-trigger"
+                :class="{ 'has-error': variableDiagnostics.parseError }"
+                :aria-expanded="contextPanel === 'variable'"
+                title="查看本回变量更新诊断"
+                @click="toggleContext('variable')"
+              >
+                <i class="fa-solid fa-code-branch"></i>
+                <span class="variable-label">天道推演</span>
+                <span class="variable-count">{{ variableStatusLabel }}</span>
+                <i class="fa-solid fa-chevron-down context-chevron"></i>
+              </button>
+              <VariableDiagnosticsPanel
+                v-if="contextPanel === 'variable'"
+                class="inline-context-detail variable-inline-detail"
+                :diagnostics="variableDiagnostics"
+              />
+            </section>
+          </template>
         </div>
         <button
           v-if="isStoryGenerating && !isFollowingStream"
@@ -186,18 +163,20 @@
 </template>
 
 <script setup lang="ts">
-import type { VariablePatchOperation } from '../message-content';
 import {
-  extractInlineReasoning,
-  extractNarrative,
   extractVariableUpdateDiagnostics,
   formatMessageHtml,
+  hasInlineReasoningPresetDisclosure,
   mergeReasoningText,
+  parseMessageContent,
   stripStructuredBlocks,
 } from '../message-content';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import { useStreamFollow } from '../composables/use-stream-follow';
+import BranchChoicePanel from './BranchChoicePanel.vue';
+import ReasoningDisplay from './ReasoningDisplay.vue';
 import ScenePortraitRail from './ScenePortraitRail.vue';
+import VariableDiagnosticsPanel from './VariableDiagnosticsPanel.vue';
 
 const props = defineProps<{ immersive?: boolean; mobileLayout?: boolean }>();
 const pseudo = usePseudoLayerStore();
@@ -283,16 +262,12 @@ const handleStoryPointerDown = (event: PointerEvent) => {
 };
 
 const currentRawMessage = computed(() =>
-  isStoryGenerating.value && displayedStreamText.value ? displayedStreamText.value : pseudo.storyFloorMessage,
+  isStoryGenerating.value ? displayedStreamText.value : pseudo.storyFloorMessage,
 );
-const storyHtml = computed(() => formatText(extractNarrative(currentRawMessage.value)));
+const parsedMessage = computed(() => parseMessageContent(currentRawMessage.value));
+const storyHtml = computed(() => formatText(parsedMessage.value.narrative));
+const branchChoices = computed(() => parsedMessage.value.choices);
 const variableDiagnostics = computed(() => extractVariableUpdateDiagnostics(currentRawMessage.value));
-const analysisSegments = computed(() =>
-  (variableDiagnostics.value?.analysis ?? '')
-    .split(/\s*\|\s*/)
-    .map(segment => segment.trim())
-    .filter(Boolean),
-);
 const variableStatusLabel = computed(() => {
   const diagnostics = variableDiagnostics.value;
   if (!diagnostics) return '';
@@ -311,7 +286,12 @@ const userPromptPreview = computed(() =>
 );
 const userPromptHtml = computed(() => formatText(stripStructuredBlocks(userPrompt.value)));
 const inlineStreamReasoning = computed(() =>
-  isStoryGenerating.value ? extractInlineReasoning(displayedStreamText.value) : null,
+  isStoryGenerating.value ? parseMessageContent(displayedStreamText.value).reasoning : null,
+);
+const liveReasoningStreaming = computed(
+  () =>
+    isStoryGenerating.value &&
+    (pseudo.liveReasoningState === 'thinking' || Boolean(inlineStreamReasoning.value?.isComplete === false)),
 );
 const reasoningText = computed(() => {
   if (!isStoryGenerating.value) return pseudo.storyFloorReasoning;
@@ -319,7 +299,14 @@ const reasoningText = computed(() => {
   if (liveText) return liveText;
   return pseudo.streamText ? '' : pseudo.storyFloorReasoning;
 });
-const reasoningHtml = computed(() => formatText(reasoningText.value));
+const reasoningRawMessage = computed(() =>
+  isStoryGenerating.value ? displayedStreamText.value : pseudo.storyFloorMessage,
+);
+const reasoningUsesOwnDisclosure = computed(
+  () =>
+    appearance.preferences.reasoningAppearance !== 'theme' &&
+    hasInlineReasoningPresetDisclosure(reasoningRawMessage.value, storyMessageId.value),
+);
 const reasoningTime = computed(() => {
   const duration = isStoryGenerating.value
     ? (pseudo.reasoningDuration ?? pseudo.storyFloorReasoningDuration)
@@ -330,51 +317,16 @@ const reasoningTime = computed(() => {
 const contextTitle = computed(() => {
   if (contextPanel.value === 'prompt') return '本回起念';
   if (contextPanel.value === 'variable') return '天道推演';
-  return '推演思绪';
+  return '灵台观照';
 });
 const contextIcon = computed(() => {
   if (contextPanel.value === 'prompt') return 'fa-solid fa-feather-pointed';
   if (contextPanel.value === 'variable') return 'fa-solid fa-code-branch';
-  return 'fa-solid fa-brain';
+  return 'fa-solid fa-fire-flame-curved';
 });
-const contextHtml = computed(() => (contextPanel.value === 'prompt' ? userPromptHtml.value : reasoningHtml.value));
 
 const toggleContext = (panel: ContextPanel) => {
   contextPanel.value = contextPanel.value === panel ? null : panel;
-};
-
-const operationLabels: Record<string, string> = {
-  add: '新增',
-  insert: '新增',
-  replace: '覆盖',
-  delta: '增减',
-  remove: '移除',
-  move: '移动',
-  copy: '复制',
-  test: '校验',
-};
-const normalizeOperation = (operation: string) =>
-  operation
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '') || 'unknown';
-const operationLabel = (operation: string) =>
-  operationLabels[normalizeOperation(operation)] ?? (operation.trim() || '未知');
-const decodePointerSegment = (segment: string) => segment.replace(/~1/g, '/').replace(/~0/g, '~');
-const formatPatchPath = (path: string) => {
-  const segments = String(path ?? '')
-    .replaceAll('／', '/')
-    .split('/')
-    .filter(Boolean)
-    .map(decodePointerSegment);
-  return segments.length ? segments.join(' › ') : '根节点';
-};
-const hasOperationValue = (operation: VariablePatchOperation) =>
-  Object.prototype.hasOwnProperty.call(operation, 'value');
-const formatPatchValue = (value: unknown) => {
-  if (typeof value === 'string') return value;
-  const serialized = JSON.stringify(value, null, 2);
-  return serialized ?? String(value);
 };
 
 const closeContextOnEscape = (event: KeyboardEvent) => {
@@ -385,12 +337,30 @@ const generationLabel = computed(() => {
   const labels = {
     idle: '',
     preparing: '正在整理前因',
-    generating: '正文正在落笔',
+    generating: liveReasoningStreaming.value && !pseudo.streamText ? '灵台正在推演' : '正文正在落笔',
     saving: '正在落定新回合',
     stopping: '正在收束推演',
   };
   return labels[pseudo.generationState];
 });
+
+let autoOpenedReasoningRequest = '';
+watch(
+  [() => pseudo.activeRequestId, () => pseudo.liveReasoning, () => inlineStreamReasoning.value?.text ?? ''],
+  ([requestId, liveReasoning, inlineReasoning]) => {
+    if (!requestId || (!liveReasoning && !inlineReasoning) || autoOpenedReasoningRequest === requestId) return;
+    contextPanel.value = 'reasoning';
+    autoOpenedReasoningRequest = requestId;
+    queueStreamFollow();
+  },
+);
+
+watch(
+  () => pseudo.liveReasoning,
+  () => {
+    if (isStoryGenerating.value) queueStreamFollow();
+  },
+);
 
 watch(
   () => pseudo.streamText,
@@ -421,6 +391,7 @@ watch(
       cancelStreamRender();
       pendingStreamText = '';
       displayedStreamText.value = '';
+      autoOpenedReasoningRequest = '';
     }
   },
 );
@@ -431,6 +402,9 @@ watch(
     contextPanel.value = null;
   },
 );
+watch(reasoningUsesOwnDisclosure, (usesOwnDisclosure) => {
+  if (usesOwnDisclosure && contextPanel.value === 'reasoning') contextPanel.value = null;
+});
 
 onMounted(() => window.addEventListener('keydown', closeContextOnEscape));
 onBeforeUnmount(() => {
@@ -484,9 +458,64 @@ defineExpose({ scrollElement: scrollRef });
   min-width: 0;
   min-height: 36px;
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   border-bottom: 1px solid var(--line-subtle);
   background: color-mix(in srgb, var(--surface-inset) 68%, transparent);
+}
+
+.reasoning-rail {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.story-inline-context,
+.inline-preset-reasoning {
+  width: min(100%, var(--reading-measure));
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.reasoning-inline-context,
+.inline-preset-reasoning {
+  margin-bottom: clamp(24px, 4vh, 42px);
+}
+
+.inline-context-detail {
+  margin-top: 12px;
+}
+
+.reasoning-inline-detail {
+  min-width: 0;
+}
+
+.variable-inline-context {
+  margin-top: clamp(28px, 5vh, 52px);
+  padding-top: 14px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.variable-inline-trigger {
+  min-height: 31px !important;
+  padding: 0 11px !important;
+  border: 1px solid var(--line-subtle) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--surface-inset) 82%, transparent) !important;
+}
+
+.variable-inline-trigger:hover,
+.variable-inline-trigger[aria-expanded='true'] {
+  border-color: var(--line-strong) !important;
+  background: var(--button-active) !important;
+}
+
+.variable-inline-detail {
+  padding: 14px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface-inset) 78%, transparent);
 }
 
 .turn-prompt-trigger,
@@ -538,8 +567,108 @@ defineExpose({ scrollElement: scrollRef });
   border-left: 1px solid var(--line-subtle);
 }
 
-.reasoning-trigger > i:first-child {
+.reasoning-trigger {
+  position: relative;
+  width: min(100%, 1120px);
+  min-height: 48px;
+  padding: 5px 13px 5px 5px;
+  gap: 11px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--jade) 42%, var(--line-subtle));
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 4% 50%, color-mix(in srgb, var(--jade) 16%, transparent), transparent 20%),
+    repeating-linear-gradient(90deg, transparent 0 52px, color-mix(in srgb, var(--jade) 3%, transparent) 53px 54px),
+    linear-gradient(110deg, color-mix(in srgb, var(--surface-raised) 94%, transparent), var(--surface-inset));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--gold) 7%, transparent),
+    inset 0 -14px 30px color-mix(in srgb, var(--stage-shadow) 10%, transparent),
+    0 7px 22px color-mix(in srgb, var(--stage-shadow) 28%, transparent);
+  isolation: isolate;
+}
+.reasoning-trigger::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  border-radius: 5px;
+  background: linear-gradient(105deg, transparent 18%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 72%);
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.reasoning-trigger::after {
+  content: '✦';
+  position: absolute;
+  right: 54px;
+  bottom: -8px;
+  color: color-mix(in srgb, var(--gold) 18%, transparent);
+  font-size: 25px;
+  line-height: 1;
+  transform: rotate(22deg);
+  pointer-events: none;
+}
+.reasoning-trigger-glyph {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--jade) 50%, transparent);
+  border-radius: 50%;
   color: var(--jade);
+  background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  box-shadow:
+    inset 0 0 0 3px color-mix(in srgb, var(--jade) 5%, transparent),
+    0 0 16px color-mix(in srgb, var(--jade) 13%, transparent);
+}
+.reasoning-trigger-glyph::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 1px dashed color-mix(in srgb, var(--jade) 22%, transparent);
+  border-radius: 50%;
+}
+.reasoning-title {
+  min-width: 116px;
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+.reasoning-title strong {
+  color: var(--text-accent);
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, serif;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+.reasoning-title small {
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.reasoning-ornament {
+  min-width: 40px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: color-mix(in srgb, var(--gold) 50%, transparent);
+}
+.reasoning-ornament i {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--jade) 34%, transparent), color-mix(in srgb, var(--gold) 42%, transparent));
+}
+.reasoning-ornament i:last-child {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 42%, transparent), color-mix(in srgb, var(--jade) 34%, transparent), transparent);
+}
+.reasoning-ornament b {
+  font-size: 9px;
+  font-weight: 400;
 }
 .variable-trigger > i:first-child {
   color: var(--gold);
@@ -561,6 +690,24 @@ defineExpose({ scrollElement: scrollRef });
 .variable-trigger[aria-expanded='true'] {
   color: var(--text-primary);
   background: color-mix(in srgb, var(--button-hover) 74%, transparent);
+}
+.reasoning-trigger:hover::before,
+.reasoning-trigger[aria-expanded='true']::before {
+  opacity: 1;
+}
+.reasoning-trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--gold) 52%, var(--line-strong));
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--gold) 18%, transparent), transparent 46%),
+    linear-gradient(110deg, color-mix(in srgb, var(--button-active) 84%, transparent), var(--surface-inset));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--gold) 10%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent-glow) 34%, transparent);
+}
+.reasoning-trigger[aria-expanded='true'] .reasoning-trigger-glyph {
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 52%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-glow) 42%, transparent);
 }
 
 .context-chevron {
@@ -849,8 +996,33 @@ defineExpose({ scrollElement: scrollRef });
 }
 
 .reasoning-time {
+  min-width: 70px;
+  padding-left: 11px;
+  display: grid;
+  gap: 1px;
+  border-left: 1px solid color-mix(in srgb, var(--gold) 24%, transparent);
+  text-align: left;
+  white-space: nowrap;
+}
+.reasoning-time small {
+  color: var(--text-secondary);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+.reasoning-time strong {
   color: var(--gold-soft);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   font-size: 10px;
+  font-weight: 500;
+}
+.reasoning-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--jade);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 .story-layout {
@@ -988,6 +1160,9 @@ defineExpose({ scrollElement: scrollRef });
   .turn-context-bar {
     min-height: 40px;
   }
+  .reasoning-rail {
+    padding: 0;
+  }
   .turn-prompt-trigger,
   .reasoning-trigger,
   .variable-trigger {
@@ -1003,14 +1178,38 @@ defineExpose({ scrollElement: scrollRef });
     gap: 6px;
   }
   .reasoning-trigger {
-    padding-inline: 10px;
+    min-height: 44px;
+    padding: 4px 9px 4px 4px;
+    gap: 8px;
+    border-radius: 7px;
   }
   .variable-trigger {
     padding-inline: 9px;
   }
-  .reasoning-label,
+  .variable-inline-detail {
+    padding: 10px;
+  }
   .variable-label {
     display: none;
+  }
+  .reasoning-trigger-glyph {
+    width: 32px;
+    height: 32px;
+  }
+  .reasoning-title {
+    min-width: 90px;
+  }
+  .reasoning-title strong {
+    font-size: 11px;
+  }
+  .reasoning-title small,
+  .reasoning-ornament {
+    display: none;
+  }
+  .reasoning-time {
+    margin-left: auto;
+    min-width: 58px;
+    padding-left: 8px;
   }
   .context-popover {
     top: 42px;

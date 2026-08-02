@@ -132,10 +132,16 @@
 <script setup lang="ts">
 import type { PseudoLayerHistoryKind } from '../pseudo-layer-protocol';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
+import type { ReadingMode } from '../stores/theme-store';
 import DialogueTargetPicker from './DialogueTargetPicker.vue';
 import MobilePortraitButton from './MobilePortraitButton.vue';
 
-const props = defineProps<{ activeView: string; mobileLayout?: boolean; immersive?: boolean }>();
+const props = defineProps<{
+  activeView: string;
+  mobileLayout?: boolean;
+  immersive?: boolean;
+  readingMode: ReadingMode;
+}>();
 const emit = defineEmits<{ (event: 'open-view', view: 'story' | 'dialogue'): void }>();
 const pseudo = usePseudoLayerStore();
 const data = useDataStore();
@@ -143,7 +149,9 @@ const appearance = useThemeStore();
 const textareaRef = ref<HTMLTextAreaElement>();
 const isFocused = ref(false);
 const showTargetPicker = ref(false);
+const timelineInteractionMode = ref<PseudoLayerHistoryKind>(pseudo.activeDialogue ? 'dialogue' : 'story');
 const historyKind = computed<PseudoLayerHistoryKind>(() => {
+  if (props.readingMode === 'scroll') return timelineInteractionMode.value;
   if (props.activeView === 'story' || props.activeView === 'dialogue') return props.activeView;
   return pseudo.view.stage.kind;
 });
@@ -156,14 +164,18 @@ const showDockPortrait = computed(
     data.hasGalleryCards,
 );
 const workspaceHistory = computed(() => pseudo.view.histories[historyKind.value]);
-const isWorkspaceLatest = computed(() => workspaceHistory.value.total === 0 || workspaceHistory.value.isLatest);
+const isWorkspaceLatest = computed(
+  () => props.readingMode === 'scroll' || workspaceHistory.value.total === 0 || workspaceHistory.value.isLatest,
+);
 const isExpanded = computed(
   () =>
     isFocused.value ||
     isDialogueWorkspace.value ||
     Boolean(pseudo.draftPrompt.trim() || pseudo.selectedTitle || pseudo.generationError),
 );
-const connectionLabel = computed(() => (pseudo.controllerReady ? '伪同层已连接' : '等待控制脚本'));
+const connectionLabel = computed(() =>
+  pseudo.controllerReady ? pseudo.controllerConnectionDescription : '等待控制脚本',
+);
 const inputPlaceholder = computed(() => {
   if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
     return pseudo.dialogueContext ? '先继续这段交谈，或另开一段……' : '先选择一位交谈对象……';
@@ -217,6 +229,9 @@ const primaryIcon = computed(() => {
 const primaryDisabled = computed(() => {
   if (pseudo.isGenerating) return true;
   if (isDialogueWorkspace.value && !pseudo.isDialogueActive) return false;
+  if (props.readingMode === 'scroll') {
+    return isDialogueWorkspace.value ? !pseudo.canSubmitLatestDialogue : !pseudo.canSubmitLatestStory;
+  }
   return isDialogueWorkspace.value ? !pseudo.canSubmitDialogue : !pseudo.canSubmitStory;
 });
 const historyLabel = computed(() => (historyKind.value === 'dialogue' ? '正在阅览旧交谈' : '正在阅览旧正文'));
@@ -224,20 +239,22 @@ const returnLatestLabel = computed(() => (historyKind.value === 'dialogue' ? '�
 
 const chooseStory = () => {
   if (pseudo.isGenerating) return;
-  emit('open-view', 'story');
+  timelineInteractionMode.value = 'story';
+  if (props.readingMode !== 'scroll') emit('open-view', 'story');
   if (pseudo.isDialogueActive) pseudo.endDialogue();
 };
 
 const chooseDialogue = () => {
   if (pseudo.isGenerating) return;
-  emit('open-view', 'dialogue');
+  timelineInteractionMode.value = 'dialogue';
+  if (props.readingMode !== 'scroll') emit('open-view', 'dialogue');
   if (pseudo.isDialogueActive) return;
   if (pseudo.dialogueContext) pseudo.continueDialogue();
   else showTargetPicker.value = true;
 };
 
 const submitCurrent = () => {
-  pseudo.submit(historyKind.value);
+  pseudo.submit(historyKind.value, props.readingMode === 'scroll');
 };
 
 const runPrimaryAction = () => {
@@ -252,6 +269,18 @@ const runPrimaryAction = () => {
 watch(
   () => pseudo.focusNonce,
   () => nextTick(() => textareaRef.value?.focus()),
+);
+watch(
+  () => pseudo.activeDialogue?.sessionId,
+  sessionId => {
+    if (sessionId) timelineInteractionMode.value = 'dialogue';
+  },
+);
+watch(
+  () => props.readingMode,
+  mode => {
+    if (mode === 'scroll') timelineInteractionMode.value = pseudo.activeDialogue ? 'dialogue' : 'story';
+  },
 );
 </script>
 

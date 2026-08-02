@@ -108,6 +108,10 @@ export const useStreamFollow = (scrollRef: Ref<HTMLElement | undefined>) => {
     });
   };
 
+  const pauseFollowing = () => {
+    isFollowing.value = false;
+  };
+
   onBeforeUnmount(() => {
     if (interactionReleaseTimer !== undefined) window.clearTimeout(interactionReleaseTimer);
   });
@@ -124,5 +128,6 @@ export const useStreamFollow = (scrollRef: Ref<HTMLElement | undefined>) => {
     handlePointerUp,
     queueFollow,
     resumeFollowing,
+    pauseFollowing,
   };
 };

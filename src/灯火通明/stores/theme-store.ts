@@ -1,36 +1,80 @@
 import { getDefaultTheme, getThemeById, isThemeId, themes, type Theme, type ThemeId } from '../themes';
 
 export type ReadingMeasure = 'narrow' | 'standard' | 'wide';
+export type ReadingMode = 'paged' | 'scroll';
+export type ReadingViewportMode = 'mobile' | 'desktop';
+export type ReasoningAppearanceMode = 'auto' | 'preset' | 'theme';
 
 export interface ReadingPreferences {
   fontSize: number;
   lineHeight: number;
   measure: ReadingMeasure;
+  measureWidth: number;
+  reasoningAppearance: ReasoningAppearanceMode;
   showPortraitRail: boolean;
   reduceMotion: boolean;
 }
 
 const PREFERENCES_STORAGE_KEY = 'dhl-reading-preferences-v1';
 const THEME_STORAGE_KEY = 'dhl-theme-id-v2';
+const READING_MODE_STORAGE_KEYS: Record<ReadingViewportMode, string> = {
+  desktop: 'denghuolanshan:pseudo-layer:reading-mode:desktop',
+  mobile: 'denghuolanshan:pseudo-layer:reading-mode:mobile',
+};
 const LEGACY_THEME_KEYS = ['ui_theme_id', 'dhl-theme-id-v1'];
 const DEFAULT_PREFERENCES: ReadingPreferences = {
   fontSize: 16,
   lineHeight: 1.95,
   measure: 'standard',
+  measureWidth: 76,
+  reasoningAppearance: 'auto',
   showPortraitRail: true,
   reduceMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
 };
+const DEFAULT_READING_MODES: Record<ReadingViewportMode, ReadingMode> = {
+  desktop: 'paged',
+  mobile: 'scroll',
+};
+const LEGACY_MEASURE_WIDTH: Record<ReadingMeasure, number> = {
+  narrow: 58,
+  standard: 76,
+  wide: 100,
+};
 
-const clampPreferences = (value: Partial<ReadingPreferences>): ReadingPreferences => ({
-  fontSize: _.clamp(Number(value.fontSize) || DEFAULT_PREFERENCES.fontSize, 14, 20),
-  lineHeight: _.clamp(Number(value.lineHeight) || DEFAULT_PREFERENCES.lineHeight, 1.7, 2.2),
-  measure: ['narrow', 'standard', 'wide'].includes(String(value.measure))
+const readStoredReadingMode = (viewport: ReadingViewportMode): ReadingMode => {
+  try {
+    const stored = localStorage.getItem(READING_MODE_STORAGE_KEYS[viewport]);
+    if (stored === 'paged' || stored === 'scroll') return stored;
+  } catch (error) {
+    console.warn('[灯火阑珊·阅读] 阅读模式读取失败，使用设备默认值', error);
+  }
+  return DEFAULT_READING_MODES[viewport];
+};
+
+const clampPreferences = (value: Partial<ReadingPreferences>): ReadingPreferences => {
+  const measure = ['narrow', 'standard', 'wide'].includes(String(value.measure))
     ? (value.measure as ReadingMeasure)
-    : DEFAULT_PREFERENCES.measure,
-  showPortraitRail:
-    typeof value.showPortraitRail === 'boolean' ? value.showPortraitRail : DEFAULT_PREFERENCES.showPortraitRail,
-  reduceMotion: typeof value.reduceMotion === 'boolean' ? value.reduceMotion : DEFAULT_PREFERENCES.reduceMotion,
-});
+    : DEFAULT_PREFERENCES.measure;
+  const storedMeasureWidth = Number(value.measureWidth);
+  return {
+    fontSize: _.clamp(Number(value.fontSize) || DEFAULT_PREFERENCES.fontSize, 14, 20),
+    lineHeight: _.clamp(Number(value.lineHeight) || DEFAULT_PREFERENCES.lineHeight, 1.7, 2.2),
+    measure,
+    measureWidth: _.clamp(
+      Number.isFinite(storedMeasureWidth) && storedMeasureWidth > 0
+        ? storedMeasureWidth
+        : LEGACY_MEASURE_WIDTH[measure],
+      50,
+      100,
+    ),
+    reasoningAppearance: ['auto', 'preset', 'theme'].includes(String(value.reasoningAppearance))
+      ? (value.reasoningAppearance as ReasoningAppearanceMode)
+      : DEFAULT_PREFERENCES.reasoningAppearance,
+    showPortraitRail:
+      typeof value.showPortraitRail === 'boolean' ? value.showPortraitRail : DEFAULT_PREFERENCES.showPortraitRail,
+    reduceMotion: typeof value.reduceMotion === 'boolean' ? value.reduceMotion : DEFAULT_PREFERENCES.reduceMotion,
+  };
+};
 
 const readStoredTheme = (): ThemeId => {
   try {
@@ -53,6 +97,10 @@ export const useThemeStore = defineStore('appearance', () => {
   const currentTheme = computed<Theme>(() => getThemeById(currentThemeId.value));
   const availableThemes = themes;
   const preferences = ref<ReadingPreferences>({ ...DEFAULT_PREFERENCES });
+  const readingModes = ref<Record<ReadingViewportMode, ReadingMode>>({
+    desktop: readStoredReadingMode('desktop'),
+    mobile: readStoredReadingMode('mobile'),
+  });
 
   try {
     const saved = localStorage.getItem(PREFERENCES_STORAGE_KEY);
@@ -88,13 +136,29 @@ export const useThemeStore = defineStore('appearance', () => {
     savePreferences();
   };
 
+  const setReadingMode = (viewport: ReadingViewportMode, mode: ReadingMode) => {
+    readingModes.value = { ...readingModes.value, [viewport]: mode };
+    try {
+      localStorage.setItem(READING_MODE_STORAGE_KEYS[viewport], mode);
+    } catch (error) {
+      console.warn('[灯火阑珊·阅读] 阅读模式保存失败', error);
+    }
+  };
+
+  const resetReadingMode = (viewport: ReadingViewportMode) => {
+    setReadingMode(viewport, DEFAULT_READING_MODES[viewport]);
+  };
+
   return {
     currentThemeId,
     currentTheme,
     availableThemes,
     preferences,
+    readingModes,
     selectTheme,
     updatePreferences,
     resetPreferences,
+    setReadingMode,
+    resetReadingMode,
   };
 });

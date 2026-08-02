@@ -1,11 +1,9 @@
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './app.vue';
-import { bootstrapMvuGuard } from './components/MvuGuardBootstrap';
 import { bootstrapUpdateVariableDisplayGuard } from './components/UpdateVariableDisplayGuard';
 
 $(() => {
-  const stopMvuGuard = bootstrapMvuGuard();
   const stopUpdateVariableDisplayGuard = bootstrapUpdateVariableDisplayGuard();
 
   const pinia = createPinia();
@@ -19,7 +17,6 @@ $(() => {
     if (disposed) return;
     disposed = true;
     app.unmount();
-    stopMvuGuard();
     stopUpdateVariableDisplayGuard();
   };
   window.addEventListener('pagehide', dispose, { once: true });

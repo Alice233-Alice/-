@@ -3,7 +3,14 @@
 // ============================================================================
 
 import { z } from 'zod';
-import { CultivationStateSchema, SkillSchema, computeRealmInfo, normalizeCultivationState } from './common';
+import {
+  CultivationStateSchema,
+  SkillListSchema,
+  computeRealmInfo,
+  finiteNumber,
+  normalizeCultivationState,
+  normalizeRealmLevel,
+} from './common';
 
 export const CustomPortraitSchema = z
   .object({
@@ -13,17 +20,40 @@ export const CustomPortraitSchema = z
   .prefault({});
 
 // 红颜角色库 Schema（静态角色数据）
-export const CharacterLibEntrySchema = z.object({
-  级: z.coerce.number().transform(v => _.clamp(v, 1, 48)),
-  根: z.string().describe('灵根'),
-  质: z.string().describe('体质'),
-  龄: z.string().describe('年龄'),
-  属: z.string().describe('所属'),
-  法: z.string().describe('功法'),
-  器: z.string().describe('本命兵器'),
-  通: z.array(z.string()).prefault([]),
-  自定义立绘: CustomPortraitSchema,
-});
+export const CharacterLibEntrySchema = z
+  .object({
+    级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
+    根: z
+      .string()
+      .transform(value => value.trim())
+      .prefault('未知'),
+    质: z
+      .string()
+      .transform(value => value.trim())
+      .prefault('未知'),
+    龄: z
+      .string()
+      .transform(value => value.trim())
+      .prefault('未知'),
+    属: z
+      .string()
+      .transform(value => value.trim())
+      .prefault('未知'),
+    法: z
+      .string()
+      .transform(value => value.trim())
+      .prefault('无'),
+    器: z
+      .string()
+      .transform(value => value.trim())
+      .prefault('无'),
+    通: z
+      .array(z.string())
+      .prefault([])
+      .transform(values => _.uniq(values.map(value => value.trim()).filter(Boolean))),
+    自定义立绘: CustomPortraitSchema,
+  })
+  .prefault({});
 
 // 红颜角色库默认数据
 export const DEFAULT_CHARACTER_LIB = {
@@ -142,31 +172,24 @@ export const CompanionRelationContextSchema = z
 // 红颜（动态角色数据）Schema
 export const CompanionSchema = z
   .object({
-    等级: z.coerce
-      .number()
-      .transform(v => _.clamp(v, 1, 48))
-      .prefault(1),
-    修为: z.coerce
-      .number()
+    等级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
+    修为: finiteNumber(0)
       .transform(v => Math.max(0, v))
       .prefault(0),
     灵根: z.string().prefault('五行杂灵根'),
     体质: z.string().prefault('凡体'),
     功法: z.string().prefault('无'),
     本命兵器: z.string().prefault('无'),
-    神通列表: z.record(z.string().describe('神通名'), SkillSchema).prefault({}),
-    灵石: z.coerce
-      .number()
+    神通列表: SkillListSchema,
+    灵石: finiteNumber(0)
       .transform(v => Math.max(0, v))
       .prefault(0),
-    已活岁月: z.coerce
-      .number()
+    已活岁月: finiteNumber(0)
       .transform(v => Math.max(0, v))
       .prefault(0),
     尝试突破: z.boolean().prefault(false),
     修炼状态: CultivationStateSchema,
-    好感度: z.coerce
-      .number()
+    好感度: finiteNumber(0)
       .transform(v => _.clamp(v, -200, 200))
       .prefault(0),
     关系: z.string().prefault('陌生人'),
@@ -188,6 +211,11 @@ export const CompanionSchema = z
       瓶颈原因: '',
       突破目标: '',
       上次结果: '无',
+      境界变动: {
+        类型: '无',
+        目标等级: 0,
+        依据: '',
+      },
     },
     好感度: 0,
     关系: '陌生人',
@@ -206,10 +234,7 @@ export const CompanionSchema = z
 
 // NPC图鉴 Schema - 极简版
 export const NpcSchema = z.object({
-  等级: z.coerce
-    .number()
-    .transform(v => _.clamp(v, 1, 48))
-    .prefault(1),
+  等级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
   所在宗门: z.string().prefault('散修'),
   备注: z.string().prefault(''),
 });

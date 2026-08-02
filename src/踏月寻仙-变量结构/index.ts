@@ -1,8 +1,18 @@
 ﻿import { registerMvuSchema } from 'https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/util/mvu_zod.js';
-import { Schema } from '../踏月寻仙-测试版/schema';
+import { Schema } from '../灯火阑珊/schema';
+import { installAuthoritativeMvuGuard } from '../灯火阑珊-变量结构/guard';
 
 $(() => {
-  registerMvuSchema(Schema);
-  console.info('[灯火阑珊·旧梦新裁] MVU 变量结构已注册');
-  toastr.success('MVU 变量结构已成功注册', '灯火阑珊·旧梦新裁');
+  let stopGuard: () => void = () => undefined;
+
+  errorCatched(async () => {
+    await waitGlobalInitialized('Mvu');
+    registerMvuSchema(Schema);
+    stopGuard = installAuthoritativeMvuGuard();
+    console.warn('[灯火阑珊] 正通过旧文件名加载；已转接新版变量结构与权威守卫');
+  })();
+
+  $(window).on('pagehide', () => {
+    stopGuard();
+  });
 });

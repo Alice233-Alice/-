@@ -1,5 +1,18 @@
 export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
-export const PSEUDO_LAYER_VERSION = 8;
+export const PSEUDO_LAYER_VERSION = 9;
+export const PSEUDO_LAYER_MIN_COMPATIBLE_VERSION = 4;
+export const PSEUDO_LAYER_SUPPORTED_VERSIONS = Array.from(
+  { length: PSEUDO_LAYER_VERSION - PSEUDO_LAYER_MIN_COMPATIBLE_VERSION + 1 },
+  (_, index) => PSEUDO_LAYER_VERSION - index,
+);
+export const PSEUDO_LAYER_MESSAGE_EDITING_VERSION = 8;
+export const PSEUDO_LAYER_TIMELINE_PAGING_VERSION = 9;
+
+export const isSupportedPseudoLayerVersion = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isInteger(value) &&
+  value >= PSEUDO_LAYER_MIN_COMPATIBLE_VERSION &&
+  value <= PSEUDO_LAYER_VERSION;
 
 export type InteractionMode = 'story' | 'dialogue';
 export type PseudoLayerHistoryKind = InteractionMode;
@@ -52,6 +65,28 @@ export type PseudoLayerDialogueStage = {
 };
 export type PseudoLayerStage = PseudoLayerStoryStage | PseudoLayerDialogueStage;
 
+export type PseudoLayerTimelineTurn = {
+  assistantMessageId: number;
+  userMessageId?: number;
+  userText: string;
+  assistantText: string;
+  reaction?: string;
+  reasoning: string;
+  reasoningDuration: number | null;
+  tokenCount?: number;
+};
+
+export type PseudoLayerTimelineEntry = {
+  representativeMessageId: number;
+  messageIds: number[];
+  index: number;
+  historyIndex: number;
+  stage: PseudoLayerStage;
+  turns: PseudoLayerTimelineTurn[];
+};
+
+export type PseudoLayerTimelineDirection = 'around' | 'older' | 'newer';
+
 export type PseudoLayerHistoryState = {
   selectedMessageId: number;
   latestMessageId: number;
@@ -94,6 +129,7 @@ export type PseudoLayerView = {
   nextMessageId?: number;
   isLatest: boolean;
   nativeInputCollapsed: boolean;
+  tokenCount?: number;
   stage: PseudoLayerStage;
   histories: Record<PseudoLayerHistoryKind, PseudoLayerHistoryState>;
   activeInteraction: PseudoLayerInteraction;
@@ -141,6 +177,21 @@ export type PseudoLayerRequest =
       messageId: number;
       direction: 'previous' | 'next';
       history?: PseudoLayerHistoryKind;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
+      type: 'timeline_page';
+      requestId: string;
+      anchorMessageId?: number;
+      direction: PseudoLayerTimelineDirection;
+      limit: number;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
+      type: 'select_entry';
+      messageId: number;
     }
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
@@ -224,6 +275,16 @@ export type PseudoLayerResponse =
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
       version: number;
+      type: 'timeline_page';
+      requestId: string;
+      revision: number;
+      entries: PseudoLayerTimelineEntry[];
+      hasOlder: boolean;
+      hasNewer: boolean;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
       type: 'error';
       requestId?: string;
       message: string;
@@ -232,7 +293,7 @@ export type PseudoLayerResponse =
 const hasEnvelope = (value: unknown): value is Record<string, unknown> => {
   if (!value || typeof value !== 'object') return false;
   const message = value as Record<string, unknown>;
-  return message.channel === PSEUDO_LAYER_CHANNEL && message.version === PSEUDO_LAYER_VERSION;
+  return message.channel === PSEUDO_LAYER_CHANNEL && isSupportedPseudoLayerVersion(message.version);
 };
 
 const REQUEST_TYPES = new Set([
@@ -244,6 +305,8 @@ const REQUEST_TYPES = new Set([
   'delete_message',
   'update_message',
   'navigate',
+  'timeline_page',
+  'select_entry',
   'select_history',
   'return_latest',
   'set_interaction',
@@ -259,6 +322,7 @@ const RESPONSE_TYPES = new Set([
   'complete',
   'deleted',
   'message_updated',
+  'timeline_page',
   'error',
 ]);
 

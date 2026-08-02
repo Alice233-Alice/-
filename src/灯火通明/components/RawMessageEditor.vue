@@ -77,7 +77,7 @@
 <script setup lang="ts">
 import { usePseudoLayerStore } from '../store';
 
-const props = defineProps<{ visible: boolean }>();
+const props = defineProps<{ visible: boolean; targetMessageId?: number; targetLabel?: string }>();
 const emit = defineEmits<{ (event: 'close'): void }>();
 const pseudo = usePseudoLayerStore();
 const editorInput = ref<HTMLTextAreaElement>();
@@ -89,6 +89,12 @@ let copiedResetTimer: number | undefined;
 
 const isDirty = computed(() => draft.value !== original.value);
 const floorLabel = computed(() => {
+  if (props.targetLabel) return props.targetLabel;
+  const timelineEntry = pseudo.timelineEntries.find(entry => entry.messageIds.includes(editingMessageId.value));
+  if (timelineEntry?.stage.kind === 'dialogue') {
+    return `与${timelineEntry.stage.targetName}交谈`;
+  }
+  if (timelineEntry) return `第 ${timelineEntry.historyIndex} 回`;
   const stage = pseudo.view.stage;
   if (stage.kind === 'dialogue') {
     return `与${stage.targetName}交谈 · ${stage.turnCount}轮`;
@@ -97,12 +103,15 @@ const floorLabel = computed(() => {
 });
 
 const loadCurrentMessage = () => {
-  const messageId = pseudo.view.selectedMessageId;
+  const messageId =
+    typeof props.targetMessageId === 'number' && Number.isFinite(props.targetMessageId)
+      ? props.targetMessageId
+      : pseudo.view.selectedMessageId;
   pseudo.clearEditError();
-  pseudo.refreshFloor(messageId);
   editingMessageId.value = messageId;
-  draft.value = pseudo.floorMessage;
-  original.value = pseudo.floorMessage;
+  const content = pseudo.readMessageContent(messageId);
+  draft.value = content;
+  original.value = content;
   nextTick(() => {
     editorInput.value?.focus();
     editorInput.value?.setSelectionRange(0, 0);
@@ -137,8 +146,8 @@ const copyRaw = async () => {
 };
 
 watch(
-  () => props.visible,
-  visible => {
+  [() => props.visible, () => props.targetMessageId],
+  ([visible]) => {
     if (visible) loadCurrentMessage();
   },
 );

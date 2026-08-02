@@ -844,6 +844,7 @@ export const useDataStore = defineStore(
         rawData.value?._系统设置 ?? {
           启用行动提示: true,
           修炼系统版本: 3,
+          变量结构版本: 2,
           _临时状态手动覆盖签名: '',
         },
     );
@@ -861,13 +862,14 @@ export const useDataStore = defineStore(
             rawData.value._系统设置 = {
               启用行动提示: newVal,
               修炼系统版本: 3,
+              变量结构版本: 2,
               _临时状态手动覆盖签名: '',
             };
           } else {
             rawData.value._系统设置.启用行动提示 = newVal;
             rawData.value._系统设置.修炼系统版本 = Number(rawData.value._系统设置.修炼系统版本 ?? 3) || 3;
-            rawData.value._系统设置._临时状态手动覆盖签名 =
-              rawData.value._系统设置._临时状态手动覆盖签名 ?? '';
+            rawData.value._系统设置.变量结构版本 = Number(rawData.value._系统设置.变量结构版本 ?? 2) || 2;
+            rawData.value._系统设置._临时状态手动覆盖签名 = rawData.value._系统设置._临时状态手动覆盖签名 ?? '';
           }
         }
 
@@ -879,6 +881,11 @@ export const useDataStore = defineStore(
           variables,
           'stat_data._系统设置.修炼系统版本',
           Number(_.get(variables, 'stat_data._系统设置.修炼系统版本', 3)) || 3,
+        );
+        _.set(
+          variables,
+          'stat_data._系统设置.变量结构版本',
+          Number(_.get(variables, 'stat_data._系统设置.变量结构版本', 2)) || 2,
         );
         await Mvu.replaceMvuData(variables, { type: 'message', message_id });
 

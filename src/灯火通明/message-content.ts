@@ -1,7 +1,49 @@
+const PRIMARY_BODY_TAGS = [
+  'content',
+  '正文',
+  'narrative',
+  'story',
+  'main_text',
+  'text_output',
+  'response',
+  'answer',
+  'final',
+] as const;
+
+const CHOICE_BLOCK_TAGS = [
+  'branches',
+  'branch_options',
+  'choices',
+  'choice_list',
+  'options',
+  'option_list',
+  'actions',
+  'action_options',
+  'select_options',
+  '分支',
+  '选项',
+  '行动选项',
+] as const;
+
 const STRUCTURAL_TAGS = [
   'visual_cards',
+  ...CHOICE_BLOCK_TAGS,
+  'aftertalk',
+  'afterword',
+  'twin_aftertalk',
+  'ooc',
+  'metadata',
+  'meta_info',
+  'memory',
+  'state',
+  'status',
+  'status_block',
+  'world_state',
   'pseudo_layer',
   'UpdateVariable',
+  'update_variables',
+  'variable_update',
+  'state_update',
   'JSONPatch',
   'StatusPlaceHolderImpl',
   '反应',
@@ -13,42 +55,145 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
 const openTagPattern = (tag: string) => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
 const closeTagPattern = (tag: string) => `<\\/${escapeRegExp(tag)}\\s*>`;
 
-const DIALOGUE_TAGS = ['反应', '正文', '会话状态'] as const;
+const DIALOGUE_REACTION_TAGS = ['反应', 'reaction', 'emotion', 'stage_direction'] as const;
+const DIALOGUE_BODY_TAGS = ['正文', 'dialogue', 'reply', 'speech', 'response'] as const;
+const DIALOGUE_STATE_TAGS = ['会话状态', 'dialogue_state', 'conversation_state'] as const;
+const DIALOGUE_TAGS = [...DIALOGUE_REACTION_TAGS, ...DIALOGUE_BODY_TAGS, ...DIALOGUE_STATE_TAGS] as const;
 
-const REASONING_TAG_NAME_SOURCE = 'think(?:ing)?|reasoning|thought|think_?fox~?';
-const REASONING_OPEN_PATTERN = /<(?:think(?:ing)?|reasoning|thought|think_?fox~?)(?=[\s>])[^>]*>/gi;
-const REASONING_CLOSE_PATTERN = /<\/(?:think(?:ing)?|reasoning|thought|think_?fox~?)\s*>/gi;
+const REASONING_TAG_NAME_SOURCE =
+  'think(?:ing)?|reasoning|thought|reflection|inner[_-]?monologue|internal[_-]?monologue|chain[_-]?of[_-]?thought|scratchpad|cot|think_?fox~?|思考|思维链|推理';
+const REASONING_OPEN_PATTERN = new RegExp(`<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>`, 'gi');
+const REASONING_CLOSE_PATTERN = new RegExp(`<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>`, 'gi');
 const REASONING_BLOCK_PATTERN = new RegExp(
   `<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>([\\s\\S]*?)(<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>|$)`,
   'gi',
 );
+const REASONING_CLOSED_BLOCK_PATTERN = new RegExp(
+  `<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>[\\s\\S]*?<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>`,
+  'gi',
+);
+const BODY_TAG_NAME_SOURCE = PRIMARY_BODY_TAGS.map(escapeRegExp).join('|');
+const STRUCTURAL_TAG_NAME_SOURCE = STRUCTURAL_TAGS.map(escapeRegExp).join('|');
 const REASONING_FALLBACK_BOUNDARY = new RegExp(
-  `<(?:content|正文|visual_cards|pseudo_layer|UpdateVariable|JSONPatch)(?=[\\s/>])`,
+  `<(?:${BODY_TAG_NAME_SOURCE}|${STRUCTURAL_TAG_NAME_SOURCE})(?=[\\s/>])`,
   'i',
 );
-const REASONING_ORPHAN_PREFIX_CUE = /^\s*(?:【开始思考】|\[OS\])/i;
-const REASONING_BODY_AFTER_CLOSE_PATTERN = new RegExp(`^\\s*${REASONING_FALLBACK_BOUNDARY.source}`, 'i');
+const REASONING_LABEL_SOURCE =
+  'subtext[\\s_-]*think|think(?:ing)?|reasoning|thoughts?|analysis|reflection|inner[\\s_-]*monologue|chain[\\s_-]*of[\\s_-]*thought|思考|思维链|推理|分析';
+const REASONING_COMMENT_OPEN_PATTERN = new RegExp(
+  `<!--\\s*(?:(?:begin|start)[\\s_-]*(?:of[\\s_-]*)?(?:${REASONING_LABEL_SOURCE})|(?:${REASONING_LABEL_SOURCE})[\\s_-]*(?:begin|start)|(?:${REASONING_LABEL_SOURCE}))\\s*-->`,
+  'gi',
+);
+const REASONING_COMMENT_CLOSE_PATTERN = new RegExp(
+  `<!--\\s*(?:(?:end|stop)[\\s_-]*(?:of[\\s_-]*)?(?:${REASONING_LABEL_SOURCE})|(?:${REASONING_LABEL_SOURCE})[\\s_-]*(?:end|stop)|\\/\\s*(?:${REASONING_LABEL_SOURCE}))\\s*-->`,
+  'gi',
+);
+const REASONING_COMMENT_PATTERN = new RegExp(
+  `(${REASONING_COMMENT_OPEN_PATTERN.source})([\\s\\S]*?)(${REASONING_COMMENT_CLOSE_PATTERN.source}|$)`,
+  'gi',
+);
+const REASONING_COMMENT_CLOSED_PATTERN = new RegExp(
+  `${REASONING_COMMENT_OPEN_PATTERN.source}[\\s\\S]*?${REASONING_COMMENT_CLOSE_PATTERN.source}`,
+  'gi',
+);
+const REASONING_BRACKET_PATTERN =
+  /^\s*((?:【|\[)\s*(?:思考|思维链|推理|分析|think(?:ing)?|reasoning|thoughts?|analysis)(?:开始|start)?\s*(?:】|\]))([\s\S]*?)((?:【|\[)\s*(?:思考|思维链|推理|分析|think(?:ing)?|reasoning|thoughts?|analysis)(?:结束|end)\s*(?:】|\])|$)/i;
+const REASONING_FENCE_PATTERN =
+  /```(?:think(?:ing)?|reasoning|thoughts?|analysis|reflection|思考|推理)\s*\r?\n([\s\S]*?)(```|$)/gi;
+const REASONING_FENCE_CLOSED_PATTERN =
+  /```(?:think(?:ing)?|reasoning|thoughts?|analysis|reflection|思考|推理)\s*\r?\n[\s\S]*?```/gi;
+const REASONING_ANALYSIS_PREFIX_PATTERN =
+  /^\s*(<analysis(?=[\s>])[^>]*>)([\s\S]*?)(<\/analysis\s*>|$)/i;
+const REASONING_MARKER_PATTERN = new RegExp(
+  `${REASONING_COMMENT_OPEN_PATTERN.source}|${REASONING_COMMENT_CLOSE_PATTERN.source}`,
+  'gi',
+);
+const REASONING_ORPHAN_PREFIX_CUE = new RegExp(
+  `^\\s*(?:【开始思考】|\\[OS\\]|${REASONING_COMMENT_OPEN_PATTERN.source})`,
+  'i',
+);
+const REASONING_BODY_AFTER_CLOSE_PATTERN = new RegExp(
+  `^\\s*(?:#{1,6}\\s*(?:正文|content|narrative|story|response|answer|final)\\s*)?${REASONING_FALLBACK_BOUNDARY.source}`,
+  'i',
+);
 
 // Strip reasoning before Tavern display regexes can expand it into embedded UI markup.
 const stripReasoningPrefix = (text: string) => {
+  let delimitedPrefixEnd = -1;
+
+  REASONING_COMMENT_OPEN_PATTERN.lastIndex = 0;
+  const commentOpening = REASONING_COMMENT_OPEN_PATTERN.exec(text);
+  REASONING_COMMENT_OPEN_PATTERN.lastIndex = 0;
+  if (commentOpening?.index !== undefined && !text.slice(0, commentOpening.index).trim()) {
+    REASONING_COMMENT_CLOSE_PATTERN.lastIndex = commentOpening.index + commentOpening[0].length;
+    const commentClosing = REASONING_COMMENT_CLOSE_PATTERN.exec(text);
+    REASONING_COMMENT_CLOSE_PATTERN.lastIndex = 0;
+    if (commentClosing) delimitedPrefixEnd = commentClosing.index + commentClosing[0].length;
+  }
+
+  const bracketPrefix = REASONING_BRACKET_PATTERN.exec(text);
+  if (bracketPrefix?.[3]) delimitedPrefixEnd = Math.max(delimitedPrefixEnd, bracketPrefix[0].length);
+
+  REASONING_FENCE_PATTERN.lastIndex = 0;
+  const fencePrefix = REASONING_FENCE_PATTERN.exec(text);
+  REASONING_FENCE_PATTERN.lastIndex = 0;
+  if (fencePrefix?.index !== undefined && !text.slice(0, fencePrefix.index).trim() && fencePrefix[2]) {
+    delimitedPrefixEnd = Math.max(delimitedPrefixEnd, fencePrefix.index + fencePrefix[0].length);
+  }
+
+  const analysisPrefix = REASONING_ANALYSIS_PREFIX_PATTERN.exec(text);
+  if (analysisPrefix?.[3]) delimitedPrefixEnd = Math.max(delimitedPrefixEnd, analysisPrefix[0].length);
+
   REASONING_CLOSE_PATTERN.lastIndex = 0;
   let lastClosingEnd = -1;
+  let lastClosingStart = -1;
   let closingMatch: RegExpExecArray | null;
   while ((closingMatch = REASONING_CLOSE_PATTERN.exec(text)) !== null) {
+    lastClosingStart = closingMatch.index;
     lastClosingEnd = closingMatch.index + closingMatch[0].length;
   }
   REASONING_CLOSE_PATTERN.lastIndex = 0;
 
-  if (lastClosingEnd >= 0) return text.slice(lastClosingEnd);
+  const closingPrefix = text.slice(0, Math.max(0, lastClosingStart));
+  const closingSuffix = text.slice(lastClosingEnd >= 0 ? lastClosingEnd : text.length);
+  const closingPrefixContainsBody =
+    lastClosingStart >= 0 &&
+    new RegExp(
+      `<(?:${BODY_TAG_NAME_SOURCE})(?=[\\s/>])|^#{1,6}\\s*(?:正文|content|narrative|story|response|answer|final)\\s*$`,
+      'im',
+    ).test(closingPrefix);
+  const closingActsAsPrefix =
+    lastClosingEnd >= 0 &&
+    (!closingPrefixContainsBody ||
+      REASONING_ORPHAN_PREFIX_CUE.test(closingPrefix) ||
+      REASONING_BODY_AFTER_CLOSE_PATTERN.test(closingSuffix));
+  const completedPrefixEnd = Math.max(delimitedPrefixEnd, closingActsAsPrefix ? lastClosingEnd : -1);
+  if (completedPrefixEnd >= 0) return text.slice(completedPrefixEnd);
 
-  REASONING_OPEN_PATTERN.lastIndex = 0;
+  REASONING_OPEN_PATTERN.lastIndex = Math.max(0, lastClosingEnd);
   const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
   REASONING_OPEN_PATTERN.lastIndex = 0;
-  if (unfinishedOpening?.index === undefined) return text;
+  let opening: { index: number; marker: string } | null =
+    unfinishedOpening?.index === undefined
+      ? null
+      : { index: unfinishedOpening.index, marker: unfinishedOpening[0] };
+  if (!opening && commentOpening?.index !== undefined && !text.slice(0, commentOpening.index).trim()) {
+    opening = { index: commentOpening.index, marker: commentOpening[0] };
+  } else if (!opening && bracketPrefix?.[1] && !bracketPrefix[3]) {
+    opening = { index: 0, marker: bracketPrefix[1] };
+  } else if (!opening && fencePrefix?.index !== undefined && !fencePrefix[2]) {
+    opening = {
+      index: fencePrefix.index,
+      marker: fencePrefix[0].slice(0, fencePrefix[0].indexOf('\n') + 1),
+    };
+  } else if (!opening && analysisPrefix?.[1] && !analysisPrefix[3]) {
+    opening = { index: 0, marker: analysisPrefix[1] };
+  }
+  if (!opening) return text;
 
-  const remainder = text.slice(unfinishedOpening.index + unfinishedOpening[0].length);
+  const remainder = text.slice(opening.index + opening.marker.length);
   const bodyBoundary = remainder.search(REASONING_FALLBACK_BOUNDARY);
-  return bodyBoundary >= 0 ? remainder.slice(bodyBoundary) : text.slice(0, unfinishedOpening.index);
+  return bodyBoundary >= 0 ? remainder.slice(bodyBoundary) : text.slice(0, opening.index);
 };
 
 const findEmbeddedDocumentStart = (lowerText: string) => {
@@ -84,7 +229,153 @@ const stripEmbeddedHtmlDocuments = (text: string) => {
 
 export type InlineReasoning = {
   text: string;
+  source: string;
   isComplete: boolean;
+};
+
+export type BranchChoice = {
+  letter: string;
+  text: string;
+};
+
+const CHOICE_TAG_NAME_SOURCE = CHOICE_BLOCK_TAGS.map(escapeRegExp).join('|');
+const CHOICE_BLOCK_PATTERN = new RegExp(
+  `<(${CHOICE_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>([\\s\\S]*?)(?:<\\/\\1\\s*>|$)`,
+  'gi',
+);
+const CHOICE_DETAILS_PATTERN =
+  /<details(?=[\s>])[^>]*>\s*<summary(?=[\s>])[^>]*>[\s\S]*?(?:select|choice|option|选择|选项|分支)[\s\S]*?<\/summary\s*>([\s\S]*?)(?:<\/details\s*>|$)/gi;
+const CHOICE_SECTION_HEADING_PATTERN =
+  /^(?:#{1,6}\s*)?(?:make\s+your\s+choice|choices?|options?|branches|选择|选项|分支|行动选项)\s*[:：]?\s*$/im;
+const BRANCH_CHOICE_LINE_PATTERN =
+  /^\s*(?:[-*•]\s*)?[（(【[]?\s*([A-Za-z]|\d{1,2}|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳])\s*[）)】\]]?\s*(?:[.．、,，:：—-]\s*|\s+)(.+?\S)\s*$/;
+const BULLET_CHOICE_LINE_PATTERN = /^\s*[-*•]\s+(.+?\S)\s*$/;
+const STATIC_CHOICE_ELEMENT_PATTERN =
+  /<(button|option|li|a)(?=[\s>])([^>]*)>([\s\S]*?)<\/\1\s*>/gi;
+
+const cleanChoiceText = (value: string) =>
+  value
+    .replace(/<br\s*\/?\s*>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/[*_`]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizeChoiceKey = (value: string, fallbackIndex: number) => {
+  const key = value.trim();
+  if (/^[a-z]$/i.test(key)) return key.toUpperCase();
+  if (key) return key;
+  return fallbackIndex < 26 ? String.fromCharCode(65 + fallbackIndex) : String(fallbackIndex + 1);
+};
+
+// Some presets render `<branches>` through a complete HTML iframe. Keep its
+// generated choices as data instead: this preserves the action itself without
+// moving host DOM or executing the preset's arbitrary iframe script.
+export const extractBranchChoices = (text: string): BranchChoice[] => {
+  const blocks: string[] = [];
+  CHOICE_BLOCK_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = CHOICE_BLOCK_PATTERN.exec(text)) !== null) {
+    blocks.push(match[2]);
+    if (!new RegExp(`<\\/${escapeRegExp(match[1])}\\s*>`, 'i').test(match[0])) break;
+  }
+  CHOICE_BLOCK_PATTERN.lastIndex = 0;
+
+  CHOICE_DETAILS_PATTERN.lastIndex = 0;
+  while ((match = CHOICE_DETAILS_PATTERN.exec(text)) !== null) blocks.push(match[1]);
+  CHOICE_DETAILS_PATTERN.lastIndex = 0;
+
+  const heading = CHOICE_SECTION_HEADING_PATTERN.exec(text);
+  if (heading?.index !== undefined) {
+    const remainder = text.slice(heading.index + heading[0].length);
+    const nextHeading = remainder.search(/^#{1,6}\s+\S+/m);
+    blocks.push(remainder.slice(0, nextHeading >= 0 ? nextHeading : undefined));
+  }
+
+  if (!blocks.length) return [];
+
+  const choices: BranchChoice[] = [];
+  const seenKeys = new Set<string>();
+  const seenTexts = new Set<string>();
+  const addChoice = (rawKey: string, rawText: string) => {
+    const choiceText = cleanChoiceText(rawText);
+    if (!choiceText || /^(?:select|make your choice|选择|选项)$/i.test(choiceText)) return;
+    const letter = normalizeChoiceKey(rawKey, choices.length);
+    if (seenKeys.has(letter) || seenTexts.has(choiceText)) return;
+    seenKeys.add(letter);
+    seenTexts.add(choiceText);
+    choices.push({ letter, text: choiceText });
+  };
+
+  for (const block of blocks) {
+    const jsonSource = block
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '');
+    if (jsonSource.startsWith('[') || jsonSource.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(jsonSource) as unknown;
+        const items = Array.isArray(parsed)
+          ? parsed
+          : parsed && typeof parsed === 'object'
+            ? Object.entries(parsed as Record<string, unknown>).map(([key, value]) =>
+                typeof value === 'object' && value !== null ? { key, ...(value as Record<string, unknown>) } : { key, text: value },
+              )
+            : [];
+        items.forEach((item, index) => {
+          if (typeof item === 'string') {
+            addChoice('', item);
+            return;
+          }
+          if (!item || typeof item !== 'object') return;
+          const record = item as Record<string, unknown>;
+          const label = String(record.label ?? '').trim();
+          const labelIsKey = /^[A-Za-z]$|^\d{1,2}$|^[①②③④⑤⑥⑦⑧⑨⑩]$/.test(label);
+          addChoice(
+            String(record.letter ?? record.key ?? record.id ?? (labelIsKey ? label : index + 1)),
+            String(record.text ?? record.content ?? record.prompt ?? record.value ?? record.title ?? (labelIsKey ? '' : label)),
+          );
+        });
+      } catch {
+        // Non-JSON blocks continue through the markup/line parser below.
+      }
+    }
+
+    STATIC_CHOICE_ELEMENT_PATTERN.lastIndex = 0;
+    while ((match = STATIC_CHOICE_ELEMENT_PATTERN.exec(block)) !== null) {
+      const key =
+        /(?:data-(?:choice|option|key|id)|value)\s*=\s*["']?([^"'\s>]+)/i.exec(match[2])?.[1] ?? '';
+      const elementText = cleanChoiceText(match[3]);
+      const labelledElement = BRANCH_CHOICE_LINE_PATTERN.exec(elementText);
+      if (labelledElement) addChoice(key || labelledElement[1], labelledElement[2]);
+      else addChoice(key, elementText);
+    }
+    STATIC_CHOICE_ELEMENT_PATTERN.lastIndex = 0;
+
+    const lines = block
+      .replace(/<br\s*\/?\s*>/gi, '\n')
+      .replace(/<\/?(?:details|summary|p|div|li|button|option|a)[^>]*>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .split(/\r?\n/);
+
+    for (const line of lines) {
+      const choice = BRANCH_CHOICE_LINE_PATTERN.exec(line);
+      if (choice) {
+        addChoice(choice[1], choice[2]);
+        continue;
+      }
+      const bulletChoice = BULLET_CHOICE_LINE_PATTERN.exec(line);
+      if (bulletChoice) addChoice('', bulletChoice[1]);
+    }
+  }
+
+  return choices;
 };
 
 const extractOrphanClosingReasoning = (text: string): InlineReasoning | null => {
@@ -95,14 +386,31 @@ const extractOrphanClosingReasoning = (text: string): InlineReasoning | null => 
 
   const prefix = text.slice(0, closingMatch.index);
   const suffix = text.slice(closingMatch.index + closingMatch[0].length);
-  if (!REASONING_ORPHAN_PREFIX_CUE.test(prefix) && !REASONING_BODY_AFTER_CLOSE_PATTERN.test(suffix)) return null;
+  const prefixAlreadyContainsBody = new RegExp(
+    `<(?:${BODY_TAG_NAME_SOURCE})(?=[\\s/>])|^#{1,6}\\s*(?:正文|content|narrative|story|response|answer|final)\\s*$`,
+    'im',
+  ).test(prefix);
+  if (
+    !REASONING_ORPHAN_PREFIX_CUE.test(prefix) &&
+    !REASONING_BODY_AFTER_CLOSE_PATTERN.test(suffix) &&
+    prefixAlreadyContainsBody
+  ) {
+    return null;
+  }
 
   const cleaned = stripEmbeddedHtmlDocuments(prefix)
     .replace(REASONING_ORPHAN_PREFIX_CUE, '')
+    .replace(REASONING_MARKER_PATTERN, '')
     .replace(REASONING_OPEN_PATTERN, '')
     .replace(REASONING_CLOSE_PATTERN, '')
     .trim();
-  return cleaned ? { text: cleaned, isComplete: true } : null;
+  return cleaned
+    ? {
+        text: cleaned,
+        source: `${prefix}${closingMatch[0]}`.trim(),
+        isComplete: true,
+      }
+    : null;
 };
 
 export const mergeReasoningText = (primary: string, secondary: string) => {
@@ -118,38 +426,132 @@ export const mergeReasoningText = (primary: string, secondary: string) => {
 // instead of SillyTavern's `extra.reasoning`. Read the raw tag content here so
 // the pseudo layer can render it without running the preset's embedded UI.
 export const extractInlineReasoning = (text: string): InlineReasoning | null => {
+  type ReasoningFragment = InlineReasoning & { start: number; end: number };
+  const fragments: ReasoningFragment[] = [];
+
+  const addFragment = (fragment: ReasoningFragment) => {
+    if (!fragment.text) return;
+    if (fragments.some(current => current.start <= fragment.start && current.end >= fragment.end)) return;
+    for (let index = fragments.length - 1; index >= 0; index -= 1) {
+      const current = fragments[index];
+      if (fragment.start <= current.start && fragment.end >= current.end) fragments.splice(index, 1);
+    }
+    fragments.push(fragment);
+  };
+  const cleanReasoningText = (value: string) =>
+    stripEmbeddedHtmlDocuments(value)
+      .replace(REASONING_MARKER_PATTERN, '')
+      .replace(REASONING_OPEN_PATTERN, '')
+      .replace(REASONING_CLOSE_PATTERN, '')
+      .trim();
+
   REASONING_BLOCK_PATTERN.lastIndex = 0;
-  const blocks: string[] = [];
-  let found = false;
-  let isComplete = true;
   let match: RegExpExecArray | null;
 
   while ((match = REASONING_BLOCK_PATTERN.exec(text)) !== null) {
-    found = true;
     const closingTag = match[2];
     let content = match[1];
     if (!closingTag) {
-      isComplete = false;
       const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
       if (boundary >= 0) content = content.slice(0, boundary);
     }
 
-    const cleaned = stripEmbeddedHtmlDocuments(content)
-      .replace(REASONING_OPEN_PATTERN, '')
-      .replace(REASONING_CLOSE_PATTERN, '')
-      .trim();
-    if (cleaned) blocks.push(cleaned);
+    addFragment({
+      text: cleanReasoningText(content),
+      source: match[0].trim(),
+      isComplete: Boolean(closingTag),
+      start: match.index,
+      end: match.index + match[0].length,
+    });
 
     if (!closingTag) break;
   }
   REASONING_BLOCK_PATTERN.lastIndex = 0;
 
-  if (!found) return extractOrphanClosingReasoning(text);
-  return { text: blocks.join('\n\n').trim(), isComplete };
+  REASONING_COMMENT_PATTERN.lastIndex = 0;
+  while ((match = REASONING_COMMENT_PATTERN.exec(text)) !== null) {
+    const closingMarker = match[3];
+    let content = match[2];
+    if (!closingMarker) {
+      const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+      if (boundary >= 0) content = content.slice(0, boundary);
+    }
+
+    let end = match.index + match[0].length;
+    const trailingReasoningClose = /^\s*<\/(?:think(?:ing)?|reasoning|thought)\s*>/i.exec(text.slice(end));
+    if (trailingReasoningClose) end += trailingReasoningClose[0].length;
+    addFragment({
+      text: cleanReasoningText(content),
+      source: text.slice(match.index, end).trim(),
+      isComplete: Boolean(closingMarker),
+      start: match.index,
+      end,
+    });
+    if (!closingMarker) break;
+  }
+  REASONING_COMMENT_PATTERN.lastIndex = 0;
+
+  const bracketMatch = REASONING_BRACKET_PATTERN.exec(text);
+  if (bracketMatch) {
+    const boundary = bracketMatch[3] ? -1 : bracketMatch[2].search(REASONING_FALLBACK_BOUNDARY);
+    const content = boundary >= 0 ? bracketMatch[2].slice(0, boundary) : bracketMatch[2];
+    addFragment({
+      text: cleanReasoningText(content),
+      source: bracketMatch[0].trim(),
+      isComplete: Boolean(bracketMatch[3]),
+      start: bracketMatch.index,
+      end: bracketMatch.index + bracketMatch[0].length,
+    });
+  }
+
+  REASONING_FENCE_PATTERN.lastIndex = 0;
+  while ((match = REASONING_FENCE_PATTERN.exec(text)) !== null) {
+    let content = match[1];
+    if (!match[2]) {
+      const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+      if (boundary >= 0) content = content.slice(0, boundary);
+    }
+    addFragment({
+      text: cleanReasoningText(content),
+      source: match[0].trim(),
+      isComplete: Boolean(match[2]),
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+    if (!match[2]) break;
+  }
+  REASONING_FENCE_PATTERN.lastIndex = 0;
+
+  const analysisMatch = REASONING_ANALYSIS_PREFIX_PATTERN.exec(text);
+  if (analysisMatch) {
+    const boundary = analysisMatch[3] ? -1 : analysisMatch[2].search(REASONING_FALLBACK_BOUNDARY);
+    const content = boundary >= 0 ? analysisMatch[2].slice(0, boundary) : analysisMatch[2];
+    addFragment({
+      text: cleanReasoningText(content),
+      source: analysisMatch[0].trim(),
+      isComplete: Boolean(analysisMatch[3]),
+      start: analysisMatch.index,
+      end: analysisMatch.index + analysisMatch[0].length,
+    });
+  }
+
+  if (!fragments.length) return extractOrphanClosingReasoning(text);
+  fragments.sort((left, right) => left.start - right.start);
+  return {
+    text: fragments.map(fragment => fragment.text).join('\n\n').trim(),
+    source: fragments.map(fragment => fragment.source).join('\n\n').trim(),
+    isComplete: fragments.every(fragment => fragment.isComplete),
+  };
 };
 
 export const stripAuxiliaryPresentation = (text: string) =>
-  stripEmbeddedHtmlDocuments(stripReasoningPrefix(text)).trim();
+  stripEmbeddedHtmlDocuments(
+    stripReasoningPrefix(text)
+      .replace(REASONING_CLOSED_BLOCK_PATTERN, '')
+      .replace(REASONING_COMMENT_CLOSED_PATTERN, '')
+      .replace(REASONING_FENCE_CLOSED_PATTERN, '')
+      .replace(REASONING_CLOSE_PATTERN, ''),
+  ).trim();
 
 export type VariablePatchOperation = {
   op: string;
@@ -195,6 +597,39 @@ const readBoundedTaggedContent = (
   return stripDialogueTagFragments(remainder.slice(0, end));
 };
 
+const readFirstTaggedContent = (
+  text: string,
+  tags: readonly string[],
+  stopTags: readonly string[],
+  preferLast = false,
+) => {
+  for (const tag of tags) {
+    if (!new RegExp(openTagPattern(tag), 'i').test(text)) continue;
+    return {
+      found: true,
+      tag,
+      content: readBoundedTaggedContent(text, tag, stopTags, preferLast),
+    };
+  }
+  return { found: false, tag: '', content: '' };
+};
+
+const readNarrativeHeadingContent = (text: string) => {
+  const heading =
+    /^(?:#{1,6}\s*(?:正文|content|narrative|story|response|answer|final)|【(?:正文|内容|叙事|回复)】|\[(?:content|narrative|story|response|answer|final)\])\s*[:：]?\s*$/im.exec(
+      text,
+    );
+  if (!heading || heading.index === undefined) return '';
+
+  const remainder = text.slice(heading.index + heading[0].length);
+  const nextSection = remainder.search(
+    /^(?:#{1,6}\s*)?(?:make\s+your\s+choice|choices?|options?|branches|选择|选项|分支|行动选项|aftertalk|afterword|状态|变量更新)\s*[:：]?\s*$/im,
+  );
+  const structuralBoundary = remainder.search(new RegExp(`<(?:${STRUCTURAL_TAG_NAME_SOURCE})(?=[\\s/>])`, 'i'));
+  const boundaries = [nextSection, structuralBoundary].filter(index => index >= 0);
+  return remainder.slice(0, boundaries.length ? Math.min(...boundaries) : undefined).trim();
+};
+
 const unwrapDialogueQuotes = (text: string) => {
   const pairs: Array<[string, string]> = [
     ['“', '”'],
@@ -237,17 +672,24 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export const extractVariableUpdateDiagnostics = (text: string): VariableUpdateDiagnostics | null => {
-  const updateOpen = /<update(?:variable)?(?=[\s/>])[^>]*>/i.exec(text);
+  const updateOpen =
+    /<(update(?:[_-]?variables?)?|variable[_-]?update|state[_-]?update)(?=[\s/>])[^>]*>/i.exec(text);
   if (!updateOpen || updateOpen.index === undefined) return null;
 
   const updateStart = updateOpen.index + updateOpen[0].length;
   const updateRemainder = text.slice(updateStart);
-  const updateCloseIndex = updateRemainder.search(/<\/update(?:variable)?\s*>/i);
+  const updateCloseIndex = updateRemainder.search(new RegExp(`<\\/${escapeRegExp(updateOpen[1])}\\s*>`, 'i'));
   const updateBody = updateRemainder.slice(0, updateCloseIndex >= 0 ? updateCloseIndex : undefined);
-  if (!/<(?:Analysis|JSONPatch)(?=[\s/>])/i.test(updateBody)) return null;
+  const analysisTag = /<(Analysis|reasoning|summary)(?=[\s/>])/i.exec(updateBody)?.[1] ?? '';
+  const patchTag = /<(JSONPatch|json_patch|patch)(?=[\s/>])/i.exec(updateBody)?.[1] ?? '';
+  if (!analysisTag && !patchTag) return null;
 
-  const analysisBlock = readLooseTaggedContent(updateBody, 'Analysis', ['JSONPatch']);
-  const patchBlock = readLooseTaggedContent(updateBody, 'JSONPatch');
+  const analysisBlock = analysisTag
+    ? readLooseTaggedContent(updateBody, analysisTag, patchTag ? [patchTag] : [])
+    : { content: '', isClosed: false };
+  const patchBlock = patchTag
+    ? readLooseTaggedContent(updateBody, patchTag)
+    : { content: '', isClosed: false };
   const isComplete = updateCloseIndex >= 0;
   const result: VariableUpdateDiagnostics = {
     analysis: analysisBlock.content,
@@ -288,7 +730,7 @@ export const extractVariableUpdateDiagnostics = (text: string): VariableUpdateDi
 };
 
 export const stripStructuredBlocks = (text: string) => {
-  let result = text;
+  let result = stripEmbeddedHtmlDocuments(text);
   STRUCTURAL_TAGS.forEach(tag => {
     const open = openTagPattern(tag);
     const close = closeTagPattern(tag);
@@ -297,34 +739,84 @@ export const stripStructuredBlocks = (text: string) => {
       .replace(new RegExp(`${open}[\\s\\S]*$`, 'gi'), '')
       .replace(new RegExp(`<${escapeRegExp(tag)}(?=[\\s/>])[^>]*/>`, 'gi'), '');
   });
-  return result.trim();
+  result = result.replace(CHOICE_DETAILS_PATTERN, '');
+  const choiceHeading = CHOICE_SECTION_HEADING_PATTERN.exec(result);
+  if (choiceHeading?.index !== undefined) result = result.slice(0, choiceHeading.index);
+  return result
+    .replace(/<(script|iframe|object)(?=[\s>])[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<embed(?=[\s/>])[^>]*\/?>/gi, '')
+    .trim();
 };
 
 export const extractNarrative = (text: string) => {
   const source = stripAuxiliaryPresentation(text);
-  const completeBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*?)<\/正文\s*>/i)?.[1];
-  const streamingBody = source.match(/<正文(?=[\s/>])[^>]*>([\s\S]*)$/i)?.[1];
-  return stripStructuredBlocks(completeBody ?? streamingBody ?? source)
-    .replace(/<\/?正文(?=[\s/>])[^>]*>/gi, '')
+  const taggedBody = readFirstTaggedContent(source, PRIMARY_BODY_TAGS, STRUCTURAL_TAGS);
+  const headingBody = taggedBody.found ? '' : readNarrativeHeadingContent(source);
+  const body = taggedBody.found ? taggedBody.content : headingBody || source;
+  return stripStructuredBlocks(body)
+    .replace(new RegExp(`<\\/?(?:${BODY_TAG_NAME_SOURCE})(?=[\\s/>])[^>]*>`, 'gi'), '')
     .trim();
 };
 
 export const extractDialogueContent = (text: string) => {
   const source = stripAuxiliaryPresentation(text);
-  const hasReactionTag = /<反应(?=[\s/>])/i.test(source);
-  const hasBodyTag = /<正文(?=[\s/>])/i.test(source);
-  const reaction = hasReactionTag
-    ? stripStructuredBlocks(readBoundedTaggedContent(source, '反应', ['正文', '会话状态']))
-    : '';
-  const dialogue = hasBodyTag
-    ? readBoundedTaggedContent(source, '正文', ['反应', '会话状态'], true)
-    : hasReactionTag
+  const reactionBlock = readFirstTaggedContent(source, DIALOGUE_REACTION_TAGS, [
+    ...DIALOGUE_BODY_TAGS,
+    ...DIALOGUE_STATE_TAGS,
+  ]);
+  const dialogueBlock = readFirstTaggedContent(
+    source,
+    DIALOGUE_BODY_TAGS,
+    [...DIALOGUE_REACTION_TAGS, ...DIALOGUE_STATE_TAGS],
+    true,
+  );
+  const reaction = reactionBlock.found ? stripStructuredBlocks(reactionBlock.content) : '';
+  const dialogue = dialogueBlock.found
+    ? dialogueBlock.content
+    : reactionBlock.found
       ? ''
       : extractNarrative(source);
   return {
     reaction: stripDialogueTagFragments(reaction),
     dialogue: unwrapDialogueQuotes(stripDialogueTagFragments(stripStructuredBlocks(dialogue))),
   };
+};
+
+export type ParsedMessageContent = {
+  reasoning: InlineReasoning | null;
+  narrative: string;
+  choices: BranchChoice[];
+  dialogue: {
+    reaction: string;
+    dialogue: string;
+  };
+};
+
+const parsedMessageCache = new Map<string, ParsedMessageContent>();
+const PARSED_MESSAGE_CACHE_LIMIT = 24;
+
+// All pseudo-layer surfaces consume the same semantic result. The small LRU-like
+// cache also avoids rescanning a long message once for prose, thought and choices.
+export const parseMessageContent = (text: string): ParsedMessageContent => {
+  const cached = parsedMessageCache.get(text);
+  if (cached) {
+    parsedMessageCache.delete(text);
+    parsedMessageCache.set(text, cached);
+    return cached;
+  }
+
+  const parsed: ParsedMessageContent = {
+    reasoning: extractInlineReasoning(text),
+    narrative: extractNarrative(text),
+    choices: extractBranchChoices(text),
+    dialogue: extractDialogueContent(text),
+  };
+  parsedMessageCache.set(text, parsed);
+  if (parsedMessageCache.size > PARSED_MESSAGE_CACHE_LIMIT) {
+    const oldest = parsedMessageCache.keys().next().value;
+    if (typeof oldest === 'string') parsedMessageCache.delete(oldest);
+  }
+  return parsed;
 };
 
 export const formatMessageHtml = (text: string, messageId: number) => {
@@ -336,4 +828,36 @@ export const formatMessageHtml = (text: string, messageId: number) => {
     console.warn('[灯火阑珊·伪同层] 消息格式化失败', error);
     return $('<div>').text(value).html().replace(/\n/g, '<br>');
   }
+};
+
+const BASIC_FORMAT_CLASS_PATTERN =
+  /^(?:custom-html|custom-language-html|language-\S+|hljs(?:-\S+)?|markdown|md|code|prettyprint|spoiler)$/i;
+
+export const isRichPresetHtml = (html: string) => {
+  if (!html.trim()) return false;
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  if (
+    template.content.querySelector(
+      'style, details, summary, button, svg, img, picture, canvas, audio, video, table, iframe, [style]',
+    )
+  ) {
+    return true;
+  }
+
+  return [...template.content.querySelectorAll<HTMLElement>('[class]')].some(element =>
+    [...element.classList].some(className => !BASIC_FORMAT_CLASS_PATTERN.test(className)),
+  );
+};
+
+// A preset that brings its own <details> is already a complete thought-chain
+// entrance. Callers can render it directly instead of placing a second
+// pseudo-layer disclosure around it.
+export const hasInlineReasoningPresetDisclosure = (rawMessage: string, messageId: number) => {
+  const inline = extractInlineReasoning(rawMessage);
+  if (!inline?.source || !inline.isComplete) return false;
+
+  const template = document.createElement('template');
+  template.innerHTML = formatMessageHtml(inline.source, messageId);
+  return Boolean(template.content.querySelector('details > summary'));
 };

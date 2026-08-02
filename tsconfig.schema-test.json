@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "ignoreDeprecations": "6.0"
+  },
+  "ts-node": {
+    "preferTsExts": true
+  },
+  "include": [
+    "@types/**/*.d.ts",
+    "tests/**/*.ts",
+    "src/灯火通明/schema.ts",
+    "src/灯火阑珊/schema.ts",
+    "src/灯火阑珊/schema/**/*.ts",
+    "src/灯火阑珊-变量结构/guard.ts"
+  ]
+}
