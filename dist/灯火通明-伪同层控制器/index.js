@@ -267,6 +267,7 @@ var __webpack_modules__ = {
       extractNarrative: () => extractNarrative,
       extractVariableUpdateDiagnostics: () => extractVariableUpdateDiagnostics,
       formatMessageHtml: () => formatMessageHtml,
+      formatNarrativeHtml: () => formatNarrativeHtml,
       hasInlineReasoningPresetDisclosure: () => hasInlineReasoningPresetDisclosure,
       isRichPresetHtml: () => isRichPresetHtml,
       mergeReasoningText: () => mergeReasoningText,
@@ -274,6 +275,7 @@ var __webpack_modules__ = {
       stripAuxiliaryPresentation: () => stripAuxiliaryPresentation,
       stripStructuredBlocks: () => stripStructuredBlocks
     });
+    var _narrative_typography__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./narrative-typography */ "./src/灯火通明/narrative-typography.ts");
     const PRIMARY_BODY_TAGS = [ "content", "正文", "narrative", "story", "main_text", "text_output", "response", "answer", "final" ];
     const CHOICE_BLOCK_TAGS = [ "branches", "branch_options", "choices", "choice_list", "options", "option_list", "actions", "action_options", "select_options", "分支", "选项", "行动选项" ];
     const STRUCTURAL_TAGS = [ "visual_cards", ...CHOICE_BLOCK_TAGS, "aftertalk", "afterword", "twin_aftertalk", "ooc", "metadata", "meta_info", "memory", "state", "status", "status_block", "world_state", "pseudo_layer", "UpdateVariable", "update_variables", "variable_update", "state_update", "JSONPatch", "StatusPlaceHolderImpl", "反应", "会话状态" ];
@@ -801,6 +803,41 @@ var __webpack_modules__ = {
         return $("<div>").text(value).html().replace(/\n/g, "<br>");
       }
     };
+    const STORY_DIALOGUE_CLASS = "dhl-story-dialogue";
+    const STORY_DIALOGUE_SKIP_SELECTOR = [ "code", "pre", "script", "style", "textarea", "kbd", "samp", "button", "select", "option", `.${STORY_DIALOGUE_CLASS}` ].join(", ");
+    const decorateNarrativeDialogueHtml = html => {
+      if (!html || typeof document === "undefined") return html;
+      const template = document.createElement("template");
+      template.innerHTML = html;
+      const quoteStack = [];
+      const textNodes = [];
+      const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT, {
+        acceptNode: node => node.parentElement?.closest(STORY_DIALOGUE_SKIP_SELECTOR) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+      });
+      let currentNode = walker.nextNode();
+      while (currentNode) {
+        textNodes.push(currentNode);
+        currentNode = walker.nextNode();
+      }
+      textNodes.forEach(textNode => {
+        const segments = (0, _narrative_typography__WEBPACK_IMPORTED_MODULE_0__.segmentNarrativeDialogueText)(textNode.data, quoteStack);
+        if (!segments.some(segment => segment.dialogue)) return;
+        const replacement = document.createDocumentFragment();
+        segments.forEach(segment => {
+          if (!segment.dialogue) {
+            replacement.append(document.createTextNode(segment.text));
+            return;
+          }
+          const dialogue = document.createElement("span");
+          dialogue.className = STORY_DIALOGUE_CLASS;
+          dialogue.textContent = segment.text;
+          replacement.append(dialogue);
+        });
+        textNode.replaceWith(replacement);
+      });
+      return template.innerHTML;
+    };
+    const formatNarrativeHtml = (text, messageId) => decorateNarrativeDialogueHtml(formatMessageHtml(text, messageId));
     const BASIC_FORMAT_CLASS_PATTERN = /^(?:custom-html|custom-language-html|language-\S+|hljs(?:-\S+)?|markdown|md|code|prettyprint|spoiler)$/i;
     const isRichPresetHtml = html => {
       if (!html.trim()) return false;
@@ -819,6 +856,43 @@ var __webpack_modules__ = {
       return Boolean(template.content.querySelector("details > summary"));
     };
   },
+  "./src/灯火通明/narrative-typography.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+    __webpack_require__.r(__webpack_exports__);
+    __webpack_require__.d(__webpack_exports__, {
+      segmentNarrativeDialogueText: () => segmentNarrativeDialogueText
+    });
+    const DIALOGUE_QUOTE_PAIRS = [ [ "“", "”" ], [ "「", "」" ], [ "『", "』" ] ];
+    const OPEN_TO_CLOSE = new Map(DIALOGUE_QUOTE_PAIRS);
+    const segmentNarrativeDialogueText = (text, quoteStack) => {
+      const segments = [];
+      const append = (character, dialogue) => {
+        const previous = segments.at(-1);
+        if (previous?.dialogue === dialogue) {
+          previous.text += character;
+          return;
+        }
+        segments.push({
+          text: character,
+          dialogue
+        });
+      };
+      for (const character of text) {
+        const closingQuote = OPEN_TO_CLOSE.get(character);
+        if (closingQuote) {
+          quoteStack.push(closingQuote);
+          append(character, true);
+          continue;
+        }
+        if (quoteStack.at(-1) === character) {
+          append(character, true);
+          quoteStack.pop();
+          continue;
+        }
+        append(character, quoteStack.length > 0);
+      }
+      return segments;
+    };
+  },
   "./src/灯火通明/pseudo-layer-protocol.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
@@ -827,26 +901,28 @@ var __webpack_modules__ = {
       PSEUDO_LAYER_MIN_COMPATIBLE_VERSION: () => PSEUDO_LAYER_MIN_COMPATIBLE_VERSION,
       PSEUDO_LAYER_SUPPORTED_VERSIONS: () => PSEUDO_LAYER_SUPPORTED_VERSIONS,
       PSEUDO_LAYER_TIMELINE_PAGING_VERSION: () => PSEUDO_LAYER_TIMELINE_PAGING_VERSION,
+      PSEUDO_LAYER_USER_MESSAGE_EDITING_VERSION: () => PSEUDO_LAYER_USER_MESSAGE_EDITING_VERSION,
       PSEUDO_LAYER_VERSION: () => PSEUDO_LAYER_VERSION,
       isPseudoLayerRequest: () => isPseudoLayerRequest,
       isPseudoLayerResponse: () => isPseudoLayerResponse,
       isSupportedPseudoLayerVersion: () => isSupportedPseudoLayerVersion
     });
     const PSEUDO_LAYER_CHANNEL = "denghuolanshan:pseudo-layer";
-    const PSEUDO_LAYER_VERSION = 9;
+    const PSEUDO_LAYER_VERSION = 10;
     const PSEUDO_LAYER_MIN_COMPATIBLE_VERSION = 4;
     const PSEUDO_LAYER_SUPPORTED_VERSIONS = Array.from({
       length: PSEUDO_LAYER_VERSION - PSEUDO_LAYER_MIN_COMPATIBLE_VERSION + 1
     }, (_, index) => PSEUDO_LAYER_VERSION - index);
     const PSEUDO_LAYER_MESSAGE_EDITING_VERSION = 8;
     const PSEUDO_LAYER_TIMELINE_PAGING_VERSION = 9;
+    const PSEUDO_LAYER_USER_MESSAGE_EDITING_VERSION = 10;
     const isSupportedPseudoLayerVersion = value => typeof value === "number" && Number.isInteger(value) && value >= PSEUDO_LAYER_MIN_COMPATIBLE_VERSION && value <= PSEUDO_LAYER_VERSION;
     const hasEnvelope = value => {
       if (!value || typeof value !== "object") return false;
       const message = value;
       return message.channel === PSEUDO_LAYER_CHANNEL && isSupportedPseudoLayerVersion(message.version);
     };
-    const REQUEST_TYPES = new Set([ "hello", "goodbye", "generate", "stop", "reroll", "delete_message", "update_message", "navigate", "timeline_page", "select_entry", "select_history", "return_latest", "set_interaction", "end_interaction", "toggle_native_input" ]);
+    const REQUEST_TYPES = new Set([ "hello", "goodbye", "generate", "stop", "reroll", "delete_message", "update_message", "update_user_message", "navigate", "timeline_page", "select_entry", "select_history", "return_latest", "set_interaction", "end_interaction", "toggle_native_input" ]);
     const RESPONSE_TYPES = new Set([ "ready", "view", "state", "stream", "reasoning", "complete", "deleted", "message_updated", "timeline_page", "error" ]);
     const isPseudoLayerRequest = value => hasEnvelope(value) && REQUEST_TYPES.has(String(value.type));
     const isPseudoLayerResponse = value => hasEnvelope(value) && RESPONSE_TYPES.has(String(value.type));
@@ -3019,6 +3095,118 @@ let __webpack_exports__ = {};
       scheduleViewRefresh(120, true);
     }
   };
+  const updateUserMessageContent = async (request, source) => {
+    if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
+      send(source, {
+        type: "error",
+        requestId: request.requestId,
+        message: "当前仍有操作正在进行。"
+      });
+      return;
+    }
+    const messageId = Math.trunc(request.messageId);
+    const userMessageId = Math.trunc(request.userMessageId);
+    const content = String(request.content ?? "").trim();
+    const snapshot = getStageSnapshot();
+    const entry = snapshot.entries.find(candidate => candidate.messageIds.includes(messageId));
+    const assistant = snapshot.messagesById.get(messageId);
+    const metadata = resolveAssistantInteractionMetadata(assistant, snapshot.messages);
+    const previous = snapshot.previousMessages.get(messageId);
+    const linkedUser = (metadata?.userMessageId !== undefined ? snapshot.messagesById.get(metadata.userMessageId) : undefined) ?? (previous?.role === "user" ? previous : undefined);
+    if (!Number.isFinite(messageId) || !Number.isFinite(userMessageId) || !entry || assistant?.role !== "assistant") {
+      send(source, {
+        type: "error",
+        requestId: request.requestId,
+        message: "当前回合已经变化，请重新打开输入编辑器。"
+      });
+      return;
+    }
+    if (!linkedUser || linkedUser.role !== "user" || linkedUser.message_id !== userMessageId) {
+      send(source, {
+        type: "error",
+        requestId: request.requestId,
+        message: "没有找到这条回复对应的玩家输入。"
+      });
+      return;
+    }
+    if (!content) {
+      send(source, {
+        type: "error",
+        requestId: request.requestId,
+        message: "玩家输入不能为空。"
+      });
+      return;
+    }
+    const chatId = getCurrentChatId();
+    updatingMessageId = userMessageId;
+    try {
+      const updates = [ {
+        message_id: userMessageId,
+        message: content
+      } ];
+      if (metadata) {
+        const context = toDialogueContext(metadata);
+        const existingUserMetadata = readInteractionMetadata(linkedUser);
+        const userMetadata = {
+          ...existingUserMetadata,
+          version: 2,
+          kind: "dialogue",
+          ...context,
+          engine: existingUserMetadata?.engine ?? metadata.engine ?? "native",
+          ...existingUserMetadata?.operationId ?? metadata.operationId ? {
+            operationId: existingUserMetadata?.operationId ?? metadata.operationId
+          } : {},
+          rawUserText: content,
+          userMessageId
+        };
+        const assistantMetadata = {
+          ...metadata,
+          version: 2,
+          kind: "dialogue",
+          ...context,
+          rawUserText: content,
+          userMessageId
+        };
+        updates[0] = {
+          message_id: userMessageId,
+          message: decorateDialogueInput(content, context),
+          extra: {
+            ...linkedUser.extra ?? {},
+            [INTERACTION_KEY]: userMetadata
+          }
+        };
+        updates.push({
+          message_id: messageId,
+          extra: {
+            ...assistant.extra ?? {},
+            [INTERACTION_KEY]: assistantMetadata
+          }
+        });
+      }
+      await setChatMessages(updates, {
+        refresh: "affected"
+      });
+      if (getCurrentChatId() !== chatId) throw new Error("保存期间聊天已经切换，本次编辑未完成。");
+      invalidateStageSnapshot();
+      viewRevision += 1;
+      send(source, {
+        type: "message_updated",
+        requestId: request.requestId,
+        messageId,
+        userMessageId
+      });
+      broadcastView();
+    } catch (error) {
+      send(source, {
+        type: "error",
+        requestId: request.requestId,
+        message: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      updatingMessageId = null;
+      scheduleViewRefresh(120, true);
+    }
+  };
   const handleMessage = event => {
     if (!(0, _pseudo_layer_protocol__WEBPACK_IMPORTED_MODULE_0__.isPseudoLayerRequest)(event.data)) return;
     const request = event.data;
@@ -3084,6 +3272,10 @@ let __webpack_exports__ = {};
     }
     if (request.type === "update_message") {
       void updateMessageContent(request, source);
+      return;
+    }
+    if (request.type === "update_user_message") {
+      void updateUserMessageContent(request, source);
       return;
     }
     if (request.type === "stop") {

@@ -77,7 +77,17 @@
 <script setup lang="ts">
 import { usePseudoLayerStore } from '../store';
 
-const props = defineProps<{ visible: boolean; targetMessageId?: number; targetLabel?: string }>();
+const props = withDefaults(
+  defineProps<{
+    visible: boolean;
+    targetMessageId?: number;
+    targetLabel?: string;
+  }>(),
+  {
+    targetMessageId: undefined,
+    targetLabel: undefined,
+  },
+);
 const emit = defineEmits<{ (event: 'close'): void }>();
 const pseudo = usePseudoLayerStore();
 const editorInput = ref<HTMLTextAreaElement>();
@@ -145,12 +155,9 @@ const copyRaw = async () => {
   }, 1600);
 };
 
-watch(
-  [() => props.visible, () => props.targetMessageId],
-  ([visible]) => {
-    if (visible) loadCurrentMessage();
-  },
-);
+watch([() => props.visible, () => props.targetMessageId], ([visible]) => {
+  if (visible) loadCurrentMessage();
+});
 
 watch(
   () => pseudo.editSavedNonce,

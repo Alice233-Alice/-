@@ -1,14 +1,10 @@
 ﻿import { Schema } from '../schema';
 
+import { COMPANION_CANONICAL_NAMES } from '../../灯火阑珊-变量结构/companion-aliases';
+
 const GUARD_INSTALLED_KEY = '__踏月寻仙_ui_mvu_guard_installed__';
 const LAST_VALID_STAT_DATA_KEY = '__踏月寻仙_last_valid_stat_data';
 const READONLY_DERIVED_FIELDS = new Set(['突破阈值', '寿元上限', '境界描述', '寿元状态', '状态', '进度']);
-const COMPANION_CANONICAL_NAMES: Record<string, string> = {
-  虞汐: '虞汐颜',
-  虞颜: '虞汐颜',
-  阿鸢: '朔璃鸢',
-  血手飞鸢: '朔璃鸢',
-};
 const pendingCompanionLevels = new Map<string, number>();
 const pendingCompanionLibraryLevels = new Map<string, number>();
 
@@ -31,6 +27,9 @@ function normalizeCommandPath(rawPath: string): string {
   }
 
   path = path.replaceAll('：', ':').replaceAll('。', '.').replace(/\s+/g, '').replace(/\.\.+/g, '.');
+  path = path
+    .replace(/^stat_data\.可参与机遇(?=\.|$)/, 'stat_data.$可参与机遇')
+    .replace(/^可参与机遇(?=\.|$)/, '$可参与机遇');
 
   if (!path.startsWith('stat_data.')) {
     const topLevelKeys = [
@@ -40,7 +39,7 @@ function normalizeCommandPath(rawPath: string): string {
       '任务列表',
       '红颜',
       '地点库',
-      '可参与机遇',
+      '$可参与机遇',
       '当前处境',
       '难度系统',
       '_系统设置',
@@ -259,68 +258,72 @@ export function bootstrapMvuGuard() {
   waitGlobalInitialized('Mvu')
     .then(() => {
       if (disposed) return;
-      eventStops.push(eventOn(Mvu.events.COMMAND_PARSED, (variables: Mvu.MvuData, commands: Mvu.CommandInfo[]) => {
-        if (!isActiveStageFrame()) return;
-        const normalizedCommands = commands as unknown as GuardMutableCommand[];
-        const appendedCommands: GuardMutableCommand[] = [];
+      eventStops.push(
+        eventOn(Mvu.events.COMMAND_PARSED, (variables: Mvu.MvuData, commands: Mvu.CommandInfo[]) => {
+          if (!isActiveStageFrame()) return;
+          const normalizedCommands = commands as unknown as GuardMutableCommand[];
+          const appendedCommands: GuardMutableCommand[] = [];
 
-        for (const command of normalizedCommands) {
-          if (!Array.isArray(command.args) || command.args.length === 0) continue;
+          for (const command of normalizedCommands) {
+            if (!Array.isArray(command.args) || command.args.length === 0) continue;
 
-          const rawPath = String(command.args[0] ?? '');
-          const path = normalizeCompanionAliasPath(normalizeCommandPath(rawPath));
-          if (path && path !== rawPath) {
-            command.args[0] = path;
-          }
+            const rawPath = String(command.args[0] ?? '');
+            const path = normalizeCompanionAliasPath(normalizeCommandPath(rawPath));
+            if (path && path !== rawPath) {
+              command.args[0] = path;
+            }
 
-          if (path && rewriteReadonlyDerivedCommand(command, path, variables)) {
-            continue;
-          }
-
-          if (command.type === 'insert' && path.startsWith('stat_data.红颜.')) {
-            const existingCompanion = getExistingCompanionSource(path, variables);
-            if (existingCompanion) {
-              const rewrittenCommands = createCompanionPatchCommands(
-                path,
-                command.args[command.args.length - 1],
-                existingCompanion.value,
-              );
-              appendedCommands.push(...rewrittenCommands);
-              if (existingCompanion.source === 'current') {
-                command.type = 'set';
-                command.args = [path, JSON.stringify(existingCompanion.value)];
-                command.reason = '已存在红颜被误写为insert，原命令已由守卫改写为no-op';
-              } else {
-                command.args[command.args.length - 1] = JSON.stringify(existingCompanion.value);
-                command.reason = '当前楼层缺少红颜对象，守卫已用聊天快照补全基底再应用更新';
-              }
+            if (path && rewriteReadonlyDerivedCommand(command, path, variables)) {
               continue;
+            }
+
+            if (command.type === 'insert' && path.startsWith('stat_data.红颜.')) {
+              const existingCompanion = getExistingCompanionSource(path, variables);
+              if (existingCompanion) {
+                const rewrittenCommands = createCompanionPatchCommands(
+                  path,
+                  command.args[command.args.length - 1],
+                  existingCompanion.value,
+                );
+                appendedCommands.push(...rewrittenCommands);
+                if (existingCompanion.source === 'current') {
+                  command.type = 'set';
+                  command.args = [path, JSON.stringify(existingCompanion.value)];
+                  command.reason = '已存在红颜被误写为insert，原命令已由守卫改写为no-op';
+                } else {
+                  command.args[command.args.length - 1] = JSON.stringify(existingCompanion.value);
+                  command.reason = '当前楼层缺少红颜对象，守卫已用聊天快照补全基底再应用更新';
+                }
+                continue;
+              }
+            }
+
+            if (command.args.length >= 2 && path) {
+              command.args[1] = coerceByPath(path, command.args[1]);
+              rememberCompanionLevel(path, command.args[1]);
             }
           }
 
-          if (command.args.length >= 2 && path) {
-            command.args[1] = coerceByPath(path, command.args[1]);
-            rememberCompanionLevel(path, command.args[1]);
+          if (appendedCommands.length > 0) {
+            normalizedCommands.push(...appendedCommands);
           }
-        }
+        }).stop,
+      );
 
-        if (appendedCommands.length > 0) {
-          normalizedCommands.push(...appendedCommands);
-        }
-      }).stop);
-
-      eventStops.push(eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (newVariables: Mvu.MvuData) => {
-        if (!isActiveStageFrame()) return;
-        applyPendingCompanionLevels(newVariables);
-        const statData = _.get(newVariables, 'stat_data');
-        const parsed = Schema.safeParse(statData);
-        pendingCompanionLevels.clear();
-        pendingCompanionLibraryLevels.clear();
-        if (!parsed.success) return;
-        if (!_.isEqual(statData, parsed.data)) {
-          _.set(newVariables, 'stat_data', parsed.data);
-        }
-      }).stop);
+      eventStops.push(
+        eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (newVariables: Mvu.MvuData) => {
+          if (!isActiveStageFrame()) return;
+          applyPendingCompanionLevels(newVariables);
+          const statData = _.get(newVariables, 'stat_data');
+          const parsed = Schema.safeParse(statData);
+          pendingCompanionLevels.clear();
+          pendingCompanionLibraryLevels.clear();
+          if (!parsed.success) return;
+          if (!_.isEqual(statData, parsed.data)) {
+            _.set(newVariables, 'stat_data', parsed.data);
+          }
+        }).stop,
+      );
 
       console.info('[踏月寻仙] UI MVU 纠错守卫已启用');
     })

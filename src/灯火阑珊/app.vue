@@ -62,7 +62,7 @@
           :combat-state="store.本尊.战斗状态"
           :current-enemies="store.本尊.当前敌人"
           :tribulation-state="store.本尊.渡劫状态"
-          :player-combat-power="(store.本尊 as any).战力值 ?? 0"
+          :player-level="store.本尊.等级"
         />
       </div>
 

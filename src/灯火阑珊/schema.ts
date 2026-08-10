@@ -4,9 +4,16 @@
 // 从子模块导入并组合最终 Schema
 
 import { z } from 'zod';
+import { COMPANION_ALIAS_GROUPS } from '../灯火阑珊-变量结构/companion-aliases';
 
 // 子模块导入
-import { CharacterLibEntrySchema, CompanionSchema, DEFAULT_CHARACTER_LIB, NpcSchema } from './schema/characters';
+import {
+  CharacterLibEntrySchema,
+  CompanionBondChronicleSchema,
+  CompanionSchema,
+  DEFAULT_CHARACTER_LIB,
+  NpcSchema,
+} from './schema/characters';
 import {
   computeRealmInfo,
   finiteNumber,
@@ -37,7 +44,11 @@ import {
 // 重新导出所有子模块的公开内容
 export {
   CharacterLibEntrySchema,
+  COMPANION_BOND_EVENT_TYPES,
+  CompanionBondChronicleEntrySchema,
+  CompanionBondChronicleSchema,
   CompanionSchema,
+  CompanionRelationContextSchema,
   CustomPortraitSchema,
   DEFAULT_CHARACTER_LIB,
   NpcSchema,
@@ -77,13 +88,14 @@ export {
   unwrapOpportunityPatchPayload,
 } from './schema/systems';
 export {
-  calculateBaseCombatPower,
-  evaluateCombatPower,
+  compareRealmStanding,
   getDangerColor,
   getRealmColor,
   getRootColor,
   parseRealmToLevel,
+  resolveBattleMomentum,
 } from './schema/utils';
+export type { BattleMomentum, MomentumBasis, RealmStanding } from './schema/utils';
 export {
   DEFAULT_FACTIONS,
   DEFAULT_LOCATIONS,
@@ -100,26 +112,12 @@ export {
 // 完整的 MVU 变量结构
 // ============================================================================
 
-const DUAL_SOUL_CANONICAL_NAME = '虞汐颜';
-const DUAL_SOUL_ALIASES = ['虞汐', '虞颜'] as const;
-const SHUO_LIYUAN_CANONICAL_NAME = '朔璃鸢';
-const SHUO_LIYUAN_ALIASES = ['阿鸢', '血手飞鸢'] as const;
-const SHUO_WANGSHU_CANONICAL_NAME = '朔望舒';
-const SHUO_WANGSHU_ALIASES = ['赤月女帝', '幽影宗主'] as const;
-const AN_CHICHI_CANONICAL_NAME = '安迟迟';
-const AN_CHICHI_ALIASES = ['念迟迟', '蘅之', '拈韵居士', '掌籍师姐'] as const;
-const COMPANION_ALIAS_GROUPS = [
-  { canonical: DUAL_SOUL_CANONICAL_NAME, aliases: DUAL_SOUL_ALIASES },
-  { canonical: SHUO_LIYUAN_CANONICAL_NAME, aliases: SHUO_LIYUAN_ALIASES },
-  { canonical: SHUO_WANGSHU_CANONICAL_NAME, aliases: SHUO_WANGSHU_ALIASES },
-  { canonical: AN_CHICHI_CANONICAL_NAME, aliases: AN_CHICHI_ALIASES },
-] as const;
 const LATEST_CULTIVATION_SYSTEM_VERSION = 3;
-const LATEST_SCHEMA_VERSION = 2;
+const LATEST_SCHEMA_VERSION = 4;
 const DEFAULT_COMPANION = CompanionSchema.parse({});
 const CJK_TEXT_PATTERN = /[\u3400-\u4dbf\u4e00-\u9fff]/;
 const MAX_OPPORTUNITIES = 4;
-const ACTION_TEXT_LIMIT = 48;
+const ACTION_TEXT_LIMIT = 80;
 const ACTION_HINT_LIMIT = 28;
 const SITUATION_TEXT_LIMIT = 64;
 
@@ -131,6 +129,17 @@ function normalizePromptText(value: unknown, maxLength: number): string {
   )
     .slice(0, maxLength)
     .join('');
+}
+
+function migrateHiddenOpportunityField(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+
+  const input = { ...(value as Record<string, unknown>) };
+  if (!Object.hasOwn(input, '$可参与机遇') && Object.hasOwn(input, '可参与机遇')) {
+    input.$可参与机遇 = input.可参与机遇;
+  }
+  delete input.可参与机遇;
+  return input;
 }
 
 function preferNonDefaultString(incoming: unknown, current: string, fallback: string): string {
@@ -255,6 +264,10 @@ function mergeCompanionData(
       fallbackRelationContext.未了约定,
     ),
   };
+  merged.羁绊纪事 = CompanionBondChronicleSchema.parse({
+    ...(base.羁绊纪事 ?? {}),
+    ...(incoming.羁绊纪事 ?? {}),
+  });
 
   if (String(base.灵根 ?? DEFAULT_COMPANION.灵根) === DEFAULT_COMPANION.灵根 && String(incoming.灵根 ?? '').trim()) {
     merged.灵根 = incoming.灵根;
@@ -396,7 +409,7 @@ function normalizeProtagonistCultivation(
     cultivation: protagonist.修为,
   });
   protagonist.尝试突破 = protagonist.修炼状态.阶段 === '突破中';
-  Object.assign(protagonist, computeRealmInfo(protagonist, true));
+  Object.assign(protagonist, computeRealmInfo(protagonist));
 }
 
 function normalizeCompanionCultivation(
@@ -418,203 +431,206 @@ function normalizeCompanionCultivation(
     cultivation: companion.修为,
   });
   companion.尝试突破 = companion.修炼状态.阶段 === '突破中';
-  Object.assign(companion, computeRealmInfo(companion, false));
+  Object.assign(companion, computeRealmInfo(companion));
 }
 
-export const Schema = z
-  .object({
-    世界时钟: z
-      .object({
-        纪元: z.string().prefault('盛法时代'),
-        年份: finiteNumber(1)
-          .transform(v => Math.max(1, Math.floor(v)))
-          .prefault(1),
-        月份: finiteNumber(1)
-          .transform(v => _.clamp(Math.floor(v), 1, 12))
-          .prefault(1),
-        日期: finiteNumber(1)
-          .transform(v => _.clamp(Math.floor(v), 1, 30))
-          .prefault(1),
-        时辰: z.string().prefault('子时'),
-      })
-      .prefault({
-        纪元: '盛法时代',
-        年份: 1,
-        月份: 1,
-        日期: 1,
-        时辰: '子时',
-      }),
-
-    世界地图: z
-      .record(
-        z.string().describe('区域名'),
-        z.object({
-          layer: z.enum(['天层', '地层', '下层']).prefault('地层'),
-          danger: finiteNumber(0).transform(v => _.clamp(v, 0, 100)),
-          desc: z.string().prefault(''),
-          connections: NormalizedStringListSchema,
+export const Schema = z.preprocess(
+  migrateHiddenOpportunityField,
+  z
+    .object({
+      世界时钟: z
+        .object({
+          纪元: z.string().prefault('盛法时代'),
+          年份: finiteNumber(1)
+            .transform(v => Math.max(1, Math.floor(v)))
+            .prefault(1),
+          月份: finiteNumber(1)
+            .transform(v => _.clamp(Math.floor(v), 1, 12))
+            .prefault(1),
+          日期: finiteNumber(1)
+            .transform(v => _.clamp(Math.floor(v), 1, 30))
+            .prefault(1),
+          时辰: z.string().prefault('子时'),
+        })
+        .prefault({
+          纪元: '盛法时代',
+          年份: 1,
+          月份: 1,
+          日期: 1,
+          时辰: '子时',
         }),
-      )
-      .prefault({}),
 
-    世界图志: z
-      .record(
-        z.string().describe('事件名'),
-        z.object({
-          状态: z.string().prefault(''),
-          事件: z.string().prefault(''),
+      世界地图: z
+        .record(
+          z.string().describe('区域名'),
+          z.object({
+            layer: z.enum(['天层', '地层', '下层']).prefault('地层'),
+            danger: finiteNumber(0).transform(v => _.clamp(v, 0, 100)),
+            desc: z.string().prefault(''),
+            connections: NormalizedStringListSchema,
+          }),
+        )
+        .prefault({}),
+
+      世界图志: z
+        .record(
+          z.string().describe('事件名'),
+          z.object({
+            状态: z.string().prefault(''),
+            事件: z.string().prefault(''),
+          }),
+        )
+        .prefault({}),
+
+      // 宗门势力库 - AI 自由创造，只需提供 { 地, 特, 力, 营, 模 }
+      宗门势力库: z.record(z.string().describe('宗门名'), FactionSchema).prefault({}),
+
+      // 功法库 - AI 自由创造，只需提供 { 阶, 性, 效 }
+      功法库: z.record(z.string().describe('功法名'), TechniqueSchema).prefault({}),
+
+      // 法宝库 - 仅保留剧情关键法宝，其他 AI 自由创造
+      法宝库: z.record(z.string().describe('法宝名'), TreasureSchema).prefault(DEFAULT_TREASURES),
+
+      地点库: z.record(z.string().describe('地点名'), LocationSchema).prefault(DEFAULT_LOCATIONS),
+
+      // 提示词/脚本派生缓存：仅供脚本和 EJS 使用，不展示给 AI
+      $宗门推断: z
+        .object({
+          当前域: z.string().prefault(''),
+          当前主势力: z.string().prefault(''),
+        })
+        .prefault({
+          当前域: '',
+          当前主势力: '',
         }),
-      )
-      .prefault({}),
 
-    // 宗门势力库 - AI 自由创造，只需提供 { 地, 特, 力, 营, 模 }
-    宗门势力库: z.record(z.string().describe('宗门名'), FactionSchema).prefault({}),
+      // 灵根库 - AI 自由创造，只需提供 { 质, 性, 稀 }，速度和特性由 transform 自动计算
+      灵根库: z.record(z.string().describe('灵根名'), SpiritRootSchema).prefault({}),
 
-    // 功法库 - AI 自由创造，只需提供 { 阶, 性, 效 }
-    功法库: z.record(z.string().describe('功法名'), TechniqueSchema).prefault({}),
+      // 体质库 - AI 自由创造，只需提供 { 质, 特, 稀 }，优势由 transform 自动计算
+      体质库: z.record(z.string().describe('体质名'), PhysiqueSchema).prefault({}),
 
-    // 法宝库 - 仅保留剧情关键法宝，其他 AI 自由创造
-    法宝库: z.record(z.string().describe('法宝名'), TreasureSchema).prefault(DEFAULT_TREASURES),
+      本尊: ProtagonistSchema,
 
-    地点库: z.record(z.string().describe('地点名'), LocationSchema).prefault(DEFAULT_LOCATIONS),
+      红颜角色库: z.record(z.string().describe('角色名'), CharacterLibEntrySchema).prefault(DEFAULT_CHARACTER_LIB),
 
-    // 提示词/脚本派生缓存：仅供脚本和 EJS 使用，不展示给 AI
-    $宗门推断: z
-      .object({
-        当前域: z.string().prefault(''),
-        当前主势力: z.string().prefault(''),
-      })
-      .prefault({
-        当前域: '',
-        当前主势力: '',
-      }),
+      红颜: z.record(z.string().describe('红颜名'), CompanionSchema).prefault({}),
 
-    // 灵根库 - AI 自由创造，只需提供 { 质, 性, 稀 }，速度和特性由 transform 自动计算
-    灵根库: z.record(z.string().describe('灵根名'), SpiritRootSchema).prefault({}),
+      // NPC图鉴 - 极简版（保留向后兼容）
+      NPC图鉴: z.record(z.string().describe('NPC名'), NpcSchema).prefault({}),
 
-    // 体质库 - AI 自由创造，只需提供 { 质, 特, 稀 }，优势由 transform 自动计算
-    体质库: z.record(z.string().describe('体质名'), PhysiqueSchema).prefault({}),
+      // 任务列表 - 容错归一化并清理：仅保留进行中的有效任务
+      任务列表: z
+        .record(z.string().describe('任务ID'), QuestSchema)
+        .prefault({})
+        .transform(v =>
+          _(v)
+            .pickBy((task, taskId) => !!task && !!String(taskId).trim())
+            .mapValues((task, taskId) => ({
+              ...task,
+              // 统一剥离 MQ/SQ/task_01 之类英文前缀，避免前端直接出现英文任务名
+              名称:
+                extractChineseQuestLabel(task.名称) ||
+                extractChineseQuestLabel(taskId) ||
+                getQuestFallbackLabel(task.类型),
+            }))
+            .pickBy(task => task.状态 === '进行中')
+            .value(),
+        ),
 
-    本尊: ProtagonistSchema,
+      // 声望系统 - 健壮性与智能管理优化
+      声望系统: ReputationSystemSchema,
 
-    红颜角色库: z.record(z.string().describe('角色名'), CharacterLibEntrySchema).prefault(DEFAULT_CHARACTER_LIB),
+      // 难度系统（LLM探针 + 脚本暗箱状态）
+      难度系统: DifficultySystemSchema,
 
-    红颜: z.record(z.string().describe('红颜名'), CompanionSchema).prefault({}),
+      // ========== 行动提示系统：$ 前缀使变量列表宏不向正文 AI 展示 ==========
+      $可参与机遇: z.preprocess(
+        unwrapOpportunityPatchPayload,
+        z
+          .array(OpportunitySchema)
+          .prefault([])
+          .transform(list => {
+            const seen = new Set<string>();
 
-    // NPC图鉴 - 极简版（保留向后兼容）
-    NPC图鉴: z.record(z.string().describe('NPC名'), NpcSchema).prefault({}),
+            return list
+              .flatMap(item => {
+                const action = normalizePromptText(item.行动, ACTION_TEXT_LIMIT);
+                if (!action || seen.has(action)) {
+                  return [];
+                }
 
-    // 任务列表 - 容错归一化并清理：仅保留进行中的有效任务
-    任务列表: z
-      .record(z.string().describe('任务ID'), QuestSchema)
-      .prefault({})
-      .transform(v =>
-        _(v)
-          .pickBy((task, taskId) => !!task && !!String(taskId).trim())
-          .mapValues((task, taskId) => ({
-            ...task,
-            // 统一剥离 MQ/SQ/task_01 之类英文前缀，避免前端直接出现英文任务名
-            名称:
-              extractChineseQuestLabel(task.名称) ||
-              extractChineseQuestLabel(taskId) ||
-              getQuestFallbackLabel(task.类型),
-          }))
-          .pickBy(task => task.状态 === '进行中')
-          .value(),
+                seen.add(action);
+                const hint = normalizePromptText(item.提示, ACTION_HINT_LIMIT);
+                return [
+                  {
+                    行动: action,
+                    类型: item.类型,
+                    ...(hint ? { 提示: hint } : {}),
+                  },
+                ];
+              })
+              .slice(0, MAX_OPPORTUNITIES);
+          }),
       ),
 
-    // 声望系统 - 健壮性与智能管理优化
-    声望系统: ReputationSystemSchema,
+      // 当前处境描述（用于行动提示面板顶部显示）
+      当前处境: z
+        .string()
+        .prefault('')
+        .transform(value => normalizePromptText(value, SITUATION_TEXT_LIMIT)),
 
-    // 难度系统（LLM探针 + 脚本暗箱状态）
-    难度系统: DifficultySystemSchema,
+      // 系统设置
+      _系统设置: SystemSettingsSchema,
+      // 内部快照：用于限制红颜好感度单次变动幅度
+      _好感度快照: z
+        .record(
+          z.string().describe('红颜名'),
+          finiteNumber(0).transform(v => _.clamp(v, -200, 200)),
+        )
+        .prefault({}),
+    })
+    .transform(data => {
+      data.红颜角色库 = normalizeCharacterLibraryAliases(data.红颜角色库 ?? {});
+      const normalizedCompanionData = normalizeCompanionAliases(data.红颜 ?? {}, data._好感度快照 ?? {});
+      data.红颜 = normalizedCompanionData.companions;
+      data._好感度快照 = normalizedCompanionData.snapshot;
+      const currentCultivationVersion = Math.max(1, Math.floor(Number(data._系统设置?.修炼系统版本 ?? 1) || 1));
 
-    // ========== 行动提示系统 ==========
-    可参与机遇: z.preprocess(
-      unwrapOpportunityPatchPayload,
-      z
-        .array(OpportunitySchema)
-        .prefault([])
-        .transform(list => {
-          const seen = new Set<string>();
+      normalizeProtagonistCultivation(data.本尊, currentCultivationVersion);
+      for (const companion of Object.values(data.红颜 ?? {})) {
+        normalizeCompanionCultivation(companion, currentCultivationVersion);
+      }
+      data._系统设置 = {
+        ...(data._系统设置 ?? {}),
+        修炼系统版本: LATEST_CULTIVATION_SYSTEM_VERSION,
+        变量结构版本: LATEST_SCHEMA_VERSION,
+        _临时状态手动覆盖签名: String(data._系统设置?._临时状态手动覆盖签名 ?? ''),
+      };
 
-          return list
-            .flatMap(item => {
-              const action = normalizePromptText(item.行动, ACTION_TEXT_LIMIT);
-              if (!action || seen.has(action)) {
-                return [];
-              }
+      const snapshot = _.cloneDeep(data._好感度快照 ?? {});
 
-              seen.add(action);
-              const hint = normalizePromptText(item.提示, ACTION_HINT_LIMIT);
-              return [
-                {
-                  行动: action,
-                  类型: item.类型,
-                  ...(hint ? { 提示: hint } : {}),
-                },
-              ];
-            })
-            .slice(0, MAX_OPPORTUNITIES);
-        }),
-    ),
+      for (const [name, companion] of Object.entries(data.红颜 ?? {})) {
+        const currentFavor = Number(companion?.好感度);
+        if (!Number.isFinite(currentFavor)) {
+          continue;
+        }
 
-    // 当前处境描述（用于行动提示面板顶部显示）
-    当前处境: z
-      .string()
-      .prefault('')
-      .transform(value => normalizePromptText(value, SITUATION_TEXT_LIMIT)),
+        const prevFavor = Number(snapshot[name]);
+        if (Number.isFinite(prevFavor)) {
+          const favorDeltaLimit = getFavorDeltaLimitByValue(prevFavor);
+          companion.好感度 = _.clamp(currentFavor, prevFavor - favorDeltaLimit, prevFavor + favorDeltaLimit);
+        } else {
+          companion.好感度 = _.clamp(currentFavor, -200, 200);
+        }
 
-    // 系统设置
-    _系统设置: SystemSettingsSchema,
-    // 内部快照：用于限制红颜好感度单次变动幅度
-    _好感度快照: z
-      .record(
-        z.string().describe('红颜名'),
-        finiteNumber(0).transform(v => _.clamp(v, -200, 200)),
-      )
-      .prefault({}),
-  })
-  .transform(data => {
-    data.红颜角色库 = normalizeCharacterLibraryAliases(data.红颜角色库 ?? {});
-    const normalizedCompanionData = normalizeCompanionAliases(data.红颜 ?? {}, data._好感度快照 ?? {});
-    data.红颜 = normalizedCompanionData.companions;
-    data._好感度快照 = normalizedCompanionData.snapshot;
-    const currentCultivationVersion = Math.max(1, Math.floor(Number(data._系统设置?.修炼系统版本 ?? 1) || 1));
-
-    normalizeProtagonistCultivation(data.本尊, currentCultivationVersion);
-    for (const companion of Object.values(data.红颜 ?? {})) {
-      normalizeCompanionCultivation(companion, currentCultivationVersion);
-    }
-    data._系统设置 = {
-      ...(data._系统设置 ?? {}),
-      修炼系统版本: LATEST_CULTIVATION_SYSTEM_VERSION,
-      变量结构版本: LATEST_SCHEMA_VERSION,
-      _临时状态手动覆盖签名: String(data._系统设置?._临时状态手动覆盖签名 ?? ''),
-    };
-
-    const snapshot = _.cloneDeep(data._好感度快照 ?? {});
-
-    for (const [name, companion] of Object.entries(data.红颜 ?? {})) {
-      const currentFavor = Number(companion?.好感度);
-      if (!Number.isFinite(currentFavor)) {
-        continue;
+        snapshot[name] = companion.好感度;
       }
 
-      const prevFavor = Number(snapshot[name]);
-      if (Number.isFinite(prevFavor)) {
-        const favorDeltaLimit = getFavorDeltaLimitByValue(prevFavor);
-        companion.好感度 = _.clamp(currentFavor, prevFavor - favorDeltaLimit, prevFavor + favorDeltaLimit);
-      } else {
-        companion.好感度 = _.clamp(currentFavor, -200, 200);
-      }
-
-      snapshot[name] = companion.好感度;
-    }
-
-    data._好感度快照 = _.pickBy(snapshot, (_value, name) => _.has(data.红颜, name));
-    return data;
-  });
+      data._好感度快照 = _.pickBy(snapshot, (_value, name) => _.has(data.红颜, name));
+      return data;
+    }),
+);
 
 // 导出 Schema 类型
 export type SchemaType = z.output<typeof Schema>;

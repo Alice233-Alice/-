@@ -12,7 +12,27 @@
         <span class="turn-context-label">本回起念</span>
         <span class="turn-prompt-preview">{{ userPromptPreview }}</span>
       </button>
+      <button
+        v-if="!isStoryGenerating && pseudo.storyFloorUserMessageId >= 0 && storyMessageId >= 0"
+        type="button"
+        class="turn-prompt-edit"
+        title="修改本回输入"
+        :disabled="!pseudo.canEditUserMessage || editingInput"
+        @click="startInputEdit"
+      >
+        <i class="fa-solid fa-pen"></i><span>{{ editingInput ? '编辑中' : '修改' }}</span>
+      </button>
     </div>
+
+    <InlineInputEditor
+      v-if="editingInput && pseudo.storyFloorUserMessageId >= 0 && storyMessageId >= 0"
+      :content="userPrompt"
+      :user-message-id="pseudo.storyFloorUserMessageId"
+      :assistant-message-id="storyMessageId"
+      variant="bar"
+      @cancel="finishInputEdit"
+      @saved="finishInputEdit"
+    />
 
     <button
       v-if="contextPanel === 'prompt'"
@@ -21,12 +41,7 @@
       aria-label="关闭回合脉络"
       @click="contextPanel = null"
     ></button>
-    <section
-      v-if="contextPanel === 'prompt'"
-      class="context-popover"
-      role="dialog"
-      :aria-label="contextTitle"
-    >
+    <section v-if="contextPanel === 'prompt'" class="context-popover" role="dialog" :aria-label="contextTitle">
       <header class="context-popover-header">
         <span>
           <i :class="contextIcon"></i>
@@ -166,6 +181,7 @@
 import {
   extractVariableUpdateDiagnostics,
   formatMessageHtml,
+  formatNarrativeHtml,
   hasInlineReasoningPresetDisclosure,
   mergeReasoningText,
   parseMessageContent,
@@ -174,6 +190,7 @@ import {
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import { useStreamFollow } from '../composables/use-stream-follow';
 import BranchChoicePanel from './BranchChoicePanel.vue';
+import InlineInputEditor from './InlineInputEditor.vue';
 import ReasoningDisplay from './ReasoningDisplay.vue';
 import ScenePortraitRail from './ScenePortraitRail.vue';
 import VariableDiagnosticsPanel from './VariableDiagnosticsPanel.vue';
@@ -199,6 +216,7 @@ const {
 type ContextPanel = 'prompt' | 'reasoning' | 'variable';
 
 const contextPanel = ref<ContextPanel | null>(null);
+const editingInput = ref(false);
 const showPortrait = computed(
   () => !props.immersive && !props.mobileLayout && appearance.preferences.showPortraitRail && data.hasGalleryCards,
 );
@@ -265,7 +283,7 @@ const currentRawMessage = computed(() =>
   isStoryGenerating.value ? displayedStreamText.value : pseudo.storyFloorMessage,
 );
 const parsedMessage = computed(() => parseMessageContent(currentRawMessage.value));
-const storyHtml = computed(() => formatText(parsedMessage.value.narrative));
+const storyHtml = computed(() => formatNarrativeHtml(parsedMessage.value.narrative, storyMessageId.value));
 const branchChoices = computed(() => parsedMessage.value.choices);
 const variableDiagnostics = computed(() => extractVariableUpdateDiagnostics(currentRawMessage.value));
 const variableStatusLabel = computed(() => {
@@ -327,6 +345,15 @@ const contextIcon = computed(() => {
 
 const toggleContext = (panel: ContextPanel) => {
   contextPanel.value = contextPanel.value === panel ? null : panel;
+};
+
+const startInputEdit = () => {
+  if (pseudo.storyFloorUserMessageId < 0 || storyMessageId.value < 0) return;
+  contextPanel.value = null;
+  editingInput.value = true;
+};
+const finishInputEdit = () => {
+  editingInput.value = false;
 };
 
 const closeContextOnEscape = (event: KeyboardEvent) => {
@@ -400,9 +427,10 @@ watch(
   () => pseudo.view.selectedMessageId,
   () => {
     contextPanel.value = null;
+    editingInput.value = false;
   },
 );
-watch(reasoningUsesOwnDisclosure, (usesOwnDisclosure) => {
+watch(reasoningUsesOwnDisclosure, usesOwnDisclosure => {
   if (usesOwnDisclosure && contextPanel.value === 'reasoning') contextPanel.value = null;
 });
 
@@ -541,6 +569,31 @@ defineExpose({ scrollElement: scrollRef });
   text-align: left;
 }
 
+.turn-prompt-edit {
+  min-width: 70px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-left: 1px solid var(--line-subtle);
+  color: var(--gold-soft);
+  background: transparent;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.turn-prompt-edit:hover:not(:disabled) {
+  color: var(--gold);
+  background: var(--button-hover);
+}
+
+.turn-prompt-edit:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+}
+
 .turn-prompt-trigger > i {
   flex: none;
   color: var(--jade);
@@ -593,7 +646,12 @@ defineExpose({ scrollElement: scrollRef });
   inset: 3px;
   border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
   border-radius: 5px;
-  background: linear-gradient(105deg, transparent 18%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 72%);
+  background: linear-gradient(
+    105deg,
+    transparent 18%,
+    color-mix(in srgb, var(--gold) 8%, transparent),
+    transparent 72%
+  );
   opacity: 0.72;
   transition: opacity 0.2s ease;
   pointer-events: none;
@@ -661,10 +719,20 @@ defineExpose({ scrollElement: scrollRef });
 .reasoning-ornament i {
   height: 1px;
   flex: 1;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--jade) 34%, transparent), color-mix(in srgb, var(--gold) 42%, transparent));
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--jade) 34%, transparent),
+    color-mix(in srgb, var(--gold) 42%, transparent)
+  );
 }
 .reasoning-ornament i:last-child {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 42%, transparent), color-mix(in srgb, var(--jade) 34%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--gold) 42%, transparent),
+    color-mix(in srgb, var(--jade) 34%, transparent),
+    transparent
+  );
 }
 .reasoning-ornament b {
   font-size: 9px;
@@ -1176,6 +1244,13 @@ defineExpose({ scrollElement: scrollRef });
   .turn-prompt-trigger {
     padding-inline: 10px;
     gap: 6px;
+  }
+  .turn-prompt-edit {
+    min-width: 40px;
+    padding: 0 10px;
+  }
+  .turn-prompt-edit span {
+    display: none;
   }
   .reasoning-trigger {
     min-height: 44px;

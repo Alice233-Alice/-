@@ -1,6 +1,35 @@
 import * as __WEBPACK_EXTERNAL_MODULE_https_testingcf_jsdelivr_net_gh_StageDog_tavern_resource_dist_util_mvu_zod_js_8998c919__ from "https://testingcf.jsdelivr.net/gh/StageDog/tavern_resource/dist/util/mvu_zod.js";
 
 var __webpack_modules__ = {
+  "./src/灯火阑珊-变量结构/companion-aliases.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+    __webpack_require__.r(__webpack_exports__);
+    __webpack_require__.d(__webpack_exports__, {
+      COMPANION_ALIASES_BY_CANONICAL: () => COMPANION_ALIASES_BY_CANONICAL,
+      COMPANION_ALIAS_GROUPS: () => COMPANION_ALIAS_GROUPS,
+      COMPANION_CANONICAL_NAMES: () => COMPANION_CANONICAL_NAMES
+    });
+    const COMPANION_ALIAS_GROUPS = [ {
+      canonical: "虞汐颜",
+      aliases: [ "虞汐", "虞颜" ]
+    }, {
+      canonical: "朔璃鸢",
+      aliases: [ "阿鸢", "血手飞鸢" ]
+    }, {
+      canonical: "朔望舒",
+      aliases: [ "赤月女帝", "幽影宗主" ]
+    }, {
+      canonical: "安迟迟",
+      aliases: [ "念迟迟", "蘅之", "拈韵居士", "掌籍师姐" ]
+    }, {
+      canonical: "梦杳泠",
+      aliases: [ "泠泠", "乘黄少女", "乘黄幼崽", "末代乘黄" ]
+    }, {
+      canonical: "羽岚",
+      aliases: [ "羽岚烟", "岚烟" ]
+    } ];
+    const COMPANION_CANONICAL_NAMES = Object.fromEntries(COMPANION_ALIAS_GROUPS.flatMap(({canonical, aliases}) => aliases.map(alias => [ alias, canonical ])));
+    const COMPANION_ALIASES_BY_CANONICAL = Object.fromEntries(COMPANION_ALIAS_GROUPS.map(({canonical, aliases}) => [ canonical, aliases ]));
+  },
   "./src/灯火阑珊-变量结构/guard.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
@@ -11,21 +40,10 @@ var __webpack_modules__ = {
       repairStatDataWithFallback: () => repairStatDataWithFallback
     });
     var _schema__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../灯火阑珊/schema */ "./src/灯火阑珊/schema.ts");
+    var _companion_aliases__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./companion-aliases */ "./src/灯火阑珊-变量结构/companion-aliases.ts");
     const GUARD_INSTALLED_KEY = "__灯火阑珊_authoritative_mvu_guard_installed__";
     const READONLY_ENTITY_FIELDS = new Set([ "突破阈值", "寿元上限", "境界描述", "寿元状态", "状态", "进度", "战力值" ]);
-    const MVU_ROOT_KEYS = [ "世界时钟", "世界地图", "世界图志", "宗门势力库", "功法库", "法宝库", "地点库", "$宗门推断", "灵根库", "体质库", "本尊", "红颜角色库", "红颜", "NPC图鉴", "任务列表", "声望系统", "难度系统", "可参与机遇", "当前处境", "_系统设置", "_好感度快照" ];
-    const COMPANION_CANONICAL_NAMES = {
-      虞汐: "虞汐颜",
-      虞颜: "虞汐颜",
-      阿鸢: "朔璃鸢",
-      血手飞鸢: "朔璃鸢",
-      赤月女帝: "朔望舒",
-      幽影宗主: "朔望舒",
-      念迟迟: "安迟迟",
-      蘅之: "安迟迟",
-      拈韵居士: "安迟迟",
-      掌籍师姐: "安迟迟"
-    };
+    const MVU_ROOT_KEYS = [ "世界时钟", "世界地图", "世界图志", "宗门势力库", "功法库", "法宝库", "地点库", "$宗门推断", "灵根库", "体质库", "本尊", "红颜角色库", "红颜", "NPC图鉴", "任务列表", "声望系统", "难度系统", "$可参与机遇", "当前处境", "_系统设置", "_好感度快照" ];
     const TRADITIONAL_PATH_ALIASES = {
       世界時鐘: "世界时钟",
       世界地圖: "世界地图",
@@ -66,6 +84,7 @@ var __webpack_modules__ = {
       for (const [from, to] of Object.entries(TRADITIONAL_PATH_ALIASES)) {
         path = path.replaceAll(from, to);
       }
+      path = path.replace(/^stat_data\.可参与机遇(?=\.|$)/u, "stat_data.$可参与机遇").replace(/^可参与机遇(?=\.|$)/u, "$可参与机遇");
       if (!path.startsWith("stat_data.") && MVU_ROOT_KEYS.some(rootKey => path === rootKey || path.startsWith(`${rootKey}.`))) {
         path = `stat_data.${path}`;
       }
@@ -75,7 +94,7 @@ var __webpack_modules__ = {
       const match = path.match(/^stat_data\.(红颜|红颜角色库|_好感度快照)\.([^./]+)(?=\.|$)/u);
       if (!match) return path;
       const [, section, companionName] = match;
-      const canonicalName = COMPANION_CANONICAL_NAMES[companionName];
+      const canonicalName = _companion_aliases__WEBPACK_IMPORTED_MODULE_1__.COMPANION_CANONICAL_NAMES[companionName];
       return canonicalName ? path.replace(`stat_data.${section}.${companionName}`, `stat_data.${section}.${canonicalName}`) : path;
     }
     function getCommandValueArgIndex(command) {
@@ -92,7 +111,7 @@ var __webpack_modules__ = {
       }
     }
     function coerceByPath(path, value) {
-      if (path === "stat_data.可参与机遇") {
+      if (path === "stat_data.$可参与机遇") {
         const unwrapped = (0, _schema__WEBPACK_IMPORTED_MODULE_0__.unwrapOpportunityPatchPayload)(value);
         if (Array.isArray(unwrapped)) {
           return typeof value === "string" ? JSON.stringify(unwrapped) : unwrapped;
@@ -181,6 +200,19 @@ var __webpack_modules__ = {
             full_match: `guard:add:${companionName}:好感度`,
             args: [ `${path}.好感度`, String(newFavor - oldFavor) ],
             reason: "已存在红颜的重复 insert 已改写为好感增量"
+          });
+        }
+      }
+      const incomingChronicle = _.get(incoming, "羁绊纪事");
+      if (incomingChronicle && typeof incomingChronicle === "object" && !Array.isArray(incomingChronicle)) {
+        for (const [title, entry] of Object.entries(incomingChronicle)) {
+          const existingEntry = _.get(existing, [ "羁绊纪事", title ]);
+          if (!title.trim() || _.isEqual(existingEntry, entry)) continue;
+          appendedCommands.push({
+            type: existingEntry === undefined ? "insert" : "set",
+            full_match: `guard:${existingEntry === undefined ? "insert" : "set"}:${companionName}:羁绊纪事:${title}`,
+            args: [ `${path}.羁绊纪事.${title}`, JSON.stringify(entry) ],
+            reason: "已存在红颜的重复 insert 已改写为羁绊纪事更新"
           });
         }
       }
@@ -377,7 +409,7 @@ var __webpack_modules__ = {
         const normalizedValue = coerceByPath(path, rawValue);
         command.args[valueArgIndex] = normalizedValue;
         if (!_.isEqual(normalizedValue, rawValue) && !command.reason) {
-          command.reason = path === "stat_data.可参与机遇" ? "嵌套的行动列表 patch 已由权威变量守卫自动拆包" : "变量值已由权威变量守卫归一化";
+          command.reason = path === "stat_data.$可参与机遇" ? "嵌套的行动列表 patch 已由权威变量守卫自动拆包" : "变量值已由权威变量守卫归一化";
         }
         rememberExplicitLevel(command, path, normalizedValue, variables);
       }
@@ -440,102 +472,97 @@ var __webpack_modules__ = {
   "./src/灯火阑珊/schema.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
-      CONFIG: () => _schema_constants__WEBPACK_IMPORTED_MODULE_6__.CONFIG,
-      CharacterLibEntrySchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_1__.CharacterLibEntrySchema,
-      CompanionSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_1__.CompanionSchema,
-      CultivationStateSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.CultivationStateSchema,
-      CustomPortraitSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_1__.CustomPortraitSchema,
-      DEFAULT_CHARACTER_LIB: () => _schema_characters__WEBPACK_IMPORTED_MODULE_1__.DEFAULT_CHARACTER_LIB,
-      DEFAULT_FACTIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.DEFAULT_FACTIONS,
-      DEFAULT_LOCATIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.DEFAULT_LOCATIONS,
-      DEFAULT_TREASURES: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.DEFAULT_TREASURES,
-      DifficultySystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_4__.DifficultySystemSchema,
-      FactionSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.FactionSchema,
-      InventorySchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.InventorySchema,
-      ItemSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.ItemSchema,
-      LocationSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.LocationSchema,
-      NormalizedStringListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.NormalizedStringListSchema,
-      NpcSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_1__.NpcSchema,
-      OpportunitySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_4__.OpportunitySchema,
-      PhysiqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.PhysiqueSchema,
-      ProtagonistSchema: () => _schema_protagonist__WEBPACK_IMPORTED_MODULE_3__.ProtagonistSchema,
-      QuestSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_4__.QuestSchema,
-      REALM_LIFESPANS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_6__.REALM_LIFESPANS,
-      REALM_NAMES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_6__.REALM_NAMES,
-      REALM_STAGES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_6__.REALM_STAGES,
-      REALM_THRESHOLDS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_6__.REALM_THRESHOLDS,
-      RealmTransitionSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.RealmTransitionSchema,
-      ReputationEntrySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_4__.ReputationEntrySchema,
-      ReputationSystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_4__.ReputationSystemSchema,
+      COMPANION_BOND_EVENT_TYPES: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.COMPANION_BOND_EVENT_TYPES,
+      CONFIG: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.CONFIG,
+      CharacterLibEntrySchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CharacterLibEntrySchema,
+      CompanionBondChronicleEntrySchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionBondChronicleEntrySchema,
+      CompanionBondChronicleSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionBondChronicleSchema,
+      CompanionRelationContextSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionRelationContextSchema,
+      CompanionSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema,
+      CultivationStateSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.CultivationStateSchema,
+      CustomPortraitSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CustomPortraitSchema,
+      DEFAULT_CHARACTER_LIB: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_CHARACTER_LIB,
+      DEFAULT_FACTIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_FACTIONS,
+      DEFAULT_LOCATIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_LOCATIONS,
+      DEFAULT_TREASURES: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_TREASURES,
+      DifficultySystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.DifficultySystemSchema,
+      FactionSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.FactionSchema,
+      InventorySchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.InventorySchema,
+      ItemSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.ItemSchema,
+      LocationSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.LocationSchema,
+      NormalizedStringListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.NormalizedStringListSchema,
+      NpcSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.NpcSchema,
+      OpportunitySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.OpportunitySchema,
+      PhysiqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.PhysiqueSchema,
+      ProtagonistSchema: () => _schema_protagonist__WEBPACK_IMPORTED_MODULE_4__.ProtagonistSchema,
+      QuestSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.QuestSchema,
+      REALM_LIFESPANS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_LIFESPANS,
+      REALM_NAMES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_NAMES,
+      REALM_STAGES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_STAGES,
+      REALM_THRESHOLDS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_THRESHOLDS,
+      RealmTransitionSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.RealmTransitionSchema,
+      ReputationEntrySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.ReputationEntrySchema,
+      ReputationSystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.ReputationSystemSchema,
       Schema: () => Schema,
-      SkillListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.SkillListSchema,
-      SkillSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.SkillSchema,
-      SpiritRootSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.SpiritRootSchema,
-      SystemSettingsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_4__.SystemSettingsSchema,
-      TechniqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.TechniqueSchema,
-      TreasureSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_5__.TreasureSchema,
-      calculateBaseCombatPower: () => _schema_utils__WEBPACK_IMPORTED_MODULE_7__.calculateBaseCombatPower,
-      computeRealmInfo: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.computeRealmInfo,
-      describeRealmByLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.describeRealmByLevel,
-      evaluateCombatPower: () => _schema_utils__WEBPACK_IMPORTED_MODULE_7__.evaluateCombatPower,
-      extractSpiritStoneFromInventory: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.extractSpiritStoneFromInventory,
-      finiteNumber: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber,
-      getCultivationStatusLabel: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.getCultivationStatusLabel,
-      getDangerColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_7__.getDangerColor,
-      getRealmColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_7__.getRealmColor,
-      getRealmThreshold: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.getRealmThreshold,
-      getRootColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_7__.getRootColor,
-      isSpiritStoneCurrencyItem: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.isSpiritStoneCurrencyItem,
-      migrateCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.migrateCultivationProgress,
-      migrateLegacyCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.migrateLegacyCultivationProgress,
-      normalizeCultivationState: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.normalizeCultivationState,
-      normalizeRealmLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.normalizeRealmLevel,
-      normalizeSpiritStoneState: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneState,
-      parseRealmToLevel: () => _schema_utils__WEBPACK_IMPORTED_MODULE_7__.parseRealmToLevel,
-      unwrapOpportunityPatchPayload: () => _schema_systems__WEBPACK_IMPORTED_MODULE_4__.unwrapOpportunityPatchPayload,
-      品阶映射: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__["品阶映射"],
-      熟练度映射: () => _schema_common__WEBPACK_IMPORTED_MODULE_2__["熟练度映射"]
+      SkillListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillListSchema,
+      SkillSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillSchema,
+      SpiritRootSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.SpiritRootSchema,
+      SystemSettingsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.SystemSettingsSchema,
+      TechniqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.TechniqueSchema,
+      TreasureSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.TreasureSchema,
+      compareRealmStanding: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.compareRealmStanding,
+      computeRealmInfo: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.computeRealmInfo,
+      describeRealmByLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.describeRealmByLevel,
+      extractSpiritStoneFromInventory: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.extractSpiritStoneFromInventory,
+      finiteNumber: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber,
+      getCultivationStatusLabel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getCultivationStatusLabel,
+      getDangerColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.getDangerColor,
+      getRealmColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.getRealmColor,
+      getRealmThreshold: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getRealmThreshold,
+      getRootColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.getRootColor,
+      isSpiritStoneCurrencyItem: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.isSpiritStoneCurrencyItem,
+      migrateCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress,
+      migrateLegacyCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateLegacyCultivationProgress,
+      normalizeCultivationState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState,
+      normalizeRealmLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeRealmLevel,
+      normalizeSpiritStoneState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneState,
+      parseRealmToLevel: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.parseRealmToLevel,
+      resolveBattleMomentum: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.resolveBattleMomentum,
+      unwrapOpportunityPatchPayload: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.unwrapOpportunityPatchPayload,
+      品阶映射: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__["品阶映射"],
+      熟练度映射: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__["熟练度映射"]
     });
     var zod__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! zod */ "zod");
     var zod__WEBPACK_IMPORTED_MODULE_0___default = __webpack_require__.n(zod__WEBPACK_IMPORTED_MODULE_0__);
-    var _schema_characters__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./schema/characters */ "./src/灯火阑珊/schema/characters.ts");
-    var _schema_common__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./schema/common */ "./src/灯火阑珊/schema/common.ts");
-    var _schema_protagonist__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./schema/protagonist */ "./src/灯火阑珊/schema/protagonist.ts");
-    var _schema_systems__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./schema/systems */ "./src/灯火阑珊/schema/systems.ts");
-    var _schema_world__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./schema/world */ "./src/灯火阑珊/schema/world.ts");
-    var _schema_constants__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./schema/constants */ "./src/灯火阑珊/schema/constants.ts");
-    var _schema_utils__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./schema/utils */ "./src/灯火阑珊/schema/utils.ts");
-    const DUAL_SOUL_CANONICAL_NAME = "虞汐颜";
-    const DUAL_SOUL_ALIASES = [ "虞汐", "虞颜" ];
-    const SHUO_LIYUAN_CANONICAL_NAME = "朔璃鸢";
-    const SHUO_LIYUAN_ALIASES = [ "阿鸢", "血手飞鸢" ];
-    const SHUO_WANGSHU_CANONICAL_NAME = "朔望舒";
-    const SHUO_WANGSHU_ALIASES = [ "赤月女帝", "幽影宗主" ];
-    const AN_CHICHI_CANONICAL_NAME = "安迟迟";
-    const AN_CHICHI_ALIASES = [ "念迟迟", "蘅之", "拈韵居士", "掌籍师姐" ];
-    const COMPANION_ALIAS_GROUPS = [ {
-      canonical: DUAL_SOUL_CANONICAL_NAME,
-      aliases: DUAL_SOUL_ALIASES
-    }, {
-      canonical: SHUO_LIYUAN_CANONICAL_NAME,
-      aliases: SHUO_LIYUAN_ALIASES
-    }, {
-      canonical: SHUO_WANGSHU_CANONICAL_NAME,
-      aliases: SHUO_WANGSHU_ALIASES
-    }, {
-      canonical: AN_CHICHI_CANONICAL_NAME,
-      aliases: AN_CHICHI_ALIASES
-    } ];
+    var _companion_aliases__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../灯火阑珊-变量结构/companion-aliases */ "./src/灯火阑珊-变量结构/companion-aliases.ts");
+    var _schema_characters__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./schema/characters */ "./src/灯火阑珊/schema/characters.ts");
+    var _schema_common__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./schema/common */ "./src/灯火阑珊/schema/common.ts");
+    var _schema_protagonist__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./schema/protagonist */ "./src/灯火阑珊/schema/protagonist.ts");
+    var _schema_systems__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./schema/systems */ "./src/灯火阑珊/schema/systems.ts");
+    var _schema_world__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./schema/world */ "./src/灯火阑珊/schema/world.ts");
+    var _schema_constants__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./schema/constants */ "./src/灯火阑珊/schema/constants.ts");
+    var _schema_utils__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./schema/utils */ "./src/灯火阑珊/schema/utils.ts");
     const LATEST_CULTIVATION_SYSTEM_VERSION = 3;
-    const LATEST_SCHEMA_VERSION = 2;
-    const DEFAULT_COMPANION = _schema_characters__WEBPACK_IMPORTED_MODULE_1__.CompanionSchema.parse({});
+    const LATEST_SCHEMA_VERSION = 4;
+    const DEFAULT_COMPANION = _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema.parse({});
     const CJK_TEXT_PATTERN = /[\u3400-\u4dbf\u4e00-\u9fff]/;
     const MAX_OPPORTUNITIES = 4;
-    const ACTION_TEXT_LIMIT = 48;
+    const ACTION_TEXT_LIMIT = 80;
     const ACTION_HINT_LIMIT = 28;
     const SITUATION_TEXT_LIMIT = 64;
     function normalizePromptText(value, maxLength) {
       return Array.from(String(value ?? "").replace(/\s+/gu, " ").trim()).slice(0, maxLength).join("");
+    }
+    function migrateHiddenOpportunityField(value) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+      const input = {
+        ...value
+      };
+      if (!Object.hasOwn(input, "$可参与机遇") && Object.hasOwn(input, "可参与机遇")) {
+        input.$可参与机遇 = input.可参与机遇;
+      }
+      delete input.可参与机遇;
+      return input;
     }
     function preferNonDefaultString(incoming, current, fallback) {
       const normalizedIncoming = String(incoming ?? "").trim();
@@ -580,7 +607,7 @@ var __webpack_modules__ = {
       merged.已活岁月 = Math.max(Number(base.已活岁月 ?? DEFAULT_COMPANION.已活岁月), Number(incoming.已活岁月 ?? DEFAULT_COMPANION.已活岁月));
       merged.尝试突破 = Boolean(base.尝试突破 || incoming.尝试突破);
       const fallbackCultivationState = _.cloneDeep(DEFAULT_COMPANION.修炼状态);
-      merged.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.normalizeCultivationState)({
+      merged.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)({
         阶段: preferNonDefaultString(incoming.修炼状态?.阶段, String(base.修炼状态?.阶段 ?? fallbackCultivationState.阶段), fallbackCultivationState.阶段),
         瓶颈原因: preferNonDefaultString(incoming.修炼状态?.瓶颈原因, String(base.修炼状态?.瓶颈原因 ?? fallbackCultivationState.瓶颈原因), fallbackCultivationState.瓶颈原因),
         突破目标: preferNonDefaultString(incoming.修炼状态?.突破目标, String(base.修炼状态?.突破目标 ?? fallbackCultivationState.突破目标), fallbackCultivationState.突破目标),
@@ -600,6 +627,10 @@ var __webpack_modules__ = {
         相处禁忌: preferNonDefaultString(incoming.关系上下文?.相处禁忌, String(base.关系上下文?.相处禁忌 ?? fallbackRelationContext.相处禁忌), fallbackRelationContext.相处禁忌),
         未了约定: preferNonDefaultString(incoming.关系上下文?.未了约定, String(base.关系上下文?.未了约定 ?? fallbackRelationContext.未了约定), fallbackRelationContext.未了约定)
       };
+      merged.羁绊纪事 = _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionBondChronicleSchema.parse({
+        ...base.羁绊纪事 ?? {},
+        ...incoming.羁绊纪事 ?? {}
+      });
       if (String(base.灵根 ?? DEFAULT_COMPANION.灵根) === DEFAULT_COMPANION.灵根 && String(incoming.灵根 ?? "").trim()) {
         merged.灵根 = incoming.灵根;
       }
@@ -639,7 +670,7 @@ var __webpack_modules__ = {
     }
     function normalizeCharacterLibraryAliases(library) {
       const normalizedLibrary = _.cloneDeep(library ?? {});
-      for (const {canonical, aliases} of COMPANION_ALIAS_GROUPS) {
+      for (const {canonical, aliases} of _companion_aliases__WEBPACK_IMPORTED_MODULE_1__.COMPANION_ALIAS_GROUPS) {
         let canonicalEntry = normalizedLibrary[canonical] ? _.cloneDeep(normalizedLibrary[canonical]) : undefined;
         for (const alias of aliases) {
           const aliasEntry = normalizedLibrary[alias];
@@ -656,7 +687,7 @@ var __webpack_modules__ = {
     function normalizeCompanionAliases(companions, snapshot) {
       const normalizedCompanions = _.cloneDeep(companions ?? {});
       const normalizedSnapshot = _.cloneDeep(snapshot ?? {});
-      for (const {canonical, aliases} of COMPANION_ALIAS_GROUPS) {
+      for (const {canonical, aliases} of _companion_aliases__WEBPACK_IMPORTED_MODULE_1__.COMPANION_ALIAS_GROUPS) {
         let canonicalCompanion = normalizedCompanions[canonical] ? _.cloneDeep(normalizedCompanions[canonical]) : undefined;
         for (const alias of aliases) {
           const aliasCompanion = normalizedCompanions[alias];
@@ -689,34 +720,34 @@ var __webpack_modules__ = {
     }
     function normalizeProtagonistCultivation(protagonist, currentCultivationVersion) {
       if (currentCultivationVersion < LATEST_CULTIVATION_SYSTEM_VERSION) {
-        protagonist.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.migrateCultivationProgress)(protagonist.等级, protagonist.修为, currentCultivationVersion, LATEST_CULTIVATION_SYSTEM_VERSION);
+        protagonist.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress)(protagonist.等级, protagonist.修为, currentCultivationVersion, LATEST_CULTIVATION_SYSTEM_VERSION);
       }
-      protagonist.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.normalizeCultivationState)(protagonist.修炼状态, {
+      protagonist.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)(protagonist.修炼状态, {
         legacyAttemptBreakthrough: protagonist.尝试突破,
         level: protagonist.等级,
         cultivation: protagonist.修为
       });
       protagonist.尝试突破 = protagonist.修炼状态.阶段 === "突破中";
-      Object.assign(protagonist, (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.computeRealmInfo)(protagonist, true));
+      Object.assign(protagonist, (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.computeRealmInfo)(protagonist));
     }
     function normalizeCompanionCultivation(companion, currentCultivationVersion) {
       if (currentCultivationVersion < LATEST_CULTIVATION_SYSTEM_VERSION) {
-        companion.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.migrateCultivationProgress)(companion.等级, companion.修为, currentCultivationVersion, LATEST_CULTIVATION_SYSTEM_VERSION);
+        companion.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress)(companion.等级, companion.修为, currentCultivationVersion, LATEST_CULTIVATION_SYSTEM_VERSION);
       }
-      companion.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.normalizeCultivationState)(companion.修炼状态, {
+      companion.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)(companion.修炼状态, {
         legacyAttemptBreakthrough: companion.尝试突破,
         level: companion.等级,
         cultivation: companion.修为
       });
       companion.尝试突破 = companion.修炼状态.阶段 === "突破中";
-      Object.assign(companion, (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.computeRealmInfo)(companion, false));
+      Object.assign(companion, (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.computeRealmInfo)(companion));
     }
-    const Schema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+    const Schema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(migrateHiddenOpportunityField, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       世界时钟: zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
         纪元: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("盛法时代"),
-        年份: (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(1).transform(v => Math.max(1, Math.floor(v))).prefault(1),
-        月份: (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(1).transform(v => _.clamp(Math.floor(v), 1, 12)).prefault(1),
-        日期: (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(1).transform(v => _.clamp(Math.floor(v), 1, 30)).prefault(1),
+        年份: (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber)(1).transform(v => Math.max(1, Math.floor(v))).prefault(1),
+        月份: (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber)(1).transform(v => _.clamp(Math.floor(v), 1, 12)).prefault(1),
+        日期: (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber)(1).transform(v => _.clamp(Math.floor(v), 1, 30)).prefault(1),
         时辰: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("子时")
       }).prefault({
         纪元: "盛法时代",
@@ -727,18 +758,18 @@ var __webpack_modules__ = {
       }),
       世界地图: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("区域名"), zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
         layer: zod__WEBPACK_IMPORTED_MODULE_0__.z.enum([ "天层", "地层", "下层" ]).prefault("地层"),
-        danger: (0, _schema_common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(0).transform(v => _.clamp(v, 0, 100)),
+        danger: (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber)(0).transform(v => _.clamp(v, 0, 100)),
         desc: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
-        connections: _schema_common__WEBPACK_IMPORTED_MODULE_2__.NormalizedStringListSchema
+        connections: _schema_common__WEBPACK_IMPORTED_MODULE_3__.NormalizedStringListSchema
       })).prefault({}),
       世界图志: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("事件名"), zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
         状态: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
         事件: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
       })).prefault({}),
-      宗门势力库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("宗门名"), _schema_world__WEBPACK_IMPORTED_MODULE_5__.FactionSchema).prefault({}),
-      功法库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("功法名"), _schema_world__WEBPACK_IMPORTED_MODULE_5__.TechniqueSchema).prefault({}),
-      法宝库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("法宝名"), _schema_world__WEBPACK_IMPORTED_MODULE_5__.TreasureSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_5__.DEFAULT_TREASURES),
-      地点库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("地点名"), _schema_world__WEBPACK_IMPORTED_MODULE_5__.LocationSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_5__.DEFAULT_LOCATIONS),
+      宗门势力库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("宗门名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.FactionSchema).prefault({}),
+      功法库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("功法名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.TechniqueSchema).prefault({}),
+      法宝库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("法宝名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.TreasureSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_TREASURES),
+      地点库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("地点名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.LocationSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_LOCATIONS),
       $宗门推断: zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
         当前域: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
         当前主势力: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
@@ -746,19 +777,19 @@ var __webpack_modules__ = {
         当前域: "",
         当前主势力: ""
       }),
-      灵根库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("灵根名"), _schema_world__WEBPACK_IMPORTED_MODULE_5__.SpiritRootSchema).prefault({}),
-      体质库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("体质名"), _schema_world__WEBPACK_IMPORTED_MODULE_5__.PhysiqueSchema).prefault({}),
-      本尊: _schema_protagonist__WEBPACK_IMPORTED_MODULE_3__.ProtagonistSchema,
-      红颜角色库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("角色名"), _schema_characters__WEBPACK_IMPORTED_MODULE_1__.CharacterLibEntrySchema).prefault(_schema_characters__WEBPACK_IMPORTED_MODULE_1__.DEFAULT_CHARACTER_LIB),
-      红颜: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("红颜名"), _schema_characters__WEBPACK_IMPORTED_MODULE_1__.CompanionSchema).prefault({}),
-      NPC图鉴: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("NPC名"), _schema_characters__WEBPACK_IMPORTED_MODULE_1__.NpcSchema).prefault({}),
-      任务列表: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("任务ID"), _schema_systems__WEBPACK_IMPORTED_MODULE_4__.QuestSchema).prefault({}).transform(v => _(v).pickBy((task, taskId) => !!task && !!String(taskId).trim()).mapValues((task, taskId) => ({
+      灵根库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("灵根名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.SpiritRootSchema).prefault({}),
+      体质库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("体质名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.PhysiqueSchema).prefault({}),
+      本尊: _schema_protagonist__WEBPACK_IMPORTED_MODULE_4__.ProtagonistSchema,
+      红颜角色库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("角色名"), _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CharacterLibEntrySchema).prefault(_schema_characters__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_CHARACTER_LIB),
+      红颜: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("红颜名"), _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema).prefault({}),
+      NPC图鉴: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("NPC名"), _schema_characters__WEBPACK_IMPORTED_MODULE_2__.NpcSchema).prefault({}),
+      任务列表: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("任务ID"), _schema_systems__WEBPACK_IMPORTED_MODULE_5__.QuestSchema).prefault({}).transform(v => _(v).pickBy((task, taskId) => !!task && !!String(taskId).trim()).mapValues((task, taskId) => ({
         ...task,
         名称: extractChineseQuestLabel(task.名称) || extractChineseQuestLabel(taskId) || getQuestFallbackLabel(task.类型)
       })).pickBy(task => task.状态 === "进行中").value()),
-      声望系统: _schema_systems__WEBPACK_IMPORTED_MODULE_4__.ReputationSystemSchema,
-      难度系统: _schema_systems__WEBPACK_IMPORTED_MODULE_4__.DifficultySystemSchema,
-      可参与机遇: zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_schema_systems__WEBPACK_IMPORTED_MODULE_4__.unwrapOpportunityPatchPayload, zod__WEBPACK_IMPORTED_MODULE_0__.z.array(_schema_systems__WEBPACK_IMPORTED_MODULE_4__.OpportunitySchema).prefault([]).transform(list => {
+      声望系统: _schema_systems__WEBPACK_IMPORTED_MODULE_5__.ReputationSystemSchema,
+      难度系统: _schema_systems__WEBPACK_IMPORTED_MODULE_5__.DifficultySystemSchema,
+      $可参与机遇: zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_schema_systems__WEBPACK_IMPORTED_MODULE_5__.unwrapOpportunityPatchPayload, zod__WEBPACK_IMPORTED_MODULE_0__.z.array(_schema_systems__WEBPACK_IMPORTED_MODULE_5__.OpportunitySchema).prefault([]).transform(list => {
         const seen = new Set;
         return list.flatMap(item => {
           const action = normalizePromptText(item.行动, ACTION_TEXT_LIMIT);
@@ -777,9 +808,9 @@ var __webpack_modules__ = {
         }).slice(0, MAX_OPPORTUNITIES);
       })),
       当前处境: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("").transform(value => normalizePromptText(value, SITUATION_TEXT_LIMIT)),
-      _系统设置: _schema_systems__WEBPACK_IMPORTED_MODULE_4__.SystemSettingsSchema,
+      _系统设置: _schema_systems__WEBPACK_IMPORTED_MODULE_5__.SystemSettingsSchema,
       _好感度快照: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("红颜名"), (0, 
-      _schema_common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(0).transform(v => _.clamp(v, -200, 200))).prefault({})
+      _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber)(0).transform(v => _.clamp(v, -200, 200))).prefault({})
     }).transform(data => {
       data.红颜角色库 = normalizeCharacterLibraryAliases(data.红颜角色库 ?? {});
       const normalizedCompanionData = normalizeCompanionAliases(data.红颜 ?? {}, data._好感度快照 ?? {});
@@ -813,12 +844,15 @@ var __webpack_modules__ = {
       }
       data._好感度快照 = _.pickBy(snapshot, (_value, name) => _.has(data.红颜, name));
       return data;
-    });
+    }));
   },
   "./src/灯火阑珊/schema/characters.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
+      COMPANION_BOND_EVENT_TYPES: () => COMPANION_BOND_EVENT_TYPES,
       CharacterLibEntrySchema: () => CharacterLibEntrySchema,
+      CompanionBondChronicleEntrySchema: () => CompanionBondChronicleEntrySchema,
+      CompanionBondChronicleSchema: () => CompanionBondChronicleSchema,
       CompanionRelationContextSchema: () => CompanionRelationContextSchema,
       CompanionSchema: () => CompanionSchema,
       CustomPortraitSchema: () => CustomPortraitSchema,
@@ -894,6 +928,16 @@ var __webpack_modules__ = {
         器: "无",
         通: [ "瑞光庇佑", "灵觉通明", "本源爆发" ]
       },
+      羽岚: {
+        级: 7,
+        根: "风属异灵根",
+        质: "天渊青羽妖体",
+        龄: "化形约一甲子",
+        属: "天渊青羽云雀族巡风使",
+        法: "青羽族传·观渊辨风",
+        器: "青翎（化符成刃）",
+        通: [ "渊鸣", "一步缩地", "折叠藏物", "渊域展翼" ]
+      },
       阮忘忧: {
         级: 44,
         根: "因果大道本源",
@@ -952,6 +996,14 @@ var __webpack_modules__ = {
       相处禁忌: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
       未了约定: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
     }).prefault({});
+    const COMPANION_BOND_EVENT_TYPES = [ "相识", "共患难", "交心", "护道", "承诺", "分歧", "定情", "离别", "重逢", "其他" ];
+    const CompanionBondEventTypeSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(value => COMPANION_BOND_EVENT_TYPES.includes(String(value)) ? value : "其他", zod__WEBPACK_IMPORTED_MODULE_0__.z.enum(COMPANION_BOND_EVENT_TYPES));
+    const CompanionBondChronicleEntrySchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      类型: CompanionBondEventTypeSchema.prefault("其他"),
+      摘要: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
+      时地: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
+    }).prefault({});
+    const CompanionBondChronicleSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("纪事名"), CompanionBondChronicleEntrySchema).prefault({}).transform(entries => Object.fromEntries(_(entries).entries().takeRight(8).value()));
     const CompanionSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       等级: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(1).transform(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeRealmLevel).prefault(1),
       修为: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
@@ -966,7 +1018,8 @@ var __webpack_modules__ = {
       修炼状态: _common__WEBPACK_IMPORTED_MODULE_1__.CultivationStateSchema,
       好感度: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => _.clamp(v, -200, 200)).prefault(0),
       关系: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("陌生人"),
-      关系上下文: CompanionRelationContextSchema
+      关系上下文: CompanionRelationContextSchema,
+      羁绊纪事: CompanionBondChronicleSchema
     }).prefault({
       等级: 1,
       修为: 0,
@@ -991,7 +1044,8 @@ var __webpack_modules__ = {
       },
       好感度: 0,
       关系: "陌生人",
-      关系上下文: {}
+      关系上下文: {},
+      羁绊纪事: {}
     }).transform(data => {
       data.修炼状态 = (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeCultivationState)(data.修炼状态, {
         legacyAttemptBreakthrough: data.尝试突破,
@@ -999,7 +1053,7 @@ var __webpack_modules__ = {
         cultivation: data.修为
       });
       data.尝试突破 = data.修炼状态.阶段 === "突破中";
-      const realmInfo = (0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(data, false);
+      const realmInfo = (0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(data);
       return {
         ...data,
         ...realmInfo
@@ -1039,7 +1093,6 @@ var __webpack_modules__ = {
     var zod__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! zod */ "zod");
     var zod__WEBPACK_IMPORTED_MODULE_0___default = __webpack_require__.n(zod__WEBPACK_IMPORTED_MODULE_0__);
     var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./constants */ "./src/灯火阑珊/schema/constants.ts");
-    var _utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./utils */ "./src/灯火阑珊/schema/utils.ts");
     function finiteNumber(fallback = 0) {
       return zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().catch(fallback);
     }
@@ -1311,33 +1364,7 @@ var __webpack_modules__ = {
       类型: zod__WEBPACK_IMPORTED_MODULE_0__.z.enum([ "功法", "神通", "秘术" ]).prefault("神通"),
       品阶: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 品阶映射[v] || "凡").catch("凡"),
       熟练度: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => normalizeSkillProficiency(v)).catch("入门"),
-      领悟时间: finiteNumber(Date.now()).prefault(() => Date.now()),
-      威力等级: finiteNumber(0).optional()
-    }).transform(skill => {
-      const 品阶权重 = {
-        凡: 1,
-        黄: 2,
-        玄: 3,
-        地: 4,
-        天: 5,
-        仙: 6,
-        圣: 7,
-        先天: 8
-      };
-      const 熟练度权重 = {
-        入门: 1,
-        熟练: 2,
-        精通: 3,
-        大成: 4,
-        圆满: 5,
-        化境: 6
-      };
-      const 品阶值 = 品阶权重[skill.品阶] || 1;
-      const 熟练值 = 熟练度权重[skill.熟练度] || 1;
-      return {
-        ...skill,
-        威力等级: 品阶值 * 10 + 熟练值
-      };
+      领悟时间: finiteNumber(Date.now()).prefault(() => Date.now())
     }));
     const SkillListSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("神通名"), SkillSchema).prefault({}).transform(skills => _(skills).entries().map(([rawName, skill]) => {
       const name = String(rawName).trim();
@@ -1353,7 +1380,7 @@ var __webpack_modules__ = {
         名称: item.名称 || name
       } ];
     }).filter(([name, item]) => !!name && item.数量 > 0).fromPairs().value());
-    function computeRealmInfo(data, includesCombatPower = false) {
+    function computeRealmInfo(data) {
       const level = data.等级;
       const 突破阈值 = getRealmThreshold(level);
       const 寿元上限 = _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_LIFESPANS[level - 1] ?? 100;
@@ -1362,30 +1389,13 @@ var __webpack_modules__ = {
       const 状态 = getCultivationStatusLabel(data.修炼状态, data.修为, 突破阈值);
       const progressRatio = 突破阈值 > 0 ? _.clamp(data.修为 / 突破阈值, 0, 1) : 0;
       const 进度 = `${(progressRatio * 100).toFixed(1)}%`;
-      const base = {
+      return {
         突破阈值,
         寿元上限,
         境界描述,
         寿元状态,
         状态,
         进度
-      };
-      if (!includesCombatPower) return base;
-      const 境界战力 = (0, _utils__WEBPACK_IMPORTED_MODULE_2__.calculateBaseCombatPower)(level);
-      const 神通列表 = Object.values(data.神通列表 || {});
-      const 最高神通威力 = 神通列表.length > 0 ? Math.max(...神通列表.map(s => s.威力等级 || 0)) : 0;
-      const 体质加成 = (() => {
-        const 体质 = data.体质 || "";
-        if (体质.includes("神")) return 500;
-        if (体质.includes("圣")) return 200;
-        if (体质.includes("道")) return 100;
-        if (体质.includes("灵")) return 50;
-        return 0;
-      })();
-      const 战力值 = 境界战力 + 最高神通威力 + 体质加成;
-      return {
-        ...base,
-        战力值
       };
     }
   },
@@ -1497,84 +1507,128 @@ var __webpack_modules__ = {
     var zod__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! zod */ "zod");
     var zod__WEBPACK_IMPORTED_MODULE_0___default = __webpack_require__.n(zod__WEBPACK_IMPORTED_MODULE_0__);
     var _common__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./common */ "./src/灯火阑珊/schema/common.ts");
-    const 战斗状态映射 = {
-      非战斗: "非战斗",
-      和平: "非战斗",
-      安全: "非战斗",
-      脱战: "非战斗",
+    var _utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./utils */ "./src/灯火阑珊/schema/utils.ts");
+    const 战斗阶段映射 = {
+      平静: "平静",
+      非战斗: "平静",
+      和平: "平静",
+      安全: "平静",
       对峙: "对峙",
       警戒: "对峙",
       僵持: "对峙",
-      对视: "对峙",
-      激战: "激战",
-      战斗: "激战",
-      交战: "激战",
-      厮杀: "激战",
-      重伤: "重伤",
-      负伤: "重伤",
-      伤重: "重伤",
-      濒死: "濒死",
-      将死: "濒死",
-      垂危: "濒死",
-      危急: "濒死"
+      试探: "试探",
+      交锋: "交锋",
+      激战: "交锋",
+      战斗: "交锋",
+      交战: "交锋",
+      厮杀: "交锋",
+      决胜: "决胜",
+      重伤: "决胜",
+      濒死: "决胜",
+      脱战: "脱战",
+      余波: "余波"
     };
-    const 伤势映射 = {
-      无伤: "无伤",
-      无: "无伤",
-      完好: "无伤",
-      健康: "无伤",
-      轻伤: "轻伤",
-      小伤: "轻伤",
-      微伤: "轻伤",
-      重伤: "重伤",
-      伤重: "重伤",
-      大伤: "重伤",
-      濒死: "濒死",
-      将死: "濒死",
-      垂危: "濒死"
-    };
-    const 战力评估映射 = {
-      碾压: "碾压",
-      压倒: "碾压",
-      秒杀: "碾压",
-      吊打: "碾压",
-      优势: "优势",
-      占优: "优势",
-      上风: "优势",
-      有利: "优势",
-      势均力敌: "势均力敌",
-      均势: "势均力敌",
-      平手: "势均力敌",
-      相当: "势均力敌",
-      旗鼓相当: "势均力敌",
-      劣势: "劣势",
-      下风: "劣势",
-      不利: "劣势",
-      落后: "劣势",
-      绝望: "绝望",
-      必死: "绝望",
-      碾压劣势: "绝望",
-      无望: "绝望"
+    const 战局态势映射 = {
+      敌方压制: "敌方压制",
+      绝望: "敌方压制",
+      敌方占先: "敌方占先",
+      劣势: "敌方占先",
+      相持: "相持",
+      势均力敌: "相持",
+      敌我相当: "相持",
+      我方占先: "我方占先",
+      优势: "我方占先",
+      我方压制: "我方压制",
+      碾压: "我方压制"
     };
     const 敌人状态映射 = {
-      完好: "完好",
-      无伤: "完好",
-      健康: "完好",
-      全盛: "完好",
-      轻伤: "轻伤",
-      小伤: "轻伤",
-      微伤: "轻伤",
-      重伤: "重伤",
-      伤重: "重伤",
-      大伤: "重伤",
-      濒死: "濒死",
-      将死: "濒死",
-      垂危: "濒死",
-      已死: "已死",
-      死亡: "已死",
-      击杀: "已死",
-      阵亡: "已死"
+      全盛: "全盛",
+      完好: "全盛",
+      无伤: "全盛",
+      健康: "全盛",
+      受制: "受制",
+      压制: "受制",
+      轻伤: "负伤",
+      小伤: "负伤",
+      微伤: "负伤",
+      负伤: "负伤",
+      重伤: "重创",
+      伤重: "重创",
+      大伤: "重创",
+      重创: "重创",
+      濒死: "失能",
+      将死: "失能",
+      垂危: "失能",
+      失能: "失能",
+      退走: "退走",
+      逃离: "退走",
+      被擒: "被擒",
+      俘虏: "被擒",
+      败亡: "败亡",
+      已死: "败亡",
+      死亡: "败亡",
+      击杀: "败亡",
+      阵亡: "败亡"
     };
+    const limitedStringList = limit => _common__WEBPACK_IMPORTED_MODULE_1__.NormalizedStringListSchema.transform(values => values.slice(-limit));
+    function migrateLegacyCombatStatus(value) {
+      if (!_.isPlainObject(value)) return {};
+      const raw = {
+        ...value
+      };
+      if ("战局" in raw || "负荷" in raw || "交锋轮次" in raw || "阶段" in raw) return raw;
+      const active = raw.正在战斗 === true;
+      const injury = String(raw.伤势等级 ?? "无伤");
+      const usedCards = Array.isArray(raw.已用底牌) ? raw.已用底牌 : [];
+      const spirit = _.clamp(Number(raw.灵力值 ?? 100) || 0, 0, 100);
+      const phase = active ? 战斗阶段映射[String(raw.当前状态 ?? "交锋")] || "交锋" : injury !== "无伤" || spirit < 100 || usedCards.length > 0 ? "余波" : "平静";
+      return {
+        正在战斗: active,
+        阶段: phase,
+        交锋轮次: raw.战斗回合 ?? 0,
+        战局: {
+          态势: "相持",
+          已显手段: {
+            我方: usedCards,
+            敌方: []
+          }
+        },
+        负荷: {
+          真元: spirit >= 70 ? "充盈" : spirit >= 40 ? "尚足" : spirit >= 10 ? "吃紧" : "枯竭",
+          神识: "澄明",
+          肉身: injury === "濒死" || injury === "将死" || injury === "垂危" ? "濒危" : injury === "重伤" || injury === "伤重" || injury === "大伤" ? "重创" : injury === "轻伤" || injury === "小伤" || injury === "微伤" ? "轻创" : "无恙"
+        }
+      };
+    }
+    function migrateLegacyEnemies(value) {
+      if (!Array.isArray(value)) return value ?? {};
+      const enemies = {};
+      value.forEach((entry, index) => {
+        const raw = _.isPlainObject(entry) ? entry : {};
+        const baseName = String(raw.名称 ?? `未知敌人${index + 1}`).trim() || `未知敌人${index + 1}`;
+        let name = baseName;
+        let suffix = 2;
+        while (_.has(enemies, name)) {
+          name = `${baseName}·${suffix}`;
+          suffix += 1;
+        }
+        enemies[name] = raw;
+      });
+      return enemies;
+    }
+    function protectProtagonistFromLethalResult(value) {
+      if (!_.isPlainObject(value)) return value;
+      const raw = {
+        ...value
+      };
+      const result = String(raw.结果 ?? "无").trim();
+      if (![ "死亡", "败亡", "身死", "殒命", "魂飞魄散" ].includes(result)) return raw;
+      const achieved = String(raw.达成 ?? "");
+      raw.结果 = /脱|逃|救|传送|遁/u.test(achieved) ? "脱身" : "负";
+      const costs = Array.isArray(raw.代价) ? raw.代价.map(String).filter(Boolean) : [];
+      raw.代价 = costs.length > 0 ? costs : [ "死劫反噬未消" ];
+      return raw;
+    }
     const 劫种映射 = {
       无: "无",
       "": "无",
@@ -1624,28 +1678,92 @@ var __webpack_modules__ = {
       未过: "失败",
       失: "失败"
     };
-    const CombatStatusSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+    const BattleSceneSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      态势: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 战局态势映射[String(v).trim()] || "相持").prefault("相持"),
+      我方目的: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => v.trim()).prefault(""),
+      敌方目的: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => v.trim()).prefault(""),
+      战场要素: limitedStringList(4),
+      态势依据: limitedStringList(4),
+      战机: limitedStringList(3),
+      危机: limitedStringList(3),
+      已显手段: zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+        我方: limitedStringList(6),
+        敌方: limitedStringList(6)
+      }).prefault({
+        我方: [],
+        敌方: []
+      }),
+      最近转折: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => v.trim()).prefault("")
+    }).prefault({
+      态势: "相持",
+      我方目的: "",
+      敌方目的: "",
+      战场要素: [],
+      态势依据: [],
+      战机: [],
+      危机: [],
+      已显手段: {
+        我方: [],
+        敌方: []
+      },
+      最近转折: ""
+    });
+    const BattleBurdenSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      真元: zod__WEBPACK_IMPORTED_MODULE_0__.z.enum([ "充盈", "尚足", "吃紧", "枯竭" ]).catch("充盈").prefault("充盈"),
+      神识: zod__WEBPACK_IMPORTED_MODULE_0__.z.enum([ "澄明", "疲乏", "动荡", "受创" ]).catch("澄明").prefault("澄明"),
+      肉身: zod__WEBPACK_IMPORTED_MODULE_0__.z.enum([ "无恙", "轻创", "重创", "濒危" ]).catch("无恙").prefault("无恙")
+    }).prefault({
+      真元: "充盈",
+      神识: "澄明",
+      肉身: "无恙"
+    });
+    const LastBattleResultSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(protectProtagonistFromLethalResult, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      结果: zod__WEBPACK_IMPORTED_MODULE_0__.z.enum([ "无", "胜", "负", "脱身", "议和", "中止" ]).catch("无").prefault("无"),
+      对手: limitedStringList(8),
+      达成: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => v.trim()).prefault(""),
+      代价: limitedStringList(6),
+      后患: limitedStringList(6)
+    }).prefault({
+      结果: "无",
+      对手: [],
+      达成: "",
+      代价: [],
+      后患: []
+    }));
+    const CombatStatusSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(migrateLegacyCombatStatus, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       正在战斗: zod__WEBPACK_IMPORTED_MODULE_0__.z.boolean().prefault(false),
-      当前状态: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 战斗状态映射[v] || "非战斗").prefault("非战斗"),
-      灵力值: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(100).transform(v => _.clamp(v, 0, 100)).prefault(100),
-      伤势等级: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 伤势映射[v] || "无伤").prefault("无伤"),
-      已用底牌: _common__WEBPACK_IMPORTED_MODULE_1__.NormalizedStringListSchema,
-      战斗回合: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, Math.floor(v))).prefault(0)
+      阶段: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 战斗阶段映射[String(v).trim()] || "平静").prefault("平静"),
+      交锋轮次: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, Math.floor(v))).prefault(0),
+      战局: BattleSceneSchema,
+      负荷: BattleBurdenSchema,
+      最近战果: LastBattleResultSchema
     }).prefault({
       正在战斗: false,
-      当前状态: "非战斗",
-      灵力值: 100,
-      伤势等级: "无伤",
-      已用底牌: [],
-      战斗回合: 0
-    });
-    const EnemySchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
-      名称: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("未知敌人"),
-      境界: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("未知"),
-      战力评估: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 战力评估映射[v] || "势均力敌").prefault("势均力敌"),
-      状态: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 敌人状态映射[v] || "完好").prefault("完好"),
-      特点: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
-    });
+      阶段: "平静",
+      交锋轮次: 0,
+      战局: {},
+      负荷: {},
+      最近战果: {}
+    }));
+    const EnemySchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(value => {
+      const raw = _.isPlainObject(value) ? {
+        ...value
+      } : {};
+      if (raw.等级 == null) raw.等级 = (0, _utils__WEBPACK_IMPORTED_MODULE_2__.parseRealmToLevel)(String(raw.境界 ?? ""));
+      if (raw.威胁手段 == null && raw.特点 != null) raw.威胁手段 = [ String(raw.特点) ];
+      raw.状态 = 敌人状态映射[String(raw.状态 ?? "全盛")] || "全盛";
+      return raw;
+    }, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      等级: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(1).transform(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeRealmLevel).prefault(1),
+      状态: zod__WEBPACK_IMPORTED_MODULE_0__.z.enum([ "全盛", "受制", "负伤", "重创", "失能", "退走", "被擒", "败亡" ]).catch("全盛").prefault("全盛"),
+      目的: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => v.trim()).prefault(""),
+      威胁手段: limitedStringList(4),
+      已暴露破绽: limitedStringList(3)
+    }).transform(enemy => ({
+      ...enemy,
+      境界描述: (0, _common__WEBPACK_IMPORTED_MODULE_1__.describeRealmByLevel)(enemy.等级)
+    })));
+    const CurrentEnemiesSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(migrateLegacyEnemies, zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("敌人名"), EnemySchema).prefault({}).transform(enemies => _(enemies).entries().map(([rawName, enemy]) => [ String(rawName).trim(), enemy ]).filter(([name]) => !!name).fromPairs().value()));
     const TribulationSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       正在渡劫: zod__WEBPACK_IMPORTED_MODULE_0__.z.boolean().prefault(false),
       劫种: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 劫种映射[v] || "无").prefault("无"),
@@ -1733,7 +1851,7 @@ var __webpack_modules__ = {
       法宝: _common__WEBPACK_IMPORTED_MODULE_1__.InventorySchema,
       杂物袋: _common__WEBPACK_IMPORTED_MODULE_1__.InventorySchema,
       战斗状态: CombatStatusSchema,
-      当前敌人: zod__WEBPACK_IMPORTED_MODULE_0__.z.array(EnemySchema).prefault([]),
+      当前敌人: CurrentEnemiesSchema,
       渡劫状态: TribulationSchema
     }).prefault({
       等级: 1,
@@ -1775,13 +1893,36 @@ var __webpack_modules__ = {
       杂物袋: {},
       战斗状态: {
         正在战斗: false,
-        当前状态: "非战斗",
-        灵力值: 100,
-        伤势等级: "无伤",
-        已用底牌: [],
-        战斗回合: 0
+        阶段: "平静",
+        交锋轮次: 0,
+        战局: {
+          态势: "相持",
+          我方目的: "",
+          敌方目的: "",
+          战场要素: [],
+          态势依据: [],
+          战机: [],
+          危机: [],
+          已显手段: {
+            我方: [],
+            敌方: []
+          },
+          最近转折: ""
+        },
+        负荷: {
+          真元: "充盈",
+          神识: "澄明",
+          肉身: "无恙"
+        },
+        最近战果: {
+          结果: "无",
+          对手: [],
+          达成: "",
+          代价: [],
+          后患: []
+        }
       },
-      当前敌人: [],
+      当前敌人: {},
       渡劫状态: {
         正在渡劫: false,
         劫种: "无",
@@ -1808,7 +1949,7 @@ var __webpack_modules__ = {
         cultivation: data.修为
       });
       data.尝试突破 = data.修炼状态.阶段 === "突破中";
-      const realmInfo = (0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(data, true);
+      const realmInfo = (0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(data);
       return {
         ...data,
         ...realmInfo
@@ -1968,7 +2109,7 @@ var __webpack_modules__ = {
     };
     const 机遇类型推断规则 = [ {
       type: "亲密",
-      pattern: /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|亲吻|亲密|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜/
+      pattern: /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|亲吻|亲密|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|羽岚|羽岚烟|岚烟|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜/
     }, {
       type: "修炼",
       pattern: /修炼|闭关|打坐|吐纳|调息|冲关|破境|突破|压境|稳固|悟道|渡劫|根基|炼化|参悟/
@@ -2008,8 +2149,8 @@ var __webpack_modules__ = {
         return undefined;
       }
       const normalizedPath = String(wrapper.path ?? "").trim().replace(/^\/+/u, "").replace(/^stat_data[./]/u, "").replaceAll("/", ".");
-      if (normalizedPath === "可参与机遇") return null;
-      const indexMatch = /^可参与机遇\.(\d+)$/u.exec(normalizedPath);
+      if (normalizedPath === "$可参与机遇" || normalizedPath === "可参与机遇") return null;
+      const indexMatch = /^\$?可参与机遇\.(\d+)$/u.exec(normalizedPath);
       return indexMatch ? Number(indexMatch[1]) : undefined;
     }
     function unwrapOpportunityPatchLayer(value) {
@@ -2129,8 +2270,8 @@ var __webpack_modules__ = {
     });
     const SystemSettingsSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       启用行动提示: zod__WEBPACK_IMPORTED_MODULE_0__.z.boolean().prefault(true),
-      修炼系统版本: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(1).transform(value => Math.max(1, Math.floor(value))).prefault(1),
-      变量结构版本: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(1).transform(value => Math.max(1, Math.floor(value))).prefault(1),
+      修炼系统版本: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(3).transform(value => Math.max(1, Math.floor(value))).prefault(3),
+      变量结构版本: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(4).transform(value => Math.max(1, Math.floor(value))).prefault(4),
       _临时状态手动覆盖签名: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
     }).prefault({});
     const ActionSystemSettingsSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
@@ -2175,12 +2316,12 @@ var __webpack_modules__ = {
   "./src/灯火阑珊/schema/utils.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
-      calculateBaseCombatPower: () => calculateBaseCombatPower,
-      evaluateCombatPower: () => evaluateCombatPower,
+      compareRealmStanding: () => compareRealmStanding,
       getDangerColor: () => getDangerColor,
       getRealmColor: () => getRealmColor,
       getRootColor: () => getRootColor,
-      parseRealmToLevel: () => parseRealmToLevel
+      parseRealmToLevel: () => parseRealmToLevel,
+      resolveBattleMomentum: () => resolveBattleMomentum
     });
     var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./constants */ "./src/灯火阑珊/schema/constants.ts");
     function getRootColor(root) {
@@ -2221,20 +2362,36 @@ var __webpack_modules__ = {
       }
       return majorIdx * 4 + minorIdx + 1;
     }
-    function calculateBaseCombatPower(level) {
-      const majorIdx = Math.floor((level - 1) / 4);
-      const minorIdx = (level - 1) % 4;
-      const 大境界基础 = Math.pow(10, majorIdx + 1);
-      const 小境界加成 = 大境界基础 * .2 * minorIdx;
-      return Math.round(大境界基础 + 小境界加成);
+    const BATTLE_MOMENTUM = [ "敌方压制", "敌方占先", "相持", "我方占先", "我方压制" ];
+    function compareRealmStanding(myLevel, enemyLevel) {
+      const normalizedMine = _.clamp(Math.floor(Number(myLevel) || 1), 1, 48);
+      const normalizedEnemy = _.clamp(Math.floor(Number(enemyLevel) || 1), 1, 48);
+      const majorDelta = Math.floor((normalizedMine - 1) / 4) - Math.floor((normalizedEnemy - 1) / 4);
+      if (majorDelta > 0) return "我方位格压制";
+      if (majorDelta < 0) return "敌方位格压制";
+      const minorDelta = normalizedMine - normalizedEnemy;
+      if (minorDelta >= 3) return "我方近乎碾压";
+      if (minorDelta === 2) return "我方强压";
+      if (minorDelta === 1) return "我方境界占优";
+      if (minorDelta === 0) return "同阶";
+      if (minorDelta === -1) return "敌方境界占优";
+      if (minorDelta === -2) return "敌方强压";
+      return "敌方近乎碾压";
     }
-    function evaluateCombatPower(myPower, enemyPower) {
-      const ratio = myPower / enemyPower;
-      if (ratio >= 2) return "碾压";
-      if (ratio >= 1.3) return "优势";
-      if (ratio >= .8) return "势均力敌";
-      if (ratio >= .5) return "劣势";
-      return "绝望";
+    function resolveBattleMomentum(current, requestedShift, basis) {
+      const currentIndex = Math.max(0, BATTLE_MOMENTUM.indexOf(current));
+      const direction = Math.sign(Number(requestedShift) || 0);
+      if (direction === 0) return BATTLE_MOMENTUM[currentIndex];
+      const movingForPlayer = direction > 0;
+      const blockedByRealm = movingForPlayer && basis.realmStanding === "敌方位格压制" || !movingForPlayer && basis.realmStanding === "我方位格压制";
+      if (blockedByRealm && !(basis.matchingExternalStanding && basis.significantCost)) {
+        return BATTLE_MOMENTUM[currentIndex];
+      }
+      const hasDecisiveBasis = basis.establishedConditions || basis.explicitCounter || basis.fieldAdvantage || basis.significantCost;
+      if (!hasDecisiveBasis) return BATTLE_MOMENTUM[currentIndex];
+      const allowsTwoSteps = basis.establishedConditions && basis.explicitCounter && basis.significantCost;
+      const magnitude = Math.min(Math.abs(Math.trunc(requestedShift)), allowsTwoSteps ? 2 : 1);
+      return BATTLE_MOMENTUM[_.clamp(currentIndex + direction * magnitude, 0, BATTLE_MOMENTUM.length - 1)];
     }
   },
   "./src/灯火阑珊/schema/world.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {

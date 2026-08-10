@@ -5,6 +5,7 @@
 
 import { CHARACTER_ASSETS, CHARACTER_IMAGE_POOLS } from './character-assets/index';
 import type { CharacterImagePool, DualSoulImagePool, ExpressionImages } from './character-assets/types';
+import { COMPANION_CANONICAL_NAMES } from '../灯火阑珊-变量结构/companion-aliases';
 
 export { CHARACTER_ASSETS, CHARACTER_IMAGE_POOLS } from './character-assets/index';
 export type {
@@ -21,24 +22,13 @@ export type {
  * 角色名称别名映射
  * AI 按照世界书规则会分别输出 "虞汐" 和 "虞颜"，需要映射到 "虞汐颜" 的资源配置
  */
-const CHARACTER_NAME_ALIASES: Record<string, string> = {
-  虞汐: '虞汐颜',
-  虞颜: '虞汐颜',
-  阿鸢: '朔璃鸢',
-  血手飞鸢: '朔璃鸢',
-  念迟迟: '安迟迟',
-  蘅之: '安迟迟',
-  拈韵居士: '安迟迟',
-  掌籍师姐: '安迟迟',
-};
-
 /**
  * 解析角色名称（支持别名映射）
  * @param name AI 输出的角色名
  * @returns 标准化后的资源配置名
  */
 function resolveCharacterName(name: string): string {
-  return CHARACTER_NAME_ALIASES[name] ?? name;
+  return COMPANION_CANONICAL_NAMES[name] ?? name;
 }
 
 /**

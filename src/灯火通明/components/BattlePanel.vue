@@ -1,642 +1,592 @@
 <template>
   <div class="battle-panel">
-    <!-- 战斗状态头部 -->
-    <div class="combat-header">
-      <div class="combat-status-left">
-        <div class="combat-status-indicator" :class="`status-${displayStatus}`">
-          <span class="crossed-swords-icon">⚔</span>
-        </div>
-        <div class="combat-status-text">
-          <span class="combat-status-label" :class="`status-${displayStatus}`">
-            {{ displayStatus }}
-          </span>
-          <span class="combat-status-desc">{{ subtitle }}</span>
+    <header class="battle-header">
+      <div class="phase-mark"><i class="fa-solid fa-khanda"></i></div>
+      <div class="phase-copy">
+        <span class="eyebrow">道争进行中</span>
+        <strong>{{ combatState.阶段 }}</strong>
+        <span>{{ combatState.战局.最近转折 || '气机交锁，胜负仍悬。' }}</span>
+      </div>
+      <div class="round-seal">
+        <small>交锋</small>
+        <b>{{ combatState.交锋轮次 }}</b>
+      </div>
+    </header>
+
+    <section class="momentum-card">
+      <div class="section-heading">
+        <span><i class="fa-solid fa-scale-balanced"></i> 道势</span>
+        <b :class="`momentum-${momentumIndex}`">{{ combatState.战局.态势 }}</b>
+      </div>
+      <div class="momentum-track" role="img" :aria-label="`当前战局态势：${combatState.战局.态势}`">
+        <div
+          v-for="(step, index) in momentumSteps"
+          :key="step"
+          class="momentum-step"
+          :class="{ active: index === momentumIndex, passed: index < momentumIndex }"
+        >
+          <span class="step-dot"></span>
+          <small>{{ step }}</small>
         </div>
       </div>
-      <div class="combat-round-info" v-if="combatState?.战斗回合">
-        <span class="round-label">回合</span>
-        <span class="round-number">{{ combatState.战斗回合 }}</span>
+      <div v-if="combatState.战局.态势依据.length" class="evidence-row">
+        <span v-for="item in combatState.战局.态势依据" :key="item">{{ item }}</span>
       </div>
+    </section>
+
+    <div class="battle-grid">
+      <section class="info-card objectives-card">
+        <div class="section-heading">
+          <span><i class="fa-solid fa-bullseye"></i> 所争为何</span>
+        </div>
+        <div class="objective-row mine">
+          <small>我方</small>
+          <span>{{ combatState.战局.我方目的 || '保全自身，伺机而动' }}</span>
+        </div>
+        <div class="objective-row enemy">
+          <small>敌方</small>
+          <span>{{ combatState.战局.敌方目的 || '尚未看清其真正所图' }}</span>
+        </div>
+      </section>
+
+      <section class="info-card burden-card">
+        <div class="section-heading">
+          <span><i class="fa-solid fa-wave-square"></i> 身心负荷</span>
+        </div>
+        <div class="burden-list">
+          <div v-for="item in burdenItems" :key="item.label" class="burden-item" :class="`tone-${item.tone}`">
+            <i :class="item.icon"></i>
+            <span>{{ item.label }}</span>
+            <b>{{ item.value }}</b>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- 状态一览 -->
-    <div class="combat-stats">
-      <div class="combat-stat-item">
-        <div class="combat-stat-icon spirit">
-          <i class="fa-solid fa-fire-flame-curved"></i>
-        </div>
-        <div class="combat-stat-content">
-          <div class="combat-stat-label">灵力值</div>
-          <div class="combat-stat-bar">
-            <div class="combat-stat-fill spirit" :style="{
-              width: `${combatState?.灵力值 ?? 100}%`,
-              background: getSpiritGradient(combatState?.灵力值 ?? 100)
-            }"></div>
-          </div>
-          <div class="combat-stat-value">{{ combatState?.灵力值 ?? 100 }}%</div>
-        </div>
-      </div>
+    <section v-if="combatState.战局.战场要素.length" class="scene-strip">
+      <span class="strip-title"><i class="fa-solid fa-mountain-sun"></i> 战场</span>
+      <span v-for="item in combatState.战局.战场要素" :key="item" class="scene-tag">{{ item }}</span>
+    </section>
 
-      <div class="combat-stat-item">
-        <div class="combat-stat-icon" :class="`injury-icon-${combatState?.伤势等级 ?? '无伤'}`">
-          <i :class="getInjuryIcon(combatState?.伤势等级 ?? '无伤')"></i>
+    <div class="battle-grid tactical-grid">
+      <section class="info-card opportunity-card">
+        <div class="section-heading">
+          <span><i class="fa-solid fa-eye"></i> 可乘战机</span>
         </div>
-        <div class="combat-stat-content">
-          <div class="combat-stat-label">身体状况</div>
-          <div class="combat-stat-status" :class="`status-${combatState?.伤势等级 ?? '无伤'}`">
-            <i :class="getInjuryIcon(combatState?.伤势等级 ?? '无伤')"></i>
-            {{ combatState?.伤势等级 ?? '无伤' }}
-          </div>
+        <ul v-if="combatState.战局.战机.length">
+          <li v-for="item in combatState.战局.战机" :key="item">{{ item }}</li>
+        </ul>
+        <p v-else class="empty-copy">尚无可一举定势的破绽。</p>
+      </section>
+      <section class="info-card danger-card">
+        <div class="section-heading">
+          <span><i class="fa-solid fa-triangle-exclamation"></i> 当前危机</span>
         </div>
-      </div>
-
-      <!-- 战力值 -->
-      <div class="combat-stat-item" v-if="playerCombatPower">
-        <div class="combat-stat-icon power">
-          <i class="fa-solid fa-fist-raised"></i>
-        </div>
-        <div class="combat-stat-content">
-          <div class="combat-stat-label">综合战力</div>
-          <div class="combat-power-value">
-            <span class="power-number">{{ playerCombatPower }}</span>
-          </div>
-        </div>
-      </div>
+        <ul v-if="combatState.战局.危机.length">
+          <li v-for="item in combatState.战局.危机" :key="item">{{ item }}</li>
+        </ul>
+        <p v-else class="empty-copy">暂未显出迫在眉睫的险处。</p>
+      </section>
     </div>
 
-    <!-- 已用底牌 -->
-    <div class="trump-cards-section" v-if="(combatState?.已用底牌?.length ?? 0) > 0">
-      <div class="trump-header">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        <span>已动用底牌</span>
+    <section class="enemies-section">
+      <div class="section-heading">
+        <span><i class="fa-solid fa-user-ninja"></i> 对阵之敌</span>
+        <small>{{ activeEnemyCount }} 名仍可出手</small>
       </div>
-      <div class="trump-cards-list">
-        <span v-for="card in combatState?.已用底牌 ?? []" :key="card" class="trump-card-tag">
-          {{ card }}
-        </span>
-      </div>
-    </div>
-
-    <!-- 当前敌人 -->
-    <div class="enemies-section">
-      <div class="enemies-header">
-        <i class="fa-solid fa-skull"></i>
-        <span>当前敌人</span>
-        <span class="enemy-count" v-if="(currentEnemies?.length ?? 0) > 0">
-          {{ currentEnemies?.filter(e => e.状态 !== '已死').length ?? 0 }}
-        </span>
-      </div>
-      <div class="enemies-list">
-        <template v-if="(currentEnemies?.length ?? 0) > 0">
-          <div
-            v-for="(enemy, index) in currentEnemies ?? []"
-            :key="index"
-            class="enemy-card"
-            :class="{ 'enemy-dead': enemy.状态 === '已死' }"
-          >
-            <div class="enemy-avatar" :class="`threat-${getThreatLevel(getCalculatedPowerEval(enemy, playerCombatPower))}`">
-              <i class="fa-solid fa-ghost"></i>
+      <div class="enemy-grid">
+        <article
+          v-for="[name, enemy] in enemyEntries"
+          :key="name"
+          class="enemy-card"
+          :class="{ inactive: !isEnemyActive(enemy) }"
+        >
+          <div class="enemy-topline">
+            <div>
+              <strong>{{ name }}</strong>
+              <span>{{ enemy.境界描述 }}</span>
             </div>
-            <div class="enemy-info">
-              <div class="enemy-header-row">
-                <span class="enemy-name">{{ enemy.名称 }}</span>
-                <span class="enemy-realm">{{ enemy.境界 }}</span>
-              </div>
-              <div class="enemy-status-row">
-                <span class="enemy-power" :class="`power-${getThreatLevel(getCalculatedPowerEval(enemy, playerCombatPower))}`">
-                  <i class="fa-solid fa-scale-balanced"></i>
-                  {{ getCalculatedPowerEval(enemy, playerCombatPower) }}
-                  <span class="enemy-power-value" v-if="getEnemyPowerValue(enemy) > 0">
-                    ({{ getEnemyPowerValue(enemy) }})
-                  </span>
-                </span>
-                <span class="enemy-health" :class="`health-${enemy.状态}`">
-                  <i :class="getEnemyHealthIcon(enemy.状态)"></i>
-                  {{ enemy.状态 }}
-                </span>
-              </div>
-              <div class="enemy-trait" v-if="enemy.特点">
-                <i class="fa-solid fa-star"></i>
-                {{ enemy.特点 }}
-              </div>
-            </div>
+            <span class="enemy-state"><i :class="getEnemyStateIcon(enemy.状态)"></i>{{ enemy.状态 }}</span>
           </div>
-        </template>
-        <div v-else class="empty-hint">
-          <i class="fa-solid fa-peace"></i>
-          <span>四周暂无敌意</span>
-        </div>
+          <div class="standing-badge" :class="`standing-${getRealmStandingTone(getRealmStanding(playerLevel, enemy))}`">
+            <i class="fa-solid fa-layer-group"></i>
+            {{ getRealmStanding(playerLevel, enemy) }}
+          </div>
+          <p v-if="enemy.目的" class="enemy-purpose"><small>所图</small>{{ enemy.目的 }}</p>
+          <div v-if="enemy.威胁手段.length" class="enemy-detail">
+            <small>威胁手段</small>
+            <span v-for="item in enemy.威胁手段" :key="item">{{ item }}</span>
+          </div>
+          <div v-if="enemy.已暴露破绽.length" class="enemy-detail openings">
+            <small>已见破绽</small>
+            <span v-for="item in enemy.已暴露破绽" :key="item">{{ item }}</span>
+          </div>
+        </article>
+        <div v-if="enemyEntries.length === 0" class="empty-enemies">敌意已显，来者身份却仍藏在暗处。</div>
       </div>
-    </div>
+    </section>
+
+    <section v-if="revealedMethods.length" class="methods-strip">
+      <span class="strip-title"><i class="fa-solid fa-scroll"></i> 已显手段</span>
+      <span v-for="item in revealedMethods" :key="item.text" :class="item.side">{{ item.text }}</span>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { CombatState, EnemyInfo } from './combat-utils';
+import type { CombatState, EnemyRecord } from './combat-utils';
 import {
-    getCalculatedPowerEval,
-    getEnemyHealthIcon,
-    getEnemyPowerValue,
-    getInjuryIcon, getSpiritGradient, getThreatLevel,
+  getBurdenTone,
+  getEnemyStateIcon,
+  getRealmStanding,
+  getRealmStandingTone,
+  isEnemyActive,
 } from './combat-utils';
 
 const props = defineProps<{
-  combatState?: CombatState;
-  currentEnemies?: EnemyInfo[];
-  playerCombatPower?: number;
+  combatState: CombatState;
+  currentEnemies: EnemyRecord;
+  playerLevel: number;
 }>();
 
-// 战斗状态显示文字
-const displayStatus = computed(() => {
-  const cs = props.combatState;
-  if (cs?.正在战斗 && cs?.当前状态 === '非战斗') return '战斗中';
-  return cs?.当前状态 || '非战斗';
-});
-
-// 战斗副标题
-const subtitle = computed(() => {
-  const status = displayStatus.value;
-  const round = props.combatState?.战斗回合 ?? 0;
-  const enemyCount = props.currentEnemies?.filter(e => e.状态 !== '已死').length ?? 0;
-
-  if (round > 0) {
-    return `第 ${round} 回合 · ${enemyCount > 1 ? `${enemyCount}敌环伺` : '一对一决斗'}`;
-  }
-
-  const subtitles: Record<string, string[]> = {
-    '激战': ['剑光交错，杀机四伏', '生死一线，全力以赴', '刀光剑影，血战正酣'],
-    '对峙': ['山雨欲来，剑拔弩张', '暗流涌动，一触即发', '杀意凛然，蓄势待发'],
-    '战斗中': ['战鼓雷鸣，硝烟弥漫', '兵刃相接，胜负未分', '风起云涌，战意昂扬'],
-    '重伤': ['身负重创，殊死一搏', '血染战袍，绝境求生', '伤痕累累，死战不退'],
-    '濒死': ['命悬一线，背水一战', '生死关头，孤注一掷', '大限将至，拼死一击'],
-  };
-
-  const options = subtitles[status] || subtitles['战斗中'];
-  return options[Math.floor(Date.now() / 60000) % options.length];
-});
+const momentumSteps = ['敌方压制', '敌方占先', '相持', '我方占先', '我方压制'] as const;
+const momentumIndex = computed(() => Math.max(0, momentumSteps.indexOf(props.combatState.战局.态势)));
+const enemyEntries = computed(() => Object.entries(props.currentEnemies ?? {}));
+const activeEnemyCount = computed(() => enemyEntries.value.filter(([, enemy]) => isEnemyActive(enemy)).length);
+const burdenItems = computed(() => [
+  {
+    label: '真元',
+    value: props.combatState.负荷.真元,
+    icon: 'fa-solid fa-fire-flame-curved',
+    tone: getBurdenTone(props.combatState.负荷.真元),
+  },
+  {
+    label: '神识',
+    value: props.combatState.负荷.神识,
+    icon: 'fa-solid fa-eye',
+    tone: getBurdenTone(props.combatState.负荷.神识),
+  },
+  {
+    label: '肉身',
+    value: props.combatState.负荷.肉身,
+    icon: 'fa-solid fa-heart-pulse',
+    tone: getBurdenTone(props.combatState.负荷.肉身),
+  },
+]);
+const revealedMethods = computed(() => [
+  ...props.combatState.战局.已显手段.我方.map(text => ({ text, side: 'mine' })),
+  ...props.combatState.战局.已显手段.敌方.map(text => ({ text, side: 'enemy' })),
+]);
 </script>
 
 <style lang="scss" scoped>
-// 战斗状态头部
-.combat-header {
+.battle-panel {
+  display: grid;
+  gap: 14px;
+  color: var(--text-primary);
+}
+.battle-header,
+.momentum-card,
+.info-card,
+.enemies-section,
+.scene-strip,
+.methods-strip {
+  border: 1px solid var(--line-subtle);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--reading-surface) 92%, transparent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--stage-shadow) 22%, transparent);
+}
+.battle-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 13px;
+  padding: 15px 17px;
+}
+.phase-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: #f3c873;
+  background: rgba(192, 75, 55, 0.17);
+}
+.phase-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.phase-copy strong {
+  color: #f0c779;
+  font-size: 18px;
+}
+.phase-copy > span:last-child {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.eyebrow {
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+.round-seal {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, transparent);
+  border-radius: 10px;
+}
+.round-seal small {
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+.round-seal b {
+  color: var(--gold);
+  font-size: 19px;
+}
+.momentum-card,
+.info-card,
+.enemies-section {
+  padding: 14px 16px;
+}
+.section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  margin-bottom: 16px;
-  background: linear-gradient(135deg, rgba(255, 100, 100, 0.12) 0%, rgba(200, 80, 80, 0.08) 100%);
-  border: 1px solid rgba(255, 100, 100, 0.35);
-  border-radius: 12px;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.section-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.section-heading i {
+  color: var(--gold);
+}
+.section-heading small {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.section-heading > b {
+  color: var(--gold);
+  font-size: 12px;
+}
+.momentum-track {
   position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, #ff6b6b 0%, #ff8888 50%, #ff6b6b 100%);
-    border-radius: 4px 0 0 4px;
-  }
-
-  .combat-status-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .combat-status-indicator {
-    width: 42px;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    font-size: 18px;
-
-    &.status-激战, &.status-战斗中 {
-      background: rgba(255, 100, 100, 0.2);
-      color: #ff6b6b;
-    }
-    &.status-对峙 {
-      background: rgba(255, 180, 60, 0.2);
-      color: #ffb43c;
-    }
-    &.status-重伤 {
-      background: rgba(255, 136, 0, 0.2);
-      color: #ff8800;
-    }
-    &.status-濒死 {
-      background: rgba(200, 50, 50, 0.25);
-      color: #cc3333;
-    }
-
-    .crossed-swords-icon {
-      font-size: 20px;
-      line-height: 1;
-    }
-  }
-
-  .combat-status-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .combat-status-label {
-    font-size: 17px;
-    font-weight: bold;
-
-    &.status-激战, &.status-战斗中 { color: #ff6b6b; }
-    &.status-对峙 { color: #ffb43c; }
-    &.status-重伤 { color: #ff8800; }
-    &.status-濒死 { color: #cc3333; }
-  }
-
-  .combat-status-desc {
-    font-size: 12px;
-    color: var(--text-secondary);
-    max-width: 180px;
-  }
-
-  .combat-round-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 8px 14px;
-    background: rgba(255, 100, 100, 0.1);
-    border: 1px solid rgba(255, 100, 100, 0.25);
-    border-radius: 10px;
-
-    .round-label {
-      font-size: 10px;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .round-number {
-      font-size: 20px;
-      font-weight: bold;
-      color: #ff6b6b;
-      line-height: 1.1;
-    }
-  }
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
 }
-
-// 状态一览
-.combat-stats {
+.momentum-track::before {
+  position: absolute;
+  top: 8px;
+  right: 8%;
+  left: 8%;
+  height: 1px;
+  content: '';
+  background: var(--line-subtle);
+}
+.momentum-step {
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.step-dot {
+  width: 17px;
+  height: 17px;
+  border: 3px solid color-mix(in srgb, var(--reading-surface) 85%, #000);
+  border-radius: 50%;
+  background: var(--line-subtle);
+}
+.momentum-step.passed .step-dot {
+  background: color-mix(in srgb, var(--semantic-danger) 52%, var(--gold));
+}
+.momentum-step.active {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.momentum-step.active .step-dot {
+  background: var(--gold);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--gold) 72%, transparent);
+}
+.momentum-step small {
+  font-size: 10px;
+}
+.evidence-row,
+.scene-strip,
+.methods-strip {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-
-  .combat-stat-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-
-    .combat-stat-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      font-size: 18px;
-
-      &.spirit {
-        background: rgba(74, 158, 255, 0.15);
-        color: #4a9eff;
-      }
-      &.power {
-        background: rgba(255, 170, 100, 0.15);
-        color: #ffaa64;
-      }
-      &.injury-icon-无伤 {
-        background: rgba(102, 204, 136, 0.15);
-        color: #66cc88;
-      }
-      &.injury-icon-轻伤 {
-        background: rgba(255, 204, 0, 0.15);
-        color: #ffcc00;
-      }
-      &.injury-icon-重伤 {
-        background: rgba(255, 136, 0, 0.15);
-        color: #ff8800;
-      }
-      &.injury-icon-濒死 {
-        background: rgba(255, 68, 68, 0.15);
-        color: #ff4444;
-        animation: pulse-danger 1.5s ease-in-out infinite;
-      }
-    }
-
-    .combat-stat-content {
-      flex: 1;
-
-      .combat-stat-label {
-        font-size: 12px;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
-      }
-
-      .combat-stat-bar {
-        height: 8px;
-        background: var(--progress-bg);
-        border-radius: 4px;
-        overflow: hidden;
-
-        .combat-stat-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.5s ease;
-
-          &.spirit {
-            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
-          }
-        }
-      }
-
-      .combat-stat-value {
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text-accent);
-        margin-top: 4px;
-      }
-
-      .combat-power-value {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        margin-top: 2px;
-
-        .power-number {
-          font-size: 22px;
-          font-weight: bold;
-          color: #ffaa64;
-          text-shadow: 0 0 10px rgba(255, 170, 100, 0.4);
-        }
-      }
-
-      .combat-stat-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 500;
-
-        i { font-size: 12px; }
-
-        &.status-无伤 {
-          background: rgba(68, 170, 68, 0.15);
-          color: #44aa44;
-        }
-        &.status-轻伤 {
-          background: rgba(255, 204, 0, 0.15);
-          color: #ffcc00;
-        }
-        &.status-重伤 {
-          background: rgba(255, 136, 0, 0.15);
-          color: #ff8800;
-        }
-        &.status-濒死 {
-          background: rgba(255, 68, 68, 0.15);
-          color: #ff4444;
-          animation: pulse-danger 1.5s ease-in-out infinite;
-        }
-      }
-    }
-  }
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
 }
-
-// 已用底牌
-.trump-cards-section {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: linear-gradient(135deg, rgba(255, 200, 100, 0.08) 0%, rgba(255, 180, 80, 0.05) 100%);
-  border: 1px dashed rgba(255, 200, 100, 0.3);
+.evidence-row {
+  margin-top: 12px;
+}
+.evidence-row span,
+.scene-tag,
+.methods-strip > span:not(.strip-title) {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--reading-surface) 76%, var(--line-subtle));
+  font-size: 10px;
+}
+.battle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.objective-row {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 9px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line-subtle);
+}
+.objective-row:first-of-type {
+  border-top: 0;
+}
+.objective-row small {
+  color: var(--text-secondary);
+}
+.objective-row.mine small {
+  color: var(--jade);
+}
+.objective-row.enemy small {
+  color: var(--semantic-danger);
+}
+.burden-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.burden-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 7px;
+  padding: 9px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 10px;
+}
+.burden-item i {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.burden-item span {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.burden-item b {
+  font-size: 12px;
+}
+.tone-clear i,
+.tone-clear b {
+  color: var(--jade);
+}
+.tone-steady i,
+.tone-steady b {
+  color: var(--semantic-info);
+}
+.tone-strained i,
+.tone-strained b {
+  color: #e8a84c;
+}
+.tone-critical i,
+.tone-critical b {
+  color: var(--semantic-danger);
+}
+.scene-strip,
+.methods-strip {
+  padding: 10px 13px;
+}
+.strip-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.strip-title i {
+  color: var(--gold);
+}
+.info-card ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.info-card li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.info-card li::before {
+  position: absolute;
+  top: 0.55em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  content: '';
+}
+.opportunity-card li::before {
+  background: var(--jade);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--jade) 70%, transparent);
+}
+.danger-card li::before {
+  background: var(--semantic-danger);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--semantic-danger) 70%, transparent);
+}
+.empty-copy,
+.empty-enemies {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-style: italic;
+}
+.enemy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.enemy-card {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line-subtle);
   border-radius: 12px;
-
-  .trump-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #ffc864;
-    i { font-size: 14px; }
-  }
-
-  .trump-cards-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-
-    .trump-card-tag {
-      padding: 5px 14px;
-      background: rgba(255, 200, 100, 0.15);
-      border: 1px solid rgba(255, 200, 100, 0.4);
-      border-radius: 15px;
-      font-size: 12px;
-      color: #ffc864;
-    }
-  }
+  background: color-mix(in srgb, var(--reading-surface) 88%, transparent);
 }
-
-// 敌人区块
-.enemies-section {
-  .enemies-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-accent);
-
-    i { font-size: 14px; color: #ff6b6b; }
-
-    .enemy-count {
-      margin-left: auto;
-      padding: 2px 10px;
-      background: rgba(255, 100, 100, 0.15);
-      border-radius: 10px;
-      font-size: 12px;
-      color: #ff6b6b;
-    }
-  }
-
-  .enemies-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .enemy-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    transition: all 0.3s ease;
-
-    &:hover { border-color: rgba(255, 100, 100, 0.4); }
-
-    &.enemy-dead {
-      opacity: 0.5;
-      .enemy-name { text-decoration: line-through; color: var(--text-secondary); }
-      .enemy-avatar { background: rgba(102, 102, 102, 0.15) !important; color: #666 !important; }
-    }
-
-    .enemy-avatar {
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      font-size: 20px;
-      flex-shrink: 0;
-
-      &.threat-safe { background: rgba(68, 170, 68, 0.15); color: #44aa44; }
-      &.threat-easy { background: rgba(136, 204, 68, 0.15); color: #88cc44; }
-      &.threat-equal { background: rgba(255, 204, 0, 0.15); color: #ffcc00; }
-      &.threat-hard { background: rgba(255, 136, 0, 0.15); color: #ff8800; }
-      &.threat-deadly {
-        background: rgba(255, 68, 68, 0.15);
-        color: #ff4444;
-        animation: pulse-danger 1.5s ease-in-out infinite;
-      }
-    }
-
-    .enemy-info { flex: 1; min-width: 0; }
-
-    .enemy-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
-
-      .enemy-name { font-size: 15px; font-weight: 600; color: #ff8888; }
-
-      .enemy-realm {
-        padding: 2px 10px;
-        background: var(--button-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        font-size: 11px;
-        color: var(--text-accent);
-        flex-shrink: 0;
-      }
-    }
-
-    .enemy-status-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 6px;
-
-      .enemy-power, .enemy-health {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        i { font-size: 11px; }
-      }
-
-      .enemy-power {
-        &.power-safe { color: #44aa44; }
-        &.power-easy { color: #88cc44; }
-        &.power-equal { color: #ffcc00; }
-        &.power-hard { color: #ff8800; }
-        &.power-deadly { color: #ff4444; }
-
-        .enemy-power-value { font-size: 10px; opacity: 0.8; margin-left: 2px; }
-      }
-
-      .enemy-health {
-        &.health-完好 { color: #44aa44; }
-        &.health-轻伤 { color: #ffcc00; }
-        &.health-重伤 { color: #ff8800; }
-        &.health-濒死 { color: #ff4444; }
-        &.health-已死 { color: #666666; }
-      }
-    }
-
-    .enemy-trait {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding-top: 8px;
-      border-top: 1px dashed var(--border-color);
-      font-size: 12px;
-      color: var(--text-secondary);
-      i { font-size: 10px; color: #ffc864; }
-    }
-  }
-
-  .empty-hint {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.enemy-card.inactive {
+  opacity: 0.58;
+}
+.enemy-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.enemy-topline > div {
+  display: grid;
+  gap: 2px;
+}
+.enemy-topline strong {
+  font-size: 14px;
+}
+.enemy-topline > div span {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.enemy-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.standing-badge {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+.standing-safe,
+.standing-easy {
+  color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 12%, transparent);
+}
+.standing-equal {
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+}
+.standing-hard,
+.standing-deadly {
+  color: var(--semantic-danger);
+  background: color-mix(in srgb, var(--semantic-danger) 12%, transparent);
+}
+.enemy-purpose {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.enemy-purpose small,
+.enemy-detail small {
+  color: var(--gold);
+}
+.enemy-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.enemy-detail small {
+  width: 100%;
+  font-size: 9px;
+}
+.enemy-detail span {
+  padding: 3px 7px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--semantic-danger) 9%, transparent);
+  font-size: 9px;
+}
+.enemy-detail.openings span {
+  background: color-mix(in srgb, var(--jade) 9%, transparent);
+}
+.methods-strip .mine {
+  border: 1px solid color-mix(in srgb, var(--jade) 28%, transparent);
+}
+.methods-strip .enemy {
+  border: 1px solid color-mix(in srgb, var(--semantic-danger) 28%, transparent);
+}
+@media (max-width: 760px) {
+  .battle-panel {
     gap: 10px;
-    padding: 30px 20px;
-    background: var(--bg-secondary);
-    border: 1px dashed var(--border-color);
-    border-radius: 12px;
-    color: var(--text-secondary);
-
-    i { font-size: 28px; color: #66aa88; }
-    span { font-size: 13px; font-style: italic; }
   }
-}
-
-@keyframes pulse-danger {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(255, 68, 68, 0); }
-}
-
-// 手机端适配
-@media screen and (max-width: 480px) {
-  .trump-cards-section {
-    .trump-cards-list {
-      .trump-card-tag { padding: 5px 12px; font-size: 11px; }
-    }
-  }
-
+  .battle-header,
+  .momentum-card,
+  .info-card,
   .enemies-section {
-    .enemy-card {
-      padding: 12px 12px 12px 16px;
-      .enemy-header-row {
-        .enemy-name { font-size: 13px; }
-        .enemy-realm { padding: 2px 8px; font-size: 10px; }
-      }
-      .enemy-status-row {
-        gap: 12px;
-        .enemy-power, .enemy-health { font-size: 11px; i { font-size: 10px; } }
-      }
-      .enemy-trait { font-size: 10px; }
-    }
-
-    .empty-hint {
-      padding: 24px 16px;
-      i { font-size: 24px; }
-      span { font-size: 12px; }
-    }
+    padding: 11px 12px;
+    border-radius: 11px;
+  }
+  .battle-grid,
+  .enemy-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .burden-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .burden-item {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  .burden-item i {
+    grid-row: auto;
+  }
+  .momentum-step small {
+    max-width: 3em;
   }
 }
 </style>

@@ -4,12 +4,14 @@ export type ReadingMeasure = 'narrow' | 'standard' | 'wide';
 export type ReadingMode = 'paged' | 'scroll';
 export type ReadingViewportMode = 'mobile' | 'desktop';
 export type ReasoningAppearanceMode = 'auto' | 'preset' | 'theme';
+export type DialogueColorOverrides = Partial<Record<ThemeId, string>>;
 
 export interface ReadingPreferences {
   fontSize: number;
   lineHeight: number;
   measure: ReadingMeasure;
   measureWidth: number;
+  dialogueColors: DialogueColorOverrides;
   reasoningAppearance: ReasoningAppearanceMode;
   showPortraitRail: boolean;
   reduceMotion: boolean;
@@ -27,6 +29,7 @@ const DEFAULT_PREFERENCES: ReadingPreferences = {
   lineHeight: 1.95,
   measure: 'standard',
   measureWidth: 76,
+  dialogueColors: {},
   reasoningAppearance: 'auto',
   showPortraitRail: true,
   reduceMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
@@ -39,6 +42,17 @@ const LEGACY_MEASURE_WIDTH: Record<ReadingMeasure, number> = {
   narrow: 58,
   standard: 76,
   wide: 100,
+};
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
+const sanitizeDialogueColors = (value: unknown): DialogueColorOverrides => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [ThemeId, string] => isThemeId(entry[0]) && HEX_COLOR_PATTERN.test(String(entry[1])),
+    ),
+  );
 };
 
 const readStoredReadingMode = (viewport: ReadingViewportMode): ReadingMode => {
@@ -67,6 +81,7 @@ const clampPreferences = (value: Partial<ReadingPreferences>): ReadingPreference
       50,
       100,
     ),
+    dialogueColors: sanitizeDialogueColors(value.dialogueColors),
     reasoningAppearance: ['auto', 'preset', 'theme'].includes(String(value.reasoningAppearance))
       ? (value.reasoningAppearance as ReasoningAppearanceMode)
       : DEFAULT_PREFERENCES.reasoningAppearance,
@@ -131,8 +146,29 @@ export const useThemeStore = defineStore('appearance', () => {
     savePreferences();
   };
 
+  const currentDialogueColor = computed(
+    () => preferences.value.dialogueColors[currentThemeId.value] ?? currentTheme.value.colors.dialogueText,
+  );
+  const hasCustomDialogueColor = computed(() => currentThemeId.value in preferences.value.dialogueColors);
+
+  const setDialogueColor = (color: string) => {
+    if (!HEX_COLOR_PATTERN.test(color)) return;
+    updatePreferences({
+      dialogueColors: {
+        ...preferences.value.dialogueColors,
+        [currentThemeId.value]: color.toLowerCase(),
+      },
+    });
+  };
+
+  const resetDialogueColor = () => {
+    const dialogueColors = { ...preferences.value.dialogueColors };
+    delete dialogueColors[currentThemeId.value];
+    updatePreferences({ dialogueColors });
+  };
+
   const resetPreferences = () => {
-    preferences.value = { ...DEFAULT_PREFERENCES };
+    preferences.value = { ...DEFAULT_PREFERENCES, dialogueColors: {} };
     savePreferences();
   };
 
@@ -152,11 +188,15 @@ export const useThemeStore = defineStore('appearance', () => {
   return {
     currentThemeId,
     currentTheme,
+    currentDialogueColor,
+    hasCustomDialogueColor,
     availableThemes,
     preferences,
     readingModes,
     selectTheme,
     updatePreferences,
+    setDialogueColor,
+    resetDialogueColor,
     resetPreferences,
     setReadingMode,
     resetReadingMode,

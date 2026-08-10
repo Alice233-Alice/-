@@ -9,6 +9,7 @@ import {
   unwrapOpportunityPatchPayload,
   type SchemaType,
 } from '../灯火阑珊/schema';
+import { COMPANION_CANONICAL_NAMES } from './companion-aliases';
 
 const GUARD_INSTALLED_KEY = '__灯火阑珊_authoritative_mvu_guard_installed__';
 const READONLY_ENTITY_FIELDS = new Set(['突破阈值', '寿元上限', '境界描述', '寿元状态', '状态', '进度', '战力值']);
@@ -30,23 +31,11 @@ const MVU_ROOT_KEYS = [
   '任务列表',
   '声望系统',
   '难度系统',
-  '可参与机遇',
+  '$可参与机遇',
   '当前处境',
   '_系统设置',
   '_好感度快照',
 ] as const;
-const COMPANION_CANONICAL_NAMES: Record<string, string> = {
-  虞汐: '虞汐颜',
-  虞颜: '虞汐颜',
-  阿鸢: '朔璃鸢',
-  血手飞鸢: '朔璃鸢',
-  赤月女帝: '朔望舒',
-  幽影宗主: '朔望舒',
-  念迟迟: '安迟迟',
-  蘅之: '安迟迟',
-  拈韵居士: '安迟迟',
-  掌籍师姐: '安迟迟',
-};
 const TRADITIONAL_PATH_ALIASES: Record<string, string> = {
   世界時鐘: '世界时钟',
   世界地圖: '世界地图',
@@ -111,6 +100,9 @@ function normalizeCommandPath(rawPath: string): string {
   for (const [from, to] of Object.entries(TRADITIONAL_PATH_ALIASES)) {
     path = path.replaceAll(from, to);
   }
+  path = path
+    .replace(/^stat_data\.可参与机遇(?=\.|$)/u, 'stat_data.$可参与机遇')
+    .replace(/^可参与机遇(?=\.|$)/u, '$可参与机遇');
 
   if (
     !path.startsWith('stat_data.') &&
@@ -146,7 +138,7 @@ function getCommandValueArgIndex(command: GuardMutableCommand): number | null {
 }
 
 function coerceByPath(path: string, value: unknown): unknown {
-  if (path === 'stat_data.可参与机遇') {
+  if (path === 'stat_data.$可参与机遇') {
     const unwrapped = unwrapOpportunityPatchPayload(value);
     if (Array.isArray(unwrapped)) {
       return typeof value === 'string' ? JSON.stringify(unwrapped) : unwrapped;
@@ -267,6 +259,20 @@ function rewriteDuplicateCompanionInsert(
         full_match: `guard:add:${companionName}:好感度`,
         args: [`${path}.好感度`, String(newFavor - oldFavor)],
         reason: '已存在红颜的重复 insert 已改写为好感增量',
+      });
+    }
+  }
+
+  const incomingChronicle = _.get(incoming, '羁绊纪事');
+  if (incomingChronicle && typeof incomingChronicle === 'object' && !Array.isArray(incomingChronicle)) {
+    for (const [title, entry] of Object.entries(incomingChronicle)) {
+      const existingEntry = _.get(existing, ['羁绊纪事', title]);
+      if (!title.trim() || _.isEqual(existingEntry, entry)) continue;
+      appendedCommands.push({
+        type: existingEntry === undefined ? 'insert' : 'set',
+        full_match: `guard:${existingEntry === undefined ? 'insert' : 'set'}:${companionName}:羁绊纪事:${title}`,
+        args: [`${path}.羁绊纪事.${title}`, JSON.stringify(entry)],
+        reason: '已存在红颜的重复 insert 已改写为羁绊纪事更新',
       });
     }
   }
@@ -512,7 +518,7 @@ export function guardParsedCommands(variables: Mvu.MvuData, commands: Mvu.Comman
     command.args[valueArgIndex] = normalizedValue;
     if (!_.isEqual(normalizedValue, rawValue) && !command.reason) {
       command.reason =
-        path === 'stat_data.可参与机遇'
+        path === 'stat_data.$可参与机遇'
           ? '嵌套的行动列表 patch 已由权威变量守卫自动拆包'
           : '变量值已由权威变量守卫归一化';
     }

@@ -418,7 +418,9 @@ const situationBadgeText = computed(() => {
 
 const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAction[] }>(() => {
   const operations = currentMessagePatch.value.filter(operation => typeof operation.path === 'string');
-  const replaceAll = operations.find(operation => operation.op === 'replace' && operation.path === '/可参与机遇');
+  const replaceAll = operations.find(
+    operation => operation.op === 'replace' && (operation.path === '/$可参与机遇' || operation.path === '/可参与机遇'),
+  );
 
   if (replaceAll) {
     // 优先按本轮原始 patch 取值，可恢复已被旧 Schema 清空的双重嵌套行动列表。
@@ -435,7 +437,9 @@ const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAc
       : { mode: 'cleared', actions: [] };
   }
 
-  const clearActionList = operations.some(operation => operation.path === '/可参与机遇' && operation.op === 'remove');
+  const clearActionList = operations.some(
+    operation => (operation.path === '/$可参与机遇' || operation.path === '/可参与机遇') && operation.op === 'remove',
+  );
   if (clearActionList) {
     const fallbackActions = buildFallbackActions();
     return fallbackActions.length > 0
@@ -444,7 +448,7 @@ const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAc
   }
 
   const touchedIndices = _(operations)
-    .map(operation => /^\/可参与机遇\/(\d+)$/u.exec(String(operation.path))?.[1])
+    .map(operation => /^\/\$?可参与机遇\/(\d+)$/u.exec(String(operation.path))?.[1])
     .filter((index): index is string => index !== undefined)
     .map(Number)
     .filter(Number.isInteger)

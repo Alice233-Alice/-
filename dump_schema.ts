@@ -1,19 +1,20 @@
 /* eslint-disable */
 // @ts-nocheck
-import _ from 'lodash';
-import fs from 'node:fs';
-import path from 'node:path';
-import z from 'zod';
+const _ = require('lodash');
+const fs = require('node:fs');
+const path = require('node:path');
+const z = require('zod');
 
-fs.globSync('src/**/schema.ts').forEach(async schema_file => {
+const requestedSchemaFiles = process.argv.slice(2);
+const schemaFiles = requestedSchemaFiles.length > 0 ? requestedSchemaFiles : fs.globSync('src/**/schema.ts');
+
+for (const schema_file of schemaFiles) {
   try {
     globalThis._ = _;
     globalThis.z = z;
-    const module = await import(
-      (process.platform === 'win32' ? 'file://' : '') + path.resolve(import.meta.dirname, schema_file)
-    );
+    const module = require(path.resolve(process.cwd(), schema_file));
     if (_.has(module, 'Schema')) {
-      const schema = _.get(module, 'Schema');
+      let schema = _.get(module, 'Schema');
       if (_.isFunction(schema)) {
         schema = schema();
       }
@@ -25,4 +26,4 @@ fs.globSync('src/**/schema.ts').forEach(async schema_file => {
   } catch (e) {
     console.error(`生成 '${schema_file}' 对应的 schema.json 失败: ${e}`);
   }
-});
+}

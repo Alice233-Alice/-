@@ -151,7 +151,7 @@ for (let index = 0; index < runs; index += 1) {
       update = makeUpdateVariable('重复行动污染', [
         {
           op: 'replace',
-          path: '/可参与机遇',
+          path: '/$可参与机遇',
           value: [
             { 行动: '查看石门', 类型: '探索' },
             { 行动: ' 查看石门 ', 类型: '探索' },

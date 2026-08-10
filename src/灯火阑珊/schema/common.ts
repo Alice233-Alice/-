@@ -10,7 +10,6 @@ import {
   REALM_STAGES,
   REALM_THRESHOLDS,
 } from './constants';
-import { calculateBaseCombatPower } from './utils';
 
 export function finiteNumber(fallback = 0) {
   return z.coerce.number().catch(fallback);
@@ -393,40 +392,26 @@ export const SkillSchema = z.preprocess(
           描述: value,
         }
       : value,
-  z
-    .object({
-      名称: z
-        .string()
-        .transform(value => value.trim())
-        .prefault(''),
-      描述: z
-        .string()
-        .transform(value => value.trim())
-        .prefault(''),
-      类型: z.enum(['功法', '神通', '秘术']).prefault('神通'),
-      品阶: z
-        .string()
-        .transform(v => 品阶映射[v] || '凡')
-        .catch('凡'),
-      熟练度: z
-        .string()
-        .transform(v => normalizeSkillProficiency(v))
-        .catch('入门'),
-      领悟时间: finiteNumber(Date.now()).prefault(() => Date.now()),
-      威力等级: finiteNumber(0).optional(),
-    })
-    .transform(skill => {
-      const 品阶权重: Record<string, number> = { 凡: 1, 黄: 2, 玄: 3, 地: 4, 天: 5, 仙: 6, 圣: 7, 先天: 8 };
-      const 熟练度权重: Record<string, number> = { 入门: 1, 熟练: 2, 精通: 3, 大成: 4, 圆满: 5, 化境: 6 };
-
-      const 品阶值 = 品阶权重[skill.品阶] || 1;
-      const 熟练值 = 熟练度权重[skill.熟练度] || 1;
-
-      return {
-        ...skill,
-        威力等级: 品阶值 * 10 + 熟练值,
-      };
-    }),
+  z.object({
+    名称: z
+      .string()
+      .transform(value => value.trim())
+      .prefault(''),
+    描述: z
+      .string()
+      .transform(value => value.trim())
+      .prefault(''),
+    类型: z.enum(['功法', '神通', '秘术']).prefault('神通'),
+    品阶: z
+      .string()
+      .transform(v => 品阶映射[v] || '凡')
+      .catch('凡'),
+    熟练度: z
+      .string()
+      .transform(v => normalizeSkillProficiency(v))
+      .catch('入门'),
+    领悟时间: finiteNumber(Date.now()).prefault(() => Date.now()),
+  }),
 );
 
 export const SkillListSchema = z
@@ -473,18 +458,15 @@ export const InventorySchema = z
   );
 
 // 境界计算 transform（本尊和红颜共用）
-export function computeRealmInfo(
-  data: {
-    等级: number;
-    修为: number;
-    已活岁月: number;
-    尝试突破?: boolean;
-    修炼状态?: Pick<z.output<typeof CultivationStateSchema>, '阶段'>;
-    神通列表?: Record<string, { 威力等级?: number }>;
-    体质?: string;
-  },
-  includesCombatPower: boolean = false,
-) {
+export function computeRealmInfo(data: {
+  等级: number;
+  修为: number;
+  已活岁月: number;
+  尝试突破?: boolean;
+  修炼状态?: Pick<z.output<typeof CultivationStateSchema>, '阶段'>;
+  神通列表?: Record<string, unknown>;
+  体质?: string;
+}) {
   const level = data.等级;
   const 突破阈值 = getRealmThreshold(level);
   const 寿元上限 = REALM_LIFESPANS[level - 1] ?? 100;
@@ -494,23 +476,5 @@ export function computeRealmInfo(
   const progressRatio = 突破阈值 > 0 ? _.clamp(data.修为 / 突破阈值, 0, 1) : 0;
   const 进度 = `${(progressRatio * 100).toFixed(1)}%`;
 
-  const base = { 突破阈值, 寿元上限, 境界描述, 寿元状态, 状态, 进度 };
-
-  if (!includesCombatPower) return base;
-
-  // 战力计算：境界基础（指数级） + 神通加成 + 体质加成
-  const 境界战力 = calculateBaseCombatPower(level);
-  const 神通列表 = Object.values(data.神通列表 || {});
-  const 最高神通威力 = 神通列表.length > 0 ? Math.max(...神通列表.map(s => s.威力等级 || 0)) : 0;
-  const 体质加成 = (() => {
-    const 体质 = data.体质 || '';
-    if (体质.includes('神')) return 500;
-    if (体质.includes('圣')) return 200;
-    if (体质.includes('道')) return 100;
-    if (体质.includes('灵')) return 50;
-    return 0;
-  })();
-  const 战力值 = 境界战力 + 最高神通威力 + 体质加成;
-
-  return { ...base, 战力值 };
+  return { 突破阈值, 寿元上限, 境界描述, 寿元状态, 状态, 进度 };
 }

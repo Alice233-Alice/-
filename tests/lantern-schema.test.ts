@@ -18,8 +18,10 @@ const {
   REALM_STAGES,
   REALM_THRESHOLDS,
   Schema,
+  compareRealmStanding,
   describeRealmByLevel,
   getRealmThreshold,
+  resolveBattleMomentum,
 } = require('../src/灯火阑珊/schema');
 const BrightSchemaModule = require('../src/灯火通明/schema.ts');
 const {
@@ -61,11 +63,30 @@ function makeCultivator(level: number): any {
   });
 }
 
-test('默认值采用盛法时代与 v2 变量结构', () => {
+test('默认值采用盛法时代与 v4 变量结构', () => {
   const data = parse();
   assert.equal(data.世界时钟.纪元, '盛法时代');
-  assert.equal(data._系统设置.变量结构版本, 2);
+  assert.equal(data._系统设置.变量结构版本, 4);
   assert.equal(data._系统设置.修炼系统版本, 3);
+  assert.deepEqual(data.本尊.战斗状态, {
+    正在战斗: false,
+    阶段: '平静',
+    交锋轮次: 0,
+    战局: {
+      态势: '相持',
+      我方目的: '',
+      敌方目的: '',
+      战场要素: [],
+      态势依据: [],
+      战机: [],
+      危机: [],
+      已显手段: { 我方: [], 敌方: [] },
+      最近转折: '',
+    },
+    负荷: { 真元: '充盈', 神识: '澄明', 肉身: '无恙' },
+    最近战果: { 结果: '无', 对手: [], 达成: '', 代价: [], 后患: [] },
+  });
+  assert.deepEqual(data.本尊.当前敌人, {});
 });
 
 test('灯火通明与灯火阑珊引用同一 Schema 实例', () => {
@@ -87,7 +108,129 @@ test('旧存档缺失版本与境界变动时可迁移且保持幂等', () => {
     目标等级: 0,
     依据: '',
   });
-  assert.equal(migrated._系统设置.变量结构版本, 2);
+  assert.equal(migrated._系统设置.变量结构版本, 4);
+});
+
+test('旧红颜数据迁移后补齐空羁绊纪事并保持幂等', () => {
+  const migrated = parse({
+    红颜: {
+      许听雨: {
+        好感度: 18,
+        关系: '灯会同行',
+        关系上下文: { 当前情绪: '微生好奇' },
+      },
+    },
+    _系统设置: { 变量结构版本: 2 },
+  });
+
+  assert.deepEqual(migrated.红颜.许听雨.羁绊纪事, {});
+  assert.equal(migrated._系统设置.变量结构版本, 4);
+  assert.deepEqual(parse(migrated), migrated);
+});
+
+test('羁绊纪事修复缺省类型并只保留最近八条', () => {
+  const chronicle = Object.fromEntries(
+    Array.from({ length: 9 }, (_, index) => [
+      `纪事${index + 1}`,
+      {
+        ...(index === 8 ? { 类型: '不合法类型' } : { 类型: '交心' }),
+        摘要: `共同经历${index + 1}`,
+        时地: `盛法1年·地点${index + 1}`,
+      },
+    ]),
+  );
+  const data = parse({ 红颜: { 许听雨: { 羁绊纪事: chronicle } } });
+
+  assert.deepEqual(Object.keys(data.红颜.许听雨.羁绊纪事), [
+    '纪事2',
+    '纪事3',
+    '纪事4',
+    '纪事5',
+    '纪事6',
+    '纪事7',
+    '纪事8',
+    '纪事9',
+  ]);
+  assert.equal(data.红颜.许听雨.羁绊纪事.纪事9.类型, '其他');
+  assert.deepEqual(parse(data), data);
+});
+
+test('红颜别名合并时合并羁绊纪事且不覆盖旧记录', () => {
+  const data = parse({
+    红颜: {
+      虞汐颜: {
+        羁绊纪事: {
+          双鱼初醒: { 类型: '相识', 摘要: '双魂初次苏醒。', 时地: '盛法1年·白鹭镇' },
+        },
+      },
+      虞汐: {
+        羁绊纪事: {
+          月下交心: { 类型: '交心', 摘要: '虞汐坦露心中忧惧。', 时地: '盛法1年·月下' },
+        },
+      },
+    },
+  });
+
+  assert.equal(data.红颜.虞汐, undefined);
+  assert.deepEqual(Object.keys(data.红颜.虞汐颜.羁绊纪事), ['双鱼初醒', '月下交心']);
+  assert.deepEqual(parse(data), data);
+});
+
+test('乘黄身份称谓归一为梦杳泠且保持幂等', () => {
+  const data = parse({
+    红颜: {
+      梦杳泠: { 好感度: 1, 关系: '初识' },
+      乘黄少女: {
+        好感度: 3,
+        关系上下文: { 当前情绪: '吃饱后放松下来' },
+        羁绊纪事: {
+          初尝灵果: { 类型: '相识', 摘要: '接受你的喂食后蜷在怀中入睡。', 时地: '盛法1年·青石桥' },
+        },
+      },
+    },
+    _好感度快照: { 梦杳泠: 1, 乘黄少女: 3 },
+  });
+
+  assert.equal(data.红颜.乘黄少女, undefined);
+  assert.equal(data.红颜.梦杳泠.好感度, 3);
+  assert.equal(data.红颜.梦杳泠.关系上下文.当前情绪, '吃饱后放松下来');
+  assert.equal(data.红颜.梦杳泠.羁绊纪事.初尝灵果.类型, '相识');
+  assert.equal(data._好感度快照.乘黄少女, undefined);
+  assert.equal(data._好感度快照.梦杳泠, 3);
+  assert.deepEqual(parse(data), data);
+});
+
+test('羽岚进入默认角色库且旧名、昵称归一', () => {
+  const data = parse({
+    红颜: {
+      羽岚烟: {
+        等级: 7,
+        好感度: 4,
+        关系: '初识',
+        关系上下文: { 当前情绪: '愿与你谈论天渊潮汐' },
+      },
+    },
+    _好感度快照: { 岚烟: 4 },
+  });
+
+  assert.deepEqual(data.红颜角色库.羽岚, {
+    级: 7,
+    根: '风属异灵根',
+    质: '天渊青羽妖体',
+    龄: '化形约一甲子',
+    属: '天渊青羽云雀族巡风使',
+    法: '青羽族传·观渊辨风',
+    器: '青翎（化符成刃）',
+    通: ['渊鸣', '一步缩地', '折叠藏物', '渊域展翼'],
+    自定义立绘: { 正面: '', 背面: '' },
+  });
+  assert.equal(data.红颜.羽岚烟, undefined);
+  assert.equal(data.红颜.岚烟, undefined);
+  assert.equal(data.红颜.羽岚.好感度, 4);
+  assert.equal(data.红颜.羽岚.境界描述, '筑基后期');
+  assert.equal(data._好感度快照.岚烟, undefined);
+  assert.equal(data._好感度快照.羽岚, 4);
+  assert.deepEqual(parse(data), data);
 });
 
 test('1～48 级境界、阈值及整数边界映射正确', () => {
@@ -130,7 +273,27 @@ test('NaN、无穷值、负数量和重复行动可保守归一化', () => {
   assert.equal(data.本尊.灵石, 0);
   assert.equal(data.本尊.背包.空瓶, undefined);
   assert.equal(data.本尊.背包.丹药.数量, 2);
-  assert.equal(data.可参与机遇.length, 1);
+  assert.equal(data.$可参与机遇.length, 1);
+  assert.equal(Object.hasOwn(data, '可参与机遇'), false);
+  assert.deepEqual(parse(data), data);
+});
+
+test('行动成稿在 80 字上限内完整保留并继续限制提示长度', () => {
+  const targetLengthAction = '探'.repeat(70);
+  const overLimitAction = '行'.repeat(81);
+  const data = parse({
+    $可参与机遇: [
+      { 行动: targetLengthAction, 类型: '探索', 提示: '险'.repeat(29) },
+      { 行动: overLimitAction, 类型: '交涉' },
+    ],
+  });
+
+  assert.equal(data.$可参与机遇[0].行动, targetLengthAction);
+  assert.equal(Array.from(data.$可参与机遇[0].行动).length, 70);
+  assert.equal(Array.from(data.$可参与机遇[0].提示 ?? '').length, 28);
+  assert.equal(Array.from(data.$可参与机遇[1].行动).length, 80);
+  assert.equal(data.$可参与机遇[1].行动, '行'.repeat(80));
+  assert.deepEqual(parse(data), data);
 });
 
 test('双重嵌套的行动 patch 可恢复为行动列表', () => {
@@ -147,9 +310,9 @@ test('双重嵌套的行动 patch 可恢复为行动列表', () => {
     ],
   });
 
-  assert.equal(data.可参与机遇.length, 2);
-  assert.equal(data.可参与机遇[0].行动, '闭目调息，将新悟真意化入气海。');
-  assert.equal(data.可参与机遇[1].类型, '交涉');
+  assert.equal(data.$可参与机遇.length, 2);
+  assert.equal(data.$可参与机遇[0].行动, '闭目调息，将新悟真意化入气海。');
+  assert.equal(data.$可参与机遇[1].类型, '交涉');
   assert.deepEqual(parse(data), data);
 });
 
@@ -175,13 +338,13 @@ test('嵌套的逐下标行动 patch 可按顺序恢复', () => {
   });
 
   assert.deepEqual(
-    data.可参与机遇.map((item: { 行动: string }) => item.行动),
+    data.$可参与机遇.map((item: { 行动: string }) => item.行动),
     ['借琴音稳固不争雷网。', '主动迎接剑指考校。', '请教自然与蛰藏的关联。'],
   );
   assert.deepEqual(parse(data), data);
 });
 
-test('神通威力和标准声望称谓只从事实字段重新派生', () => {
+test('旧神通威力被丢弃，标准声望称谓仍从事实字段派生', () => {
   const data = parse({
     本尊: {
       神通列表: {
@@ -199,9 +362,82 @@ test('神通威力和标准声望称谓只从事实字段重新派生', () => {
     },
   });
 
-  assert.equal(data.本尊.神通列表.青冥剑诀.威力等级, 55);
+  assert.equal(data.本尊.神通列表.青冥剑诀.威力等级, undefined);
+  assert.equal(data.本尊.战力值, undefined);
   assert.notEqual(data.声望系统.青云宗.关系, '友好');
   assert.equal(data.声望系统.自定义势力.关系, '座上宾');
+});
+
+test('旧战斗存档和敌人数组迁移为 v4 且重复解析幂等', () => {
+  const migrated = parse({
+    本尊: {
+      战斗状态: {
+        正在战斗: true,
+        当前状态: '激战',
+        灵力值: 36,
+        伤势等级: '重伤',
+        战斗回合: 3,
+        已用底牌: ['燃血秘术'],
+        战力评估: '优势',
+      },
+      当前敌人: [
+        { 名称: '玄煞道人', 境界: '金丹后期', 状态: '轻伤', 特点: '玄煞蚀魂' },
+        { 名称: '玄煞道人', 等级: 8, 状态: '逃离' },
+      ],
+    },
+    _系统设置: { 变量结构版本: 3 },
+  });
+
+  assert.equal(migrated._系统设置.变量结构版本, 4);
+  assert.equal(migrated.本尊.战斗状态.阶段, '交锋');
+  assert.equal(migrated.本尊.战斗状态.交锋轮次, 3);
+  assert.equal(migrated.本尊.战斗状态.战局.态势, '相持');
+  assert.deepEqual(migrated.本尊.战斗状态.战局.已显手段.我方, ['燃血秘术']);
+  assert.deepEqual(migrated.本尊.战斗状态.负荷, { 真元: '吃紧', 神识: '澄明', 肉身: '重创' });
+  assert.equal(migrated.本尊.当前敌人.玄煞道人.境界描述, '金丹后期');
+  assert.equal(migrated.本尊.当前敌人.玄煞道人.状态, '负伤');
+  assert.equal(migrated.本尊.当前敌人['玄煞道人·2'].状态, '退走');
+  assert.deepEqual(parse(migrated), migrated);
+});
+
+test('道争态势只按明确因果推进且跨境常规手段无效', () => {
+  const crossRealm = compareRealmStanding(4, 5);
+  assert.equal(crossRealm, '敌方位格压制');
+  assert.equal(resolveBattleMomentum('相持', 2, { realmStanding: crossRealm, explicitCounter: true }), '相持');
+  assert.equal(resolveBattleMomentum('相持', 1, { realmStanding: '同阶', explicitCounter: true }), '我方占先');
+  assert.equal(
+    resolveBattleMomentum('敌方占先', 9, {
+      realmStanding: '同阶',
+      establishedConditions: true,
+      explicitCounter: true,
+      significantCost: true,
+    }),
+    '我方占先',
+  );
+  assert.equal(resolveBattleMomentum('相持', 1, { realmStanding: '同阶' }), '相持');
+});
+
+test('致命败局只能记录为负或脱身并携带重大代价', () => {
+  const defeated = parse({
+    本尊: {
+      战斗状态: {
+        正在战斗: false,
+        阶段: '余波',
+        负荷: { 真元: '枯竭', 神识: '受创', 肉身: '濒危' },
+        最近战果: {
+          结果: '死亡',
+          对手: ['天外魔尊'],
+          达成: '被古传送阵残片卷走，暂时脱离追杀',
+          代价: ['道基开裂', '本命剑折断'],
+          后患: ['魔尊留下追魂印'],
+        },
+      },
+    },
+  });
+
+  assert.equal(defeated.本尊.战斗状态.最近战果.结果, '脱身');
+  assert.ok(['濒危', '重创'].includes(defeated.本尊.战斗状态.负荷.肉身));
+  assert.ok(defeated.本尊.战斗状态.最近战果.代价.length >= 2);
 });
 
 test('普通突破 4→5 原子结算并清理临时凭证', () => {
@@ -376,8 +612,34 @@ test('变量规则与输出格式 YAML 可解析', () => {
   assert.doesNotThrow(() => YAML.parse(updateRuleText));
   assert.doesNotThrow(() => YAML.parse(outputFormatText));
   assert.match(updateRuleText, /每轮先做“任务审计”/u);
+  assert.match(updateRuleText, /任务列表为空时[\s\S]*必须当轮 insert/u);
   assert.match(updateRuleText, /同一 JSONPatch 必须 insert 接续任务/u);
-  assert.match(outputFormatText, /任务生命周期示例/u);
+  assert.match(updateRuleText, /旧空项\/冗文仅在本人出场/u);
+  assert.match(updateRuleText, /只写当前结论/u);
+  assert.match(updateRuleText, /不得因未直呼姓名或角色无法说话而漏更/u);
+  assert.match(updateRuleText, /无法唯一判断时不猜/u);
+  assert.match(updateRuleText, /40~70 字/u);
+  assert.match(updateRuleText, /\$ 前缀使变量列表宏不向正文 AI 展示/u);
+  assert.match(updateRuleText, /其他候选不得在正文、变量结算或 NPC 反应中同步发生/u);
+  assert.match(outputFormatText, /字段何时变化、生命周期与事务联动由《变量更新规则》定义/u);
+  assert.match(outputFormatText, /只定义输出编码/u);
+  assert.match(outputFormatText, /只有玩家最终提交的 input 会送入正文 AI/u);
+  assert.doesNotMatch(outputFormatText, /境界事务示例|任务生命周期示例|红颜示例/u);
+
+  const outputFormat = YAML.parse(outputFormatText) as { 变量输出格式: { format: string } };
+  const patchMatch = outputFormat.变量输出格式.format.match(/<JSONPatch>\s*([\s\S]*?)\s*<\/JSONPatch>/u);
+  if (!patchMatch) throw new Error('变量输出示例缺少可解析的 JSONPatch');
+  const examplePatch = JSON.parse(patchMatch[1]) as Array<{ path?: string; value?: unknown }>;
+  const opportunityPatch = examplePatch.find(operation => operation.path === '/$可参与机遇');
+  if (!opportunityPatch || !Array.isArray(opportunityPatch.value)) {
+    throw new Error('变量输出示例缺少可参与机遇候选数组');
+  }
+  const exampleActions = opportunityPatch.value as Array<{ 行动: string; 类型: string }>;
+  assert.equal(exampleActions.length, 3);
+  assert.equal(new Set(exampleActions.map(action => action.类型)).size, 3);
+  assert.ok(
+    exampleActions.every(action => Array.from(action.行动).length >= 40 && Array.from(action.行动).length <= 70),
+  );
 });
 
 let passed = 0;

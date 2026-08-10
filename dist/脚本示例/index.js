@@ -5,24 +5,16 @@ import * as __WEBPACK_EXTERNAL_MODULE_https_testingcf_jsdelivr_net_npm_klona_esm
 import * as __WEBPACK_EXTERNAL_MODULE_https_testingcf_jsdelivr_net_npm_pinia_esm_b723a504__ from "https://testingcf.jsdelivr.net/npm/pinia/+esm";
 
 var __webpack_modules__ = {
-  "./util/iframe_srcdoc.html"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-    __webpack_require__.r(__webpack_exports__);
-    __webpack_require__.d(__webpack_exports__, {
-      default: () => __WEBPACK_DEFAULT_EXPORT__
-    });
-    var code = `<!DOCTYPE html>\n<html>\n<head>\n<link rel="stylesheet" href="https://testingcf.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"></link>\n${"<" + "script"} src="https://testingcf.jsdelivr.net/gh/n0vi028/JS-Slash-Runner/lib/tailwindcss.min.js">${"<" + "/script"}>\n${"<" + "script"} src="https://testingcf.jsdelivr.net/npm/jquery">${"<" + "/script"}>\n${"<" + "script"} src="https://testingcf.jsdelivr.net/npm/jquery-ui/dist/jquery-ui.min.js">${"<" + "/script"}>\n<link rel="stylesheet" href="https://testingcf.jsdelivr.net/npm/jquery-ui/themes/base/theme.min.css" />\n${"<" + "script"} src="https://testingcf.jsdelivr.net/npm/jquery-ui-touch-punch">${"<" + "/script"}>\n${"<" + "script"} src="https://testingcf.jsdelivr.net/npm/lodash">${"<" + "/script"}>\n${"<" + "script"} src="https://testingcf.jsdelivr.net/gh/n0vi028/JS-Slash-Runner/src/iframe/adjust_iframe_height.js">${"<" + "/script"}>\n<style>\n*,*::before,*::after{box-sizing:border-box;}\nhtml,body{margin:0!important;padding:0;overflow:hidden!important;max-width:100%!important;}\n</style>\n</head>\n<html>\n`;
-    const __WEBPACK_DEFAULT_EXPORT__ = code;
-  },
-  "./util/script.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/util/script.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
       createScriptIdDiv: () => createScriptIdDiv,
-      createScriptIdIframe: () => createScriptIdIframe,
+      destroyScriptIdDiv: () => destroyScriptIdDiv,
+      deteleportStyle: () => deteleportStyle,
       loadReadme: () => loadReadme,
       reloadOnChatChange: () => reloadOnChatChange,
       teleportStyle: () => teleportStyle
     });
-    var _iframe_srcdoc_html__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./iframe_srcdoc.html */ "./util/iframe_srcdoc.html");
     async function loadReadme(url) {
       const readme = await fetch(url);
       if (!readme.ok) {
@@ -32,21 +24,21 @@ var __webpack_modules__ = {
       replaceScriptInfo(readme_text);
       return true;
     }
-    function teleportStyle(append_to = "head") {
-      const $div = $(`<div>`).attr("script_id", getScriptId()).append($(`head > style`, document).clone()).appendTo(append_to);
-      return {
-        destroy: () => $div.remove()
-      };
+    function teleportStyle() {
+      if ($(`head > div[script_id="${getScriptId()}"]`).length > 0) {
+        return;
+      }
+      const $div = $(`<div>`).attr("script_id", getScriptId()).append($(`head > style`, document).clone());
+      $("head").append($div);
     }
-    function createScriptIdIframe() {
-      return $(`<iframe>`).attr({
-        script_id: getScriptId(),
-        frameborder: 0,
-        srcdoc: _iframe_srcdoc_html__WEBPACK_IMPORTED_MODULE_0__["default"]
-      });
+    function deteleportStyle() {
+      $(`head > div[script_id="${getScriptId()}"]`).remove();
     }
     function createScriptIdDiv() {
       return $("<div>").attr("script_id", getScriptId());
+    }
+    function destroyScriptIdDiv() {
+      $(`div[script_id="${getScriptId()}"]`).remove();
     }
     function reloadOnChatChange() {
       let chat_id = SillyTavern.getCurrentChatId();
@@ -58,7 +50,7 @@ var __webpack_modules__ = {
       });
     }
   },
-  "./示例/脚本示例/settings.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/脚本示例/settings.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
       useSettingsStore: () => useSettingsStore
@@ -88,7 +80,7 @@ var __webpack_modules__ = {
       };
     });
   },
-  "./示例/脚本示例/加载和卸载时执行函数.ts"() {
+  "./src/脚本示例/加载和卸载时执行函数.ts"() {
     $(() => {
       toastr.success("你已经成功加载示例脚本!", "恭喜你!");
     });
@@ -96,7 +88,7 @@ var __webpack_modules__ = {
       toastr.info("你已经卸载示例脚本!", "再见!");
     });
   },
-  "./示例/脚本示例/添加按钮和注册按钮事件.ts"() {
+  "./src/脚本示例/添加按钮和注册按钮事件.ts"() {
     $(() => {
       replaceScriptButtons([ {
         name: "晚上好",
@@ -107,37 +99,38 @@ var __webpack_modules__ = {
       });
     });
   },
-  "./示例/脚本示例/监听消息修改.ts"() {
+  "./src/脚本示例/监听消息修改.ts"() {
     eventOn(tavern_events.MESSAGE_UPDATED, message_id => {
       toastr.error(`谁让你动我第 ${message_id} 楼消息的😡`, `干什么!`);
     });
   },
-  "./示例/脚本示例/聊天文件变更时重载脚本.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/脚本示例/聊天文件变更时重载脚本.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
-    var _util_script__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @util/script */ "./util/script.ts");
+    var _util_script__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @/util/script */ "./src/util/script.ts");
     (0, _util_script__WEBPACK_IMPORTED_MODULE_0__.reloadOnChatChange)();
   },
-  "./示例/脚本示例/设置界面.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/脚本示例/设置界面.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
-    var _util_script__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @util/script */ "./util/script.ts");
-    var _vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./设置界面.vue */ "./示例/脚本示例/设置界面.vue");
+    var _util_script__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @/util/script */ "./src/util/script.ts");
+    var _vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./设置界面.vue */ "./src/脚本示例/设置界面.vue");
     var vue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! vue */ "vue");
     var vue__WEBPACK_IMPORTED_MODULE_2___default = __webpack_require__.n(vue__WEBPACK_IMPORTED_MODULE_2__);
     var pinia__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! pinia */ "pinia");
+    const app = (0, vue__WEBPACK_IMPORTED_MODULE_2__.createApp)(_vue__WEBPACK_IMPORTED_MODULE_1__["default"]).use((0, 
+    pinia__WEBPACK_IMPORTED_MODULE_3__.createPinia)());
     $(() => {
-      const app = (0, vue__WEBPACK_IMPORTED_MODULE_2__.createApp)(_vue__WEBPACK_IMPORTED_MODULE_1__["default"]).use((0, 
-      pinia__WEBPACK_IMPORTED_MODULE_3__.createPinia)());
-      const $app = (0, _util_script__WEBPACK_IMPORTED_MODULE_0__.createScriptIdDiv)().appendTo("#extensions_settings2");
+      const $app = (0, _util_script__WEBPACK_IMPORTED_MODULE_0__.createScriptIdDiv)();
+      $("#extensions_settings2").append($app);
+      (0, _util_script__WEBPACK_IMPORTED_MODULE_0__.teleportStyle)();
       app.mount($app[0]);
-      const {destroy} = (0, _util_script__WEBPACK_IMPORTED_MODULE_0__.teleportStyle)();
-      $(window).on("pagehide", () => {
-        app.unmount();
-        $app.remove();
-        destroy();
-      });
+    });
+    $(window).on("pagehide", () => {
+      app.unmount();
+      (0, _util_script__WEBPACK_IMPORTED_MODULE_0__.deteleportStyle)();
+      (0, _util_script__WEBPACK_IMPORTED_MODULE_0__.destroyScriptIdDiv)();
     });
   },
-  "./示例/脚本示例/调整消息楼层.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/脚本示例/调整消息楼层.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     var dedent__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! dedent */ "dedent");
     "use strict";
@@ -157,7 +150,7 @@ var __webpack_modules__ = {
       });
     });
   },
-  "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-770!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./示例/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-322!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
       default: () => __WEBPACK_DEFAULT_EXPORT__
@@ -165,7 +158,7 @@ var __webpack_modules__ = {
     var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */ "vue");
     var vue__WEBPACK_IMPORTED_MODULE_0___default = __webpack_require__.n(vue__WEBPACK_IMPORTED_MODULE_0__);
     var pinia__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! pinia */ "pinia");
-    var _settings__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./settings */ "./示例/脚本示例/settings.ts");
+    var _settings__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./settings */ "./src/脚本示例/settings.ts");
     const __WEBPACK_DEFAULT_EXPORT__ = (0, vue__WEBPACK_IMPORTED_MODULE_0__.defineComponent)({
       __name: "设置界面",
       setup(__props, {expose: __expose}) {
@@ -186,7 +179,7 @@ var __webpack_modules__ = {
       }
     });
   },
-  "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-770!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./示例/脚本示例/设置界面.vue?vue&type=template&id=b3bade7c&ts=true"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-322!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/脚本示例/设置界面.vue?vue&type=template&id=790d02a9&ts=true"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
       render: () => render
@@ -234,31 +227,31 @@ var __webpack_modules__ = {
       }, null, -1)) ]) ]) ]);
     }
   },
-  "./示例/脚本示例/设置界面.vue"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/脚本示例/设置界面.vue"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
       default: () => __WEBPACK_DEFAULT_EXPORT__
     });
-    var _vue_vue_type_template_id_b3bade7c_ts_true__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./设置界面.vue?vue&type=template&id=b3bade7c&ts=true */ "./示例/脚本示例/设置界面.vue?vue&type=template&id=b3bade7c&ts=true");
-    var _vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./设置界面.vue?vue&type=script&setup=true&lang=ts */ "./示例/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts");
+    var _vue_vue_type_template_id_790d02a9_ts_true__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./设置界面.vue?vue&type=template&id=790d02a9&ts=true */ "./src/脚本示例/设置界面.vue?vue&type=template&id=790d02a9&ts=true");
+    var _vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./设置界面.vue?vue&type=script&setup=true&lang=ts */ "./src/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts");
     var _node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/exportHelper.js");
-    const __exports__ = (0, _node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_2__["default"])(_vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_1__["default"], [ [ "render", _vue_vue_type_template_id_b3bade7c_ts_true__WEBPACK_IMPORTED_MODULE_0__.render ], [ "__file", "示例/脚本示例/设置界面.vue" ] ]);
+    const __exports__ = (0, _node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_2__["default"])(_vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_1__["default"], [ [ "render", _vue_vue_type_template_id_790d02a9_ts_true__WEBPACK_IMPORTED_MODULE_0__.render ], [ "__file", "src/脚本示例/设置界面.vue" ] ]);
     if (false) {}
     const __WEBPACK_DEFAULT_EXPORT__ = __exports__;
   },
-  "./示例/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
-      default: () => _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_770_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_0__["default"]
+      default: () => _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_322_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_0__["default"]
     });
-    var _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_770_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!../../node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!../../node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-770!../../node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./设置界面.vue?vue&type=script&setup=true&lang=ts */ "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-770!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./示例/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts");
+    var _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_322_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_script_setup_true_lang_ts__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!../../node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!../../node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-322!../../node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./设置界面.vue?vue&type=script&setup=true&lang=ts */ "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-322!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/脚本示例/设置界面.vue?vue&type=script&setup=true&lang=ts");
   },
-  "./示例/脚本示例/设置界面.vue?vue&type=template&id=b3bade7c&ts=true"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+  "./src/脚本示例/设置界面.vue?vue&type=template&id=790d02a9&ts=true"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
-      render: () => _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_770_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_templateLoader_js_ruleSet_1_rules_4_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_template_id_b3bade7c_ts_true__WEBPACK_IMPORTED_MODULE_0__.render
+      render: () => _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_322_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_templateLoader_js_ruleSet_1_rules_4_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_template_id_790d02a9_ts_true__WEBPACK_IMPORTED_MODULE_0__.render
     });
-    var _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_770_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_templateLoader_js_ruleSet_1_rules_4_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_template_id_b3bade7c_ts_true__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!../../node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!../../node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-770!../../node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!../../node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./设置界面.vue?vue&type=template&id=b3bade7c&ts=true */ "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-770!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./示例/脚本示例/设置界面.vue?vue&type=template&id=b3bade7c&ts=true");
+    var _node_modules_pnpm_unplugin_3_3_0_webpack_5_108_3_node_modules_unplugin_dist_webpack_loaders_transform_mjs_unplugin_vue_components_node_modules_pnpm_unplugin_2_3_11_node_modules_unplugin_dist_webpack_loaders_transform_js_unplugin_auto_import_node_modules_pnpm_ts_loader_9_6_2_loader_util_649f1bfcf207cacd37d5693f779dd06d_node_modules_ts_loader_index_js_clonedRuleSet_322_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_templateLoader_js_ruleSet_1_rules_4_node_modules_pnpm_vue_loader_17_4_2_vue_comp_0fcc74eb884311066ff818d47de2b3e0_node_modules_vue_loader_dist_index_js_ruleSet_1_rules_6_use_0_vue_vue_type_template_id_790d02a9_ts_true__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!../../node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!../../node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-322!../../node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!../../node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./设置界面.vue?vue&type=template&id=790d02a9&ts=true */ "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.3/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_649f1bfcf207cacd37d5693f779dd06d/node_modules/ts-loader/index.js??clonedRuleSet-322!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/脚本示例/设置界面.vue?vue&type=template&id=790d02a9&ts=true");
   },
   "./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_0fcc74eb884311066ff818d47de2b3e0/node_modules/vue-loader/dist/exportHelper.js"(__unused_webpack_module, exports) {
     Object.defineProperty(exports, "__esModule", {
@@ -375,17 +368,17 @@ function __webpack_require__(moduleId) {
 let __webpack_exports__ = {};
 
 (() => {
-  /*!**************************!*\
-  !*** ./示例/脚本示例/index.ts ***!
-  \**************************/
+  /*!***************************!*\
+  !*** ./src/脚本示例/index.ts ***!
+  \***************************/
   __webpack_require__.r(__webpack_exports__);
-  var ___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./加载和卸载时执行函数 */ "./示例/脚本示例/加载和卸载时执行函数.ts");
+  var ___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./加载和卸载时执行函数 */ "./src/脚本示例/加载和卸载时执行函数.ts");
   var ___WEBPACK_IMPORTED_MODULE_0___default = __webpack_require__.n(___WEBPACK_IMPORTED_MODULE_0__);
-  var ___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./添加按钮和注册按钮事件 */ "./示例/脚本示例/添加按钮和注册按钮事件.ts");
+  var ___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./添加按钮和注册按钮事件 */ "./src/脚本示例/添加按钮和注册按钮事件.ts");
   var ___WEBPACK_IMPORTED_MODULE_1___default = __webpack_require__.n(___WEBPACK_IMPORTED_MODULE_1__);
-  var ___WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./监听消息修改 */ "./示例/脚本示例/监听消息修改.ts");
+  var ___WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./监听消息修改 */ "./src/脚本示例/监听消息修改.ts");
   var ___WEBPACK_IMPORTED_MODULE_2___default = __webpack_require__.n(___WEBPACK_IMPORTED_MODULE_2__);
-  var ___WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./聊天文件变更时重载脚本 */ "./示例/脚本示例/聊天文件变更时重载脚本.ts");
-  var ___WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./设置界面 */ "./示例/脚本示例/设置界面.ts");
-  var ___WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./调整消息楼层 */ "./示例/脚本示例/调整消息楼层.ts");
+  var ___WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./聊天文件变更时重载脚本 */ "./src/脚本示例/聊天文件变更时重载脚本.ts");
+  var ___WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./设置界面 */ "./src/脚本示例/设置界面.ts");
+  var ___WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./调整消息楼层 */ "./src/脚本示例/调整消息楼层.ts");
 })();

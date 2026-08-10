@@ -1,14 +1,10 @@
 ﻿import { Schema } from '../schema';
 
+import { COMPANION_CANONICAL_NAMES } from '../../灯火阑珊-变量结构/companion-aliases';
+
 const GUARD_INSTALLED_KEY = '__踏月寻仙_ui_mvu_guard_installed__';
 const LAST_VALID_STAT_DATA_KEY = '__踏月寻仙_last_valid_stat_data';
 const READONLY_DERIVED_FIELDS = new Set(['突破阈值', '寿元上限', '境界描述', '寿元状态', '状态', '进度']);
-const COMPANION_CANONICAL_NAMES: Record<string, string> = {
-  虞汐: '虞汐颜',
-  虞颜: '虞汐颜',
-  阿鸢: '朔璃鸢',
-  血手飞鸢: '朔璃鸢',
-};
 const pendingCompanionLevels = new Map<string, number>();
 const pendingCompanionLibraryLevels = new Map<string, number>();
 
@@ -31,6 +27,9 @@ function normalizeCommandPath(rawPath: string): string {
   }
 
   path = path.replaceAll('：', ':').replaceAll('。', '.').replace(/\s+/g, '').replace(/\.\.+/g, '.');
+  path = path
+    .replace(/^stat_data\.可参与机遇(?=\.|$)/, 'stat_data.$可参与机遇')
+    .replace(/^可参与机遇(?=\.|$)/, '$可参与机遇');
 
   if (!path.startsWith('stat_data.')) {
     const topLevelKeys = [
@@ -40,7 +39,7 @@ function normalizeCommandPath(rawPath: string): string {
       '任务列表',
       '红颜',
       '地点库',
-      '可参与机遇',
+      '$可参与机遇',
       '当前处境',
       '难度系统',
       '_系统设置',

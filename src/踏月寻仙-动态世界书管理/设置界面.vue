@@ -11,9 +11,15 @@
             <div class="dw-card-title">当前状态</div>
             <div class="dw-status-row">
               <span class="dw-pill" :class="`is-${runtime.bootStatus}`">{{ bootStatusText }}</span>
-              <span class="dw-pill" :class="runtime.processing ? 'is-busy' : 'is-idle'">{{ runtime.processing ? '处理中' : '空闲' }}</span>
-              <span class="dw-pill" :class="settings.enabled ? 'is-on' : 'is-off'">{{ settings.enabled ? '已启用' : '已停用' }}</span>
-              <span class="dw-pill" :class="settings.auto_apply ? 'is-on' : 'is-off'">{{ settings.auto_apply ? '自动应用' : '手动模式' }}</span>
+              <span class="dw-pill" :class="runtime.processing ? 'is-busy' : 'is-idle'">{{
+                runtime.processing ? '处理中' : '空闲'
+              }}</span>
+              <span class="dw-pill" :class="settings.enabled ? 'is-on' : 'is-off'">{{
+                settings.enabled ? '已启用' : '已停用'
+              }}</span>
+              <span class="dw-pill" :class="settings.auto_apply ? 'is-on' : 'is-off'">{{
+                settings.auto_apply ? '自动应用' : '手动模式'
+              }}</span>
             </div>
             <div class="dw-meta-list">
               <div>策略：默认最优</div>
@@ -51,7 +57,14 @@
 
             <label class="dw-field">
               <span>防抖毫秒</span>
-              <input v-model.number="settings.debounce_delay" class="text_pole" type="number" min="100" max="5000" step="100" />
+              <input
+                v-model.number="settings.debounce_delay"
+                class="text_pole"
+                type="number"
+                min="100"
+                max="5000"
+                step="100"
+              />
             </label>
 
             <label class="dw-field">
@@ -61,11 +74,23 @@
 
             <label class="dw-field">
               <span>角色延续轮数</span>
-              <input v-model.number="settings.character_sticky_cycles" class="text_pole" type="number" min="0" max="8" />
+              <input
+                v-model.number="settings.character_sticky_cycles"
+                class="text_pole"
+                type="number"
+                min="0"
+                max="8"
+              />
             </label>
 
             <div class="dw-actions">
-              <input class="menu_button" type="button" value="立即开灯刷新" :disabled="busy" @click="runEnableRefresh" />
+              <input
+                class="menu_button"
+                type="button"
+                value="立即开灯刷新"
+                :disabled="busy"
+                @click="runEnableRefresh"
+              />
               <input class="menu_button" type="button" value="执行收灯" :disabled="busy" @click="runDisableRefresh" />
               <input class="menu_button" type="button" value="同步上下文" :disabled="busy" @click="handleSyncRuntime" />
             </div>
@@ -87,7 +112,11 @@
             <div v-if="runtime.context?.environmentDesc" class="dw-tip">{{ runtime.context.environmentDesc }}</div>
             <div class="dw-subtitle">最近消息</div>
             <div v-if="runtime.context?.recentMessages?.length" class="dw-list">
-              <div v-for="(message, index) in runtime.context.recentMessages.slice(0, 4)" :key="`${index}-${message}`" class="dw-list-item">
+              <div
+                v-for="(message, index) in runtime.context.recentMessages.slice(0, 4)"
+                :key="`${index}-${message}`"
+                class="dw-list-item"
+              >
                 {{ message }}
               </div>
             </div>
@@ -113,7 +142,11 @@
 
             <div class="dw-subtitle">变更条目</div>
             <div v-if="runtime.summary.changedEntries.length" class="dw-list">
-              <div v-for="item in runtime.summary.changedEntries.slice(0, 10)" :key="`${item.name}-${item.mode}-${item.to}`" class="dw-list-item">
+              <div
+                v-for="item in runtime.summary.changedEntries.slice(0, 10)"
+                :key="`${item.name}-${item.mode}-${item.to}`"
+                class="dw-list-item"
+              >
                 <div class="dw-item-main">{{ item.name }}</div>
                 <div class="dw-item-sub">{{ item.from }} → {{ item.to }} · {{ item.mode }}</div>
               </div>
@@ -125,11 +158,21 @@
             <div class="dw-card-title">手动覆盖</div>
             <label class="dw-textarea">
               <span>强制开启条目</span>
-              <textarea v-model="forcedEnableText" class="text_pole" rows="5" placeholder="[地图] 神木枯冢&#10;[角色] 凌寒镜"></textarea>
+              <textarea
+                v-model="forcedEnableText"
+                class="text_pole"
+                rows="5"
+                placeholder="[地图] 天渊&#10;[角色] 羽岚"
+              ></textarea>
             </label>
             <label class="dw-textarea">
               <span>强制关闭条目</span>
-              <textarea v-model="forcedDisableText" class="text_pole" rows="5" placeholder="[地图] 东苍&#10;[角色] 某角色"></textarea>
+              <textarea
+                v-model="forcedDisableText"
+                class="text_pole"
+                rows="5"
+                placeholder="[地图] 东苍&#10;[角色] 羽岚 - 陌生期"
+              ></textarea>
             </label>
             <div class="dw-tip">每行一个完整条目名，保存后会立刻参与判定。强制覆盖优先级高于评分和布尔规则。</div>
           </section>
@@ -137,7 +180,11 @@
           <section class="dw-card">
             <div class="dw-card-title">地图判定</div>
             <div v-if="mapDecisionEntries.length" class="dw-list">
-              <div v-for="item in mapDecisionEntries" :key="`map-score-${item.name}-${item.score}`" class="dw-list-item">
+              <div
+                v-for="item in mapDecisionEntries"
+                :key="`map-score-${item.name}-${item.score}`"
+                class="dw-list-item"
+              >
                 <div class="dw-item-head">
                   <div class="dw-item-main">{{ item.name }}</div>
                   <div class="dw-score-badge" :class="item.matched ? 'is-match' : 'is-wait'">
@@ -145,7 +192,8 @@
                   </div>
                 </div>
                 <div class="dw-item-sub">
-                  {{ item.category }} · {{ item.source === 'override' ? '手动覆盖' : item.source === 'score' ? '评分决策' : '布尔规则' }}
+                  {{ item.category }} ·
+                  {{ item.source === 'override' ? '手动覆盖' : item.source === 'score' ? '评分决策' : '布尔规则' }}
                 </div>
                 <div class="dw-reasons">
                   <div v-for="reason in item.reasons" :key="`map-reason-${item.name}-${reason}`" class="dw-reason">
@@ -160,7 +208,11 @@
           <section class="dw-card">
             <div class="dw-card-title">评分解释</div>
             <div v-if="runtime.summary.topScoredEntries.length" class="dw-list">
-              <div v-for="item in runtime.summary.topScoredEntries.slice(0, 10)" :key="`${item.name}-${item.score}-${item.category}`" class="dw-list-item">
+              <div
+                v-for="item in runtime.summary.topScoredEntries.slice(0, 10)"
+                :key="`${item.name}-${item.score}-${item.category}`"
+                class="dw-list-item"
+              >
                 <div class="dw-item-head">
                   <div class="dw-item-main">{{ item.name }}</div>
                   <div class="dw-score-badge" :class="item.matched ? 'is-match' : 'is-wait'">
@@ -168,7 +220,8 @@
                   </div>
                 </div>
                 <div class="dw-item-sub">
-                  {{ item.category }} · {{ item.source === 'override' ? '手动覆盖' : item.source === 'score' ? '评分决策' : '布尔规则' }}
+                  {{ item.category }} ·
+                  {{ item.source === 'override' ? '手动覆盖' : item.source === 'score' ? '评分决策' : '布尔规则' }}
                 </div>
                 <div class="dw-reasons">
                   <div v-for="reason in item.reasons" :key="`${item.name}-${reason}`" class="dw-reason">
@@ -183,8 +236,20 @@
           <section class="dw-card">
             <div class="dw-card-title">规则体检</div>
             <div class="dw-actions">
-              <input class="menu_button" type="button" value="运行体检" :disabled="busy" @click="handleRunDiagnostics" />
-              <input class="menu_button" type="button" value="上下文填入沙盒" :disabled="busy" @click="hydrateSandboxFromRuntime" />
+              <input
+                class="menu_button"
+                type="button"
+                value="运行体检"
+                :disabled="busy"
+                @click="handleRunDiagnostics"
+              />
+              <input
+                class="menu_button"
+                type="button"
+                value="上下文填入沙盒"
+                :disabled="busy"
+                @click="hydrateSandboxFromRuntime"
+              />
             </div>
             <div v-if="runtime.diagnostics" class="dw-metrics dw-metrics-dense">
               <div class="dw-metric">
@@ -212,26 +277,55 @@
               <div v-if="runtime.diagnostics.unmanagedSamples.length" class="dw-list-item">
                 <div class="dw-item-main">未纳管条目样本</div>
                 <div class="dw-reasons">
-                  <div v-for="entry in runtime.diagnostics.unmanagedSamples" :key="`unmanaged-${entry}`" class="dw-reason">{{ entry }}</div>
+                  <div
+                    v-for="entry in runtime.diagnostics.unmanagedSamples"
+                    :key="`unmanaged-${entry}`"
+                    class="dw-reason"
+                  >
+                    {{ entry }}
+                  </div>
                 </div>
               </div>
               <div v-if="runtime.diagnostics.unmappedMapEntries.length" class="dw-list-item">
                 <div class="dw-item-main">未建立映射的地图条目</div>
                 <div class="dw-reasons">
-                  <div v-for="entry in runtime.diagnostics.unmappedMapEntries" :key="`map-${entry}`" class="dw-reason">{{ entry }}</div>
+                  <div v-for="entry in runtime.diagnostics.unmappedMapEntries" :key="`map-${entry}`" class="dw-reason">
+                    {{ entry }}
+                  </div>
                 </div>
               </div>
               <div v-if="runtime.diagnostics.unknownCharacterEntries.length" class="dw-list-item">
-                <div class="dw-item-main">未在当前红颜数据中找到的角色条目</div>
+                <div class="dw-item-main">未在红颜或角色库中找到的角色条目</div>
                 <div class="dw-reasons">
-                  <div v-for="entry in runtime.diagnostics.unknownCharacterEntries" :key="`character-${entry}`" class="dw-reason">{{ entry }}</div>
+                  <div
+                    v-for="entry in runtime.diagnostics.unknownCharacterEntries"
+                    :key="`character-${entry}`"
+                    class="dw-reason"
+                  >
+                    {{ entry }}
+                  </div>
                 </div>
               </div>
-              <div v-if="runtime.diagnostics.overrideConflicts.length || runtime.diagnostics.orphanOverrideEntries.length" class="dw-list-item">
+              <div
+                v-if="runtime.diagnostics.overrideConflicts.length || runtime.diagnostics.orphanOverrideEntries.length"
+                class="dw-list-item"
+              >
                 <div class="dw-item-main">手动覆盖异常</div>
                 <div class="dw-reasons">
-                  <div v-for="entry in runtime.diagnostics.overrideConflicts" :key="`conflict-${entry}`" class="dw-reason">开启/关闭同时写入：{{ entry }}</div>
-                  <div v-for="entry in runtime.diagnostics.orphanOverrideEntries" :key="`orphan-${entry}`" class="dw-reason">世界书中未找到：{{ entry }}</div>
+                  <div
+                    v-for="entry in runtime.diagnostics.overrideConflicts"
+                    :key="`conflict-${entry}`"
+                    class="dw-reason"
+                  >
+                    开启/关闭同时写入：{{ entry }}
+                  </div>
+                  <div
+                    v-for="entry in runtime.diagnostics.orphanOverrideEntries"
+                    :key="`orphan-${entry}`"
+                    class="dw-reason"
+                  >
+                    世界书中未找到：{{ entry }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -256,29 +350,57 @@
 
             <label class="dw-textarea">
               <span>环境描述</span>
-              <textarea v-model="sandboxEnvironment" class="text_pole" rows="3" placeholder="例如：藤海深处，岁月灰烬飘散，木瘴弥漫。"></textarea>
+              <textarea
+                v-model="sandboxEnvironment"
+                class="text_pole"
+                rows="3"
+                placeholder="例如：藤海深处，岁月灰烬飘散，木瘴弥漫。"
+              ></textarea>
             </label>
 
             <label class="dw-textarea">
               <span>测试消息</span>
-              <textarea v-model="sandboxMessages" class="text_pole" rows="6" placeholder="每行一条消息，用来模拟最近上下文。"></textarea>
+              <textarea
+                v-model="sandboxMessages"
+                class="text_pole"
+                rows="6"
+                placeholder="每行一条消息，例如：岚烟邀你前往天渊巡风观潮。"
+              ></textarea>
             </label>
 
             <div class="dw-actions">
-              <input class="menu_button" type="button" value="预演命中结果" :disabled="busy" @click="handleRunPreview" />
-              <input class="menu_button" type="button" value="用当前上下文填充" :disabled="busy" @click="hydrateSandboxFromRuntime" />
+              <input
+                class="menu_button"
+                type="button"
+                value="预演命中结果"
+                :disabled="busy"
+                @click="handleRunPreview"
+              />
+              <input
+                class="menu_button"
+                type="button"
+                value="用当前上下文填充"
+                :disabled="busy"
+                @click="hydrateSandboxFromRuntime"
+              />
             </div>
 
             <template v-if="runtime.preview">
               <div class="dw-subtitle">预演命中条目</div>
               <div v-if="runtime.preview.matchedEntries.length" class="dw-tag-list">
-                <span v-for="entry in runtime.preview.matchedEntries" :key="`preview-${entry}`" class="dw-tag">{{ entry }}</span>
+                <span v-for="entry in runtime.preview.matchedEntries" :key="`preview-${entry}`" class="dw-tag">{{
+                  entry
+                }}</span>
               </div>
               <div v-else class="dw-empty">这组上下文暂时没有命中可常亮条目</div>
 
               <div class="dw-subtitle">预演评分明细</div>
               <div v-if="runtime.preview.topScoredEntries.length" class="dw-list">
-                <div v-for="item in runtime.preview.topScoredEntries" :key="`preview-score-${item.name}-${item.score}`" class="dw-list-item">
+                <div
+                  v-for="item in runtime.preview.topScoredEntries"
+                  :key="`preview-score-${item.name}-${item.score}`"
+                  class="dw-list-item"
+                >
                   <div class="dw-item-head">
                     <div class="dw-item-main">{{ item.name }}</div>
                     <div class="dw-score-badge" :class="item.matched ? 'is-match' : 'is-wait'">
@@ -286,10 +408,17 @@
                     </div>
                   </div>
                   <div class="dw-item-sub">
-                    {{ item.category }} · {{ item.source === 'override' ? '手动覆盖' : item.source === 'score' ? '评分决策' : '布尔规则' }}
+                    {{ item.category }} ·
+                    {{ item.source === 'override' ? '手动覆盖' : item.source === 'score' ? '评分决策' : '布尔规则' }}
                   </div>
                   <div class="dw-reasons">
-                    <div v-for="reason in item.reasons" :key="`preview-reason-${item.name}-${reason}`" class="dw-reason">{{ reason }}</div>
+                    <div
+                      v-for="reason in item.reasons"
+                      :key="`preview-reason-${item.name}-${reason}`"
+                      class="dw-reason"
+                    >
+                      {{ reason }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -300,7 +429,9 @@
           <section class="dw-card dw-card-span">
             <div class="dw-card-title">当前常亮条目</div>
             <div v-if="runtime.summary.activeEntries.length" class="dw-tag-list">
-              <span v-for="entry in runtime.summary.activeEntries.slice(0, 24)" :key="entry" class="dw-tag">{{ entry }}</span>
+              <span v-for="entry in runtime.summary.activeEntries.slice(0, 24)" :key="entry" class="dw-tag">{{
+                entry
+              }}</span>
             </div>
             <div v-else class="dw-empty">暂无常亮条目快照</div>
           </section>
@@ -314,7 +445,15 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { getRuntimeSnapshot, onRuntimeSnapshotChange, refreshRuntimeSnapshot, runManualRefresh, runPreviewSimulation, runRuntimeDiagnostics, type DynamicWorldbookPreviewInput } from './runtime';
+import {
+  getRuntimeSnapshot,
+  onRuntimeSnapshotChange,
+  refreshRuntimeSnapshot,
+  runManualRefresh,
+  runPreviewSimulation,
+  runRuntimeDiagnostics,
+  type DynamicWorldbookPreviewInput,
+} from './runtime';
 import { useSettingsStore } from './settings';
 
 const settingsStore = useSettingsStore();

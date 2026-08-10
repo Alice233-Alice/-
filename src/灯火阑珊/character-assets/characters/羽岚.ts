@@ -1,0 +1,28 @@
+import type { CharacterAssetConfig, CharacterImagePool } from '../types';
+import { buildCharacterImageUrls } from '../image-url';
+
+// 角色已更名为“羽岚”，服务器上的历史图片文件名仍为“羽岚烟 (编号).png”。
+const IMAGE_FILENAME_PREFIX = '羽岚烟';
+
+const FRONT_IMAGE_IDS = [
+  27, 26, 21, 20, 19, 18, 17, 16, 12, 13, 14, 10, 7, 5, 4, 3, 2, 102, 100, 99, 98, 96, 95, 94, 93, 90, 89, 88, 84, 86,
+  80, 79, 81, 82, 78, 77, 75, 65, 64, 59, 61, 57, 55, 54, 53, 50, 43, 46, 42, 40, 37, 38, 36, 32, 34, 45, 47, 105, 104,
+  103,
+] as const;
+
+const BACK_IMAGE_IDS = [
+  6, 9, 8, 11, 15, 22, 25, 24, 23, 28, 29, 30, 33, 35, 39, 41, 44, 48, 49, 52, 51, 56, 58, 62, 60, 63, 66, 70, 69, 68,
+  67, 71, 72, 73, 74, 76, 85, 83, 92, 91, 97, 101,
+] as const;
+
+export const assets = {
+  normal: {
+    front: 'random_front',
+    back: 'random_back',
+  },
+} satisfies CharacterAssetConfig;
+
+export const imagePool = {
+  front: buildCharacterImageUrls(IMAGE_FILENAME_PREFIX, FRONT_IMAGE_IDS),
+  back: buildCharacterImageUrls(IMAGE_FILENAME_PREFIX, BACK_IMAGE_IDS),
+} satisfies CharacterImagePool;

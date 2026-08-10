@@ -1,658 +1,388 @@
 <template>
   <div class="peace-panel">
-    <!-- 状态卡片 -->
-    <div class="peace-state-card" :class="{ 'recovery-mode': isInRecovery }">
-      <div class="peace-icon-wrapper">
-        <i :class="isInRecovery ? recoveryIcon : 'fa-solid fa-dove'"
-           class="peace-icon"
-           :style="isInRecovery ? { color: iconColor, filter: `drop-shadow(0 0 15px ${iconColor}80)` } : undefined"></i>
-        <div class="peace-glow"
-             :style="isInRecovery ? { background: `radial-gradient(circle, ${iconColor}4D 0%, transparent 70%)` } : undefined"></div>
+    <section class="state-card" :class="{ recovery: isInRecovery }">
+      <div class="state-icon" :class="stateTone"><i :class="stateIcon"></i></div>
+      <div class="state-copy">
+        <span>{{ isInRecovery ? '劫后观身' : '道心澄明' }}</span>
+        <strong>{{ title }}</strong>
+        <p>{{ subtitle }}</p>
       </div>
-      <div class="peace-title" :style="isInRecovery ? { color: iconColor, textShadow: `0 0 20px ${iconColor}80` } : undefined">
-        {{ isInRecovery ? title : '天下太平' }}
-      </div>
-      <div class="peace-subtitle">
-        {{ isInRecovery ? subtitle : '此刻无风无浪，正是修行良机' }}
-      </div>
-    </div>
+    </section>
 
-    <!-- 状态一览 -->
-    <div class="peace-stats">
-      <div class="peace-stat-item">
-        <div class="peace-stat-icon" :class="{ 'spirit-low': isInRecovery && spiritValue < 100 }">
-          <i class="fa-solid fa-fire-flame-curved"></i>
-        </div>
-        <div class="peace-stat-content">
-          <div class="peace-stat-label">{{ isInRecovery && spiritValue < 100 ? '灵力恢复中' : '灵力充盈' }}</div>
-          <div class="peace-stat-bar">
-            <div class="peace-stat-fill spirit" :style="{
-              width: `${spiritValue}%`,
-              background: isInRecovery ? getSpiritGradient(spiritValue) : undefined
-            }"></div>
-          </div>
-          <div class="peace-stat-value">{{ spiritValue }}%</div>
-        </div>
+    <section class="burden-section">
+      <div class="section-heading">
+        <span><i class="fa-solid fa-wave-square"></i> 身心状态</span>
       </div>
-
-      <div class="peace-stat-item">
-        <div class="peace-stat-icon" :class="{
-          health: !isInRecovery || injuryLevel === '无伤',
-          [`injury-recovery-${injuryLevel}`]: isInRecovery && injuryLevel !== '无伤'
-        }">
-          <i :class="getInjuryIcon(injuryLevel)"></i>
-        </div>
-        <div class="peace-stat-content">
-          <div class="peace-stat-label">身体状况</div>
-          <div class="peace-stat-status" :class="`status-${injuryLevel}`">
-            <i :class="getInjuryIcon(injuryLevel)"></i>
-            {{ injuryLevel }}
+      <div class="burden-grid">
+        <div v-for="item in burdenItems" :key="item.label" class="burden-card" :class="`tone-${item.tone}`">
+          <i :class="item.icon"></i>
+          <div>
+            <small>{{ item.label }}</small
+            ><b>{{ item.value }}</b>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- 劫力承受（渡劫余波时） -->
-      <div class="peace-stat-item" v-if="isInRecovery && tribEndurance < 100">
-        <div class="peace-stat-icon tribulation-recovery">
-          <i class="fa-solid fa-shield-halved"></i>
-        </div>
-        <div class="peace-stat-content">
-          <div class="peace-stat-label">劫力承受</div>
-          <div class="peace-stat-bar">
-            <div class="peace-stat-fill tribulation" :style="{
-              width: `${tribEndurance}%`,
-              backgroundColor: tribEndurance > 50 ? '#8844ff' : '#ff4444'
-            }"></div>
-          </div>
-          <div class="peace-stat-value">{{ tribEndurance }}%</div>
-        </div>
+    <section v-if="showBattleResult" class="result-section" :class="`result-${battleResult.结果}`">
+      <div class="section-heading">
+        <span><i class="fa-solid fa-scroll"></i> 最近战果</span>
+        <b>{{ battleResult.结果 }}</b>
       </div>
+      <p v-if="battleResult.对手.length"><small>对手</small>{{ battleResult.对手.join('、') }}</p>
+      <p v-if="battleResult.达成"><small>所成</small>{{ battleResult.达成 }}</p>
+      <div v-if="battleResult.代价.length" class="result-list costs">
+        <small>代价</small><span v-for="item in battleResult.代价" :key="item">{{ item }}</span>
+      </div>
+      <div v-if="battleResult.后患.length" class="result-list aftermath">
+        <small>后患</small><span v-for="item in battleResult.后患" :key="item">{{ item }}</span>
+      </div>
+    </section>
 
-      <!-- 综合战力 -->
-      <div class="peace-stat-item" v-if="playerCombatPower">
-        <div class="peace-stat-icon power">
-          <i class="fa-solid fa-fist-raised"></i>
-        </div>
-        <div class="peace-stat-content">
-          <div class="peace-stat-label">综合战力</div>
-          <div class="combat-power-value">
-            <span class="power-number" style="font-size: 18px;">{{ playerCombatPower }}</span>
-          </div>
-        </div>
+    <section v-if="activeEnemies.length" class="residual-section">
+      <div class="section-heading">
+        <span><i class="fa-solid fa-eye"></i> 敌意未消</span>
       </div>
-    </div>
+      <div class="residual-list">
+        <span v-for="[name, enemy] in activeEnemies" :key="name"
+          ><b>{{ name }}</b
+          >{{ enemy.境界描述 }} · {{ enemy.状态 }}</span
+        >
+      </div>
+    </section>
 
-    <!-- 已用底牌/护道（恢复期） -->
-    <div class="recovery-used-section" v-if="isInRecovery && usedItems.length > 0">
-      <div class="recovery-used-header">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        <span>近期动用手段</span>
+    <section v-if="showTribulationResult" class="tribulation-result">
+      <div class="section-heading">
+        <span><i class="fa-solid fa-bolt-lightning"></i> 渡劫记录</span>
       </div>
-      <div class="recovery-used-list">
-        <span v-for="item in usedItems" :key="item" class="recovery-used-tag">
-          {{ item }}
-        </span>
-      </div>
-    </div>
+      <strong>{{ tribulationState?.上次渡劫结果 === '成功' ? '劫云已散，道途更进' : '此劫未过，尚需调养' }}</strong>
+      <p v-if="tribulationState?.失败惩罚记录">{{ tribulationState.失败惩罚记录 }}</p>
+    </section>
 
-    <!-- 残余敌人 -->
-    <div class="recovery-enemies-section" v-if="isInRecovery && aliveEnemyCount > 0">
-      <div class="recovery-enemies-header">
-        <i class="fa-solid fa-eye"></i>
-        <span>周围仍有敌意</span>
-        <span class="enemy-count">{{ aliveEnemyCount }}</span>
-      </div>
-      <div class="recovery-enemies-list">
-        <div v-for="(enemy, index) in aliveEnemies"
-             :key="index"
-             class="recovery-enemy-item">
-          <span class="recovery-enemy-name">{{ enemy.名称 }}</span>
-          <span class="recovery-enemy-realm">{{ enemy.境界 }}</span>
-          <span class="recovery-enemy-status" :class="`health-${enemy.状态}`">{{ enemy.状态 }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 渡劫结果 -->
-    <div class="tribulation-result-section" v-if="isInRecovery && lastTribResult && lastTribResult !== '无'">
-      <div class="tribulation-result-header">
-        <i class="fa-solid fa-bolt-lightning"></i>
-        <span>渡劫记录</span>
-      </div>
-      <div class="tribulation-result-content" :class="`result-${lastTribResult}`">
-        <i :class="lastTribResult === '成功' ? 'fa-solid fa-check-circle' : 'fa-solid fa-times-circle'"></i>
-        <span>{{ lastTribResult === '成功' ? '渡劫成功' : '渡劫失败' }}</span>
-      </div>
-      <div class="tribulation-penalty" v-if="lastTribResult === '失败' && tribulationState?.失败惩罚记录">
-        {{ tribulationState.失败惩罚记录 }}
-      </div>
-    </div>
-
-    <!-- 提示信息 -->
-    <div class="cultivation-tips" :class="{ 'recovery-tips': isInRecovery }">
-      <div class="tip-header">
-        <i :class="isInRecovery ? 'fa-solid fa-notes-medical' : 'fa-solid fa-lightbulb'"></i>
-        <span>{{ isInRecovery ? '恢复建议' : '修行建议' }}</span>
-      </div>
-      <div class="tip-content">
-        {{ tip }}
-      </div>
-    </div>
+    <section class="advice-card">
+      <span><i class="fa-solid fa-compass"></i>{{ isInRecovery ? '调息建议' : '修行建议' }}</span>
+      <p>{{ advice }}</p>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { CombatState, EnemyInfo, TribulationState } from './combat-utils';
-import { getInjuryIcon, getSpiritGradient } from './combat-utils';
+import type { CombatState, EnemyRecord, TribulationState } from './combat-utils';
+import { getBurdenTone, isEnemyActive } from './combat-utils';
 
 const props = defineProps<{
-  combatState?: CombatState;
-  currentEnemies?: EnemyInfo[];
+  combatState: CombatState;
+  currentEnemies: EnemyRecord;
   tribulationState?: TribulationState;
-  playerCombatPower?: number;
   isInRecovery: boolean;
 }>();
 
-// 派生值
-const spiritValue = computed(() => props.combatState?.灵力值 ?? 100);
-const injuryLevel = computed(() => props.combatState?.伤势等级 ?? '无伤');
-const tribEndurance = computed(() => props.tribulationState?.劫力承受 ?? 100);
-const lastTribResult = computed(() => props.tribulationState?.上次渡劫结果);
-
-const aliveEnemies = computed(() =>
-  props.currentEnemies?.filter(e => e.状态 !== '已死') ?? []
+const battleResult = computed(() => props.combatState.最近战果);
+const showBattleResult = computed(() => props.combatState.阶段 === '余波' && battleResult.value.结果 !== '无');
+const showTribulationResult = computed(
+  () => !!props.tribulationState?.上次渡劫结果 && props.tribulationState.上次渡劫结果 !== '无',
 );
-const aliveEnemyCount = computed(() => aliveEnemies.value.length);
-
-const usedItems = computed(() => [
-  ...(props.combatState?.已用底牌 ?? []),
-  ...(props.tribulationState?.已用护道 ?? []),
+const activeEnemies = computed(() =>
+  Object.entries(props.currentEnemies ?? {}).filter(([, enemy]) => isEnemyActive(enemy)),
+);
+const burdenItems = computed(() => [
+  {
+    label: '真元',
+    value: props.combatState.负荷.真元,
+    icon: 'fa-solid fa-fire-flame-curved',
+    tone: getBurdenTone(props.combatState.负荷.真元),
+  },
+  {
+    label: '神识',
+    value: props.combatState.负荷.神识,
+    icon: 'fa-solid fa-eye',
+    tone: getBurdenTone(props.combatState.负荷.神识),
+  },
+  {
+    label: '肉身',
+    value: props.combatState.负荷.肉身,
+    icon: 'fa-solid fa-heart-pulse',
+    tone: getBurdenTone(props.combatState.负荷.肉身),
+  },
 ]);
 
-// 恢复状态标题
 const title = computed(() => {
-  const injury = injuryLevel.value;
-  if (injury === '濒死') return '命悬一线';
-  if (injury === '重伤') return '伤势未愈';
-  if (injury === '轻伤') return '轻伤调养';
-  if (spiritValue.value < 30) return '灵力枯竭';
-  if (spiritValue.value < 70) return '灵力不济';
-  if (tribEndurance.value < 50) return '劫后余生';
-  if (lastTribResult.value === '成功') return '渡劫功成';
-  if (lastTribResult.value === '失败') return '劫难余波';
-  if (aliveEnemyCount.value > 0) return '暗敌环伺';
-  return '战后恢复';
-});
-
-// 恢复状态副标题
-const subtitle = computed(() => {
-  const injury = injuryLevel.value;
-  const spirit = spiritValue.value;
-  if (injury === '濒死') return '重创在身，急需疗伤保命';
-  if (injury === '重伤') return '伤筋动骨，需静养恢复';
-  if (injury === '轻伤') return '皮外之伤，稍事休息即可';
-  if (spirit < 30) return '灵力将竭，亟需打坐恢复';
-  if (spirit < 70) return '灵力不足，暂避锋芒为上';
-  if (lastTribResult.value === '成功') return '劫难已过，境界有望精进';
-  if (lastTribResult.value === '失败') return '劫难未过，需休养生息';
-  if (aliveEnemyCount.value > 0) return '敌人尚存，不可掉以轻心';
-  return '此战虽毕，仍需调息恢复';
-});
-
-// 恢复状态图标颜色
-const iconColor = computed(() => {
-  const injury = injuryLevel.value;
-  if (injury === '濒死') return '#ff4444';
-  if (injury === '重伤') return '#ff8800';
-  if (injury === '轻伤') return '#ffcc00';
-  if (spiritValue.value < 50) return '#4a9eff';
-  if (lastTribResult.value === '成功') return '#44cc88';
-  if (lastTribResult.value === '失败') return '#ff6666';
-  if (aliveEnemyCount.value > 0) return '#ff8888';
-  return '#ffaa44';
-});
-
-// 恢复状态图标
-const recoveryIcon = computed(() => {
-  const injury = injuryLevel.value;
-  if (injury === '濒死') return 'fa-solid fa-skull';
-  if (injury === '重伤') return 'fa-solid fa-heart-crack';
-  if (injury === '轻伤') return 'fa-solid fa-bandage';
-  if (spiritValue.value < 50) return 'fa-solid fa-fire-flame-curved';
-  if (lastTribResult.value === '成功') return 'fa-solid fa-sun';
-  if (lastTribResult.value === '失败') return 'fa-solid fa-cloud-bolt';
-  if (aliveEnemyCount.value > 0) return 'fa-solid fa-eye';
-  return 'fa-solid fa-heart-pulse';
-});
-
-// 提示文案
-const tip = computed(() => {
-  if (props.isInRecovery) {
-    const injury = injuryLevel.value;
-    const spirit = spiritValue.value;
-    if (injury === '濒死') return '性命攸关，应立即服用疗伤丹药或寻找安全之地疗伤，切勿再战。';
-    if (injury === '重伤') return '伤势不轻，建议寻找安全之地闭关疗伤，或服用疗伤丹药加速恢复。';
-    if (injury === '轻伤') return '伤势尚轻，打坐调息数个时辰即可恢复，可考虑服用丹药加速。';
-    if (spirit < 30) return '灵力将竭，需立即打坐恢复灵力，切忌贸然使用神通。';
-    if (spirit < 70) return '灵力不足，建议打坐恢复后再行动，可借助灵石加速恢复。';
-    if (lastTribResult.value === '成功') return '渡劫成功，趁热打铁巩固境界，感悟天道，切勿浪费这难得的领悟。';
-    if (lastTribResult.value === '失败') return '渡劫失败，需调养身心，待状态恢复至巅峰后再做打算。';
-    if (aliveEnemyCount.value > 0) return '周围仍有敌意，需保持警惕，做好再战准备或寻路撤离。';
-    return '战斗已毕，建议调息恢复至巅峰状态后再继续前行。';
+  const burden = props.combatState.负荷;
+  if (burden.肉身 === '濒危') return '命悬一线';
+  if (burden.肉身 === '重创') return '肉身重创';
+  if (burden.神识 === '受创') return '识海受创';
+  if (burden.真元 === '枯竭') return '真元枯竭';
+  if (showBattleResult.value) {
+    const titles = {
+      胜: '此战已定',
+      负: '败而得生',
+      脱身: '已脱杀局',
+      议和: '干戈暂止',
+      中止: '道争中止',
+      无: '天下太平',
+    } as const;
+    return titles[battleResult.value.结果];
   }
-  const tips = [
-    '静心打坐，感悟天地灵气，可提升修为根基。',
-    '此时可研读典籍，或向前辈请教功法要诀。',
-    '闭关修炼，锤炼神通，方能在险境中保全自身。',
-    '游历四方，增长见识，亦是修行的一部分。',
-    '寻觅机缘，或可得到意想不到的收获。',
-    '炼丹制器，囤积修行资源，有备无患。',
-    '与道友切磋，互相印证修行心得。',
-    '探索秘境，寻找珍稀灵材与传承。',
-  ];
-  return tips[Math.floor(Date.now() / 60000) % tips.length];
+  if (showTribulationResult.value) return props.tribulationState?.上次渡劫结果 === '成功' ? '渡劫功成' : '劫后余波';
+  return '天下太平';
+});
+
+const subtitle = computed(() => {
+  if (showBattleResult.value && battleResult.value.达成) return battleResult.value.达成;
+  if (props.combatState.负荷.肉身 !== '无恙') return '伤势未复，不宜再争一时锋芒。';
+  if (props.combatState.负荷.神识 !== '澄明') return '识海尚有余震，宜静守灵台。';
+  if (props.combatState.负荷.真元 !== '充盈') return '气海未满，先行吐纳调息。';
+  return '此刻无风无浪，正是修行良机。';
+});
+
+const stateTone = computed(() => {
+  if (
+    props.combatState.负荷.肉身 === '濒危' ||
+    props.combatState.负荷.神识 === '受创' ||
+    props.combatState.负荷.真元 === '枯竭'
+  )
+    return 'critical';
+  if (props.isInRecovery) return 'recovery';
+  return 'peace';
+});
+const stateIcon = computed(() =>
+  stateTone.value === 'critical'
+    ? 'fa-solid fa-heart-crack'
+    : stateTone.value === 'recovery'
+      ? 'fa-solid fa-hand-holding-medical'
+      : 'fa-solid fa-dove',
+);
+
+const advice = computed(() => {
+  const burden = props.combatState.负荷;
+  if (burden.肉身 === '濒危') return '先保命脉，再论得失；疗伤、求援或寻找安全之地皆优先于继续斗法。';
+  if (burden.肉身 === '重创') return '静养肉身并查清暗伤，强行运功可能令战后代价进一步加深。';
+  if (burden.神识 === '受创' || burden.神识 === '动荡') return '收束神念、稳守识海，暂避搜魂、幻术与高强度御器。';
+  if (burden.真元 === '枯竭' || burden.真元 === '吃紧')
+    return '先恢复真元再涉险地；丹药与灵石只能加快恢复，不能抹去已有反噬。';
+  if (battleResult.value.后患.length) return `此战未尽之事：${battleResult.value.后患[0]}`;
+  return '可打坐温养气机、参悟所得，或为下一段道途预作准备。';
 });
 </script>
 
 <style lang="scss" scoped>
-// 状态卡片
-.peace-state-card {
-  display: flex;
-  flex-direction: column;
+.peace-panel {
+  display: grid;
+  gap: 14px;
+  color: var(--text-primary);
+}
+.state-card,
+.burden-section,
+.result-section,
+.residual-section,
+.tribulation-result,
+.advice-card {
+  border: 1px solid var(--line-subtle);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--reading-surface) 92%, transparent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--stage-shadow) 22%, transparent);
+}
+.state-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  justify-content: center;
-  padding: 30px 20px;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, rgba(68, 170, 68, 0.1) 0%, rgba(100, 200, 150, 0.08) 100%);
-  border: 1px solid rgba(68, 170, 68, 0.3);
-  border-radius: 16px;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.5s ease;
-
-  &.recovery-mode {
-    background: linear-gradient(135deg, rgba(255, 170, 68, 0.1) 0%, rgba(255, 136, 68, 0.08) 100%);
-    border-color: rgba(255, 170, 68, 0.35);
-    &::before {
-      background: radial-gradient(circle, rgba(255, 170, 68, 0.1) 0%, transparent 70%);
-    }
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(68, 170, 68, 0.1) 0%, transparent 70%);
-    animation: peace-glow 4s ease-in-out infinite;
-  }
-
-  .peace-icon-wrapper {
-    position: relative;
-    margin-bottom: 16px;
-
-    .peace-icon {
-      font-size: 48px;
-      color: #66cc88;
-      filter: drop-shadow(0 0 15px rgba(102, 204, 136, 0.5));
-      animation: peace-float 3s ease-in-out infinite;
-    }
-
-    .peace-glow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 80px;
-      height: 80px;
-      background: radial-gradient(circle, rgba(102, 204, 136, 0.3) 0%, transparent 70%);
-      border-radius: 50%;
-      animation: peace-pulse 2s ease-in-out infinite;
-    }
-  }
-
-  .peace-title {
-    font-size: 22px;
-    font-weight: bold;
-    color: #66cc88;
-    text-shadow: 0 0 20px rgba(102, 204, 136, 0.5);
-    margin-bottom: 8px;
-    position: relative;
-    z-index: 1;
-    transition: color 0.3s ease;
-  }
-
-  .peace-subtitle {
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-style: italic;
-    position: relative;
-    z-index: 1;
-  }
+  gap: 15px;
+  padding: 20px;
 }
-
-@keyframes peace-glow {
-  0%, 100% { transform: translate(-50%, -50%) rotate(0deg); opacity: 0.5; }
-  50% { transform: translate(-50%, -50%) rotate(180deg); opacity: 0.8; }
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 13%, transparent);
+  font-size: 22px;
 }
-@keyframes peace-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+.state-icon.recovery {
+  color: #e6b867;
+  background: rgba(230, 184, 103, 0.13);
 }
-@keyframes peace-pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
-  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.2; }
+.state-icon.critical {
+  color: var(--semantic-danger);
+  background: color-mix(in srgb, var(--semantic-danger) 13%, transparent);
 }
-
-// 恢复期图标变色
-.peace-stat-icon.spirit-low {
-  background: rgba(255, 170, 0, 0.15) !important;
-  color: #ffaa00 !important;
+.state-copy {
+  display: grid;
+  gap: 3px;
 }
-
-.peace-stat-icon {
-  &.injury-recovery-轻伤 { background: rgba(255, 204, 0, 0.15) !important; color: #ffcc00 !important; }
-  &.injury-recovery-重伤 { background: rgba(255, 136, 0, 0.15) !important; color: #ff8800 !important; }
-  &.injury-recovery-濒死 {
-    background: rgba(255, 68, 68, 0.15) !important;
-    color: #ff4444 !important;
-    animation: pulse-danger 1.5s ease-in-out infinite;
-  }
-  &.tribulation-recovery { background: rgba(136, 68, 255, 0.15); color: #8844ff; }
-  &.power { background: rgba(255, 170, 100, 0.15); color: #ffaa64; }
+.state-copy > span {
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.13em;
 }
-
-// 状态一览
-.peace-stats {
+.state-copy strong {
+  color: var(--jade);
+  font-size: 21px;
+}
+.state-card.recovery .state-copy strong {
+  color: #e6b867;
+}
+.state-copy p,
+.advice-card p,
+.tribulation-result p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.burden-section,
+.result-section,
+.residual-section,
+.tribulation-result,
+.advice-card {
+  padding: 14px 16px;
+}
+.section-heading {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-
-  .peace-stat-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-
-    .peace-stat-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(74, 158, 255, 0.15);
-      border-radius: 10px;
-      color: #4a9eff;
-      font-size: 18px;
-
-      &.health {
-        background: rgba(102, 204, 136, 0.15);
-        color: #66cc88;
-      }
-    }
-
-    .peace-stat-content {
-      flex: 1;
-
-      .peace-stat-label {
-        font-size: 12px;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
-      }
-
-      .peace-stat-bar {
-        height: 8px;
-        background: var(--progress-bg);
-        border-radius: 4px;
-        overflow: hidden;
-
-        .peace-stat-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.5s ease;
-
-          &.spirit {
-            background: linear-gradient(90deg, #4a9eff, #66bbff);
-            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
-          }
-
-          &.tribulation {
-            border-radius: 4px;
-            transition: width 0.5s ease;
-            box-shadow: 0 0 10px rgba(136, 68, 255, 0.4);
-          }
-        }
-      }
-
-      .peace-stat-value {
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text-accent);
-        margin-top: 4px;
-      }
-
-      .combat-power-value {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        margin-top: 2px;
-
-        .power-number {
-          font-weight: bold;
-          color: #ffaa64;
-          text-shadow: 0 0 10px rgba(255, 170, 100, 0.4);
-        }
-      }
-
-      .peace-stat-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 500;
-
-        i { font-size: 12px; }
-
-        &.status-无伤 { background: rgba(68, 170, 68, 0.15); color: #44aa44; }
-        &.status-轻伤 { background: rgba(255, 204, 0, 0.15); color: #ffcc00; }
-        &.status-重伤 { background: rgba(255, 136, 0, 0.15); color: #ff8800; }
-        &.status-濒死 {
-          background: rgba(255, 68, 68, 0.15);
-          color: #ff4444;
-          animation: pulse-danger 1.5s ease-in-out infinite;
-        }
-      }
-    }
-  }
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 11px;
 }
-
-// 恢复期已用手段
-.recovery-used-section {
-  margin-bottom: 16px;
-  padding: 14px;
-  background: linear-gradient(135deg, rgba(255, 200, 100, 0.08) 0%, rgba(255, 180, 80, 0.05) 100%);
-  border: 1px dashed rgba(255, 200, 100, 0.3);
-  border-radius: 12px;
-
-  .recovery-used-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #ffc864;
-    i { font-size: 14px; }
-  }
-
-  .recovery-used-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-
-    .recovery-used-tag {
-      padding: 5px 14px;
-      background: rgba(255, 200, 100, 0.15);
-      border: 1px solid rgba(255, 200, 100, 0.4);
-      border-radius: 15px;
-      font-size: 12px;
-      color: #ffc864;
-    }
-  }
+.section-heading span,
+.advice-card > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
 }
-
-// 残余敌人
-.recovery-enemies-section {
-  margin-bottom: 16px;
-  padding: 14px;
-  background: var(--bg-secondary);
-  border: 1px solid rgba(255, 100, 100, 0.25);
-  border-radius: 12px;
-
-  .recovery-enemies-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #ff8888;
-    i { font-size: 14px; }
-
-    .enemy-count {
-      margin-left: auto;
-      padding: 2px 10px;
-      background: rgba(255, 100, 100, 0.15);
-      border-radius: 10px;
-      font-size: 12px;
-      color: #ff6b6b;
-    }
-  }
-
-  .recovery-enemies-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .recovery-enemy-item {
-    display: flex;
-    align-items: center;
+.section-heading i,
+.advice-card i {
+  color: var(--gold);
+}
+.section-heading b {
+  color: var(--gold);
+}
+.burden-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.burden-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 11px;
+}
+.burden-card > i {
+  font-size: 17px;
+}
+.burden-card > div {
+  display: grid;
+  gap: 2px;
+}
+.burden-card small {
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+.burden-card b {
+  font-size: 13px;
+}
+.tone-clear i,
+.tone-clear b {
+  color: var(--jade);
+}
+.tone-steady i,
+.tone-steady b {
+  color: var(--semantic-info);
+}
+.tone-strained i,
+.tone-strained b {
+  color: #e8a84c;
+}
+.tone-critical i,
+.tone-critical b {
+  color: var(--semantic-danger);
+}
+.result-section {
+  border-color: color-mix(in srgb, var(--gold) 34%, var(--line-subtle));
+}
+.result-section > p {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 8px;
+  margin: 7px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.result-section > p small,
+.result-list > small {
+  color: var(--gold);
+}
+.result-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+.result-list > small {
+  margin-right: 4px;
+}
+.result-list span {
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--semantic-danger) 9%, transparent);
+  font-size: 10px;
+}
+.result-list.aftermath span {
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+}
+.residual-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.residual-list span {
+  display: inline-flex;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--semantic-danger) 9%, transparent);
+  font-size: 10px;
+}
+.residual-list b {
+  color: var(--text-primary);
+}
+.tribulation-result {
+  display: grid;
+  gap: 5px;
+}
+.advice-card {
+  display: grid;
+  gap: 8px;
+  border-style: dashed;
+}
+@media (max-width: 760px) {
+  .peace-panel {
     gap: 10px;
-    padding: 8px 12px;
-    background: var(--button-bg);
-    border-radius: 8px;
-    font-size: 12px;
-
-    .recovery-enemy-name { font-weight: 500; color: #ff8888; }
-
-    .recovery-enemy-realm {
-      padding: 2px 8px;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 10px;
-      color: var(--text-accent);
-    }
-
-    .recovery-enemy-status {
-      margin-left: auto;
-      font-size: 11px;
-      &.health-完好 { color: #44aa44; }
-      &.health-轻伤 { color: #ffcc00; }
-      &.health-重伤 { color: #ff8800; }
-      &.health-濒死 { color: #ff4444; }
-    }
   }
-}
-
-// 渡劫结果
-.tribulation-result-section {
-  margin-bottom: 16px;
-  padding: 14px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-
-  .tribulation-result-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #8844ff;
-    i { font-size: 14px; }
+  .state-card,
+  .burden-section,
+  .result-section,
+  .residual-section,
+  .tribulation-result,
+  .advice-card {
+    padding: 12px;
+    border-radius: 11px;
   }
-
-  .tribulation-result-content {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
-    border-radius: 15px;
-    font-size: 14px;
-    font-weight: 600;
-
-    &.result-成功 { background: rgba(68, 204, 136, 0.15); color: #44cc88; }
-    &.result-失败 { background: rgba(255, 68, 68, 0.15); color: #ff6666; }
+  .burden-card {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    padding: 10px 5px;
+    text-align: center;
   }
-
-  .tribulation-penalty {
-    margin-top: 10px;
-    padding: 10px 12px;
-    background: rgba(255, 68, 68, 0.08);
-    border: 1px dashed rgba(255, 68, 68, 0.3);
-    border-radius: 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-}
-
-// 提示
-.cultivation-tips {
-  padding: 16px;
-  background: linear-gradient(135deg, rgba(255, 200, 100, 0.08) 0%, rgba(255, 180, 80, 0.05) 100%);
-  border: 1px dashed rgba(255, 200, 100, 0.3);
-  border-radius: 12px;
-
-  &.recovery-tips {
-    border-color: rgba(255, 170, 100, 0.3);
-    background: linear-gradient(135deg, rgba(255, 170, 100, 0.08) 0%, rgba(255, 136, 68, 0.05) 100%);
-    .tip-header { color: #ffaa64; }
-  }
-
-  .tip-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #ffc864;
-    i { font-size: 14px; }
-  }
-
-  .tip-content {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    font-style: italic;
-  }
-}
-
-@keyframes pulse-danger {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(255, 68, 68, 0); }
 }
 </style>

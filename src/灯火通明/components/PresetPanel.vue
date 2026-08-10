@@ -110,40 +110,37 @@
         </div>
       </div>
 
-      <!-- 历劫状态 -->
+      <!-- 身心与历劫状态 -->
       <div class="preset-section">
         <div class="section-title">
           <i class="fa-solid fa-bolt"></i>
-          <span>历劫状态</span>
+          <span>身心与历劫状态</span>
         </div>
         <div class="form-row">
-          <label>正在战斗</label>
-          <select v-model="formData.战斗状态.正在战斗">
-            <option :value="false">否</option>
-            <option :value="true">是</option>
+          <label>真元</label>
+          <select v-model="formData.战斗状态.负荷.真元">
+            <option value="充盈">充盈</option>
+            <option value="尚足">尚足</option>
+            <option value="吃紧">吃紧</option>
+            <option value="枯竭">枯竭</option>
           </select>
         </div>
         <div class="form-row">
-          <label>当前状态</label>
-          <select v-model="formData.战斗状态.当前状态">
-            <option value="非战斗">非战斗</option>
-            <option value="对峙">对峙</option>
-            <option value="激战">激战</option>
-            <option value="重伤">重伤</option>
-            <option value="濒死">濒死</option>
+          <label>神识</label>
+          <select v-model="formData.战斗状态.负荷.神识">
+            <option value="澄明">澄明</option>
+            <option value="疲乏">疲乏</option>
+            <option value="动荡">动荡</option>
+            <option value="受创">受创</option>
           </select>
         </div>
         <div class="form-row">
-          <label>灵力值</label>
-          <input v-model.number="formData.战斗状态.灵力值" type="number" min="0" max="100" />
-        </div>
-        <div class="form-row">
-          <label>伤势等级</label>
-          <select v-model="formData.战斗状态.伤势等级">
-            <option value="无伤">无伤</option>
-            <option value="轻伤">轻伤</option>
-            <option value="重伤">重伤</option>
-            <option value="濒死">濒死</option>
+          <label>肉身</label>
+          <select v-model="formData.战斗状态.负荷.肉身">
+            <option value="无恙">无恙</option>
+            <option value="轻创">轻创</option>
+            <option value="重创">重创</option>
+            <option value="濒危">濒危</option>
           </select>
         </div>
         <div class="form-row">
@@ -553,7 +550,6 @@ interface SkillData {
   品阶: string;
   熟练度: string;
   领悟时间: number;
-  威力等级?: number;
 }
 
 // 物品数据类型
@@ -603,10 +599,11 @@ interface CharacterLibraryData {
 }
 
 interface CombatStatusData {
-  正在战斗: boolean;
-  当前状态: string;
-  灵力值: number;
-  伤势等级: string;
+  负荷: {
+    真元: '充盈' | '尚足' | '吃紧' | '枯竭';
+    神识: '澄明' | '疲乏' | '动荡' | '受创';
+    肉身: '无恙' | '轻创' | '重创' | '濒危';
+  };
 }
 
 interface TribulationStatusData {
@@ -647,10 +644,11 @@ const formData = ref({
   当前区域: '',
   所属层级: '',
   战斗状态: {
-    正在战斗: false,
-    当前状态: '非战斗',
-    灵力值: 100,
-    伤势等级: '无伤',
+    负荷: {
+      真元: '充盈',
+      神识: '澄明',
+      肉身: '无恙',
+    },
   } as CombatStatusData,
   渡劫状态: {
     正在渡劫: false,
@@ -825,7 +823,6 @@ const loadCurrentData = () => {
         品阶: skill.品阶 || '凡',
         熟练度: skill.熟练度 || '入门',
         领悟时间: skill.领悟时间 || Date.now(),
-        威力等级: skill.威力等级,
       };
     }
   }
@@ -871,9 +868,9 @@ const loadCurrentData = () => {
     }
   }
 
-// 加载红颜
-const 红颜: Record<string, CompanionData> = {};
-if (store.红颜) {
+  // 加载红颜
+  const 红颜: Record<string, CompanionData> = {};
+  if (store.红颜) {
     for (const [name, companion] of Object.entries(store.红颜)) {
       const 神通列表: Record<string, SkillData> = {};
       if (companion.神通列表) {
@@ -885,7 +882,6 @@ if (store.红颜) {
             品阶: skill.品阶 || '凡',
             熟练度: skill.熟练度 || '入门',
             领悟时间: skill.领悟时间 || Date.now(),
-            威力等级: skill.威力等级,
           };
         }
       }
@@ -928,10 +924,11 @@ if (store.红颜) {
     当前区域: store.本尊.行踪?.当前区域 ?? '',
     所属层级: store.本尊.行踪?.所属层级 ?? '',
     战斗状态: {
-      正在战斗: store.本尊.战斗状态?.正在战斗 ?? false,
-      当前状态: store.本尊.战斗状态?.当前状态 ?? '非战斗',
-      灵力值: store.本尊.战斗状态?.灵力值 ?? 100,
-      伤势等级: store.本尊.战斗状态?.伤势等级 ?? '无伤',
+      负荷: {
+        真元: store.本尊.战斗状态?.负荷?.真元 ?? '充盈',
+        神识: store.本尊.战斗状态?.负荷?.神识 ?? '澄明',
+        肉身: store.本尊.战斗状态?.负荷?.肉身 ?? '无恙',
+      },
     },
     渡劫状态: {
       正在渡劫: store.本尊.渡劫状态?.正在渡劫 ?? false,
@@ -1024,6 +1021,11 @@ const buildManualTransientOverride = (targetMessageId: number | 'latest', conten
   updatedAt: Date.now(),
 });
 
+const createPeaceCombatState = (status: CombatStatusData) => ({
+  ..._.cloneDeep(Schema.parse({}).本尊.战斗状态),
+  负荷: _.cloneDeep(status.负荷),
+});
+
 // 应用预设
 const applyPreset = async () => {
   const messageId = getCurrentMessageId();
@@ -1049,12 +1051,8 @@ const applyPreset = async () => {
         当前区域: formData.value.当前区域,
         所属层级: formData.value.所属层级,
       },
-      战斗状态: {
-        正在战斗: formData.value.战斗状态.正在战斗,
-        当前状态: formData.value.战斗状态.当前状态,
-        灵力值: formData.value.战斗状态.灵力值,
-        伤势等级: formData.value.战斗状态.伤势等级,
-      },
+      战斗状态: createPeaceCombatState(formData.value.战斗状态),
+      当前敌人: {},
       渡劫状态: {
         正在渡劫: formData.value.渡劫状态.正在渡劫,
         劫种: formData.value.渡劫状态.劫种,
@@ -1085,12 +1083,18 @@ const applyPreset = async () => {
     _.set(mergedStatData, '本尊.神通列表', _.cloneDeep(patchData.本尊.神通列表));
     _.set(mergedStatData, '本尊.法宝', _.cloneDeep(patchData.本尊.法宝));
     _.set(mergedStatData, '本尊.背包', _.cloneDeep(patchData.本尊.背包));
+    _.set(mergedStatData, '本尊.战斗状态', _.cloneDeep(patchData.本尊.战斗状态));
+    _.set(mergedStatData, '本尊.当前敌人', {});
     // 红颜预设同理：所选即最终列表
     _.set(mergedStatData, '红颜', _.cloneDeep(patchData.红颜));
     _.set(mergedStatData, '任务列表', _.cloneDeep(patchData.任务列表));
     // 预设属于手动校准，应同步刷新快照，避免被 AI 单回合增量限制截断。
     _.set(mergedStatData, '_好感度快照', _.cloneDeep(favorSnapshot));
-    _.set(mergedStatData, '_系统设置._临时状态手动覆盖签名', buildManualTransientOverride(message_id, currentMessageContent).narrativeSignature);
+    _.set(
+      mergedStatData,
+      '_系统设置._临时状态手动覆盖签名',
+      buildManualTransientOverride(message_id, currentMessageContent).narrativeSignature,
+    );
     _.set(nextData, 'stat_data', Schema.parse(mergedStatData));
     await Mvu.replaceMvuData(nextData, { type: 'message', message_id });
   };
@@ -1124,7 +1128,8 @@ const applyPreset = async () => {
         _.set(vars, 'stat_data.本尊.身份.出身', formData.value.出身);
         _.set(vars, 'stat_data.本尊.行踪.当前区域', formData.value.当前区域);
         _.set(vars, 'stat_data.本尊.行踪.所属层级', formData.value.所属层级);
-        _.set(vars, 'stat_data.本尊.战斗状态', _.cloneDeep(formData.value.战斗状态));
+        _.set(vars, 'stat_data.本尊.战斗状态', createPeaceCombatState(formData.value.战斗状态));
+        _.set(vars, 'stat_data.本尊.当前敌人', {});
         _.set(vars, 'stat_data.本尊.渡劫状态', _.cloneDeep(formData.value.渡劫状态));
         _.set(vars, 'stat_data.本尊.神通列表', convertSkillsToMvu());
         _.set(vars, 'stat_data.本尊.法宝', convertItemsToMvu(formData.value.法宝));
@@ -1132,7 +1137,11 @@ const applyPreset = async () => {
         _.set(vars, 'stat_data.红颜', convertCompanionsToMvu());
         _.set(vars, 'stat_data.任务列表', convertQuestsToMvu());
         _.set(vars, 'stat_data._好感度快照', favorSnapshot);
-        _.set(vars, MANUAL_TRANSIENT_OVERRIDE_PATH, buildManualTransientOverride(messageId, currentMessageContent).narrativeSignature);
+        _.set(
+          vars,
+          MANUAL_TRANSIENT_OVERRIDE_PATH,
+          buildManualTransientOverride(messageId, currentMessageContent).narrativeSignature,
+        );
         return vars;
       },
       { type: 'message', message_id: messageId },
@@ -1161,10 +1170,7 @@ const resetToDefault = () => {
     当前区域: defaultData.本尊.行踪?.当前区域 ?? '',
     所属层级: defaultData.本尊.行踪?.所属层级 ?? '',
     战斗状态: {
-      正在战斗: defaultData.本尊.战斗状态?.正在战斗 ?? false,
-      当前状态: defaultData.本尊.战斗状态?.当前状态 ?? '非战斗',
-      灵力值: defaultData.本尊.战斗状态?.灵力值 ?? 100,
-      伤势等级: defaultData.本尊.战斗状态?.伤势等级 ?? '无伤',
+      负荷: _.cloneDeep(defaultData.本尊.战斗状态.负荷),
     },
     渡劫状态: {
       正在渡劫: defaultData.本尊.渡劫状态?.正在渡劫 ?? false,
@@ -1190,7 +1196,7 @@ const exportPreset = () => {
   const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
   const normalizedSpiritStone = Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone;
   const exportData = {
-    version: '1.3',
+    version: '1.4',
     exportTime: new Date().toISOString(),
     preset: {
       基础属性: {
@@ -1213,7 +1219,7 @@ const exportPreset = () => {
         所属层级: formData.value.所属层级,
       },
       历劫状态: {
-        战斗状态: _.cloneDeep(formData.value.战斗状态),
+        战斗状态: { 负荷: _.cloneDeep(formData.value.战斗状态.负荷) },
         渡劫状态: _.cloneDeep(formData.value.渡劫状态),
       },
       任务列表: convertQuestsToMvu(),
@@ -1283,11 +1289,11 @@ const importPreset = (event: Event) => {
 
       // 加载历劫状态
       if (preset.历劫状态?.战斗状态) {
+        const migratedCombatState = Schema.parse({
+          本尊: { 战斗状态: preset.历劫状态.战斗状态 },
+        }).本尊.战斗状态;
         formData.value.战斗状态 = {
-          正在战斗: preset.历劫状态.战斗状态.正在战斗 ?? formData.value.战斗状态.正在战斗,
-          当前状态: preset.历劫状态.战斗状态.当前状态 ?? formData.value.战斗状态.当前状态,
-          灵力值: preset.历劫状态.战斗状态.灵力值 ?? formData.value.战斗状态.灵力值,
-          伤势等级: preset.历劫状态.战斗状态.伤势等级 ?? formData.value.战斗状态.伤势等级,
+          负荷: _.cloneDeep(migratedCombatState.负荷),
         };
       }
       if (preset.历劫状态?.渡劫状态) {
@@ -1328,7 +1334,6 @@ const importPreset = (event: Event) => {
             品阶: skill.品阶 || '凡',
             熟练度: skill.熟练度 || '入门',
             领悟时间: skill.领悟时间 || Date.now(),
-            威力等级: skill.威力等级,
           };
         }
       }
@@ -1376,7 +1381,6 @@ const importPreset = (event: Event) => {
                 品阶: skill.品阶 || '凡',
                 熟练度: skill.熟练度 || '入门',
                 领悟时间: skill.领悟时间 || Date.now(),
-                威力等级: skill.威力等级,
               };
             }
           }

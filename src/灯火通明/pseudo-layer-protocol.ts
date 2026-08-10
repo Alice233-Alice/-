@@ -1,5 +1,5 @@
 export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
-export const PSEUDO_LAYER_VERSION = 9;
+export const PSEUDO_LAYER_VERSION = 10;
 export const PSEUDO_LAYER_MIN_COMPATIBLE_VERSION = 4;
 export const PSEUDO_LAYER_SUPPORTED_VERSIONS = Array.from(
   { length: PSEUDO_LAYER_VERSION - PSEUDO_LAYER_MIN_COMPATIBLE_VERSION + 1 },
@@ -7,6 +7,7 @@ export const PSEUDO_LAYER_SUPPORTED_VERSIONS = Array.from(
 );
 export const PSEUDO_LAYER_MESSAGE_EDITING_VERSION = 8;
 export const PSEUDO_LAYER_TIMELINE_PAGING_VERSION = 9;
+export const PSEUDO_LAYER_USER_MESSAGE_EDITING_VERSION = 10;
 
 export const isSupportedPseudoLayerVersion = (value: unknown): value is number =>
   typeof value === 'number' &&
@@ -173,6 +174,15 @@ export type PseudoLayerRequest =
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
       version: number;
+      type: 'update_user_message';
+      requestId: string;
+      messageId: number;
+      userMessageId: number;
+      content: string;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
       type: 'navigate';
       messageId: number;
       direction: 'previous' | 'next';
@@ -271,6 +281,7 @@ export type PseudoLayerResponse =
       type: 'message_updated';
       requestId: string;
       messageId: number;
+      userMessageId?: number;
     }
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
@@ -304,6 +315,7 @@ const REQUEST_TYPES = new Set([
   'reroll',
   'delete_message',
   'update_message',
+  'update_user_message',
   'navigate',
   'timeline_page',
   'select_entry',

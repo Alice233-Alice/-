@@ -15,332 +15,448 @@
         @pointerup.passive="handlePointerUp"
         @pointercancel.passive="handlePointerUp"
       >
-      <div v-if="pseudo.timelineLoading && pseudo.timelineHasOlder" class="timeline-loading">
-        <i class="fa-solid fa-circle-notch fa-spin"></i>
-        正在展开更早历程
-      </div>
+        <div v-if="pseudo.timelineLoading && pseudo.timelineHasOlder" class="timeline-loading">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          正在展开更早历程
+        </div>
 
-      <div v-if="pseudo.timelineError" class="timeline-error">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <span>{{ pseudo.timelineError }}</span>
-        <button type="button" @click="requestInitialPage">重试</button>
-      </div>
+        <div v-if="pseudo.timelineError" class="timeline-error">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>{{ pseudo.timelineError }}</span>
+          <button type="button" @click="requestInitialPage">重试</button>
+        </div>
 
-      <template v-for="entry in pseudo.timelineEntries" :key="entry.representativeMessageId">
-        <article
-          v-if="entry.stage.kind === 'story'"
-          class="timeline-entry story-entry"
-          :class="{
-            latest: entry.representativeMessageId === pseudo.view.latestMessageId,
-            rerolling: isRerollTargetEntry(entry),
-          }"
-          :data-timeline-id="entry.representativeMessageId"
-        >
-          <header class="entry-heading">
-            <span class="entry-ordinal">第 {{ entry.historyIndex }} 回</span>
-            <span
-              v-if="entry.turns[0]?.tokenCount !== undefined"
-              class="entry-token-count"
-              title="本层回复 Token"
-            >
-              {{ entry.turns[0].tokenCount }}t
-            </span>
-            <span class="entry-rule"></span>
-            <span v-if="isRerollTargetEntry(entry)" class="live-mark">
-              <i class="fa-solid fa-circle-notch fa-spin"></i>
-              {{ liveStatus }}
-            </span>
-            <span v-else-if="entry.representativeMessageId === pseudo.view.latestMessageId" class="latest-mark">当前</span>
-            <div class="entry-menu-wrap">
-              <button
-                type="button"
-                class="entry-menu-trigger"
-                title="回合操作"
-                @click.stop="toggleMenu(entry.representativeMessageId)"
+        <template v-for="entry in pseudo.timelineEntries" :key="entry.representativeMessageId">
+          <article
+            v-if="entry.stage.kind === 'story'"
+            class="timeline-entry story-entry"
+            :class="{
+              latest: entry.representativeMessageId === pseudo.view.latestMessageId,
+              rerolling: isRerollTargetEntry(entry),
+            }"
+            :data-timeline-id="entry.representativeMessageId"
+          >
+            <header class="entry-heading">
+              <span class="entry-ordinal">第 {{ entry.historyIndex }} 回</span>
+              <span v-if="entry.turns[0]?.tokenCount !== undefined" class="entry-token-count" title="本层回复 Token">
+                {{ entry.turns[0].tokenCount }}t
+              </span>
+              <span class="entry-rule"></span>
+              <span v-if="isRerollTargetEntry(entry)" class="live-mark">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                {{ liveStatus }}
+              </span>
+              <span v-else-if="entry.representativeMessageId === pseudo.view.latestMessageId" class="latest-mark"
+                >当前</span
               >
-                <i class="fa-solid fa-ellipsis"></i>
-              </button>
-              <div
-                v-if="openMenuId === entry.representativeMessageId"
-                class="entry-menu"
-                role="menu"
-                @click.stop
-              >
+              <div class="entry-menu-wrap">
                 <button
                   type="button"
-                  role="menuitem"
-                  :disabled="!pseudo.canEditMessage"
-                  @click="editTurn(entry.representativeMessageId, `第 ${entry.historyIndex} 回`)"
+                  class="entry-menu-trigger"
+                  title="回合操作"
+                  @click.stop="toggleMenu(entry.representativeMessageId)"
                 >
-                  <i class="fa-solid fa-pen-to-square"></i> 编辑原文
+                  <i class="fa-solid fa-ellipsis"></i>
                 </button>
-                <button
-                  v-if="entry.representativeMessageId === pseudo.view.latestMessageId"
-                  type="button"
-                  role="menuitem"
-                  :disabled="!pseudo.canRerollLatest"
-                  @click="rerollLatest(entry.representativeMessageId)"
-                >
-                  <i class="fa-solid fa-rotate-right"></i> 重新生成
-                </button>
-                <button
-                  v-if="entry.representativeMessageId === pseudo.view.latestMessageId"
-                  type="button"
-                  role="menuitem"
-                  class="danger"
-                  :disabled="!pseudo.canDeleteLatest"
-                  @click="askDelete(entry.representativeMessageId, '本回剧情')"
-                >
-                  <i class="fa-solid fa-trash-can"></i> 删除本回
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <template v-if="entry.turns[0]">
-            <div v-if="entry.turns[0].userText" class="story-action">
-              <span class="action-avatar"><i class="fa-solid fa-feather-pointed"></i></span>
-              <div>
-                <small>你的行动</small>
-                <p :class="{ expanded: expandedPrompts.has(entry.representativeMessageId) }">
-                  {{ cleanUserText(entry.turns[0].userText) }}
-                </p>
-                <button
-                  v-if="entry.turns[0].userText.length > 110"
-                  type="button"
-                  @click="togglePrompt(entry.representativeMessageId)"
-                >
-                  {{ expandedPrompts.has(entry.representativeMessageId) ? '收起' : '展开完整行动' }}
-                </button>
-              </div>
-            </div>
-
-            <div
-              v-if="storyReasoningText(entry) && !storyReasoningUsesOwnDisclosure(entry)"
-              class="entry-context entry-context-before-prose"
-            >
-              <button
-                type="button"
-                class="reasoning-shell"
-                :class="{ active: isContextOpen(entry.representativeMessageId, 'reasoning') }"
-                :aria-expanded="isContextOpen(entry.representativeMessageId, 'reasoning')"
-                title="展开灵台观照"
-                @click="toggleContext(entry.representativeMessageId, 'reasoning')"
-              >
-                <span class="reasoning-shell-glyph"><i class="fa-solid fa-fire-flame-curved"></i></span>
-                <span class="reasoning-shell-title">
-                  <strong>灵台观照</strong>
-                  <small>一念入定 · 照见推演脉络</small>
-                </span>
-                <span class="reasoning-shell-ornament" aria-hidden="true"><i></i><b>◇</b><i></i></span>
-                <span v-if="isRerollTargetEntry(entry) && liveReasoningStreaming" class="reasoning-shell-state">
-                  <i class="fa-solid fa-circle-notch fa-spin"></i>
-                  观照流转中<span v-if="pseudo.reasoningDuration">
-                    · {{ formatDuration(pseudo.reasoningDuration) }}</span
-                  >
-                </span>
-                <span
-                  v-else-if="
-                    isRerollTargetEntry(entry)
-                      ? pseudo.reasoningDuration !== null
-                      : entry.turns[0].reasoningDuration
-                  "
-                  class="reasoning-shell-time"
-                >
-                  <small>推演历时</small>
-                  <strong>
-                    {{
-                      formatDuration(
-                        isRerollTargetEntry(entry)
-                          ? (pseudo.reasoningDuration ?? 0)
-                          : (entry.turns[0].reasoningDuration ?? 0),
-                      )
-                    }}
-                  </strong>
-                </span>
-                <span v-else class="reasoning-shell-state">观照已成</span>
-                <i class="fa-solid fa-chevron-down reasoning-shell-chevron"></i>
-              </button>
-            </div>
-            <section
-              v-if="
-                (isContextOpen(entry.representativeMessageId, 'reasoning') || storyReasoningUsesOwnDisclosure(entry)) &&
-                storyReasoningText(entry)
-              "
-              class="context-detail reasoning-detail reasoning-detail-before-prose"
-            >
-              <ReasoningDisplay
-                :text="storyReasoningText(entry)"
-                :raw-message="storyReasoningRawMessage(entry)"
-                :message-id="entry.turns[0].assistantMessageId"
-                :open-preset-disclosure="!storyReasoningUsesOwnDisclosure(entry)"
-                :streaming="isRerollTargetEntry(entry) && liveReasoningStreaming"
-              />
-            </section>
-
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <div
-              v-if="isRerollTargetEntry(entry) && liveStoryHtml"
-              class="story-prose reroll-live-copy"
-              v-html="liveStoryHtml"
-            ></div>
-            <div
-              v-else-if="isRerollTargetEntry(entry)"
-              class="live-waiting reroll-waiting"
-              :class="{ 'reasoning-active': Boolean(liveReasoningText) }"
-            >
-              <i class="fa-solid fa-feather-pointed"></i>
-              {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '正在重新推演本回……' }}
-            </div>
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <div
-              v-else
-              class="story-prose"
-              v-html="formatStory(entry.turns[0].assistantText, entry.turns[0].assistantMessageId)"
-            ></div>
-            <BranchChoicePanel
-              v-if="storyBranchChoices(entry).length"
-              :choices="storyBranchChoices(entry)"
-            />
-
-            <div v-if="storyDiagnostics(storyReasoningRawMessage(entry))" class="entry-context">
-              <button
-                type="button"
-                class="variable-shell"
-                :class="{
-                  active: isContextOpen(entry.representativeMessageId, 'variable'),
-                  invalid: storyDiagnostics(storyReasoningRawMessage(entry))?.parseError,
-                }"
-                :aria-expanded="isContextOpen(entry.representativeMessageId, 'variable')"
-                title="展开本回天道推演"
-                @click="toggleContext(entry.representativeMessageId, 'variable')"
-              >
-                <span class="variable-shell-glyph"><i class="fa-solid fa-code-branch"></i></span>
-                <span class="variable-shell-title">
-                  <strong>天道推演</strong>
-                  <small>因果流转 · 变数落定</small>
-                </span>
-                <span class="variable-shell-count">
-                  {{ variableStatusLabel(storyDiagnostics(storyReasoningRawMessage(entry))) }}
-                </span>
-                <i class="fa-solid fa-chevron-down variable-shell-chevron"></i>
-              </button>
-            </div>
-
-            <section
-              v-if="
-                isContextOpen(entry.representativeMessageId, 'variable') &&
-                storyDiagnostics(storyReasoningRawMessage(entry))
-              "
-              class="context-detail variable-detail"
-            >
-              <VariableDiagnosticsPanel
-                :diagnostics="storyDiagnostics(storyReasoningRawMessage(entry))!"
-                dense
-              />
-            </section>
-          </template>
-        </article>
-
-        <article
-          v-else
-          class="timeline-entry dialogue-entry"
-          :class="{ latest: entry.representativeMessageId === pseudo.view.latestMessageId }"
-          :data-timeline-id="entry.representativeMessageId"
-        >
-          <header class="dialogue-block-heading">
-            <img
-              v-if="dialoguePortrait(entry.stage.targetName, entry.stage.canonicalName)"
-              :src="dialoguePortrait(entry.stage.targetName, entry.stage.canonicalName)"
-              :alt="entry.stage.targetName"
-            />
-            <span v-else class="dialogue-avatar"><i class="fa-solid fa-user"></i></span>
-            <span>
-              <small>{{ entry.stage.channel === 'transmission' ? '传讯往来' : '此刻相谈' }}</small>
-              <strong>与{{ entry.stage.targetName }}</strong>
-            </span>
-            <em>{{ entry.turns.length }} 轮</em>
-          </header>
-
-          <div class="dialogue-turn-list">
-            <template v-for="turn in entry.turns" :key="turn.assistantMessageId">
-              <div v-if="turn.userText" class="timeline-dialogue-turn user">
-                <span>你</span>
-                <p>{{ turn.userText }}</p>
-              </div>
-              <div
-                class="timeline-dialogue-turn character"
-                :class="{ live: isRerollTargetTurn(turn.assistantMessageId) }"
-              >
-                <div class="dialogue-turn-heading">
-                  <span>{{ entry.stage.targetName }}</span>
-                  <small v-if="turn.tokenCount !== undefined" class="dialogue-token-count" title="本层回复 Token">
-                    {{ turn.tokenCount }}t
-                  </small>
-                  <em v-if="isRerollTargetTurn(turn.assistantMessageId)">
-                    <i class="fa-solid fa-circle-notch fa-spin"></i>
-                    {{ liveStatus }}
-                  </em>
+                <div v-if="openMenuId === entry.representativeMessageId" class="entry-menu" role="menu" @click.stop>
                   <button
-                    v-if="
-                      (isRerollTargetTurn(turn.assistantMessageId) ? liveReasoningText : turn.reasoning) &&
-                      !messageUsesOwnDisclosure(
-                        isRerollTargetTurn(turn.assistantMessageId) ? pseudo.streamText : turn.assistantText,
-                        turn.assistantMessageId,
-                      )
-                    "
                     type="button"
-                    class="reasoning-mini-trigger"
-                    :class="{ active: expandedDialogueReasoning === turn.assistantMessageId }"
-                    :aria-expanded="expandedDialogueReasoning === turn.assistantMessageId"
-                    title="展开灵台观照"
-                    @click="toggleDialogueReasoning(turn.assistantMessageId)"
+                    role="menuitem"
+                    :disabled="!pseudo.canEditMessage"
+                    @click="editTurn(entry.representativeMessageId, `第 ${entry.historyIndex} 回`)"
                   >
-                    <i class="fa-solid fa-fire-flame-curved"></i>
-                    <span>观照</span>
-                    <small v-if="turn.reasoningDuration">{{ formatDuration(turn.reasoningDuration) }}</small>
+                    <i class="fa-solid fa-pen-to-square"></i> 编辑原文
                   </button>
-                  <div v-if="!isRerollTargetTurn(turn.assistantMessageId)" class="entry-menu-wrap">
+                  <button
+                    v-if="entry.representativeMessageId === pseudo.view.latestMessageId"
+                    type="button"
+                    role="menuitem"
+                    :disabled="!pseudo.canRerollLatest"
+                    @click="rerollLatest(entry.representativeMessageId)"
+                  >
+                    <i class="fa-solid fa-rotate-right"></i> 重新生成
+                  </button>
+                  <button
+                    v-if="entry.representativeMessageId === pseudo.view.latestMessageId"
+                    type="button"
+                    role="menuitem"
+                    class="danger"
+                    :disabled="!pseudo.canDeleteLatest"
+                    @click="askDelete(entry.representativeMessageId, '本回剧情')"
+                  >
+                    <i class="fa-solid fa-trash-can"></i> 删除本回
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            <template v-if="entry.turns[0]">
+              <div v-if="entry.turns[0].userText" class="story-action">
+                <span class="action-avatar"><i class="fa-solid fa-feather-pointed"></i></span>
+                <div>
+                  <div class="action-heading">
+                    <small>你的行动</small>
                     <button
+                      v-if="entry.turns[0].userMessageId !== undefined"
                       type="button"
-                      class="entry-menu-trigger"
-                      title="回应操作"
-                      @click.stop="toggleMenu(turn.assistantMessageId)"
+                      class="input-edit-button"
+                      title="修改这轮输入"
+                      :disabled="!pseudo.canEditUserMessage || editingInputId !== null"
+                      @click="startInputEdit(entry.turns[0].userMessageId)"
                     >
-                      <i class="fa-solid fa-ellipsis"></i>
+                      <i class="fa-solid fa-pen"></i>
+                      <span>{{ editingInputId === entry.turns[0].userMessageId ? '编辑中' : '修改' }}</span>
                     </button>
-                    <div v-if="openMenuId === turn.assistantMessageId" class="entry-menu" role="menu" @click.stop>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        :disabled="!pseudo.canEditMessage"
-                        @click="editTurn(turn.assistantMessageId, `与${entry.stage.targetName}交谈`)"
-                      >
-                        <i class="fa-solid fa-pen-to-square"></i> 编辑回应
-                      </button>
-                      <button
-                        v-if="turn.assistantMessageId === pseudo.view.latestMessageId"
-                        type="button"
-                        role="menuitem"
-                        :disabled="!pseudo.canRerollLatest"
-                        @click="rerollLatest(turn.assistantMessageId)"
-                      >
-                        <i class="fa-solid fa-rotate-right"></i> 重新回应
-                      </button>
-                      <button
-                        v-if="turn.assistantMessageId === pseudo.view.latestMessageId"
-                        type="button"
-                        role="menuitem"
-                        class="danger"
-                        :disabled="!pseudo.canDeleteLatest"
-                        @click="askDelete(turn.assistantMessageId, '最后一轮交谈')"
-                      >
-                        <i class="fa-solid fa-trash-can"></i> 删除本轮
-                      </button>
-                    </div>
+                  </div>
+                  <InlineInputEditor
+                    v-if="editingInputId === entry.turns[0].userMessageId && entry.turns[0].userMessageId !== undefined"
+                    :content="entry.turns[0].userText"
+                    :user-message-id="entry.turns[0].userMessageId"
+                    :assistant-message-id="entry.turns[0].assistantMessageId"
+                    variant="story"
+                    @cancel="finishInputEdit"
+                    @saved="finishInputEdit"
+                  />
+                  <template v-else>
+                    <p :class="{ expanded: expandedPrompts.has(entry.representativeMessageId) }">
+                      {{ cleanUserText(entry.turns[0].userText) }}
+                    </p>
+                    <button
+                      v-if="entry.turns[0].userText.length > 110"
+                      type="button"
+                      @click="togglePrompt(entry.representativeMessageId)"
+                    >
+                      {{ expandedPrompts.has(entry.representativeMessageId) ? '收起' : '展开完整行动' }}
+                    </button>
+                  </template>
+                </div>
+              </div>
+
+              <div
+                v-if="storyReasoningText(entry) && !storyReasoningUsesOwnDisclosure(entry)"
+                class="entry-context entry-context-before-prose"
+              >
+                <button
+                  type="button"
+                  class="reasoning-shell"
+                  :class="{ active: isContextOpen(entry.representativeMessageId, 'reasoning') }"
+                  :aria-expanded="isContextOpen(entry.representativeMessageId, 'reasoning')"
+                  title="展开灵台观照"
+                  @click="toggleContext(entry.representativeMessageId, 'reasoning')"
+                >
+                  <span class="reasoning-shell-glyph"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                  <span class="reasoning-shell-title">
+                    <strong>灵台观照</strong>
+                    <small>一念入定 · 照见推演脉络</small>
+                  </span>
+                  <span class="reasoning-shell-ornament" aria-hidden="true"><i></i><b>◇</b><i></i></span>
+                  <span v-if="isRerollTargetEntry(entry) && liveReasoningStreaming" class="reasoning-shell-state">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    观照流转中<span v-if="pseudo.reasoningDuration">
+                      · {{ formatDuration(pseudo.reasoningDuration) }}</span
+                    >
+                  </span>
+                  <span
+                    v-else-if="
+                      isRerollTargetEntry(entry) ? pseudo.reasoningDuration !== null : entry.turns[0].reasoningDuration
+                    "
+                    class="reasoning-shell-time"
+                  >
+                    <small>推演历时</small>
+                    <strong>
+                      {{
+                        formatDuration(
+                          isRerollTargetEntry(entry)
+                            ? (pseudo.reasoningDuration ?? 0)
+                            : (entry.turns[0].reasoningDuration ?? 0),
+                        )
+                      }}
+                    </strong>
+                  </span>
+                  <span v-else class="reasoning-shell-state">观照已成</span>
+                  <i class="fa-solid fa-chevron-down reasoning-shell-chevron"></i>
+                </button>
+              </div>
+              <section
+                v-if="
+                  (isContextOpen(entry.representativeMessageId, 'reasoning') ||
+                    storyReasoningUsesOwnDisclosure(entry)) &&
+                  storyReasoningText(entry)
+                "
+                class="context-detail reasoning-detail reasoning-detail-before-prose"
+              >
+                <ReasoningDisplay
+                  :text="storyReasoningText(entry)"
+                  :raw-message="storyReasoningRawMessage(entry)"
+                  :message-id="entry.turns[0].assistantMessageId"
+                  :open-preset-disclosure="!storyReasoningUsesOwnDisclosure(entry)"
+                  :streaming="isRerollTargetEntry(entry) && liveReasoningStreaming"
+                />
+              </section>
+
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div
+                v-if="isRerollTargetEntry(entry) && liveStoryHtml"
+                class="story-prose reroll-live-copy"
+                v-html="liveStoryHtml"
+              ></div>
+              <div
+                v-else-if="isRerollTargetEntry(entry)"
+                class="live-waiting reroll-waiting"
+                :class="{ 'reasoning-active': Boolean(liveReasoningText) }"
+              >
+                <i class="fa-solid fa-feather-pointed"></i>
+                {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '正在重新推演本回……' }}
+              </div>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div
+                v-else
+                class="story-prose"
+                v-html="formatStory(entry.turns[0].assistantText, entry.turns[0].assistantMessageId)"
+              ></div>
+              <BranchChoicePanel v-if="storyBranchChoices(entry).length" :choices="storyBranchChoices(entry)" />
+
+              <div v-if="storyDiagnostics(storyReasoningRawMessage(entry))" class="entry-context">
+                <button
+                  type="button"
+                  class="variable-shell"
+                  :class="{
+                    active: isContextOpen(entry.representativeMessageId, 'variable'),
+                    invalid: storyDiagnostics(storyReasoningRawMessage(entry))?.parseError,
+                  }"
+                  :aria-expanded="isContextOpen(entry.representativeMessageId, 'variable')"
+                  title="展开本回天道推演"
+                  @click="toggleContext(entry.representativeMessageId, 'variable')"
+                >
+                  <span class="variable-shell-glyph"><i class="fa-solid fa-code-branch"></i></span>
+                  <span class="variable-shell-title">
+                    <strong>天道推演</strong>
+                    <small>因果流转 · 变数落定</small>
+                  </span>
+                  <span class="variable-shell-count">
+                    {{ variableStatusLabel(storyDiagnostics(storyReasoningRawMessage(entry))) }}
+                  </span>
+                  <i class="fa-solid fa-chevron-down variable-shell-chevron"></i>
+                </button>
+              </div>
+
+              <section
+                v-if="
+                  isContextOpen(entry.representativeMessageId, 'variable') &&
+                  storyDiagnostics(storyReasoningRawMessage(entry))
+                "
+                class="context-detail variable-detail"
+              >
+                <VariableDiagnosticsPanel :diagnostics="storyDiagnostics(storyReasoningRawMessage(entry))!" dense />
+              </section>
+            </template>
+          </article>
+
+          <article
+            v-else
+            class="timeline-entry dialogue-entry"
+            :class="{ latest: entry.representativeMessageId === pseudo.view.latestMessageId }"
+            :data-timeline-id="entry.representativeMessageId"
+          >
+            <header class="dialogue-block-heading">
+              <img
+                v-if="dialoguePortrait(entry.stage.targetName, entry.stage.canonicalName)"
+                :src="dialoguePortrait(entry.stage.targetName, entry.stage.canonicalName)"
+                :alt="entry.stage.targetName"
+              />
+              <span v-else class="dialogue-avatar"><i class="fa-solid fa-user"></i></span>
+              <span>
+                <small>{{ entry.stage.channel === 'transmission' ? '传讯往来' : '此刻相谈' }}</small>
+                <strong>与{{ entry.stage.targetName }}</strong>
+              </span>
+              <em>{{ entry.turns.length }} 轮</em>
+            </header>
+
+            <div class="dialogue-turn-list">
+              <template v-for="turn in entry.turns" :key="turn.assistantMessageId">
+                <div v-if="turn.userText" class="timeline-dialogue-turn user">
+                  <span>你</span>
+                  <div class="dialogue-user-message">
+                    <button
+                      v-if="turn.userMessageId !== undefined"
+                      type="button"
+                      class="input-edit-button"
+                      title="修改这轮输入"
+                      :disabled="!pseudo.canEditUserMessage || editingInputId !== null"
+                      @click="startInputEdit(turn.userMessageId)"
+                    >
+                      <i class="fa-solid fa-pen"></i>
+                      <span>{{ editingInputId === turn.userMessageId ? '编辑中' : '修改' }}</span>
+                    </button>
+                    <InlineInputEditor
+                      v-if="editingInputId === turn.userMessageId && turn.userMessageId !== undefined"
+                      :content="turn.userText"
+                      :user-message-id="turn.userMessageId"
+                      :assistant-message-id="turn.assistantMessageId"
+                      variant="dialogue"
+                      @cancel="finishInputEdit"
+                      @saved="finishInputEdit"
+                    />
+                    <p v-else>{{ turn.userText }}</p>
                   </div>
                 </div>
-                <template v-if="isRerollTargetTurn(turn.assistantMessageId)">
+                <div
+                  class="timeline-dialogue-turn character"
+                  :class="{ live: isRerollTargetTurn(turn.assistantMessageId) }"
+                >
+                  <div class="dialogue-turn-heading">
+                    <span>{{ entry.stage.targetName }}</span>
+                    <small v-if="turn.tokenCount !== undefined" class="dialogue-token-count" title="本层回复 Token">
+                      {{ turn.tokenCount }}t
+                    </small>
+                    <em v-if="isRerollTargetTurn(turn.assistantMessageId)">
+                      <i class="fa-solid fa-circle-notch fa-spin"></i>
+                      {{ liveStatus }}
+                    </em>
+                    <button
+                      v-if="
+                        (isRerollTargetTurn(turn.assistantMessageId) ? liveReasoningText : turn.reasoning) &&
+                        !messageUsesOwnDisclosure(
+                          isRerollTargetTurn(turn.assistantMessageId) ? pseudo.streamText : turn.assistantText,
+                          turn.assistantMessageId,
+                        )
+                      "
+                      type="button"
+                      class="reasoning-mini-trigger"
+                      :class="{ active: expandedDialogueReasoning === turn.assistantMessageId }"
+                      :aria-expanded="expandedDialogueReasoning === turn.assistantMessageId"
+                      title="展开灵台观照"
+                      @click="toggleDialogueReasoning(turn.assistantMessageId)"
+                    >
+                      <i class="fa-solid fa-fire-flame-curved"></i>
+                      <span>观照</span>
+                      <small v-if="turn.reasoningDuration">{{ formatDuration(turn.reasoningDuration) }}</small>
+                    </button>
+                    <div v-if="!isRerollTargetTurn(turn.assistantMessageId)" class="entry-menu-wrap">
+                      <button
+                        type="button"
+                        class="entry-menu-trigger"
+                        title="回应操作"
+                        @click.stop="toggleMenu(turn.assistantMessageId)"
+                      >
+                        <i class="fa-solid fa-ellipsis"></i>
+                      </button>
+                      <div v-if="openMenuId === turn.assistantMessageId" class="entry-menu" role="menu" @click.stop>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          :disabled="!pseudo.canEditMessage"
+                          @click="editTurn(turn.assistantMessageId, `与${entry.stage.targetName}交谈`)"
+                        >
+                          <i class="fa-solid fa-pen-to-square"></i> 编辑回应
+                        </button>
+                        <button
+                          v-if="turn.assistantMessageId === pseudo.view.latestMessageId"
+                          type="button"
+                          role="menuitem"
+                          :disabled="!pseudo.canRerollLatest"
+                          @click="rerollLatest(turn.assistantMessageId)"
+                        >
+                          <i class="fa-solid fa-rotate-right"></i> 重新回应
+                        </button>
+                        <button
+                          v-if="turn.assistantMessageId === pseudo.view.latestMessageId"
+                          type="button"
+                          role="menuitem"
+                          class="danger"
+                          :disabled="!pseudo.canDeleteLatest"
+                          @click="askDelete(turn.assistantMessageId, '最后一轮交谈')"
+                        >
+                          <i class="fa-solid fa-trash-can"></i> 删除本轮
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <template v-if="isRerollTargetTurn(turn.assistantMessageId)">
+                    <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
+                    <!-- eslint-disable-next-line vue/no-v-html -->
+                    <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
+                    <div v-else class="waiting-dots"><i></i><i></i><i></i></div>
+                    <section
+                      v-if="liveReasoningText && liveReasoningUsesOwnDisclosure"
+                      class="context-detail reasoning-detail"
+                    >
+                      <ReasoningDisplay
+                        :text="liveReasoningText"
+                        :raw-message="pseudo.streamText"
+                        :message-id="turn.assistantMessageId"
+                        :open-preset-disclosure="false"
+                        :streaming="liveReasoningStreaming"
+                      />
+                    </section>
+                    <section
+                      v-else-if="expandedDialogueReasoning === turn.assistantMessageId && liveReasoningText"
+                      class="context-detail reasoning-detail"
+                    >
+                      <ReasoningDisplay
+                        :text="liveReasoningText"
+                        :raw-message="pseudo.streamText"
+                        :message-id="turn.assistantMessageId"
+                        :streaming="liveReasoningStreaming"
+                      />
+                    </section>
+                  </template>
+                  <template v-else>
+                    <p v-if="turn.reaction || dialogueVisible(turn.assistantText).reaction" class="dialogue-reaction">
+                      {{ turn.reaction || dialogueVisible(turn.assistantText).reaction }}
+                    </p>
+                    <!-- eslint-disable-next-line vue/no-v-html -->
+                    <div
+                      class="dialogue-copy"
+                      v-html="formatDialogue(turn.assistantText, turn.assistantMessageId)"
+                    ></div>
+                    <section
+                      v-if="turn.reasoning && messageUsesOwnDisclosure(turn.assistantText, turn.assistantMessageId)"
+                      class="context-detail reasoning-detail"
+                    >
+                      <ReasoningDisplay
+                        :text="turn.reasoning"
+                        :raw-message="turn.assistantText"
+                        :message-id="turn.assistantMessageId"
+                        :open-preset-disclosure="false"
+                      />
+                    </section>
+                    <section
+                      v-else-if="expandedDialogueReasoning === turn.assistantMessageId"
+                      class="context-detail reasoning-detail"
+                    >
+                      <ReasoningDisplay
+                        :text="turn.reasoning"
+                        :raw-message="turn.assistantText"
+                        :message-id="turn.assistantMessageId"
+                      />
+                    </section>
+                  </template>
+                </div>
+              </template>
+
+              <template v-if="isLiveDialogueEntry(entry)">
+                <div v-if="pendingUserText" class="timeline-dialogue-turn user pending">
+                  <span>你</span>
+                  <p>{{ pendingUserText }}</p>
+                </div>
+                <div class="timeline-dialogue-turn character live">
+                  <div class="dialogue-turn-heading">
+                    <span>{{ entry.stage.targetName }}</span>
+                    <em><i class="fa-solid fa-circle-notch fa-spin"></i> {{ liveStatus }}</em>
+                    <button
+                      v-if="liveReasoningText && !liveReasoningUsesOwnDisclosure"
+                      type="button"
+                      class="reasoning-mini-trigger"
+                      :class="{ active: expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID }"
+                      :aria-expanded="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID"
+                      title="展开灵台观照"
+                      @click="toggleDialogueReasoning(LIVE_DIALOGUE_REASONING_ID)"
+                    >
+                      <i class="fa-solid fa-fire-flame-curved"></i>
+                      <span>观照</span>
+                    </button>
+                  </div>
                   <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
                   <!-- eslint-disable-next-line vue/no-v-html -->
                   <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
@@ -352,293 +468,204 @@
                     <ReasoningDisplay
                       :text="liveReasoningText"
                       :raw-message="pseudo.streamText"
-                      :message-id="turn.assistantMessageId"
+                      :message-id="pseudo.view.latestMessageId"
                       :open-preset-disclosure="false"
                       :streaming="liveReasoningStreaming"
                     />
                   </section>
                   <section
-                    v-else-if="expandedDialogueReasoning === turn.assistantMessageId && liveReasoningText"
+                    v-else-if="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID && liveReasoningText"
                     class="context-detail reasoning-detail"
                   >
                     <ReasoningDisplay
                       :text="liveReasoningText"
                       :raw-message="pseudo.streamText"
-                      :message-id="turn.assistantMessageId"
+                      :message-id="pseudo.view.latestMessageId"
                       :streaming="liveReasoningStreaming"
                     />
                   </section>
-                </template>
-                <template v-else>
-                  <p v-if="turn.reaction || dialogueVisible(turn.assistantText).reaction" class="dialogue-reaction">
-                    {{ turn.reaction || dialogueVisible(turn.assistantText).reaction }}
-                  </p>
-                  <!-- eslint-disable-next-line vue/no-v-html -->
-                  <div
-                    class="dialogue-copy"
-                    v-html="formatDialogue(turn.assistantText, turn.assistantMessageId)"
-                  ></div>
-                  <section
-                    v-if="turn.reasoning && messageUsesOwnDisclosure(turn.assistantText, turn.assistantMessageId)"
-                    class="context-detail reasoning-detail"
-                  >
-                    <ReasoningDisplay
-                      :text="turn.reasoning"
-                      :raw-message="turn.assistantText"
-                      :message-id="turn.assistantMessageId"
-                      :open-preset-disclosure="false"
-                    />
-                  </section>
-                  <section
-                    v-else-if="expandedDialogueReasoning === turn.assistantMessageId"
-                    class="context-detail reasoning-detail"
-                  >
-                    <ReasoningDisplay
-                      :text="turn.reasoning"
-                      :raw-message="turn.assistantText"
-                      :message-id="turn.assistantMessageId"
-                    />
-                  </section>
-                </template>
-              </div>
-            </template>
-
-            <template v-if="isLiveDialogueEntry(entry)">
-              <div v-if="pendingUserText" class="timeline-dialogue-turn user pending">
-                <span>你</span>
-                <p>{{ pendingUserText }}</p>
-              </div>
-              <div class="timeline-dialogue-turn character live">
-                <div class="dialogue-turn-heading">
-                  <span>{{ entry.stage.targetName }}</span>
-                  <em><i class="fa-solid fa-circle-notch fa-spin"></i> {{ liveStatus }}</em>
-                  <button
-                    v-if="liveReasoningText && !liveReasoningUsesOwnDisclosure"
-                    type="button"
-                    class="reasoning-mini-trigger"
-                    :class="{ active: expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID }"
-                    :aria-expanded="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID"
-                    title="展开灵台观照"
-                    @click="toggleDialogueReasoning(LIVE_DIALOGUE_REASONING_ID)"
-                  >
-                    <i class="fa-solid fa-fire-flame-curved"></i>
-                    <span>观照</span>
-                  </button>
                 </div>
-                <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
-                <div v-else class="waiting-dots"><i></i><i></i><i></i></div>
-                <section
-                  v-if="liveReasoningText && liveReasoningUsesOwnDisclosure"
-                  class="context-detail reasoning-detail"
+              </template>
+            </div>
+          </article>
+        </template>
+
+        <article
+          v-if="isLiveStory && !pseudo.isRerolling"
+          class="timeline-entry story-entry live-story"
+          data-timeline-live="story"
+        >
+          <header class="entry-heading">
+            <span class="entry-ordinal">新回落笔</span>
+            <span class="entry-rule"></span>
+            <span class="live-mark"><i class="fa-solid fa-circle-notch fa-spin"></i> {{ liveStatus }}</span>
+          </header>
+          <div v-if="pendingUserText" class="story-action">
+            <span class="action-avatar"><i class="fa-solid fa-feather-pointed"></i></span>
+            <div>
+              <small>你的行动</small>
+              <p class="expanded">{{ pendingUserText }}</p>
+            </div>
+          </div>
+          <div
+            v-if="liveReasoningText && !liveReasoningUsesOwnDisclosure"
+            class="entry-context entry-context-before-prose"
+          >
+            <button
+              type="button"
+              class="reasoning-shell"
+              :class="{ active: isContextOpen(LIVE_STORY_REASONING_ID, 'reasoning') }"
+              :aria-expanded="isContextOpen(LIVE_STORY_REASONING_ID, 'reasoning')"
+              title="展开灵台观照"
+              @click="toggleContext(LIVE_STORY_REASONING_ID, 'reasoning')"
+            >
+              <span class="reasoning-shell-glyph"><i class="fa-solid fa-fire-flame-curved"></i></span>
+              <span class="reasoning-shell-title">
+                <strong>灵台观照</strong>
+                <small>一念入定 · 照见推演脉络</small>
+              </span>
+              <span class="reasoning-shell-ornament" aria-hidden="true"><i></i><b>◇</b><i></i></span>
+              <span v-if="liveReasoningStreaming" class="reasoning-shell-state">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                观照流转中<span v-if="pseudo.reasoningDuration"> · {{ formatDuration(pseudo.reasoningDuration) }}</span>
+              </span>
+              <span v-else-if="pseudo.reasoningDuration" class="reasoning-shell-time">
+                <small>推演历时</small>
+                <strong>{{ formatDuration(pseudo.reasoningDuration) }}</strong>
+              </span>
+              <span v-else class="reasoning-shell-state">观照流转中</span>
+              <i class="fa-solid fa-chevron-down reasoning-shell-chevron"></i>
+            </button>
+          </div>
+          <section
+            v-if="
+              liveReasoningText &&
+              (isContextOpen(LIVE_STORY_REASONING_ID, 'reasoning') || liveReasoningUsesOwnDisclosure)
+            "
+            class="context-detail reasoning-detail reasoning-detail-before-prose"
+          >
+            <ReasoningDisplay
+              :text="liveReasoningText"
+              :raw-message="pseudo.streamText"
+              :message-id="pseudo.view.latestMessageId"
+              :open-preset-disclosure="!liveReasoningUsesOwnDisclosure"
+              :streaming="liveReasoningStreaming"
+            />
+          </section>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div v-if="liveStoryHtml" class="story-prose" v-html="liveStoryHtml"></div>
+          <div v-else class="live-waiting">
+            <i class="fa-solid fa-feather-pointed"></i>
+            {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '等待第一缕回响……' }}
+          </div>
+          <BranchChoicePanel v-if="liveBranchChoices.length" :choices="liveBranchChoices" />
+          <div v-if="liveVariableDiagnostics" class="entry-context">
+            <button
+              type="button"
+              class="variable-shell"
+              :class="{
+                active: isContextOpen(LIVE_STORY_REASONING_ID, 'variable'),
+                invalid: liveVariableDiagnostics.parseError,
+              }"
+              :aria-expanded="isContextOpen(LIVE_STORY_REASONING_ID, 'variable')"
+              title="展开本回天道推演"
+              @click="toggleContext(LIVE_STORY_REASONING_ID, 'variable')"
+            >
+              <span class="variable-shell-glyph"><i class="fa-solid fa-code-branch"></i></span>
+              <span class="variable-shell-title">
+                <strong>天道推演</strong>
+                <small>因果流转 · 变数落定</small>
+              </span>
+              <span class="variable-shell-count">{{ variableStatusLabel(liveVariableDiagnostics) }}</span>
+              <i class="fa-solid fa-chevron-down variable-shell-chevron"></i>
+            </button>
+          </div>
+          <section
+            v-if="liveVariableDiagnostics && isContextOpen(LIVE_STORY_REASONING_ID, 'variable')"
+            class="context-detail variable-detail"
+          >
+            <VariableDiagnosticsPanel :diagnostics="liveVariableDiagnostics" dense />
+          </section>
+        </article>
+
+        <article
+          v-if="isLiveDialogue && !pseudo.isRerolling && !liveDialogueAttached"
+          class="timeline-entry dialogue-entry live-dialogue"
+          data-timeline-live="dialogue"
+        >
+          <header class="dialogue-block-heading">
+            <span class="dialogue-avatar"><i class="fa-solid fa-comments"></i></span>
+            <span>
+              <small>{{ pseudo.activeDialogue?.channel === 'transmission' ? '传讯往来' : '此刻相谈' }}</small>
+              <strong>与{{ pseudo.activeDialogue?.targetName }}</strong>
+            </span>
+          </header>
+          <div class="dialogue-turn-list">
+            <div v-if="pendingUserText" class="timeline-dialogue-turn user pending">
+              <span>你</span>
+              <p>{{ pendingUserText }}</p>
+            </div>
+            <div class="timeline-dialogue-turn character live">
+              <div class="dialogue-turn-heading">
+                <span>{{ pseudo.activeDialogue?.targetName }}</span>
+                <em><i class="fa-solid fa-circle-notch fa-spin"></i> {{ liveStatus }}</em>
+                <button
+                  v-if="liveReasoningText && !liveReasoningUsesOwnDisclosure"
+                  type="button"
+                  class="reasoning-mini-trigger"
+                  :class="{ active: expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID }"
+                  :aria-expanded="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID"
+                  title="展开灵台观照"
+                  @click="toggleDialogueReasoning(LIVE_DIALOGUE_REASONING_ID)"
                 >
-                  <ReasoningDisplay
-                    :text="liveReasoningText"
-                    :raw-message="pseudo.streamText"
-                    :message-id="pseudo.view.latestMessageId"
-                    :open-preset-disclosure="false"
-                    :streaming="liveReasoningStreaming"
-                  />
-                </section>
-                <section
-                  v-else-if="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID && liveReasoningText"
-                  class="context-detail reasoning-detail"
-                >
-                  <ReasoningDisplay
-                    :text="liveReasoningText"
-                    :raw-message="pseudo.streamText"
-                    :message-id="pseudo.view.latestMessageId"
-                    :streaming="liveReasoningStreaming"
-                  />
-                </section>
+                  <i class="fa-solid fa-fire-flame-curved"></i>
+                  <span>观照</span>
+                </button>
               </div>
-            </template>
+              <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
+              <div v-else class="waiting-dots"><i></i><i></i><i></i></div>
+              <section
+                v-if="liveReasoningText && liveReasoningUsesOwnDisclosure"
+                class="context-detail reasoning-detail"
+              >
+                <ReasoningDisplay
+                  :text="liveReasoningText"
+                  :raw-message="pseudo.streamText"
+                  :message-id="pseudo.view.latestMessageId"
+                  :open-preset-disclosure="false"
+                  :streaming="liveReasoningStreaming"
+                />
+              </section>
+              <section
+                v-else-if="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID && liveReasoningText"
+                class="context-detail reasoning-detail"
+              >
+                <ReasoningDisplay
+                  :text="liveReasoningText"
+                  :raw-message="pseudo.streamText"
+                  :message-id="pseudo.view.latestMessageId"
+                  :streaming="liveReasoningStreaming"
+                />
+              </section>
+            </div>
           </div>
         </article>
-      </template>
 
-      <article
-        v-if="isLiveStory && !pseudo.isRerolling"
-        class="timeline-entry story-entry live-story"
-        data-timeline-live="story"
-      >
-        <header class="entry-heading">
-          <span class="entry-ordinal">新回落笔</span>
-          <span class="entry-rule"></span>
-          <span class="live-mark"><i class="fa-solid fa-circle-notch fa-spin"></i> {{ liveStatus }}</span>
-        </header>
-        <div v-if="pendingUserText" class="story-action">
-          <span class="action-avatar"><i class="fa-solid fa-feather-pointed"></i></span>
-          <div>
-            <small>你的行动</small>
-            <p class="expanded">{{ pendingUserText }}</p>
-          </div>
+        <div v-if="!pseudo.timelineEntries.length && !pseudo.timelineLoading" class="timeline-empty">
+          <i class="fa-solid fa-scroll"></i>
+          <strong>长卷尚未展开</strong>
+          <span>完成一次推演后，历程会在这里依次铺陈。</span>
         </div>
-        <div v-if="liveReasoningText && !liveReasoningUsesOwnDisclosure" class="entry-context entry-context-before-prose">
-          <button
-            type="button"
-            class="reasoning-shell"
-            :class="{ active: isContextOpen(LIVE_STORY_REASONING_ID, 'reasoning') }"
-            :aria-expanded="isContextOpen(LIVE_STORY_REASONING_ID, 'reasoning')"
-            title="展开灵台观照"
-            @click="toggleContext(LIVE_STORY_REASONING_ID, 'reasoning')"
-          >
-            <span class="reasoning-shell-glyph"><i class="fa-solid fa-fire-flame-curved"></i></span>
-            <span class="reasoning-shell-title">
-              <strong>灵台观照</strong>
-              <small>一念入定 · 照见推演脉络</small>
-            </span>
-            <span class="reasoning-shell-ornament" aria-hidden="true"><i></i><b>◇</b><i></i></span>
-            <span v-if="liveReasoningStreaming" class="reasoning-shell-state">
-              <i class="fa-solid fa-circle-notch fa-spin"></i>
-              观照流转中<span v-if="pseudo.reasoningDuration">
-                · {{ formatDuration(pseudo.reasoningDuration) }}</span
-              >
-            </span>
-            <span v-else-if="pseudo.reasoningDuration" class="reasoning-shell-time">
-              <small>推演历时</small>
-              <strong>{{ formatDuration(pseudo.reasoningDuration) }}</strong>
-            </span>
-            <span v-else class="reasoning-shell-state">观照流转中</span>
-            <i class="fa-solid fa-chevron-down reasoning-shell-chevron"></i>
-          </button>
-        </div>
-        <section
-          v-if="
-            liveReasoningText &&
-            (isContextOpen(LIVE_STORY_REASONING_ID, 'reasoning') || liveReasoningUsesOwnDisclosure)
-          "
-          class="context-detail reasoning-detail reasoning-detail-before-prose"
-        >
-          <ReasoningDisplay
-            :text="liveReasoningText"
-            :raw-message="pseudo.streamText"
-            :message-id="pseudo.view.latestMessageId"
-            :open-preset-disclosure="!liveReasoningUsesOwnDisclosure"
-            :streaming="liveReasoningStreaming"
-          />
-        </section>
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div v-if="liveStoryHtml" class="story-prose" v-html="liveStoryHtml"></div>
-        <div v-else class="live-waiting">
-          <i class="fa-solid fa-feather-pointed"></i>
-          {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '等待第一缕回响……' }}
-        </div>
-        <BranchChoicePanel v-if="liveBranchChoices.length" :choices="liveBranchChoices" />
-        <div v-if="liveVariableDiagnostics" class="entry-context">
-          <button
-            type="button"
-            class="variable-shell"
-            :class="{
-              active: isContextOpen(LIVE_STORY_REASONING_ID, 'variable'),
-              invalid: liveVariableDiagnostics.parseError,
-            }"
-            :aria-expanded="isContextOpen(LIVE_STORY_REASONING_ID, 'variable')"
-            title="展开本回天道推演"
-            @click="toggleContext(LIVE_STORY_REASONING_ID, 'variable')"
-          >
-            <span class="variable-shell-glyph"><i class="fa-solid fa-code-branch"></i></span>
-            <span class="variable-shell-title">
-              <strong>天道推演</strong>
-              <small>因果流转 · 变数落定</small>
-            </span>
-            <span class="variable-shell-count">{{ variableStatusLabel(liveVariableDiagnostics) }}</span>
-            <i class="fa-solid fa-chevron-down variable-shell-chevron"></i>
-          </button>
-        </div>
-        <section
-          v-if="liveVariableDiagnostics && isContextOpen(LIVE_STORY_REASONING_ID, 'variable')"
-          class="context-detail variable-detail"
-        >
-          <VariableDiagnosticsPanel :diagnostics="liveVariableDiagnostics" dense />
-        </section>
-      </article>
 
-      <article
-        v-if="isLiveDialogue && !pseudo.isRerolling && !liveDialogueAttached"
-        class="timeline-entry dialogue-entry live-dialogue"
-        data-timeline-live="dialogue"
-      >
-        <header class="dialogue-block-heading">
-          <span class="dialogue-avatar"><i class="fa-solid fa-comments"></i></span>
-          <span>
-            <small>{{ pseudo.activeDialogue?.channel === 'transmission' ? '传讯往来' : '此刻相谈' }}</small>
-            <strong>与{{ pseudo.activeDialogue?.targetName }}</strong>
-          </span>
-        </header>
-        <div class="dialogue-turn-list">
-          <div v-if="pendingUserText" class="timeline-dialogue-turn user pending">
-            <span>你</span>
-            <p>{{ pendingUserText }}</p>
-          </div>
-          <div class="timeline-dialogue-turn character live">
-            <div class="dialogue-turn-heading">
-              <span>{{ pseudo.activeDialogue?.targetName }}</span>
-              <em><i class="fa-solid fa-circle-notch fa-spin"></i> {{ liveStatus }}</em>
-              <button
-                v-if="liveReasoningText && !liveReasoningUsesOwnDisclosure"
-                type="button"
-                class="reasoning-mini-trigger"
-                :class="{ active: expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID }"
-                :aria-expanded="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID"
-                title="展开灵台观照"
-                @click="toggleDialogueReasoning(LIVE_DIALOGUE_REASONING_ID)"
-              >
-                <i class="fa-solid fa-fire-flame-curved"></i>
-                <span>观照</span>
-              </button>
-            </div>
-            <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
-            <div v-else class="waiting-dots"><i></i><i></i><i></i></div>
-            <section
-              v-if="liveReasoningText && liveReasoningUsesOwnDisclosure"
-              class="context-detail reasoning-detail"
-            >
-              <ReasoningDisplay
-                :text="liveReasoningText"
-                :raw-message="pseudo.streamText"
-                :message-id="pseudo.view.latestMessageId"
-                :open-preset-disclosure="false"
-                :streaming="liveReasoningStreaming"
-              />
-            </section>
-            <section
-              v-else-if="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID && liveReasoningText"
-              class="context-detail reasoning-detail"
-            >
-              <ReasoningDisplay
-                :text="liveReasoningText"
-                :raw-message="pseudo.streamText"
-                :message-id="pseudo.view.latestMessageId"
-                :streaming="liveReasoningStreaming"
-              />
-            </section>
-          </div>
+        <div v-if="pseudo.timelineLoading && pseudo.timelineHasNewer" class="timeline-loading">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          正在接续后来的历程
         </div>
-      </article>
-
-      <div v-if="!pseudo.timelineEntries.length && !pseudo.timelineLoading" class="timeline-empty">
-        <i class="fa-solid fa-scroll"></i>
-        <strong>长卷尚未展开</strong>
-        <span>完成一次推演后，历程会在这里依次铺陈。</span>
       </div>
 
-      <div v-if="pseudo.timelineLoading && pseudo.timelineHasNewer" class="timeline-loading">
-        <i class="fa-solid fa-circle-notch fa-spin"></i>
-        正在接续后来的历程
-      </div>
-      </div>
-
-      <button
-        v-if="showReturnLatest"
-        type="button"
-        class="return-latest"
-        title="回到最新内容"
-        @click="returnLatest"
-      >
+      <button v-if="showReturnLatest" type="button" class="return-latest" title="回到最新内容" @click="returnLatest">
         <i class="fa-solid fa-arrow-down"></i>
         <span>{{ pseudo.timelineHasNewer ? '回到最新' : '跟随最新' }}</span>
       </button>
@@ -668,6 +695,7 @@ import { useStreamFollow } from '../composables/use-stream-follow';
 import {
   extractVariableUpdateDiagnostics,
   formatMessageHtml,
+  formatNarrativeHtml,
   hasInlineReasoningPresetDisclosure,
   mergeReasoningText,
   parseMessageContent,
@@ -676,6 +704,7 @@ import {
 import type { PseudoLayerTimelineEntry } from '../pseudo-layer-protocol';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import BranchChoicePanel from './BranchChoicePanel.vue';
+import InlineInputEditor from './InlineInputEditor.vue';
 import ReasoningDisplay from './ReasoningDisplay.vue';
 import ScenePortraitRail from './ScenePortraitRail.vue';
 import VariableDiagnosticsPanel from './VariableDiagnosticsPanel.vue';
@@ -713,18 +742,17 @@ const openMenuId = ref<number | null>(null);
 const expandedContext = ref('');
 const expandedPrompts = ref(new Set<number>());
 const expandedDialogueReasoning = ref<number | null>(null);
+const editingInputId = ref<number | null>(null);
 const LIVE_STORY_REASONING_ID = -1;
 const LIVE_DIALOGUE_REASONING_ID = -2;
 const deleteTarget = ref<{ messageId: number; label: string } | null>(null);
 let initialPositioned = false;
-let prependAnchor:
-  | {
-      messageId: number | null;
-      relativeTop: number;
-      fallbackHeight: number;
-      fallbackTop: number;
-    }
-  | null = null;
+let prependAnchor: {
+  messageId: number | null;
+  relativeTop: number;
+  fallbackHeight: number;
+  fallbackTop: number;
+} | null = null;
 let activeEntryFrame: number | null = null;
 let settleAnchorFrame: number | null = null;
 const initialSettleTimers: number[] = [];
@@ -755,7 +783,7 @@ const liveReasoningUsesOwnDisclosure = computed(() =>
   messageUsesOwnDisclosure(pseudo.streamText, pseudo.view.latestMessageId),
 );
 const liveStoryHtml = computed(() =>
-  formatMessageHtml(liveMessageContent.value.narrative, pseudo.view.latestMessageId),
+  formatNarrativeHtml(liveMessageContent.value.narrative, pseudo.view.latestMessageId),
 );
 const liveBranchChoices = computed(() => liveMessageContent.value.choices);
 const liveVariableDiagnostics = computed(() => extractVariableUpdateDiagnostics(pseudo.streamText));
@@ -767,8 +795,7 @@ const liveStatus = computed(() => {
   if (liveReasoningStreaming.value && !pseudo.streamText) return '推演中';
   return pseudo.activeDialogue?.channel === 'transmission' ? '回信中' : '生成中';
 });
-const isRerollTargetTurn = (messageId: number) =>
-  pseudo.isRerolling && messageId === pseudo.rerollTargetMessageId;
+const isRerollTargetTurn = (messageId: number) => pseudo.isRerolling && messageId === pseudo.rerollTargetMessageId;
 const isRerollTargetEntry = (entry: PseudoLayerTimelineEntry) =>
   pseudo.isRerolling && entry.messageIds.includes(pseudo.rerollTargetMessageId);
 const storyReasoningText = (entry: PseudoLayerTimelineEntry) =>
@@ -794,9 +821,12 @@ const showReturnLatest = computed(
   () => pseudo.timelineHasNewer || (!isFollowing.value && (pseudo.isGenerating || pseudo.timelineEntries.length > 0)),
 );
 
-const cleanUserText = (text: string) => stripStructuredBlocks(text).replace(/<[^>]+>/g, ' ').trim();
+const cleanUserText = (text: string) =>
+  stripStructuredBlocks(text)
+    .replace(/<[^>]+>/g, ' ')
+    .trim();
 const formatStory = (text: string, messageId: number) =>
-  formatMessageHtml(parseMessageContent(text).narrative, messageId);
+  formatNarrativeHtml(parseMessageContent(text).narrative, messageId);
 const dialogueVisible = (text: string) => parseMessageContent(text).dialogue;
 const formatDialogue = (text: string, messageId: number) =>
   formatMessageHtml(parseMessageContent(text).dialogue.dialogue, messageId);
@@ -835,6 +865,15 @@ const toggleMenu = (messageId: number) => {
 const editTurn = (messageId: number, label: string) => {
   openMenuId.value = null;
   emit('edit-message', messageId, label);
+};
+const startInputEdit = (userMessageId: number) => {
+  if (!pseudo.canEditUserMessage || editingInputId.value !== null) return;
+  openMenuId.value = null;
+  pseudo.clearEditError();
+  editingInputId.value = userMessageId;
+};
+const finishInputEdit = () => {
+  editingInputId.value = null;
 };
 const rerollLatest = (messageId: number) => {
   openMenuId.value = null;
@@ -918,7 +957,10 @@ const loadNewer = () => {
   pseudo.loadNewerTimeline();
 };
 
-const normalizeAnchorText = (value: string | null | undefined) => String(value ?? '').replace(/\s+/g, ' ').trim();
+const normalizeAnchorText = (value: string | null | undefined) =>
+  String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const captureLiveViewportAnchor = (): LiveViewportAnchor | null => {
   const element = scrollRef.value;
@@ -926,7 +968,9 @@ const captureLiveViewportAnchor = (): LiveViewportAnchor | null => {
   const storyScope = element.querySelector<HTMLElement>("[data-timeline-live='story'], .story-entry.rerolling");
   const dialogueScope = [...element.querySelectorAll<HTMLElement>('.timeline-dialogue-turn.character.live')].at(-1);
   const kind = storyScope ? 'story' : dialogueScope ? 'dialogue' : null;
-  const copy = storyScope?.querySelector<HTMLElement>('.story-prose') ?? dialogueScope?.querySelector<HTMLElement>('.dialogue-copy');
+  const copy =
+    storyScope?.querySelector<HTMLElement>('.story-prose') ??
+    dialogueScope?.querySelector<HTMLElement>('.dialogue-copy');
   if (!kind || !copy) return null;
 
   const blocks = [...copy.children].filter(
@@ -997,13 +1041,13 @@ const updateActiveEntry = () => {
   if (!element) return;
   const center = element.getBoundingClientRect().top + element.clientHeight / 2;
   const entries = [...element.querySelectorAll<HTMLElement>('[data-timeline-id]')];
-  let closest: { id: number; distance: number } | null = null;
-  entries.forEach(entry => {
+  const closest = entries.reduce<{ id: number; distance: number } | null>((current, entry) => {
     const rect = entry.getBoundingClientRect();
     const distance = Math.abs((rect.top + rect.bottom) / 2 - center);
     const id = Number(entry.dataset.timelineId);
-    if (Number.isFinite(id) && (!closest || distance < closest.distance)) closest = { id, distance };
-  });
+    if (!Number.isFinite(id) || (current && current.distance <= distance)) return current;
+    return { id, distance };
+  }, null);
   if (closest) emit('active-entry', closest.id);
 };
 
@@ -1076,25 +1120,20 @@ watch(
   },
 );
 let autoOpenedReasoningRequest = '';
-watch(
-  [() => pseudo.activeRequestId, liveReasoningText],
-  ([requestId, reasoning]) => {
-    if (!requestId || !reasoning || autoOpenedReasoningRequest === requestId) return;
-    if (pseudo.activeDialogue) {
-      expandedDialogueReasoning.value = pseudo.isRerolling
-        ? pseudo.rerollTargetMessageId
-        : LIVE_DIALOGUE_REASONING_ID;
-    } else {
-      const liveMessageId = pseudo.isRerolling
-        ? (pseudo.timelineEntries.find(entry => entry.messageIds.includes(pseudo.rerollTargetMessageId))
-            ?.representativeMessageId ?? pseudo.rerollTargetMessageId)
-        : LIVE_STORY_REASONING_ID;
-      expandedContext.value = contextKey(liveMessageId, 'reasoning');
-    }
-    autoOpenedReasoningRequest = requestId;
-    queueFollow();
-  },
-);
+watch([() => pseudo.activeRequestId, liveReasoningText], ([requestId, reasoning]) => {
+  if (!requestId || !reasoning || autoOpenedReasoningRequest === requestId) return;
+  if (pseudo.activeDialogue) {
+    expandedDialogueReasoning.value = pseudo.isRerolling ? pseudo.rerollTargetMessageId : LIVE_DIALOGUE_REASONING_ID;
+  } else {
+    const liveMessageId = pseudo.isRerolling
+      ? (pseudo.timelineEntries.find(entry => entry.messageIds.includes(pseudo.rerollTargetMessageId))
+          ?.representativeMessageId ?? pseudo.rerollTargetMessageId)
+      : LIVE_STORY_REASONING_ID;
+    expandedContext.value = contextKey(liveMessageId, 'reasoning');
+  }
+  autoOpenedReasoningRequest = requestId;
+  queueFollow();
+});
 watch([() => pseudo.streamText, () => pseudo.streamReaction, () => pseudo.liveReasoning], queueFollow);
 watch(
   () => pseudo.isGenerating,
@@ -1351,6 +1390,19 @@ onBeforeUnmount(() => {
   font-size: 9px;
 }
 
+.action-heading {
+  min-height: 20px;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.action-heading small {
+  margin-bottom: 0;
+}
+
 .story-action p {
   margin: 0;
   display: -webkit-box;
@@ -1377,6 +1429,36 @@ onBeforeUnmount(() => {
   background: transparent;
   font-size: 9px;
   cursor: pointer;
+}
+
+.input-edit-button {
+  min-height: 22px;
+  padding: 0 7px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--line-subtle)) !important;
+  border-radius: 999px;
+  color: var(--gold-soft) !important;
+  background: color-mix(in srgb, var(--gold) 6%, var(--surface-inset)) !important;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.story-action .input-edit-button {
+  margin: 0 0 0 auto;
+}
+
+.input-edit-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--gold) 48%, var(--line-strong)) !important;
+  color: var(--gold) !important;
+  background: var(--button-hover) !important;
+}
+
+.input-edit-button:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
 }
 
 .story-prose {
@@ -1473,7 +1555,12 @@ onBeforeUnmount(() => {
   inset: 3px;
   border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
   border-radius: 5px;
-  background: linear-gradient(105deg, transparent 18%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 74%);
+  background: linear-gradient(
+    105deg,
+    transparent 18%,
+    color-mix(in srgb, var(--gold) 8%, transparent),
+    transparent 74%
+  );
   opacity: 0.72;
   transition: opacity 0.2s ease;
 }
@@ -1570,11 +1657,21 @@ onBeforeUnmount(() => {
 .reasoning-shell-ornament i {
   height: 1px;
   flex: 1;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--jade) 34%, transparent), color-mix(in srgb, var(--gold) 42%, transparent));
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--jade) 34%, transparent),
+    color-mix(in srgb, var(--gold) 42%, transparent)
+  );
 }
 
 .reasoning-shell-ornament i:last-child {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 42%, transparent), color-mix(in srgb, var(--jade) 34%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--gold) 42%, transparent),
+    color-mix(in srgb, var(--jade) 34%, transparent),
+    transparent
+  );
 }
 
 .reasoning-shell-ornament b {
@@ -1665,11 +1762,7 @@ onBeforeUnmount(() => {
   border-radius: 6px 15px 15px 6px;
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--jade) 7%, transparent), transparent 38%),
-    repeating-linear-gradient(
-      135deg,
-      transparent 0 12px,
-      color-mix(in srgb, var(--gold) 3%, transparent) 13px 14px
-    );
+    repeating-linear-gradient(135deg, transparent 0 12px, color-mix(in srgb, var(--gold) 3%, transparent) 13px 14px);
   pointer-events: none;
 }
 
@@ -1951,7 +2044,8 @@ onBeforeUnmount(() => {
   font-size: 9px;
 }
 
-.timeline-dialogue-turn.user > p {
+.timeline-dialogue-turn.user > p,
+.dialogue-user-message > p {
   max-width: min(78%, 660px);
   margin: 0;
   padding: 9px 12px;
@@ -1961,6 +2055,18 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--gold) 7%, var(--surface-inset));
   line-height: 1.65;
   white-space: pre-wrap;
+}
+
+.dialogue-user-message {
+  max-width: min(78%, 660px);
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.dialogue-user-message > p {
+  width: 100%;
+  max-width: none;
 }
 
 .timeline-dialogue-turn.character {
@@ -2306,7 +2412,8 @@ onBeforeUnmount(() => {
     padding: 12px 10px 16px;
   }
 
-  .timeline-dialogue-turn.user > p {
+  .timeline-dialogue-turn.user > p,
+  .dialogue-user-message {
     max-width: 84%;
   }
 

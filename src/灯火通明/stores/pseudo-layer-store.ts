@@ -6,6 +6,7 @@ import {
   PSEUDO_LAYER_MESSAGE_EDITING_VERSION,
   PSEUDO_LAYER_SUPPORTED_VERSIONS,
   PSEUDO_LAYER_TIMELINE_PAGING_VERSION,
+  PSEUDO_LAYER_USER_MESSAGE_EDITING_VERSION,
   PSEUDO_LAYER_VERSION,
   PseudoLayerGenerationOperation,
   PseudoLayerGenerationState,
@@ -106,9 +107,7 @@ const normalizePseudoLayerView = (value: PseudoLayerView): PseudoLayerView => {
     latestMessageId: legacyHistory.latestMessageId,
     index: legacyHistory.index,
     total: legacyHistory.total,
-    ...(legacyHistory.previousMessageId !== undefined
-      ? { previousMessageId: legacyHistory.previousMessageId }
-      : {}),
+    ...(legacyHistory.previousMessageId !== undefined ? { previousMessageId: legacyHistory.previousMessageId } : {}),
     ...(legacyHistory.nextMessageId !== undefined ? { nextMessageId: legacyHistory.nextMessageId } : {}),
     isLatest: legacyHistory.isLatest,
     nativeInputCollapsed: Boolean(raw.nativeInputCollapsed),
@@ -220,12 +219,14 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const editSavedNonce = ref(0);
   const floorMessage = ref('');
   const floorUserMessage = ref('');
+  const floorUserMessageId = ref(-1);
   const generationUserMessage = ref('');
   const floorReasoning = ref('');
   const floorReasoningDuration = ref<number | null>(null);
   const storyFloorMessageId = ref(-1);
   const storyFloorMessage = ref('');
   const storyFloorUserMessage = ref('');
+  const storyFloorUserMessageId = ref(-1);
   const storyFloorReasoning = ref('');
   const storyFloorReasoningDuration = ref<number | null>(null);
   const dialogueTurns = ref<DialogueTurn[]>([]);
@@ -263,6 +264,9 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   );
   const supportsTimelinePaging = computed(
     () => (controllerProtocolVersion.value ?? 0) >= PSEUDO_LAYER_TIMELINE_PAGING_VERSION,
+  );
+  const supportsUserMessageEditing = computed(
+    () => (controllerProtocolVersion.value ?? 0) >= PSEUDO_LAYER_USER_MESSAGE_EDITING_VERSION,
   );
   const controllerCompatibilityMode = computed(
     () =>
@@ -376,6 +380,15 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       !isDeleting.value &&
       !isUpdatingMessage.value,
   );
+  const canEditUserMessage = computed(
+    () =>
+      controllerReady.value &&
+      supportsUserMessageEditing.value &&
+      view.value.selectedMessageId >= 0 &&
+      !isGenerating.value &&
+      !isDeleting.value &&
+      !isUpdatingMessage.value,
+  );
   const turnUserMessage = computed(() =>
     isGenerating.value
       ? generationUserMessage.value || draftPrompt.value.trim() || floorUserMessage.value
@@ -480,6 +493,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     storyFloorMessageId.value = storyMessage?.message_id ?? -1;
     storyFloorMessage.value = String(storyMessage?.message ?? '');
     storyFloorUserMessage.value = rawUserText(storyUserMessage);
+    storyFloorUserMessageId.value = storyUserMessage?.message_id ?? -1;
     const reasoning = readReasoning(storyMessage);
     storyFloorReasoning.value = reasoning.text;
     storyFloorReasoningDuration.value = reasoning.duration;
@@ -493,6 +507,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       const previousMessage = findImmediatePreviousMessage(messages, targetMessageId);
       floorMessage.value = String(message?.message ?? '');
       floorUserMessage.value = rawUserText(previousMessage?.role === 'user' ? previousMessage : undefined);
+      floorUserMessageId.value = previousMessage?.role === 'user' ? previousMessage.message_id : -1;
       const reasoning = readReasoning(message);
       floorReasoning.value = reasoning.text;
       floorReasoningDuration.value = reasoning.duration;
@@ -558,6 +573,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
         : [
             {
               assistantMessageId: selectedMessageId,
+              ...(floorUserMessageId.value >= 0 ? { userMessageId: floorUserMessageId.value } : {}),
               userText: floorUserMessage.value,
               assistantText: floorMessage.value,
               reasoning: floorReasoning.value,
@@ -588,6 +604,16 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     if (!Number.isFinite(targetMessageId) || targetMessageId < 0) return '';
     try {
       return String(getChatMessages(Math.trunc(targetMessageId))[0]?.message ?? '');
+    } catch {
+      return '';
+    }
+  };
+
+  const readUserMessageContent = (targetMessageId: number) => {
+    if (!Number.isFinite(targetMessageId) || targetMessageId < 0) return '';
+    try {
+      const message = getChatMessages(Math.trunc(targetMessageId))[0];
+      return message?.role === 'user' ? rawUserText(message) : '';
     } catch {
       return '';
     }
@@ -751,11 +777,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       if (response.busy && response.requestId) {
         acceptsRequest(response.requestId);
         generationOperation.value = response.operation ?? generationOperation.value;
-        if (
-          response.operation === 'reroll' &&
-          rerollTargetMessageId.value < 0 &&
-          view.value.latestMessageId >= 0
-        ) {
+        if (response.operation === 'reroll' && rerollTargetMessageId.value < 0 && view.value.latestMessageId >= 0) {
           rerollTargetMessageId.value = view.value.latestMessageId;
         }
       }
@@ -853,7 +875,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
       if (response.requestId !== editRequestId.value) return;
       editRequestId.value = '';
       editError.value = '';
-      if (view.value.selectedMessageId === response.messageId) refreshFloor(response.messageId);
+      if (view.value.selectedMessageId >= 0) refreshFloor(view.value.selectedMessageId);
       refreshTimelineEntry(response.messageId);
       editSavedNonce.value += 1;
       return;
@@ -1187,6 +1209,29 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     });
   };
 
+  const updateUserMessage = (content: string, userMessageId: number, assistantMessageId: number) => {
+    if (
+      !canEditUserMessage.value ||
+      !Number.isFinite(userMessageId) ||
+      !Number.isFinite(assistantMessageId) ||
+      !content.trim()
+    ) {
+      return;
+    }
+    const requestId = `edit-input-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    editRequestId.value = requestId;
+    editError.value = '';
+    post({
+      channel: PSEUDO_LAYER_CHANNEL,
+      version: PSEUDO_LAYER_VERSION,
+      type: 'update_user_message',
+      requestId,
+      messageId: Math.trunc(assistantMessageId),
+      userMessageId: Math.trunc(userMessageId),
+      content,
+    });
+  };
+
   const clearEditError = () => {
     editError.value = '';
   };
@@ -1235,6 +1280,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     controllerConnectionDescription,
     supportsMessageEditing,
     supportsTimelinePaging,
+    supportsUserMessageEditing,
     view,
     selectedTitle,
     draftPrompt,
@@ -1254,12 +1300,14 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     editSavedNonce,
     floorMessage,
     floorUserMessage,
+    floorUserMessageId,
     generationUserMessage,
     floorReasoning,
     floorReasoningDuration,
     storyFloorMessageId,
     storyFloorMessage,
     storyFloorUserMessage,
+    storyFloorUserMessageId,
     storyFloorReasoning,
     storyFloorReasoningDuration,
     dialogueTurns,
@@ -1295,11 +1343,13 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     canDelete,
     canDeleteLatest,
     canEditMessage,
+    canEditUserMessage,
     turnUserMessage,
     start,
     dispose,
     refreshFloor,
     readMessageContent,
+    readUserMessageContent,
     loadTimelinePage,
     loadOlderTimeline,
     loadNewerTimeline,
@@ -1317,6 +1367,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     reroll,
     deleteCurrent,
     updateCurrentMessage,
+    updateUserMessage,
     clearEditError,
     selectHistory,
     navigate,

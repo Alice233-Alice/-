@@ -3,10 +3,10 @@
     <!-- 当前处境 -->
     <div v-if="store.当前处境" class="situation-section">
       <div class="section-title">
-        <div class="title-left">
-          <i class="fa-solid fa-compass"></i> 当前处境
-        </div>
-        <span v-if="situationBadgeText" class="section-badge" :class="`mode-${situationRefreshState}`">{{ situationBadgeText }}</span>
+        <div class="title-left"><i class="fa-solid fa-compass"></i> 当前处境</div>
+        <span v-if="situationBadgeText" class="section-badge" :class="`mode-${situationRefreshState}`">{{
+          situationBadgeText
+        }}</span>
       </div>
       <div class="situation-content">
         {{ formatThirdPerson(store.当前处境) }}
@@ -16,11 +16,14 @@
     <!-- 可选行动列表 -->
     <div class="actions-section">
       <div class="section-title">
-        <div class="title-left">
-          <i class="fa-solid fa-list-check"></i> 可选行动
-        </div>
+        <div class="title-left"><i class="fa-solid fa-list-check"></i> 可选行动</div>
         <div class="title-right">
-          <button class="toggle-btn" :class="{ active: store.启用行动提示 }" :title="store.启用行动提示 ? '关闭行动提示生成' : '开启行动提示生成'" @click="store.toggleActionPrompt">
+          <button
+            class="toggle-btn"
+            :class="{ active: store.启用行动提示 }"
+            :title="store.启用行动提示 ? '关闭行动提示生成' : '开启行动提示生成'"
+            @click="store.toggleActionPrompt"
+          >
             <i class="fa-solid" :class="store.启用行动提示 ? 'fa-toggle-on' : 'fa-toggle-off'"></i>
             <span>{{ store.启用行动提示 ? '已开启' : '已关闭' }}</span>
           </button>
@@ -72,7 +75,13 @@
           <div v-if="freshSortedActions.length === 0" class="no-actions compact">
             <i class="fa-solid fa-hourglass-half"></i>
             <p>这一轮暂无可信的新机遇</p>
-            <p class="hint">{{ actionFeedMode === 'partial' ? '模型只改动了部分选项，其余残留项已被隐藏。' : '可先使用下方稳妥动作继续推进。' }}</p>
+            <p class="hint">
+              {{
+                actionFeedMode === 'partial'
+                  ? '模型只改动了部分选项，其余残留项已被隐藏。'
+                  : '可先使用下方稳妥动作继续推进。'
+              }}
+            </p>
           </div>
 
           <div v-else class="action-list">
@@ -87,14 +96,20 @@
               ]"
               @click="selectAction(action)"
             >
-              <div class="action-icon" :class="detectNsfwSubType(action) ? `icon-nsfw-${detectNsfwSubType(action)}` : `icon-${action.类型}`">
+              <div
+                class="action-icon"
+                :class="detectNsfwSubType(action) ? `icon-nsfw-${detectNsfwSubType(action)}` : `icon-${action.类型}`"
+              >
                 <i :class="getActionIcon(action.类型, detectNsfwSubType(action))"></i>
               </div>
 
               <div class="action-info">
                 <div class="action-header">
                   <span class="action-name">{{ action.名称 }}</span>
-                  <span class="action-type-tag" :class="detectNsfwSubType(action) ? `tag-nsfw-${detectNsfwSubType(action)}` : ''">
+                  <span
+                    class="action-type-tag"
+                    :class="detectNsfwSubType(action) ? `tag-nsfw-${detectNsfwSubType(action)}` : ''"
+                  >
                     {{ detectNsfwSubType(action) ? `红颜·${detectNsfwSubType(action)}` : action.类型 }}
                   </span>
                 </div>
@@ -147,13 +162,19 @@
               ]"
               @click="selectAction(action)"
             >
-              <div class="action-icon" :class="detectNsfwSubType(action) ? `icon-nsfw-${detectNsfwSubType(action)}` : `icon-${action.类型}`">
+              <div
+                class="action-icon"
+                :class="detectNsfwSubType(action) ? `icon-nsfw-${detectNsfwSubType(action)}` : `icon-${action.类型}`"
+              >
                 <i :class="getActionIcon(action.类型, detectNsfwSubType(action))"></i>
               </div>
               <div class="action-info">
                 <div class="action-header">
                   <span class="action-name">{{ action.名称 }}</span>
-                  <span class="action-type-tag" :class="detectNsfwSubType(action) ? `tag-nsfw-${detectNsfwSubType(action)}` : ''">
+                  <span
+                    class="action-type-tag"
+                    :class="detectNsfwSubType(action) ? `tag-nsfw-${detectNsfwSubType(action)}` : ''"
+                  >
                     {{ detectNsfwSubType(action) ? `红颜·${detectNsfwSubType(action)}` : action.类型 }}
                   </span>
                 </div>
@@ -247,6 +268,7 @@ type OpportunityAction = {
   风险评估: string;
   时限?: string;
   优先级: number;
+  原始行动?: string;
 };
 
 type JsonPatchOperation = {
@@ -282,6 +304,9 @@ const ACTION_TYPE_MAP: Record<string, OpportunityAction['类型']> = {
   双修: '红颜',
   亲密: '红颜',
   调情: '红颜',
+  交涉: '结交',
+  战斗: '争夺',
+  整备: '交易',
 };
 
 const inferActionType = (type: string, text: string): OpportunityAction['类型'] => {
@@ -297,18 +322,51 @@ const inferActionType = (type: string, text: string): OpportunityAction['类型'
   return '探索';
 };
 
-const normalizeAction = (action: Partial<OpportunityAction> | null | undefined): OpportunityAction | null => {
-  const 名称 = String(action?.名称 ?? '').trim();
-  const 描述 = String(action?.描述 ?? '').trim();
+const splitCompactActionText = (text: string, type: OpportunityAction['类型']) => {
+  const separatorIndex = text.search(/[，；。！？]/u);
+  if (separatorIndex > 0 && separatorIndex < text.length - 1) {
+    return {
+      名称: text.slice(0, separatorIndex).trim(),
+      描述: text.slice(separatorIndex + 1).trim(),
+    };
+  }
+
+  return { 名称: `${type}行动`, 描述: text };
+};
+
+const normalizeAction = (value: unknown): OpportunityAction | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
+  const action = value as Record<string, unknown>;
+  const compactAction = String(action.行动 ?? '').trim();
+  if (compactAction) {
+    const 类型原文 = String(action.类型 ?? '').trim();
+    const 提示 = String(action.提示 ?? '').trim();
+    const 类型 = inferActionType(类型原文, [compactAction, 提示].filter(Boolean).join('｜'));
+    const displayText = splitCompactActionText(compactAction, 类型);
+
+    return {
+      ...displayText,
+      来源: '',
+      类型,
+      回报预期: '',
+      风险评估: 提示,
+      优先级: 3,
+      原始行动: compactAction,
+    };
+  }
+
+  const 名称 = String(action.名称 ?? '').trim();
+  const 描述 = String(action.描述 ?? '').trim();
   if (!名称 || !描述) return null;
 
   const 来源 = String(action?.来源 ?? '').trim();
   const 回报预期 = String(action?.回报预期 ?? '').trim();
   const 风险评估 = String(action?.风险评估 ?? '').trim();
-  const 时限 = String(action?.时限 ?? '').trim();
-  const 类型原文 = String(action?.类型 ?? '').trim();
+  const 时限 = String(action.时限 ?? '').trim();
+  const 类型原文 = String(action.类型 ?? '').trim();
   const 类型 = inferActionType(类型原文, [名称, 描述, 来源, 回报预期, 风险评估, 时限].filter(Boolean).join('｜'));
-  const 优先级 = _.clamp(Number(action?.优先级 ?? 3) || 3, 1, 5);
+  const 优先级 = _.clamp(Number(action.优先级 ?? 3) || 3, 1, 5);
 
   return {
     名称,
@@ -322,7 +380,9 @@ const normalizeAction = (action: Partial<OpportunityAction> | null | undefined):
   };
 };
 
-const makeAction = (action: Partial<OpportunityAction> & Pick<OpportunityAction, '名称' | '描述'>): OpportunityAction => {
+const makeAction = (
+  action: Partial<OpportunityAction> & Pick<OpportunityAction, '名称' | '描述'>,
+): OpportunityAction => {
   const normalized = normalizeAction(action);
   if (!normalized) {
     throw new Error(`无效行动定义: ${JSON.stringify(action)}`);
@@ -373,7 +433,7 @@ const syncCurrentMessagePatch = () => {
 // 刷新行动列表
 const refreshActions = async () => {
   if (isRefreshing.value) return;
-  
+
   isRefreshing.value = true;
   try {
     // 调用 store 中的强制刷新方法
@@ -496,11 +556,13 @@ const situationBadgeText = computed(() => {
 
 const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAction[] }>(() => {
   const operations = currentMessagePatch.value.filter(operation => typeof operation.path === 'string');
-  const replaceAll = operations.find(operation => operation.op === 'replace' && operation.path === '/可参与机遇');
+  const replaceAll = operations.find(
+    operation => operation.op === 'replace' && (operation.path === '/$可参与机遇' || operation.path === '/可参与机遇'),
+  );
 
   if (replaceAll) {
     const actions = sortActions(
-      (store.可参与机遇 as OpportunityAction[])
+      (store.可参与机遇 as unknown[])
         .map(action => normalizeAction(action))
         .filter((action): action is OpportunityAction => !!action),
     );
@@ -511,14 +573,16 @@ const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAc
     };
   }
 
-  const clearActionList = operations.some(operation => operation.path === '/可参与机遇' && operation.op === 'remove');
+  const clearActionList = operations.some(
+    operation => (operation.path === '/$可参与机遇' || operation.path === '/可参与机遇') && operation.op === 'remove',
+  );
   if (clearActionList) {
     return { mode: 'cleared', actions: [] };
   }
 
   const touchedIndices: number[] = [];
   operations.forEach(operation => {
-    const match = String(operation.path).match(/^\/可参与机遇\/(\d+)$/);
+    const match = String(operation.path).match(/^\/\$?可参与机遇\/(\d+)$/);
     if (!match) return;
     const index = Number(match[1]);
     if (Number.isInteger(index) && !touchedIndices.includes(index)) {
@@ -529,7 +593,7 @@ const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAc
   if (touchedIndices.length > 0) {
     const actions = sortActions(
       touchedIndices
-        .map(index => normalizeAction((store.可参与机遇 as OpportunityAction[])[index]))
+        .map(index => normalizeAction((store.可参与机遇 as unknown[])[index]))
         .filter((action): action is OpportunityAction => !!action),
     );
 
@@ -571,27 +635,30 @@ const supportActions = computed<OpportunityAction[]>(() => {
   const threshold = Number(protagonist?.突破阈值 ?? 0) || 0;
   const currentCultivation = Number(protagonist?.修为 ?? 0) || 0;
   const cultivationRatio = threshold > 0 ? currentCultivation / threshold : 0;
-  const currentEnemies = protagonist?.当前敌人 ?? [];
+  const currentEnemies = protagonist?.当前敌人 ?? {};
 
   if (protagonist?.战斗状态?.正在战斗) {
-    const enemyNames = currentEnemies.map((enemy: any) => enemy?.名称).filter(Boolean).join('、') || '眼前强敌';
+    const enemyNames = Object.keys(currentEnemies).join('、') || '眼前强敌';
+    const battleScene = protagonist?.战斗状态?.战局;
+    const opportunity = battleScene?.战机?.[0] || '尚未显露的破局之机';
+    const crisis = battleScene?.危机?.[0] || '敌手仍未揭明的后手';
     return [
       makeAction({
-        名称: '稳住战局',
+        名称: '应对危机',
         类型: '争夺',
         来源: '战斗态势',
-        描述: `先稳住与${enemyNames}的攻守节奏，试探破绽，再顺势出手。`,
-        回报预期: '守住主动，不至于被一波打乱节奏',
-        风险评估: '稍有迟疑便可能露出空门',
+        描述: `针对“${crisis}”调整与${enemyNames}的攻守节奏，并尝试化险为机。`,
+        回报预期: '遏止战局继续恶化',
+        风险评估: '若判断失误，可能被迫承担更重代价',
         优先级: 5,
       }),
       makeAction({
-        名称: '逼出底牌',
+        名称: '把握战机',
         类型: '争夺',
         来源: '战斗态势',
-        描述: `借几次虚实变化逼${enemyNames}先交底牌，再决定下一步压制方向。`,
-        回报预期: '看清敌手手段',
-        风险评估: '若试探失手，战局会更凶险',
+        描述: `围绕“${opportunity}”组织下一次交锋，迫使${enemyNames}暴露破绽或让出主导。`,
+        回报预期: '将既有条件转化为态势优势',
+        风险评估: '战机未成熟时强取，可能反受其制',
         优先级: 4,
       }),
     ];
@@ -667,7 +734,8 @@ const supportActions = computed<OpportunityAction[]>(() => {
         名称: `推进${questName}`,
         类型: '任务',
         来源: '进行中任务',
-        描述: questTarget ? `先沿着“${questTarget}”这条线往前推，别让当前主线在这里断掉。`
+        描述: questTarget
+          ? `先沿着“${questTarget}”这条线往前推，别让当前主线在这里断掉。`
           : `把“${questName}”这件事继续往前推，先让局势动起来再看新的岔口。`,
         回报预期: '剧情主线继续展开',
         风险评估: '若判断失误，可能会提前撞上新的麻烦',
@@ -836,22 +904,20 @@ const narrateRewardExpectation = (reward: string) => {
   const normalized = trimPunctuation(formatThirdPerson(reward));
   if (!normalized) return '';
 
-  if (/^(?:获得|推进|稳住|稳固|看清|理清|发现|补齐|减轻|尽快|守住|带出|结下|见到|探明|探得|冲开|缓和|引出|避开|寻到|找到|争来)/.test(normalized)) {
-    return pick([
-      `，借此${normalized}`,
-      `，也好${normalized}`,
-      `，看能不能${normalized}`,
-    ]);
+  if (
+    /^(?:获得|推进|稳住|稳固|看清|理清|发现|补齐|减轻|尽快|守住|带出|结下|见到|探明|探得|冲开|缓和|引出|避开|寻到|找到|争来)/.test(
+      normalized,
+    )
+  ) {
+    return pick([`，借此${normalized}`, `，也好${normalized}`, `，看能不能${normalized}`]);
   }
 
-  return pick([
-    `，兴许能换来${normalized}`,
-    `，也算图个${normalized}`,
-    `，看看能否换得${normalized}`,
-  ]);
+  return pick([`，兴许能换来${normalized}`, `，也算图个${normalized}`, `，看看能否换得${normalized}`]);
 };
 
 const composeActionNarration = (action: OpportunityAction) => {
+  if (action.原始行动) return action.原始行动;
+
   const userName = getUserName();
   const name = trimPunctuation(action.名称);
   const sceneLead = buildSceneLead();
@@ -872,11 +938,7 @@ const composeActionNarration = (action: OpportunityAction) => {
     );
   } else if (desc.includes(name)) {
     parts.push(
-      pick([
-        `${userName}便顺势而动，${desc}`,
-        `${userName}不再旁观，${desc}`,
-        `${userName}心念一定，${desc}`,
-      ]),
+      pick([`${userName}便顺势而动，${desc}`, `${userName}不再旁观，${desc}`, `${userName}心念一定，${desc}`]),
     );
   } else {
     parts.push(
@@ -912,11 +974,11 @@ const selectAction = (action: OpportunityAction) => {
 const selectStoryAction = () => {
   let actionText = '';
   const userName = getUserName();
-  
+
   // 1. 优先判断紧急状态（战斗/渡劫）
   if (store.本尊?.战斗状态?.正在战斗) {
-    const enemies = store.本尊.当前敌人 || [];
-    const enemyNames = enemies.map(e => e.名称).join('、') || '强敌';
+    const enemies = store.本尊.当前敌人 || {};
+    const enemyNames = Object.keys(enemies).join('、') || '强敌';
     actionText = `眼下正与${enemyNames}鏖战不休，${userName}无暇旁顾，只得把全部心神都收回眼前攻守之间，先稳住节奏，再寻那一线破局之机。`;
   } else if (store.本尊?.渡劫状态?.正在渡劫) {
     actionText = `天威浩荡，劫云压顶，${userName}不敢有半分分心，只把气机与灵力一并调匀，先撑过眼前劫势，再图后续破境之机。`;
@@ -948,7 +1010,7 @@ const selectStoryAction = () => {
       actionText += pick(storyPhrases);
     }
   }
-  
+
   writeReplyDraft(actionText);
   console.info('[行动提示] 选择顺势而为，文本长度:', actionText.length);
 };
@@ -957,20 +1019,20 @@ const selectStoryAction = () => {
 const selectRandomAction = () => {
   let actionText = '';
   const userName = getUserName();
-  
+
   const sceneLead = buildSceneLead();
   if (sceneLead) {
     actionText += `${sceneLead}。`;
   }
-  
+
   const randomPhrases = [
     `${userName}一时也无甚明确打算，索性顺着眼前天地随缘走一遭。不刻意强求机缘，只看这一路上会不会自有波澜与造化浮出水面。`,
     `${userName}暂且把杂念放下，不先设定死路数，只顺其自然在周遭缓步细察，看看暗处是否藏着未被点破的线索。`,
     `${userName}不拘泥于既定盘算，只放松心神，随缘而动。若这一程里真有机缘与变数，多半也会自己露出端倪。`,
   ];
-  
+
   actionText += pick(randomPhrases);
-  
+
   writeReplyDraft(actionText);
   console.info('[行动提示] 选择随缘而行，文本长度:', actionText.length);
 };
@@ -1007,7 +1069,7 @@ const selectRandomAction = () => {
     display: flex;
     align-items: center;
     gap: 8px;
-    
+
     i {
       color: var(--accent-color);
     }
@@ -1064,7 +1126,7 @@ const selectRandomAction = () => {
       background: var(--button-bg);
       color: var(--accent-color);
     }
-    
+
     i {
       font-size: 12px;
       color: inherit;

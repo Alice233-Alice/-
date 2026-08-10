@@ -1,0 +1,199 @@
+# 羽岚生图提示词2 —— T1 轻抚襟口/拢发一瞬 · T2 入浴氤氲 · T3 妖性流露 · T4 春困初醒 · T5 对镜理妆/云雨初歇 · T6 裸体围裙（正面/系带半解/轻拢长发/妖瞳凝视/春困倚榻/跪坐奉茶） · T7 衣橱四式（青花布衣/薄绡褙子/清汉旗袍/晋商夏裙） · T8 素青肚兜 · T9 素帛裹身
+# 核心特征：丰腴妖娆、霜青发、琥珀金眸（竖瞳）、素青布衣、银簪缀羽
+# 背景方向：纯黑/纯白/素净，避免分散模型注意力
+# 半身特写骨架：(plump face, round cheeks:1.1) + (natural beauty, no makeup:1.3) + (blue-gray hair:1.3) + (old silver hairpin adorned with iridescent green-blue plumes:1.2) + (amber-gold eyes:1.3) + avian eyes
+# ==========================================
+
+# ==========================================
+# T1. 轻抚襟口 / 拢发一瞬 (Unconscious Grace)
+# SFW: 正面，一手轻搭襟口，布衣微敞露锁骨，浑然不觉
+# NSFW: 正面，双手拢发，银簪叼于唇间，布衣自肩滑落
+# 背景：纯白
+# ==========================================
+
+羽岚_轻抚襟口_sfw:
+  fantasy, textures, volumetric light, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and innocent expression, faint unknowing smile, looking directly at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm and soft gaze, (voluptuous, curvy body, huge breasts:1.4), deep cleavage, (plain celadon cloth robe:1.4), one hand resting lightly near collar, fingers unconsciously touching the lapel, (robe slightly parted at chest, collarbone visible:1.3), faded red string visible at waist, simple white background, clean minimalist backdrop, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_拢发一瞬_nsfw:
+  nsfw, nude, (huge breasts:1.4), nipples, fantasy, textures, volumetric light, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and unguarded expression, faint unknowing smile, both hands raised gathering long loose hair, (old silver hairpin held loosely between lips, tiny iridescent plumes dangling from it:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, being gathered up, slightly curled hair ends falling through raised fingers, (amber-gold eyes:1.3), (vertical pupils slightly visible:1.2), avian eyes, calm direct gaze at viewer, (voluptuous, curvy body:1.2), (plain celadon cloth robe slipped off one shoulder from raised arms:1.4), bare shoulder and collarbone fully exposed, robe opening at chest, bare breasts visible, faded red string around bare waist, simple white background, clean minimalist backdrop, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# T2. 入浴氤氲 (Hot Spring Haze)
+# SFW: 正面，肩以上露于水面，蒸汽半掩轮廓，热水蒸得双颊绯红
+# NSFW: 正面，水没过胸口，半露不露，水汽氤氲中肌肤泛着热浴后的红润
+# 背景：水雾素白
+# ==========================================
+
+羽岚_入浴氤氲_sfw:
+  fantasy, textures, soft diffused steamy light, 1girl, solo, upper body, (plump face, round cheeks:1.1), (natural beauty, no makeup:1.3), relaxed and blissful expression, half-lidded eyes, faint contented smile, natural rosy cheeks deepened from hot water warmth, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly damp at ends, slightly curled hair ends clinging to bare wet shoulders, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, pinned loosely:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm drowsy gaze, bare shoulders and collarbone visible above water surface, (indoor wooden bath, warm water rippling gently:1.3), (soft steam rising from water surface, hazy indoor atmosphere:1.2), (voluptuous, curvy body, huge breasts:1.4), the suggestion of cleavage just beneath the waterline, faded red string tied around bare waist faintly visible through clear water, soft diffused indoor backlight, warm ambient glow, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_入浴氤氲_nsfw:
+  nsfw, nude, (huge breasts:1.4), nipples, fantasy, textures, soft diffused steamy light, 1girl, solo, upper body, (plump face, round cheeks:1.1), (natural beauty, no makeup:1.3), blissful and drowsy expression, half-lidded eyes, soft unknowing contented smile, natural rosy cheeks deeply flushed from hot water, (blue-gray hair with subtle green sheen:1.3), long loose hair, damp, slightly curled hair ends clinging to bare wet shoulders and neck, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, slipping slightly:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible through heavy lids:1.2), avian eyes, warm dreamy gaze, (indoor wooden bath, warm water rippling gently, waterline just below chest:1.3), (soft steam rising from water surface, hazy indoor atmosphere:1.2), (voluptuous, curvy body:1.2), bare breasts barely visible through steam and water surface, glistening wet skin catching soft light, faded red string around bare waist faintly visible through clear water, soft diffused indoor backlight, warm ambient glow, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# T3. 妖性流露 (Feral Release)
+# 独处时的松弛，妖类本色流露
+# 背景：灰白素
+# ==========================================
+
+羽岚_妖性流露_sfw:
+  fantasy, textures, side lighting, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), subtle wild smile, (blue-gray hair with subtle green sheen:1.3), long loose hair wild and unbound, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, loosely pinned:1.2), (amber-gold eyes:1.3), (vertical pupils clearly visible:1.2), avian eyes, direct unblinking gaze at viewer, not hostile but untamed, (plain celadon cloth robe worn loose, collar open wide:1.3), cleavage deeply visible, (voluptuous, curvy body, huge breasts:1.4), faded red string tied at waist, one bare shoulder emerging from loose collar, unselfconscious posture, neutral grey-white studio background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_妖性流露_nsfw:
+  nsfw, nude, (huge breasts:1.4), nipples, fantasy, textures, side lighting, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), faint wild knowing smile, (blue-gray hair with subtle green sheen:1.3), long loose hair completely undone and spread wild, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, fallen aside:1.2), (amber-gold eyes:1.3), (vertical pupils fully visible, feral and alert:1.3), avian eyes, direct piercing gaze, (plain celadon cloth robe completely open, bare breasts fully visible:1.4), (voluptuous, curvy body:1.2), glistening skin, faded red string against bare skin at waist, relaxed unashamed posture, (this is how she is when no one is watching:1.2), neutral grey-white studio background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# T4. 春困初醒 (Spring Drowsiness)
+# 刚睡醒，薄衫松垮，眼神尚带水光
+# 背景：暖白
+# ==========================================
+
+羽岚_春困初醒_sfw:
+  fantasy, textures, soft warm ambient light, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), drowsy half-lidded gaze, just waking up, lips slightly parted, (blue-gray hair with subtle green sheen:1.3), long loose hair completely messy from sleep, slightly curled hair ends tangled, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, barely holding on:1.2), (amber-gold eyes:1.3), vertical pupils barely visible behind heavy lids, avian eyes, (plain thin inner robe loosely draped, slipping off one shoulder:1.3), bare shoulder exposed, collarbone prominent, cleavage visible from side-leaning posture, (voluptuous, curvy body, huge breasts:1.4), faded red string visible at waist beneath loose robe, warm off-white studio background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_春困初醒_nsfw:
+  nsfw, nude, (huge breasts:1.4), nipples, fantasy, textures, soft warm ambient light, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks with sleep-warm flush, (natural beauty, no makeup:1.3), heavy-lidded sleepy gaze, wet sheen in eyes, lips parted, (blue-gray hair with subtle green sheen:1.3), long loose hair wild and tangled from sleep, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, fallen to one side:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible through drowsy eyes:1.1), avian eyes, (plain thin inner robe completely slipped down, bare breasts fully visible:1.4), (voluptuous, curvy body:1.2), glistening sleep-warm skin, faded red string against bare skin at waist, propping herself up on one elbow, posture heavy with sleep, not yet fully awake, warm off-white studio background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+# ==========================================
+# T5. 对镜理妆 / 云雨初歇 (After the Rain / At the Mirror)
+# SFW: 正面，对铜镜梳妆，身着精致古风刺绣罗衣，衣襟微敞见锁骨，铜镜映出半身
+# NSFW: 正面，云雨后虚软无力倚坐，素青衣已褪，精液流淌于胸乳间，双颊绯红眼神涣散茫然
+# 背景：暖黄柔光
+# ==========================================
+
+羽岚_对镜理妆_sfw:
+  fantasy, textures, soft warm candlelight, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle contemplative expression, faint contented smile, indirect gaze through bronze mirror reflection, (blue-gray hair with subtle green sheen:1.3), long loose hair, being smoothed down with one hand, slightly curled hair ends cascading over shoulder, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, soft warm gaze reflected in mirror, (voluptuous, curvy body, huge breasts:1.4), (elegant ancient-style layered celadon silk robe with delicate embroidery:1.4), ornate silver-thread cloud patterns on collar and cuffs, wide flowing sleeves draping gracefully, robe parted slightly at chest revealing bare collarbone and hint of cleavage, faded red string visible at waist beneath sheer silk sash, one hand resting on collar as if adjusting the garment, plain bronze mirror edge visible at frame border, warm intimate candlelit atmosphere, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail, detailed fabric texture, delicate silk luster
+
+羽岚_云雨初歇_nsfw:
+  nsfw, nude, (huge breasts:1.4), nipples, (cum on breasts:1.3), (cum dripping between breasts:1.2), fantasy, textures, soft warm ambient light, 1girl, solo, upper body, (plump face, round cheeks:1.1), natural rosy cheeks flushed with post-coital warmth, (natural beauty, no makeup:1.3), dazed unfocused expression, half-lidded dreamy eyes, lips parted catching breath, (blue-gray hair with subtle green sheen:1.3), long loose hair, disheveled, hair pulled back behind shoulders, slightly curled hair ends, (amber-gold eyes:1.3), (vertical pupils visible but unfocused:1.2), avian eyes, heavy-lidded distant gaze, (voluptuous, curvy body:1.2), bare breasts fully exposed, slumped sitting posture against cushions, body limp and spent, (faded red string around bare waist:1.2), soft warm off-white background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+
+# ==========================================
+# T6. 裸体围裙 · 素裳六式（Upper Body Naked Apron 主题）
+# 正面 · 系带半解 · 轻拢长发 · 妖瞳凝视 · 春困倚榻 · 跪坐奉茶
+# 背身回眸 · 背身系带（裸背全露，系带交叉于腰后）
+# 设计理念：羽岚身为云雀精，天生丰腴妖娆却不自知，系着素青围裙时神情或温婉、或慵懒、或野性难驯——
+#    围裙之下不着一物，侧乳自围裙边缘溢出、后背系带交叉处全裸的肌肤，
+#    与她浑然不觉的纯真、春困迷蒙的倦色、或妖类独处时的松弛野性构成反差
+# 材质核心：plain celadon apron, fabric apron, apron around neck, apron strings
+# 构图：upper body 为主，sfw 中围裙遮住关键部位，nsfw 中围裙之下全然裸露
+# 背景：dark background, pure black background，纯黑背景突出素青围裙与丰腴肌肤的对比
+# ==========================================
+
+羽岚_裸体围裙_正面_sfw:
+  fantasy, textures, cinematic lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and innocent expression, faint unknowing smile, looking directly at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm and soft gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, sideboob, apron partially covering breasts, bare shoulders, bare arms, (faded red string visible at waist beneath apron:1.2), dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_裸体围裙_正面_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, cinematic lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, sideboob, exposed nipples, exposed breasts, bare shoulders, bare arms, (faded red string visible at waist beneath apron:1.2), gentle expression, half-closed eyes, faint blush, glistening skin, looking at viewer, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+羽岚_裸体围裙_轻拢长发_sfw:
+  fantasy, textures, cinematic lighting, 1girl, solo, upper body, front view, one arm raised gathering hair, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle expression, faint unknowing smile, looking at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, lifted by one raised hand, slightly curled hair ends cascading between fingers, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, askew from raised arm:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm unguarded gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (apron riding up with raised arm revealing side waist:1.3), sideboob emphasized by raised arm posture, bare shoulders, bare arms, (faded red string visible at side waist:1.2), dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_裸体围裙_轻拢长发_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, cinematic lighting, upper body, front view, both arms raised gathering hair above head, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, being gathered high, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, slipping:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, innocent unaware gaze upward, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (apron pulled high from both arms raised exposing entire side torso:1.3), exposed side breast, exposed nipples, bare shoulders, bare arms, bare ribs and waist completely visible, (faded red string around bare waist:1.2), faint blush, glistening skin, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+羽岚_裸体围裙_妖瞳凝视_sfw:
+  fantasy, textures, side lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), faint wild knowing smile, (blue-gray hair with subtle green sheen:1.3), long loose hair wild and unbound, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, loosely pinned:1.2), (amber-gold eyes:1.3), (vertical pupils clearly visible:1.2), avian eyes, direct unblinking gaze at viewer, not hostile but untamed, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, apron worn loose, deep cleavage, bare shoulders, (one shoulder strap slipping as if she cares little about decency:1.3), unselfconscious posture, (faded red string visible at waist beneath loose apron:1.2), dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_裸体围裙_妖瞳凝视_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, side lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), faint wild knowing smile, (blue-gray hair with subtle green sheen:1.3), long loose hair completely undone and spread wild, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, fallen aside:1.2), (amber-gold eyes:1.3), (vertical pupils fully visible, feral and alert:1.3), avian eyes, direct piercing gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (apron completely open, bare breasts fully visible:1.4), bare shoulders, glistening skin, (faded red string against bare skin at waist:1.2), relaxed unashamed posture, this is how she is when no one is watching, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+羽岚_裸体围裙_春困倚榻_sfw:
+  fantasy, textures, soft warm ambient light, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks with sleep-warm flush, (natural beauty, no makeup:1.3), drowsy half-lidded gaze, just waking up, lips slightly parted, (blue-gray hair with subtle green sheen:1.3), long loose hair completely messy from sleep, slightly curled hair ends tangled and disheveled, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, barely holding on:1.2), (amber-gold eyes:1.3), vertical pupils barely visible behind heavy lids, avian eyes, unfocused sleepy gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (apron loose and wrinkled from sleep, one strap slipped off shoulder:1.3), bare shoulder and collarbone exposed, cleavage emphasized by side-leaning sleepy posture, (faded red string visible at waist beneath loose apron:1.2), propping herself up on one elbow, posture heavy with sleep, not yet fully awake, dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_裸体围裙_春困倚榻_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, soft warm ambient light, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks with sleep-warm deep flush, (natural beauty, no makeup:1.3), heavy-lidded sleepy gaze, lips parted catching breath, (blue-gray hair with subtle green sheen:1.3), long loose hair wild and tangled from sleep, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, fallen to one side:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible through drowsy eyes:1.1), avian eyes, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (apron completely slipped down during sleep, bare breasts fully visible:1.4), bare shoulders, glistening sleep-warm skin, (faded red string against bare skin at waist:1.2), propping herself up groggily on one elbow, not yet caring to pull the apron back up, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+羽岚_裸体围裙_跪坐奉茶_sfw:
+  fantasy, textures, soft overhead lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and earnest expression, demure and attentive, faint humble smile for the one she is serving, eyes slightly lowered in deference, (blue-gray hair with subtle green sheen:1.3), long loose hair, neatly draped over shoulders, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, perfectly in place:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, soft deferential gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (formal kneeling posture, both hands extended forward offering a tea cup:1.2), apron stretched across heavy breasts from upright kneeling posture, deep cleavage visible from above angle, bare shoulders, bare arms extended forward, (faded red string visible at waist:1.2), dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_裸体围裙_跪坐奉茶_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, soft overhead lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks with deepening blush, (natural beauty, no makeup:1.3), earnest yet flustered expression, demure but aware of her exposure, eyes lowered with faint shame, (blue-gray hair with subtle green sheen:1.3), long loose hair, neatly draped, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, averted bashful gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (apron loosened while kneeling, breasts partially exposed:1.3), exposed nipples, exposed cleavage, heavy breasts pressing against loose apron, bare shoulders, bare arms extended forward holding tea, (faded red string against bare skin at waist:1.2), formal kneeling posture contrasting with exposed body, glistening skin, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+羽岚_裸体围裙_系带半解_sfw:
+  fantasy, textures, cinematic lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle expression with a hint of innocent surprise, faint unknowing smile, looking at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends trailing over bare shoulder, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, slightly askew:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm and slightly flustered gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (one apron string untied:1.4), apron slipping off one shoulder, fabric poised at the edge, bare shoulder and collarbone fully exposed, (faded red string visible at waist:1.2), dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_裸体围裙_系带半解_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, cinematic lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks with heavy blush, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, askew as if about to fall:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible:1.2), avian eyes, half-closed flustered gaze, (voluptuous, curvy body, huge breasts:1.4), naked apron, (plain celadon apron:1.3), apron around neck, (one apron string untied:1.4), apron slipping off completely, exposed breasts, exposed nipples, one breast fully visible, bare shoulders, bare arms,   (faded red string against bare skin at waist:1.2),    glistening skin, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+# ==========================================
+# T7. 素青肚兜 (Plain Celadon Dudou)
+# SFW: 正面，仅一件素青肚兜蔽体，红绳系颈，侧乳微露
+# NSFW: 正面，肚兜半敞，双乳全露，腰间红绳依旧
+# 背景：纯黑
+# 设计理念：与裸体围裙同为"仅一件布衣"的极简构图。肚兜比围裙更贴身、更私密，
+#    颈后一抹红绳与锁骨、肩线的交汇，比围裙的肩带更添闺阁气息。
+#    羽岚浑然不觉的温婉神情，与肚兜之下全裸的肉身构成同样的反差张力。
+# ==========================================
+
+羽岚_素青肚兜_sfw:
+  fantasy, textures, cinematic lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and innocent expression, faint unknowing smile, looking directly at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm and soft gaze, (voluptuous, curvy body, huge breasts:1.4), (plain celadon dudou:1.4), dudou strings tied behind neck, sideboob, dudou covering breasts, bare shoulders, (faded red string visible at waist:1.2), dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail
+
+羽岚_素青肚兜_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, cinematic lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible:1.2), avian eyes, (voluptuous, curvy body, huge breasts:1.4), (plain celadon dudou:1.4), dudou strings tied behind neck, (dudou loosened open, bare breasts fully visible:1.4), exposed nipples, bare shoulders, bare waist, (faded red string against bare skin at waist:1.2), gentle expression, half-closed eyes, faint blush, glistening skin, looking at viewer, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+# ==========================================
+# T8. 青花裹胸 (Blue-Porcelain Chest Wrap)
+# SFW: 正面，仅一件白底蓝花的青花布裹在胸前，无系带，倚肩露锁骨
+# NSFW: 正面，裹布松脱滑落，双乳全露，青花布垂挂于臂弯
+# 背景：纯黑
+# 设计理念：白底蓝花的青花瓷纹样与羽岚的霜青发、琥珀金眸天然呼应。
+#    裹胸比肚兜更松散、更随意，无红绳系颈，仅靠布料的褶皱与身体的曲线相抵。
+#    似浴后随手裹上的一幅青花布，下一刻便可能散落。
+# ==========================================
+
+羽岚_青花裹胸_sfw:
+  fantasy, textures, cinematic lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and innocent expression, faint unknowing smile, looking directly at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends trailing over bare shoulder, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm and soft gaze, (voluptuous, curvy body, huge breasts:1.4), (soft white cotton cloth wrapped and tied around chest, cobalt blue floral and cloud scroll motifs, blue and white porcelain fabric:1.4), soft fabric draping, fabric creases and folds, cloth tucked loosely over breasts, sideboob partially visible at wrapped edges, bare shoulders, bare arms, bare collarbone, (faded red string visible at waist:1.2), dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail, detailed fabric pattern
+
+羽岚_青花裹胸_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, cinematic lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible:1.2), avian eyes, (voluptuous, curvy body, huge breasts:1.4),   (soft white cotton cloth with cobalt blue floral and cloud scroll motifs, blue and white porcelain fabric:1.4), (wrapping loosened and slipped down, bare breasts fully visible:1.4), exposed nipples, fabric draped loosely around elbows, bare shoulders, bare waist, (faded red string against bare skin at waist:1.2), gentle expression, half-closed eyes, faint blush, glistening skin, looking at viewer, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail, detailed fabric pattern
+
+# ==========================================
+# T9. 素青短衫 (Plain Celadon Short Top)
+# SFW: 正面，素青交领窄袖短衫，下配素白长裙，领口微敞露锁骨
+# NSFW: 正面，短衫前襟完全敞开，双乳全露，素白长裙仍在
+# 背景：纯黑
+# 设计理念：回归羽岚标志性的素青布衣，取其最简洁的短衫形态。
+#    交领、窄袖、及腰的剪裁，仅以腰间红线为饰——素到极致，反而好看。
+#    不再是内衣裹布，而是一件正经的日常上衣，却因丰腴身段将简素穿出了风韵。
+# ==========================================
+
+羽岚_素青短衫_sfw:
+  fantasy, textures, cinematic lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and serene expression, faint warm smile, looking directly at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends cascading over shoulders, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm and soft gaze, (voluptuous, curvy body, huge breasts:1.4), (plain celadon cross-collar short top, narrow sleeves:1.4), hem at waist, collar slightly parted revealing bare collarbone and hint of cleavage, (plain white long skirt:1.2), faded red string visible at waist, dark background, pure black background, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail, detailed fabric texture
+
+羽岚_素青短衫_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, cinematic lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible:1.2), avian eyes, (voluptuous, curvy body, huge breasts:1.4), (plain celadon cross-collar short top, narrow sleeves, front completely open:1.4), bare breasts fully visible, exposed nipples, plain white long skirt still worn, (faded red string against bare skin at waist:1.2), gentle expression, half-closed eyes, faint blush, glistening skin, looking at viewer, dark background, pure black background, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail
+
+# ==========================================
+# T10. 青缎对襟褙子 (Celadon Silk Beizi)
+# SFW: 正面，青缎对襟褙子，银线绣云纹于领口袖缘，内衬素白中衣，神情端雅
+# NSFW: 正面，褙子前襟完全敞开，内里全裸，褙子仍披于肩上
+# 背景：无
+# 设计理念：褙子是对襟直领的正式外衣，比短衫多一层身份感。
+#    青缎面料微泛绸光，领口袖缘以银线绣云纹为饰，内衬素白中衣露出交领，
+#    两襟自然下垂，不束不系。羽岚端雅时的神情与丰腴身段形成庄与媚的对比。
+# ==========================================
+
+羽岚_青缎对襟褙子_sfw:
+  fantasy, textures, soft diffused lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), demure and serene expression, faint proper smile, looking directly at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, neatly draped over shoulders, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, perfectly in place:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, composed and gentle gaze, (voluptuous, curvy body, huge breasts:1.4), (celadon silk beizi, parallel straight collar, long outer robe:1.4), silver-thread cloud embroidery on collar and cuffs, wide flowing sleeves, plain white inner robe visible at collar, two lapels hanging straight down unsecured, faded red string faintly visible at waist through fabric, no background, plain backdrop, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail, delicate silk luster
+
+羽岚_青缎对襟褙子_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, soft diffused lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks with faint flush, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible:1.2), avian eyes, half-lidded gaze, (voluptuous, curvy body, huge breasts:1.4), (celadon silk beizi, parallel straight collar, front completely open:1.4), silver-thread cloud embroidery on collar and cuffs, wide flowing sleeves, (beizi draped open, bare breasts fully visible, exposed nipples:1.4), inner robe absent, bare skin from neck to waist, (faded red string against bare skin at waist:1.2), gentle expression, faint blush, glistening skin, looking at viewer, no background, plain backdrop, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail, delicate silk luster
+
+# ==========================================
+# T11. 素罗交领襦衫 (Plain Silk Cross-collar Ru Top)
+# SFW: 正面，素青罗交领窄袖襦衫，腰间系素白丝绦，领口微敞
+# NSFW: 正面，交领大敞，一侧滑落肩头，双乳半露
+# 背景：无
+# 设计理念：罗是一种轻薄透气的丝织品，比短衫的棉麻多一分轻盈与垂坠感。
+#    交领在颈前交叉叠合，比褙子的对襟更贴身、更显身形。
+#    仅以腰间一条素白丝绦束腰，不做多余装饰。
+# ==========================================
+
+羽岚_素罗交领襦衫_sfw:
+  fantasy, textures, soft diffused lighting, 1girl, solo, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks, (natural beauty, no makeup:1.3), gentle and natural expression, faint contented smile, looking directly at viewer, (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends cascading over shoulders, (old silver hairpin adorned with a few tiny iridescent green-blue plumes:1.2), (amber-gold eyes:1.3), vertical pupils barely visible, avian eyes, warm and soft gaze, (voluptuous, curvy body, huge breasts:1.4), (plain celadon silk ru top, cross-collar, narrow sleeves:1.4), fine gauze texture, collar crossed neatly, slightly open at throat revealing bare neck and hint of collarbone, plain white silk sash tied at waist, (faded red string faintly visible:1.2), no background, plain backdrop, wuxia, xianxia, painterly, masterpiece, best quality, very aesthetic, absurdres, ultra-detailed, 8k, detailed face, detailed eyes, intricate detail, delicate fabric texture
+
+羽岚_素罗交领襦衫_nsfw:
+  nsfw, masterpiece, best quality, absurdres, 1girl, solo, fantasy, textures, soft diffused lighting, upper body, front view, (plump face, round cheeks:1.1), natural rosy cheeks with warm flush, (natural beauty, no makeup:1.3), (blue-gray hair with subtle green sheen:1.3), long loose hair, slightly curled hair ends, (old silver hairpin adorned with a few tiny iridescent green-blue plumes, askew:1.2), (amber-gold eyes:1.3), (vertical pupils slightly visible:1.2), avian eyes, heavy-lidded flustered gaze, (voluptuous, curvy body, huge breasts:1.4), (plain celadon silk ru top, cross-collar front completely open, fabric pulled aside:1.4), fine gauze texture, bare breasts fully visible, exposed nipples, bare skin from neck to waist, plain white silk sash loosely tied at waist, (faded red string against bare skin at waist:1.2), gentle expression, faint blush, glistening skin, looking at viewer, no background, plain backdrop, wuxia, xianxia, painterly, very aesthetic, ultra-detailed, intricate detail, delicate fabric texture
+
+

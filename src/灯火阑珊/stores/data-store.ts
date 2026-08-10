@@ -157,7 +157,7 @@ export const useDataStore = defineStore(
     const resetTransientCombatAndTribulationState = (data: SchemaType): SchemaType => {
       const next = _.cloneDeep(data);
       next.本尊.战斗状态 = _.cloneDeep(defaultProtagonistState.战斗状态);
-      next.本尊.当前敌人 = [];
+      next.本尊.当前敌人 = {};
       next.本尊.渡劫状态 = _.cloneDeep(defaultProtagonistState.渡劫状态);
       return next;
     };
@@ -189,12 +189,12 @@ export const useDataStore = defineStore(
           next.本尊.战斗状态.正在战斗 = false;
           changed = true;
         }
-        if (next.本尊.战斗状态.当前状态 !== '非战斗') {
-          next.本尊.战斗状态.当前状态 = '非战斗';
+        if (next.本尊.战斗状态.阶段 !== '余波') {
+          next.本尊.战斗状态.阶段 = '余波';
           changed = true;
         }
-        if ((next.本尊.当前敌人?.length ?? 0) > 0) {
-          next.本尊.当前敌人 = [];
+        if (Object.keys(next.本尊.当前敌人 ?? {}).length > 0) {
+          next.本尊.当前敌人 = {};
           changed = true;
         }
       }
@@ -832,7 +832,7 @@ export const useDataStore = defineStore(
     const 地点库 = computed(() => rawData.value?.地点库 ?? {});
 
     // 行动提示系统
-    const 可参与机遇 = computed(() => rawData.value?.可参与机遇 ?? []);
+    const 可参与机遇 = computed(() => rawData.value?.$可参与机遇 ?? []);
     const 当前处境 = computed(() => rawData.value?.当前处境 ?? '');
 
     // 行动数量提示（用于底部按钮显示）
@@ -844,7 +844,7 @@ export const useDataStore = defineStore(
         rawData.value?._系统设置 ?? {
           启用行动提示: true,
           修炼系统版本: 3,
-          变量结构版本: 2,
+          变量结构版本: 4,
           _临时状态手动覆盖签名: '',
         },
     );
@@ -862,13 +862,13 @@ export const useDataStore = defineStore(
             rawData.value._系统设置 = {
               启用行动提示: newVal,
               修炼系统版本: 3,
-              变量结构版本: 2,
+              变量结构版本: 4,
               _临时状态手动覆盖签名: '',
             };
           } else {
             rawData.value._系统设置.启用行动提示 = newVal;
             rawData.value._系统设置.修炼系统版本 = Number(rawData.value._系统设置.修炼系统版本 ?? 3) || 3;
-            rawData.value._系统设置.变量结构版本 = Number(rawData.value._系统设置.变量结构版本 ?? 2) || 2;
+            rawData.value._系统设置.变量结构版本 = 4;
             rawData.value._系统设置._临时状态手动覆盖签名 = rawData.value._系统设置._临时状态手动覆盖签名 ?? '';
           }
         }
@@ -882,11 +882,7 @@ export const useDataStore = defineStore(
           'stat_data._系统设置.修炼系统版本',
           Number(_.get(variables, 'stat_data._系统设置.修炼系统版本', 3)) || 3,
         );
-        _.set(
-          variables,
-          'stat_data._系统设置.变量结构版本',
-          Number(_.get(variables, 'stat_data._系统设置.变量结构版本', 2)) || 2,
-        );
+        _.set(variables, 'stat_data._系统设置.变量结构版本', 4);
         await Mvu.replaceMvuData(variables, { type: 'message', message_id });
 
         toastr.success(`已${newVal ? '开启' : '关闭'}行动提示生成`, '系统设置');

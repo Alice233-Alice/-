@@ -107,6 +107,16 @@ export const DEFAULT_CHARACTER_LIB = {
     器: '无',
     通: ['瑞光庇佑', '灵觉通明', '本源爆发'],
   },
+  羽岚: {
+    级: 7,
+    根: '风属异灵根',
+    质: '天渊青羽妖体',
+    龄: '化形约一甲子',
+    属: '天渊青羽云雀族巡风使',
+    法: '青羽族传·观渊辨风',
+    器: '青翎（化符成刃）',
+    通: ['渊鸣', '一步缩地', '折叠藏物', '渊域展翼'],
+  },
   阮忘忧: {
     级: 44,
     根: '因果大道本源',
@@ -169,6 +179,38 @@ export const CompanionRelationContextSchema = z
   })
   .prefault({});
 
+export const COMPANION_BOND_EVENT_TYPES = [
+  '相识',
+  '共患难',
+  '交心',
+  '护道',
+  '承诺',
+  '分歧',
+  '定情',
+  '离别',
+  '重逢',
+  '其他',
+] as const;
+
+const CompanionBondEventTypeSchema = z.preprocess(
+  value =>
+    COMPANION_BOND_EVENT_TYPES.includes(String(value) as (typeof COMPANION_BOND_EVENT_TYPES)[number]) ? value : '其他',
+  z.enum(COMPANION_BOND_EVENT_TYPES),
+);
+
+export const CompanionBondChronicleEntrySchema = z
+  .object({
+    类型: CompanionBondEventTypeSchema.prefault('其他'),
+    摘要: z.string().prefault(''),
+    时地: z.string().prefault(''),
+  })
+  .prefault({});
+
+export const CompanionBondChronicleSchema = z
+  .record(z.string().describe('纪事名'), CompanionBondChronicleEntrySchema)
+  .prefault({})
+  .transform(entries => Object.fromEntries(_(entries).entries().takeRight(8).value()));
+
 // 红颜（动态角色数据）Schema
 export const CompanionSchema = z
   .object({
@@ -194,6 +236,7 @@ export const CompanionSchema = z
       .prefault(0),
     关系: z.string().prefault('陌生人'),
     关系上下文: CompanionRelationContextSchema,
+    羁绊纪事: CompanionBondChronicleSchema,
   })
   .prefault({
     等级: 1,
@@ -220,6 +263,7 @@ export const CompanionSchema = z
     好感度: 0,
     关系: '陌生人',
     关系上下文: {},
+    羁绊纪事: {},
   })
   .transform(data => {
     data.修炼状态 = normalizeCultivationState(data.修炼状态, {
@@ -228,7 +272,7 @@ export const CompanionSchema = z
       cultivation: data.修为,
     });
     data.尝试突破 = data.修炼状态.阶段 === '突破中';
-    const realmInfo = computeRealmInfo(data, false);
+    const realmInfo = computeRealmInfo(data);
     return { ...data, ...realmInfo };
   });
 

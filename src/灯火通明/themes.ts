@@ -19,6 +19,7 @@ export interface Theme {
     textPrimary: string;
     textSecondary: string;
     textAccent: string;
+    dialogueText: string;
     accent: string;
     accentGlow: string;
     buttonBg: string;
@@ -78,6 +79,7 @@ const lanternTheme: Theme = {
     textPrimary: '#f3eee5',
     textSecondary: '#b7b8b3',
     textAccent: '#e0d3c1',
+    dialogueText: '#7fd2c1',
     accent: '#e3b96f',
     accentGlow: 'rgba(227, 185, 111, 0.25)',
     buttonBg: 'rgba(186, 129, 69, 0.1)',
@@ -129,7 +131,8 @@ const lanternTheme: Theme = {
       radial-gradient(circle at 88% 42%, rgba(255, 157, 52, 0.09), transparent 8%),
       linear-gradient(180deg, transparent 54%, rgba(20, 73, 82, 0.13) 72%, rgba(4, 17, 25, 0.22)),
       repeating-linear-gradient(90deg, transparent 0 70px, rgba(221, 184, 119, 0.025) 71px 72px)`,
-    portrait: 'radial-gradient(circle at 70% 16%, rgba(238, 170, 79, 0.14), transparent 28%), linear-gradient(180deg, rgba(221, 165, 83, 0.06), transparent 36%, rgba(1, 10, 15, 0.42))',
+    portrait:
+      'radial-gradient(circle at 70% 16%, rgba(238, 170, 79, 0.14), transparent 28%), linear-gradient(180deg, rgba(221, 165, 83, 0.06), transparent 36%, rgba(1, 10, 15, 0.42))',
     grain: 'repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.008) 4px)',
   },
 };
@@ -153,6 +156,7 @@ const duskInkTheme: Theme = {
     textPrimary: '#f0e9d8',
     textSecondary: '#bac0b5',
     textAccent: '#ded4bd',
+    dialogueText: '#83c5b5',
     accent: '#d7ae63',
     accentGlow: 'rgba(215, 174, 99, 0.24)',
     buttonBg: 'rgba(189, 151, 84, 0.11)',
@@ -222,6 +226,7 @@ const shanhaiTheme: Theme = {
     textPrimary: '#263837',
     textSecondary: '#5f6862',
     textAccent: '#344e4b',
+    dialogueText: '#174f4c',
     accent: '#295f5d',
     accentGlow: 'rgba(35, 89, 87, 0.24)',
     buttonBg: 'rgba(35, 78, 76, 0.11)',
@@ -273,7 +278,8 @@ const shanhaiTheme: Theme = {
       radial-gradient(ellipse at 98% -2%, rgba(42, 83, 77, 0.13) 0 8%, transparent 18%),
       linear-gradient(90deg, rgba(45, 86, 80, 0.035), transparent 12%, transparent 88%, rgba(45, 86, 80, 0.04))`,
     portrait: 'linear-gradient(180deg, rgba(39, 82, 77, 0.08), transparent 48%, rgba(55, 64, 57, 0.18))',
-    grain: 'repeating-linear-gradient(87deg, transparent 0 2px, rgba(69,58,40,0.018) 3px), repeating-linear-gradient(3deg, transparent 0 5px, rgba(55,70,62,0.012) 6px)',
+    grain:
+      'repeating-linear-gradient(87deg, transparent 0 2px, rgba(69,58,40,0.018) 3px), repeating-linear-gradient(3deg, transparent 0 5px, rgba(55,70,62,0.012) 6px)',
   },
 };
 
@@ -296,6 +302,7 @@ const starAltarTheme: Theme = {
     textPrimary: '#e9f0ec',
     textSecondary: '#91aaa8',
     textAccent: '#bed2cc',
+    dialogueText: '#63d9c8',
     accent: '#52cbbb',
     accentGlow: 'rgba(75, 204, 186, 0.24)',
     buttonBg: 'rgba(50, 150, 143, 0.1)',
@@ -342,7 +349,8 @@ const starAltarTheme: Theme = {
     reading: `
       radial-gradient(circle at 86% 16%, transparent 0 80px, rgba(75, 201, 187, 0.05) 81px 82px, transparent 83px),
       linear-gradient(90deg, rgba(72, 195, 182, 0.025), transparent 12%, transparent 88%, rgba(72, 195, 182, 0.025))`,
-    portrait: 'radial-gradient(circle at 50% 28%, rgba(75, 204, 190, 0.12), transparent 34%), linear-gradient(180deg, transparent, rgba(1, 10, 17, 0.3))',
+    portrait:
+      'radial-gradient(circle at 50% 28%, rgba(75, 204, 190, 0.12), transparent 34%), linear-gradient(180deg, transparent, rgba(1, 10, 17, 0.3))',
     grain: 'repeating-linear-gradient(135deg, transparent 0 18px, rgba(121,205,194,0.012) 19px)',
   },
 };

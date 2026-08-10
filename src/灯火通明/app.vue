@@ -55,7 +55,7 @@
         <CultivationPanel v-else-if="activeView === 'cultivation'" />
         <SkillsPanel v-else-if="activeView === 'skills'" />
         <InventoryPanel v-else-if="activeView === 'inventory'" />
-        <CompanionsPanel v-else-if="activeView === 'companions'" />
+        <CompanionsPanel v-else-if="activeView === 'companions'" @open-dialogue="openView('dialogue')" />
         <MapPanel v-else-if="activeView === 'trace'" />
         <div v-else-if="activeView === 'map'" class="panel full-map-panel">
           <WorldMapCanvas
@@ -70,7 +70,7 @@
             :combat-state="store.本尊.战斗状态"
             :current-enemies="store.本尊.当前敌人"
             :tribulation-state="store.本尊.渡劫状态"
-            :player-combat-power="(store.本尊 as any).战力值 ?? 0"
+            :player-level="store.本尊.等级"
           />
         </div>
         <GalleryPanel v-else-if="activeView === 'gallery'" />
@@ -247,6 +247,7 @@ const themeStyles = computed(() => {
     '--text-primary': colors.textPrimary,
     '--text-secondary': colors.textSecondary,
     '--text-accent': colors.textAccent,
+    '--story-dialogue-color': themeStore.currentDialogueColor,
     '--accent-color': colors.accent,
     '--accent-glow': colors.accentGlow,
     '--button-bg': colors.buttonBg,
@@ -1114,6 +1115,14 @@ onBeforeUnmount(() => {
     opacity: 0.88;
     transform: translate3d(0.2%, -0.35%, 0);
   }
+}
+
+.cultivation-status :deep(.story-copy .dhl-story-dialogue),
+.cultivation-status :deep(.story-prose .dhl-story-dialogue) {
+  color: var(--story-dialogue-color);
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.015em;
 }
 
 :deep(button:focus-visible),

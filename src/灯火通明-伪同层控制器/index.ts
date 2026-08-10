@@ -251,12 +251,7 @@ const flushQueuedStream = (generation?: ActiveGeneration | null) => {
   }
 };
 
-const queueStream = (
-  generation: ActiveGeneration,
-  text: string,
-  reaction = '',
-  reasoning?: GenerationReasoning,
-) => {
+const queueStream = (generation: ActiveGeneration, text: string, reaction = '', reasoning?: GenerationReasoning) => {
   const queuedReasoning =
     reasoning ??
     (pendingStreamDispatch?.requestId === generation.requestId ? pendingStreamDispatch.reasoning : undefined);
@@ -654,7 +649,9 @@ const getStageSnapshot = (): StageSnapshot => {
 const readTimelineReasoning = (message: ChatMessage | undefined) => {
   const direct = (message?.extra ?? {}) as Record<string, any>;
   const nested =
-    direct.extra && typeof direct.extra === 'object' ? (direct.extra as Record<string, any>) : ({} as Record<string, any>);
+    direct.extra && typeof direct.extra === 'object'
+      ? (direct.extra as Record<string, any>)
+      : ({} as Record<string, any>);
   const inlineReasoning = extractInlineReasoning(String(message?.message ?? ''));
   const reasoning = mergeReasoningText(
     String(direct.reasoning ?? nested.reasoning ?? '').trim(),
@@ -762,15 +759,14 @@ const updateGenerationReasoning = (
 const readMessageTokenCount = (message: ChatMessage | undefined) => {
   const direct = (message?.extra ?? {}) as Record<string, any>;
   const nested =
-    direct.extra && typeof direct.extra === 'object' ? (direct.extra as Record<string, any>) : ({} as Record<string, any>);
+    direct.extra && typeof direct.extra === 'object'
+      ? (direct.extra as Record<string, any>)
+      : ({} as Record<string, any>);
   const value = Number(direct.token_count ?? nested.token_count);
   return Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined;
 };
 
-const readTimelineUserText = (
-  message: ChatMessage | undefined,
-  metadata: PseudoLayerInteractionMetadata | null,
-) => {
+const readTimelineUserText = (message: ChatMessage | undefined, metadata: PseudoLayerInteractionMetadata | null) => {
   if (!message) return '';
   if (metadata?.rawUserText) return metadata.rawUserText.trim();
   return String(message.message ?? '')
@@ -838,10 +834,7 @@ const findTimelineEntryIndex = (entries: PseudoLayerTimelineEntry[], messageId: 
   return exact >= 0 ? exact : entries.length - 1;
 };
 
-const sendTimelinePage = (
-  source: ReplyTarget,
-  request: Extract<PseudoLayerRequest, { type: 'timeline_page' }>,
-) => {
+const sendTimelinePage = (source: ReplyTarget, request: Extract<PseudoLayerRequest, { type: 'timeline_page' }>) => {
   const snapshot = getStageSnapshot();
   const entries = hydrateTimelineEntries(snapshot);
   const limit = _.clamp(Math.trunc(Number(request.limit) || 8), 1, 20);
@@ -1375,8 +1368,7 @@ const repairNativeSwipeState = (messageId: number, message: NativeSwipeMessage) 
   if (isValid) return false;
 
   const fallbackSwipeId = message.swipes.findLastIndex(
-    (candidate, index) =>
-      isUsableNativeSwipeCandidate(candidate) && !isNativeSwipeCandidateIncomplete(message, index),
+    (candidate, index) => isUsableNativeSwipeCandidate(candidate) && !isNativeSwipeCandidateIncomplete(message, index),
   );
   if (fallbackSwipeId < 0) throw new Error(`第 ${messageId} 楼没有可恢复的重生成候选。`);
 
@@ -1427,11 +1419,7 @@ const isNativeSwipeMaterialized = (messageId: number, generation = activeGenerat
   );
 };
 
-const waitForNativeSwipeMaterialized = async (
-  messageId: number,
-  timeout = 5000,
-  generation = activeGeneration,
-) => {
+const waitForNativeSwipeMaterialized = async (messageId: number, timeout = 5000, generation = activeGeneration) => {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     if (isNativeSwipeMaterialized(messageId, generation)) return true;
@@ -1517,8 +1505,7 @@ const persistPendingNativeReroll = (generation: ActiveGeneration) => {
     return;
   }
   const next = readPendingNativeRerolls().filter(
-    record =>
-      record.chatId !== generation.chatId || record.original.messageId !== generation.rerollOriginal?.messageId,
+    record => record.chatId !== generation.chatId || record.original.messageId !== generation.rerollOriginal?.messageId,
   );
   next.push({
     version: 1,
@@ -1624,11 +1611,7 @@ const rollbackNativeReroll = (generation: ActiveGeneration): Promise<boolean> =>
 
   const task = (async () => {
     const original = generation.rerollOriginal!;
-    const restored = await restoreNativeRerollRecord(
-      generation.chatId!,
-      original,
-      generation.nativeSwipeOriginal!,
-    );
+    const restored = await restoreNativeRerollRecord(generation.chatId!, original, generation.nativeSwipeOriginal!);
     if (!restored) return false;
     clearPendingNativeReroll(generation.chatId, original.messageId);
     invalidateStageSnapshot();
@@ -2690,6 +2673,112 @@ const updateMessageContent = async (
   }
 };
 
+const updateUserMessageContent = async (
+  request: Extract<PseudoLayerRequest, { type: 'update_user_message' }>,
+  source: ReplyTarget,
+) => {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
+    send(source, { type: 'error', requestId: request.requestId, message: '当前仍有操作正在进行。' });
+    return;
+  }
+
+  const messageId = Math.trunc(request.messageId);
+  const userMessageId = Math.trunc(request.userMessageId);
+  const content = String(request.content ?? '').trim();
+  const snapshot = getStageSnapshot();
+  const entry = snapshot.entries.find(candidate => candidate.messageIds.includes(messageId));
+  const assistant = snapshot.messagesById.get(messageId);
+  const metadata = resolveAssistantInteractionMetadata(assistant, snapshot.messages);
+  const previous = snapshot.previousMessages.get(messageId);
+  const linkedUser =
+    (metadata?.userMessageId !== undefined ? snapshot.messagesById.get(metadata.userMessageId) : undefined) ??
+    (previous?.role === 'user' ? previous : undefined);
+
+  if (!Number.isFinite(messageId) || !Number.isFinite(userMessageId) || !entry || assistant?.role !== 'assistant') {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: '当前回合已经变化，请重新打开输入编辑器。',
+    });
+    return;
+  }
+  if (!linkedUser || linkedUser.role !== 'user' || linkedUser.message_id !== userMessageId) {
+    send(source, { type: 'error', requestId: request.requestId, message: '没有找到这条回复对应的玩家输入。' });
+    return;
+  }
+  if (!content) {
+    send(source, { type: 'error', requestId: request.requestId, message: '玩家输入不能为空。' });
+    return;
+  }
+
+  const chatId = getCurrentChatId();
+  updatingMessageId = userMessageId;
+  try {
+    const updates: Parameters<typeof setChatMessages>[0] = [{ message_id: userMessageId, message: content }];
+    if (metadata) {
+      const context = toDialogueContext(metadata);
+      const existingUserMetadata = readInteractionMetadata(linkedUser);
+      const userMetadata: PseudoLayerInteractionMetadata = {
+        ...existingUserMetadata,
+        version: 2,
+        kind: 'dialogue',
+        ...context,
+        engine: existingUserMetadata?.engine ?? metadata.engine ?? 'native',
+        ...((existingUserMetadata?.operationId ?? metadata.operationId)
+          ? { operationId: existingUserMetadata?.operationId ?? metadata.operationId }
+          : {}),
+        rawUserText: content,
+        userMessageId,
+      };
+      const assistantMetadata: PseudoLayerInteractionMetadata = {
+        ...metadata,
+        version: 2,
+        kind: 'dialogue',
+        ...context,
+        rawUserText: content,
+        userMessageId,
+      };
+      updates[0] = {
+        message_id: userMessageId,
+        message: decorateDialogueInput(content, context),
+        extra: {
+          ...(linkedUser.extra ?? {}),
+          [INTERACTION_KEY]: userMetadata,
+        },
+      };
+      updates.push({
+        message_id: messageId,
+        extra: {
+          ...(assistant.extra ?? {}),
+          [INTERACTION_KEY]: assistantMetadata,
+        },
+      });
+    }
+
+    await setChatMessages(updates, { refresh: 'affected' });
+    if (getCurrentChatId() !== chatId) throw new Error('保存期间聊天已经切换，本次编辑未完成。');
+
+    invalidateStageSnapshot();
+    viewRevision += 1;
+    send(source, {
+      type: 'message_updated',
+      requestId: request.requestId,
+      messageId,
+      userMessageId,
+    });
+    broadcastView();
+  } catch (error) {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    updatingMessageId = null;
+    scheduleViewRefresh(120, true);
+  }
+};
+
 const handleMessage = (event: MessageEvent<unknown>) => {
   if (!isPseudoLayerRequest(event.data)) return;
   const request = event.data;
@@ -2761,6 +2850,11 @@ const handleMessage = (event: MessageEvent<unknown>) => {
 
   if (request.type === 'update_message') {
     void updateMessageContent(request, source);
+    return;
+  }
+
+  if (request.type === 'update_user_message') {
+    void updateUserMessageContent(request, source);
     return;
   }
 

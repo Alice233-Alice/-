@@ -210,7 +210,7 @@ const 机遇类型推断规则: Array<{ type: OpportunityType; pattern: RegExp }
   {
     type: '亲密',
     pattern:
-      /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|亲吻|亲密|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜/,
+      /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|亲吻|亲密|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|羽岚|羽岚烟|岚烟|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜/,
   },
   {
     type: '修炼',
@@ -275,9 +275,9 @@ function getOpportunityPatchIndex(value: unknown): number | null | undefined {
     .replace(/^\/+/u, '')
     .replace(/^stat_data[./]/u, '')
     .replaceAll('/', '.');
-  if (normalizedPath === '可参与机遇') return null;
+  if (normalizedPath === '$可参与机遇' || normalizedPath === '可参与机遇') return null;
 
-  const indexMatch = /^可参与机遇\.(\d+)$/u.exec(normalizedPath);
+  const indexMatch = /^\$?可参与机遇\.(\d+)$/u.exec(normalizedPath);
   return indexMatch ? Number(indexMatch[1]) : undefined;
 }
 
@@ -327,7 +327,7 @@ function collectEmbeddedOpportunityItems(value: unknown, depth = 0): unknown[] {
 
 /**
  * 兼容模型偶发生成的双重嵌套：
- * replace /可参与机遇 的 value 内又放入整组或逐下标 patch 操作。
+ * replace /$可参与机遇（兼容旧路径 /可参与机遇）的 value 内又放入整组或逐下标 patch 操作。
  */
 export function unwrapOpportunityPatchPayload(value: unknown): unknown {
   let current = value;
@@ -398,12 +398,12 @@ export const OpportunitySchema = z.union([CompactOpportunitySchema, LegacyOpport
 export const SystemSettingsSchema = z
   .object({
     启用行动提示: z.boolean().prefault(true),
-    修炼系统版本: finiteNumber(1)
+    修炼系统版本: finiteNumber(3)
       .transform(value => Math.max(1, Math.floor(value)))
-      .prefault(1),
-    变量结构版本: finiteNumber(1)
+      .prefault(3),
+    变量结构版本: finiteNumber(4)
       .transform(value => Math.max(1, Math.floor(value)))
-      .prefault(1),
+      .prefault(4),
     _临时状态手动覆盖签名: z.string().prefault(''),
   })
   .prefault({});

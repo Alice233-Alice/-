@@ -8,6 +8,7 @@ const VERSION = '1.2';
 
 import { Schema } from '../../schema';
 import { inferLayerFromTrack, normalizeRegionName } from '../../region-utils';
+import { COMPANION_ALIASES_BY_CANONICAL } from '../../../灯火阑珊-变量结构/companion-aliases';
 
 // ============================================================================
 // 配置项
@@ -56,13 +57,7 @@ interface Context {
 // 角色别名配置 - 用于处理一个角色的多个名称
 // ============================================================================
 
-const CHARACTER_ALIASES: Record<string, string[]> = {
-    '虞汐颜': ['虞汐', '虞颜'],
-    '朔璃鸢': ['阿鸢', '血手飞鸢'],
-    '朔望舒': ['赤月女帝', '幽影宗主'],
-    // 可以在这里添加更多角色的别名，例如：
-    // '某某': ['别名1', '别名2'],
-};
+const CHARACTER_ALIASES = COMPANION_ALIASES_BY_CANONICAL;
 
 // ============================================================================
 // 好感度阶段映射 - 定义阶段名称对应的好感度范围

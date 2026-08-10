@@ -79,6 +79,60 @@ const config: Config = {
   entries: glob_script_files().map(parse_entry),
 };
 
+const WINDOWS_TRANSIENT_OUTPUT_ERRORS = new Set(['EACCES', 'EBUSY', 'EPERM', 'UNKNOWN']);
+const OUTPUT_WRITE_RETRY_DELAYS = [40, 80, 160, 320, 640, 1280, 2500, 5000] as const;
+
+/** Windows 上实时预览可能会短暂占用输出文件，避免一次 open 失败就结束整个监听任务。 */
+class RetryOutputWritePlugin {
+  apply(compiler: webpack.Compiler) {
+    if (process.platform !== 'win32' || !compiler.outputFileSystem) {
+      return;
+    }
+
+    const base_file_system = compiler.outputFileSystem;
+    const original_write_file = base_file_system.writeFile.bind(base_file_system);
+    const retrying_file_system = Object.create(base_file_system) as NonNullable<webpack.Compiler['outputFileSystem']>;
+    const logger = compiler.getInfrastructureLogger('retry_output_write');
+
+    retrying_file_system.writeFile = ((file, data, options_or_callback, maybe_callback) => {
+      const callback = typeof options_or_callback === 'function' ? options_or_callback : maybe_callback;
+      if (!callback) {
+        throw new TypeError('outputFileSystem.writeFile 缺少回调函数');
+      }
+
+      let retry_count = 0;
+      const write = () => {
+        const on_complete = (error: null | NodeJS.ErrnoException) => {
+          const is_transient_error = error?.code && WINDOWS_TRANSIENT_OUTPUT_ERRORS.has(error.code);
+          if (is_transient_error && retry_count < OUTPUT_WRITE_RETRY_DELAYS.length) {
+            const delay = OUTPUT_WRITE_RETRY_DELAYS[retry_count++];
+            if (retry_count === 1) {
+              logger.warn(`输出文件被短暂占用，正在重试：${String(file)}`);
+            }
+            setTimeout(write, delay);
+            return;
+          }
+
+          if (!error && retry_count > 0) {
+            logger.info(`已在 ${retry_count} 次重试后写入：${String(file)}`);
+          }
+          callback(error);
+        };
+
+        if (typeof options_or_callback === 'function') {
+          original_write_file(file, data, on_complete);
+        } else {
+          original_write_file(file, data, options_or_callback, on_complete);
+        }
+      };
+
+      write();
+    }) as typeof base_file_system.writeFile;
+
+    compiler.outputFileSystem = retrying_file_system;
+  }
+}
+
 let io: Server;
 function watch_tavern_helper(compiler: webpack.Compiler) {
   if (compiler.options.watch) {
@@ -128,7 +182,17 @@ function schema_dump(compiler: webpack.Compiler) {
   }
 }
 
-let child_process: ChildProcess;
+let child_process: ChildProcess | undefined;
+let tavern_sync_cleanup_registered = false;
+
+const stop_tavern_sync = () => {
+  const process_to_stop = child_process;
+  child_process = undefined;
+  if (process_to_stop && process_to_stop.exitCode === null && !process_to_stop.killed) {
+    process_to_stop.kill();
+  }
+};
+
 const bundle = () => {
   exec('pnpm sync bundle all', { cwd: import.meta.dirname });
   console.info('\x1b[36m[tavern_sync]\x1b[0m 已打包所有配置了的角色卡/世界书/预设');
@@ -141,13 +205,18 @@ function tavern_sync(compiler: webpack.Compiler) {
   }
   compiler.hooks.watchRun.tap('watch_tavern_sync', () => {
     if (!child_process) {
-      child_process = spawn('pnpm', ['sync', 'watch', 'all', '-f'], {
-        shell: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        cwd: import.meta.dirname,
-        env: { ...process.env, FORCE_COLOR: '1' },
-      });
-      child_process.stdout?.on('data', (data: Buffer) => {
+      const spawned_process = spawn(
+        process.execPath,
+        [path.join(import.meta.dirname, 'tavern_sync.mjs'), 'watch', 'all', '-f'],
+        {
+          shell: false,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          cwd: import.meta.dirname,
+          env: { ...process.env, FORCE_COLOR: '1' },
+        },
+      );
+      child_process = spawned_process;
+      spawned_process.stdout?.on('data', (data: Buffer) => {
         console.info(
           data
             .toString()
@@ -157,7 +226,7 @@ function tavern_sync(compiler: webpack.Compiler) {
             .join('\n'),
         );
       });
-      child_process.stderr?.on('data', (data: Buffer) => {
+      spawned_process.stderr?.on('data', (data: Buffer) => {
         console.error(
           data
             .toString()
@@ -167,19 +236,21 @@ function tavern_sync(compiler: webpack.Compiler) {
             .join('\n'),
         );
       });
-      child_process.on('error', error => {
+      spawned_process.on('error', error => {
         console.error(`\x1b[31m[tavern_sync]\x1b[0m Error: ${error.message}`);
+      });
+      spawned_process.on('exit', () => {
+        if (child_process === spawned_process) {
+          child_process = undefined;
+        }
       });
     }
   });
-  compiler.hooks.watchClose.tap('watch_tavern_sync', () => {
-    child_process?.kill();
-  });
-  ['SIGINT', 'SIGTERM'].forEach(signal => {
-    process.on(signal, () => {
-      child_process?.kill();
-    });
-  });
+  compiler.hooks.watchClose.tap('watch_tavern_sync', stop_tavern_sync);
+  if (!tavern_sync_cleanup_registered) {
+    process.once('exit', stop_tavern_sync);
+    tavern_sync_cleanup_registered = true;
+  }
 }
 
 function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Configuration {
@@ -219,7 +290,8 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       ),
       chunkFilename: `${script_filepath.name}.[contenthash].chunk.js`,
       asyncChunks: true,
-      clean: true,
+      // 监听时先删除再创建同名文件，可能与 Windows 实时预览形成“待删除”竞态。
+      clean: argv.watch !== true,
       publicPath: '',
       library: {
         type: 'module',
@@ -438,6 +510,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
         ]
     )
       .concat(
+        new RetryOutputWritePlugin(),
         { apply: watch_tavern_helper },
         { apply: schema_dump },
         { apply: tavern_sync },

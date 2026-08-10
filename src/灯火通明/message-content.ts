@@ -1,3 +1,5 @@
+import { segmentNarrativeDialogueText, type NarrativeDialogueState } from './narrative-typography';
+
 const PRIMARY_BODY_TAGS = [
   'content',
   '正文',
@@ -102,8 +104,7 @@ const REASONING_FENCE_PATTERN =
   /```(?:think(?:ing)?|reasoning|thoughts?|analysis|reflection|思考|推理)\s*\r?\n([\s\S]*?)(```|$)/gi;
 const REASONING_FENCE_CLOSED_PATTERN =
   /```(?:think(?:ing)?|reasoning|thoughts?|analysis|reflection|思考|推理)\s*\r?\n[\s\S]*?```/gi;
-const REASONING_ANALYSIS_PREFIX_PATTERN =
-  /^\s*(<analysis(?=[\s>])[^>]*>)([\s\S]*?)(<\/analysis\s*>|$)/i;
+const REASONING_ANALYSIS_PREFIX_PATTERN = /^\s*(<analysis(?=[\s>])[^>]*>)([\s\S]*?)(<\/analysis\s*>|$)/i;
 const REASONING_MARKER_PATTERN = new RegExp(
   `${REASONING_COMMENT_OPEN_PATTERN.source}|${REASONING_COMMENT_CLOSE_PATTERN.source}`,
   'gi',
@@ -174,9 +175,7 @@ const stripReasoningPrefix = (text: string) => {
   const unfinishedOpening = REASONING_OPEN_PATTERN.exec(text);
   REASONING_OPEN_PATTERN.lastIndex = 0;
   let opening: { index: number; marker: string } | null =
-    unfinishedOpening?.index === undefined
-      ? null
-      : { index: unfinishedOpening.index, marker: unfinishedOpening[0] };
+    unfinishedOpening?.index === undefined ? null : { index: unfinishedOpening.index, marker: unfinishedOpening[0] };
   if (!opening && commentOpening?.index !== undefined && !text.slice(0, commentOpening.index).trim()) {
     opening = { index: commentOpening.index, marker: commentOpening[0] };
   } else if (!opening && bracketPrefix?.[1] && !bracketPrefix[3]) {
@@ -250,8 +249,7 @@ const CHOICE_SECTION_HEADING_PATTERN =
 const BRANCH_CHOICE_LINE_PATTERN =
   /^\s*(?:[-*•]\s*)?[（(【[]?\s*([A-Za-z]|\d{1,2}|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳])\s*[）)】\]]?\s*(?:[.．、,，:：—-]\s*|\s+)(.+?\S)\s*$/;
 const BULLET_CHOICE_LINE_PATTERN = /^\s*[-*•]\s+(.+?\S)\s*$/;
-const STATIC_CHOICE_ELEMENT_PATTERN =
-  /<(button|option|li|a)(?=[\s>])([^>]*)>([\s\S]*?)<\/\1\s*>/gi;
+const STATIC_CHOICE_ELEMENT_PATTERN = /<(button|option|li|a)(?=[\s>])([^>]*)>([\s\S]*?)<\/\1\s*>/gi;
 
 const cleanChoiceText = (value: string) =>
   value
@@ -325,7 +323,9 @@ export const extractBranchChoices = (text: string): BranchChoice[] => {
           ? parsed
           : parsed && typeof parsed === 'object'
             ? Object.entries(parsed as Record<string, unknown>).map(([key, value]) =>
-                typeof value === 'object' && value !== null ? { key, ...(value as Record<string, unknown>) } : { key, text: value },
+                typeof value === 'object' && value !== null
+                  ? { key, ...(value as Record<string, unknown>) }
+                  : { key, text: value },
               )
             : [];
         items.forEach((item, index) => {
@@ -339,7 +339,14 @@ export const extractBranchChoices = (text: string): BranchChoice[] => {
           const labelIsKey = /^[A-Za-z]$|^\d{1,2}$|^[①②③④⑤⑥⑦⑧⑨⑩]$/.test(label);
           addChoice(
             String(record.letter ?? record.key ?? record.id ?? (labelIsKey ? label : index + 1)),
-            String(record.text ?? record.content ?? record.prompt ?? record.value ?? record.title ?? (labelIsKey ? '' : label)),
+            String(
+              record.text ??
+                record.content ??
+                record.prompt ??
+                record.value ??
+                record.title ??
+                (labelIsKey ? '' : label),
+            ),
           );
         });
       } catch {
@@ -349,8 +356,7 @@ export const extractBranchChoices = (text: string): BranchChoice[] => {
 
     STATIC_CHOICE_ELEMENT_PATTERN.lastIndex = 0;
     while ((match = STATIC_CHOICE_ELEMENT_PATTERN.exec(block)) !== null) {
-      const key =
-        /(?:data-(?:choice|option|key|id)|value)\s*=\s*["']?([^"'\s>]+)/i.exec(match[2])?.[1] ?? '';
+      const key = /(?:data-(?:choice|option|key|id)|value)\s*=\s*["']?([^"'\s>]+)/i.exec(match[2])?.[1] ?? '';
       const elementText = cleanChoiceText(match[3]);
       const labelledElement = BRANCH_CHOICE_LINE_PATTERN.exec(elementText);
       if (labelledElement) addChoice(key || labelledElement[1], labelledElement[2]);
@@ -538,8 +544,14 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
   if (!fragments.length) return extractOrphanClosingReasoning(text);
   fragments.sort((left, right) => left.start - right.start);
   return {
-    text: fragments.map(fragment => fragment.text).join('\n\n').trim(),
-    source: fragments.map(fragment => fragment.source).join('\n\n').trim(),
+    text: fragments
+      .map(fragment => fragment.text)
+      .join('\n\n')
+      .trim(),
+    source: fragments
+      .map(fragment => fragment.source)
+      .join('\n\n')
+      .trim(),
     isComplete: fragments.every(fragment => fragment.isComplete),
   };
 };
@@ -577,12 +589,7 @@ const stripDialogueTagFragments = (text: string) =>
     .replace(/<[^>]*$/g, '')
     .trim();
 
-const readBoundedTaggedContent = (
-  text: string,
-  tag: string,
-  stopTags: readonly string[],
-  preferLast = false,
-) => {
+const readBoundedTaggedContent = (text: string, tag: string, stopTags: readonly string[], preferLast = false) => {
   const matches = [...text.matchAll(new RegExp(openTagPattern(tag), 'gi'))];
   const match = preferLast ? matches.at(-1) : matches[0];
   if (!match || match.index === undefined) return '';
@@ -672,8 +679,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export const extractVariableUpdateDiagnostics = (text: string): VariableUpdateDiagnostics | null => {
-  const updateOpen =
-    /<(update(?:[_-]?variables?)?|variable[_-]?update|state[_-]?update)(?=[\s/>])[^>]*>/i.exec(text);
+  const updateOpen = /<(update(?:[_-]?variables?)?|variable[_-]?update|state[_-]?update)(?=[\s/>])[^>]*>/i.exec(text);
   if (!updateOpen || updateOpen.index === undefined) return null;
 
   const updateStart = updateOpen.index + updateOpen[0].length;
@@ -687,9 +693,7 @@ export const extractVariableUpdateDiagnostics = (text: string): VariableUpdateDi
   const analysisBlock = analysisTag
     ? readLooseTaggedContent(updateBody, analysisTag, patchTag ? [patchTag] : [])
     : { content: '', isClosed: false };
-  const patchBlock = patchTag
-    ? readLooseTaggedContent(updateBody, patchTag)
-    : { content: '', isClosed: false };
+  const patchBlock = patchTag ? readLooseTaggedContent(updateBody, patchTag) : { content: '', isClosed: false };
   const isComplete = updateCloseIndex >= 0;
   const result: VariableUpdateDiagnostics = {
     analysis: analysisBlock.content,
@@ -771,11 +775,7 @@ export const extractDialogueContent = (text: string) => {
     true,
   );
   const reaction = reactionBlock.found ? stripStructuredBlocks(reactionBlock.content) : '';
-  const dialogue = dialogueBlock.found
-    ? dialogueBlock.content
-    : reactionBlock.found
-      ? ''
-      : extractNarrative(source);
+  const dialogue = dialogueBlock.found ? dialogueBlock.content : reactionBlock.found ? '' : extractNarrative(source);
   return {
     reaction: stripDialogueTagFragments(reaction),
     dialogue: unwrapDialogueQuotes(stripDialogueTagFragments(stripStructuredBlocks(dialogue))),
@@ -829,6 +829,64 @@ export const formatMessageHtml = (text: string, messageId: number) => {
     return $('<div>').text(value).html().replace(/\n/g, '<br>');
   }
 };
+
+const STORY_DIALOGUE_CLASS = 'dhl-story-dialogue';
+const STORY_DIALOGUE_SKIP_SELECTOR = [
+  'code',
+  'pre',
+  'script',
+  'style',
+  'textarea',
+  'kbd',
+  'samp',
+  'button',
+  'select',
+  'option',
+  `.${STORY_DIALOGUE_CLASS}`,
+].join(', ');
+
+const decorateNarrativeDialogueHtml = (html: string) => {
+  if (!html || typeof document === 'undefined') return html;
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const quoteStack: NarrativeDialogueState = [];
+  const textNodes: Text[] = [];
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT, {
+    acceptNode: node =>
+      node.parentElement?.closest(STORY_DIALOGUE_SKIP_SELECTOR) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+
+  let currentNode = walker.nextNode();
+  while (currentNode) {
+    textNodes.push(currentNode as Text);
+    currentNode = walker.nextNode();
+  }
+
+  textNodes.forEach(textNode => {
+    const segments = segmentNarrativeDialogueText(textNode.data, quoteStack);
+    if (!segments.some(segment => segment.dialogue)) return;
+
+    const replacement = document.createDocumentFragment();
+    segments.forEach(segment => {
+      if (!segment.dialogue) {
+        replacement.append(document.createTextNode(segment.text));
+        return;
+      }
+
+      const dialogue = document.createElement('span');
+      dialogue.className = STORY_DIALOGUE_CLASS;
+      dialogue.textContent = segment.text;
+      replacement.append(dialogue);
+    });
+    textNode.replaceWith(replacement);
+  });
+
+  return template.innerHTML;
+};
+
+export const formatNarrativeHtml = (text: string, messageId: number) =>
+  decorateNarrativeDialogueHtml(formatMessageHtml(text, messageId));
 
 const BASIC_FORMAT_CLASS_PATTERN =
   /^(?:custom-html|custom-language-html|language-\S+|hljs(?:-\S+)?|markdown|md|code|prettyprint|spoiler)$/i;
