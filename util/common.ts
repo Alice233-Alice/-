@@ -110,7 +110,11 @@ export function parseString(content: string): any {
       } catch (json_error) {
         try {
           if (!json_first) {
+<<<<<<< HEAD
             throw Error(`expected error`, { cause: json_error });
+=======
+            throw Error(`expected error`);
+>>>>>>> fd8153baf11ced5360854b92fb17395299e83151
           }
           return YAML.parseDocument(content, { merge: true }).toJS();
         } catch (yaml_error2) {
@@ -126,7 +130,10 @@ export function parseString(content: string): any {
                 JSON错误信息: toError(json_error),
               },
             }),
+<<<<<<< HEAD
             { cause: yaml_error2 },
+=======
+>>>>>>> fd8153baf11ced5360854b92fb17395299e83151
           );
         }
       }
