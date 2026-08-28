@@ -1,13 +1,16 @@
 <template>
-  <div class="header">
+  <div
+    class="header"
+    :class="{ 'compact-layout': compactLayout, 'ultra-compact-layout': ultraCompactLayout }"
+  >
     <div class="header-left">
-      <button class="collapse-btn" @click="$emit('toggle-collapse')" :title="isCollapsed ? '展开状态栏' : '收起状态栏'">
+      <button class="collapse-btn" :title="isCollapsed ? '展开状态栏' : '收起状态栏'" @click="$emit('toggle-collapse')">
         <i :class="isCollapsed ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up'"></i>
       </button>
-      <button class="theme-btn" @click="$emit('toggle-theme-selector')" title="切换主题">
+      <button class="theme-btn" title="切换主题" @click="$emit('toggle-theme-selector')">
         <i class="fa-solid fa-palette"></i>
       </button>
-      <button class="preset-btn" @click="$emit('toggle-preset-editor')" title="开局预设">
+      <button class="preset-btn" title="开局预设" @click="$emit('toggle-preset-editor')">
         <i class="fa-solid fa-sliders"></i>
       </button>
     </div>
@@ -41,6 +44,8 @@ interface Props {
   parentRegion: string;
   dangerColor: string;
   locationColor: string;
+  compactLayout?: boolean;
+  ultraCompactLayout?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -174,11 +179,15 @@ defineEmits<{
 // 手机端适配
 @media screen and (max-width: 480px) {
   .header {
-    padding: 16px 12px 10px 12px;
-    min-height: 65px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px;
+    min-height: 58px;
 
     .header-left {
-      gap: 6px;
+      gap: 4px;
+      min-width: 0;
     }
 
     .collapse-btn,
@@ -193,7 +202,11 @@ defineEmits<{
     }
 
     .location-info {
-      padding: 4px 6px;
+      width: 100%;
+      min-width: 0;
+      margin-left: 0;
+      padding: 3px 4px;
+      overflow: hidden;
 
       .danger-badge {
         font-size: 9px;
@@ -201,18 +214,147 @@ defineEmits<{
       }
 
       .location {
-        gap: 6px;
+        width: 100%;
+        min-width: 0;
+        justify-content: flex-end;
+        gap: 3px;
+
+        > i {
+          flex: 0 0 auto;
+          font-size: 11px;
+        }
 
         .location-hierarchy {
+          min-width: 0;
+          max-width: 100%;
+          gap: 2px;
+          overflow: hidden;
+          white-space: nowrap;
+
           .location-parent {
-            font-size: 10px;
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            font-size: 9px;
+            text-overflow: ellipsis;
           }
 
           .location-current {
-            font-size: 12px;
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            font-size: 10px;
+            text-overflow: ellipsis;
           }
         }
       }
+    }
+  }
+}
+
+.header.compact-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+  min-height: 58px;
+
+  .header-left {
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .collapse-btn,
+  .theme-btn,
+  .preset-btn {
+    width: 26px;
+    height: 26px;
+
+    i {
+      font-size: 11px;
+    }
+  }
+
+  .location-info {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    padding: 3px 4px;
+    overflow: hidden;
+
+    .danger-badge {
+      padding: 2px 5px;
+      font-size: 9px;
+    }
+
+    .location {
+      width: 100%;
+      min-width: 0;
+      justify-content: flex-end;
+      gap: 3px;
+
+      > i {
+        flex: 0 0 auto;
+        font-size: 11px;
+      }
+
+      .location-hierarchy {
+        min-width: 0;
+        max-width: 100%;
+        gap: 2px;
+        overflow: hidden;
+        white-space: nowrap;
+
+        .location-parent,
+        .location-current {
+          flex: 0 1 auto;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .location-parent {
+          font-size: 9px;
+        }
+
+        .location-current {
+          font-size: 10px;
+        }
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 240px) {
+  .header {
+    .collapse-btn,
+    .theme-btn,
+    .preset-btn {
+      width: 24px;
+      height: 24px;
+    }
+
+    .location-info .location .location-hierarchy {
+      .location-parent,
+      .location-separator {
+        display: none;
+      }
+    }
+  }
+}
+
+.header.ultra-compact-layout {
+  .collapse-btn,
+  .theme-btn,
+  .preset-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .location-info .location .location-hierarchy {
+    .location-parent,
+    .location-separator {
+      display: none;
     }
   }
 }

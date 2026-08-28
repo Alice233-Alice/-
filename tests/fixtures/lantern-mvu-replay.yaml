@@ -44,7 +44,7 @@
         {"op":"replace","path":"/本尊/修为","value":0},
         {"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},
         {"op":"replace","path":"/本尊/修炼状态/上次结果","value":"成功"},
-        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跨级突破","目标等级":7,"依据":"完整炼化上古真君传承"}},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跨级突破","目标等级":7,"依据":"完整炼化上古真君传承，连破至筑基后期"}},
         {"op":"replace","path":"/本尊/尝试突破","value":false}
       ]</JSONPatch>
       </UpdateVariable>
@@ -93,7 +93,7 @@
         {"op":"replace","path":"/本尊/等级","value":4},
         {"op":"replace","path":"/本尊/修炼状态/阶段","value":"稳固中"},
         {"op":"replace","path":"/本尊/修炼状态/上次结果","value":"失败"},
-        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跌境","目标等级":4,"依据":"雷劫反噬导致根基崩毁"}},
+        {"op":"replace","path":"/本尊/修炼状态/境界变动","value":{"类型":"跌境","目标等级":4,"依据":"雷劫反噬导致根基崩毁，跌至练气大圆满"}},
         {"op":"replace","path":"/本尊/尝试突破","value":false}
       ]</JSONPatch>
       </UpdateVariable>
@@ -229,6 +229,23 @@
       值:
         /本尊/灵石: 80
         /本尊/背包/青玉丹/数量: 2
+
+  - 名称: 旧式分级灵石路径由守卫归一
+    旧变量:
+      本尊:
+        灵石: 100
+    更新: |-
+      <UpdateVariable>
+      <Analysis>兼容旧式下品灵石消费路径</Analysis>
+      <JSONPatch>[
+        {"op":"delta","path":"/本尊/灵石/下品灵石","value":-20}
+      ]</JSONPatch>
+      </UpdateVariable>
+    期望:
+      通过: true
+      命令守卫介入: true
+      值:
+        /本尊/灵石: 80
 
   - 名称: 非法世界库条目局部移除
     旧变量:

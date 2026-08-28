@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { z } from 'zod';
+import { LOCATION_DOMAIN_VALUES } from '../map-system';
 import { NormalizedStringListSchema, 品阶映射 } from './common';
 
 // 宗门势力 Schema - 优化版
@@ -85,7 +86,7 @@ export const TreasureSchema = z
 // 地点 Schema - 优化版
 export const LocationSchema = z
   .object({
-    域: z.enum(['天层', '神州', '东苍', '南炎', '西庚', '北冥', '下层', '四海']).catch('神州').prefault('神州'),
+    域: z.enum(LOCATION_DOMAIN_VALUES).catch('神州').prefault('神州'),
     类: z.enum(['秘境', '城镇', '宗门', '禁地', '遗迹', '地形']).catch('地形').prefault('地形'),
     危: z.coerce
       .number()

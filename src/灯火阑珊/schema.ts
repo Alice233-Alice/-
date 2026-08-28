@@ -67,6 +67,7 @@ export {
   migrateCultivationProgress,
   migrateLegacyCultivationProgress,
   NormalizedStringListSchema,
+  normalizeSpiritStoneAmount,
   normalizeSpiritStoneState,
   normalizeCultivationState,
   normalizeRealmLevel,
@@ -492,6 +493,9 @@ export const Schema = z.preprocess(
       法宝库: z.record(z.string().describe('法宝名'), TreasureSchema).prefault(DEFAULT_TREASURES),
 
       地点库: z.record(z.string().describe('地点名'), LocationSchema).prefault(DEFAULT_LOCATIONS),
+
+      // 玩家/开场白声明的地点 → 舆图落点。前缀 $ 使其不进入常规 AI 更新范围。
+      $地图锚点: z.record(z.string().describe('地点名'), z.string().describe('地图地域名')).prefault({}),
 
       // 提示词/脚本派生缓存：仅供脚本和 EJS 使用，不展示给 AI
       $宗门推断: z

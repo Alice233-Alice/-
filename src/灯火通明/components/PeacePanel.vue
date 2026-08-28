@@ -106,13 +106,18 @@ const burdenItems = computed(() => [
     tone: getBurdenTone(props.combatState.负荷.肉身),
   },
 ]);
+const burdenTones = computed(() => ({
+  真元: getBurdenTone(props.combatState.负荷.真元),
+  神识: getBurdenTone(props.combatState.负荷.神识),
+  肉身: getBurdenTone(props.combatState.负荷.肉身),
+}));
 
 const title = computed(() => {
   const burden = props.combatState.负荷;
-  if (burden.肉身 === '濒危') return '命悬一线';
-  if (burden.肉身 === '重创') return '肉身重创';
-  if (burden.神识 === '受创') return '识海受创';
-  if (burden.真元 === '枯竭') return '真元枯竭';
+  if (burdenTones.value.肉身 === 'critical') return '命悬一线';
+  if (burdenTones.value.肉身 === 'strained') return burden.肉身 === '重创' ? '肉身重创' : '肉身受损';
+  if (burdenTones.value.神识 === 'critical') return '识海受创';
+  if (burdenTones.value.真元 === 'critical') return '真元枯竭';
   if (showBattleResult.value) {
     const titles = {
       胜: '此战已定',
@@ -130,18 +135,14 @@ const title = computed(() => {
 
 const subtitle = computed(() => {
   if (showBattleResult.value && battleResult.value.达成) return battleResult.value.达成;
-  if (props.combatState.负荷.肉身 !== '无恙') return '伤势未复，不宜再争一时锋芒。';
-  if (props.combatState.负荷.神识 !== '澄明') return '识海尚有余震，宜静守灵台。';
-  if (props.combatState.负荷.真元 !== '充盈') return '气海未满，先行吐纳调息。';
+  if (burdenTones.value.肉身 !== 'clear') return '伤势未复，不宜再争一时锋芒。';
+  if (burdenTones.value.神识 !== 'clear') return '识海尚有余震，宜静守灵台。';
+  if (burdenTones.value.真元 !== 'clear') return '气海未满，先行吐纳调息。';
   return '此刻无风无浪，正是修行良机。';
 });
 
 const stateTone = computed(() => {
-  if (
-    props.combatState.负荷.肉身 === '濒危' ||
-    props.combatState.负荷.神识 === '受创' ||
-    props.combatState.负荷.真元 === '枯竭'
-  )
+  if (Object.values(burdenTones.value).includes('critical'))
     return 'critical';
   if (props.isInRecovery) return 'recovery';
   return 'peace';
@@ -155,11 +156,14 @@ const stateIcon = computed(() =>
 );
 
 const advice = computed(() => {
-  const burden = props.combatState.负荷;
-  if (burden.肉身 === '濒危') return '先保命脉，再论得失；疗伤、求援或寻找安全之地皆优先于继续斗法。';
-  if (burden.肉身 === '重创') return '静养肉身并查清暗伤，强行运功可能令战后代价进一步加深。';
-  if (burden.神识 === '受创' || burden.神识 === '动荡') return '收束神念、稳守识海，暂避搜魂、幻术与高强度御器。';
-  if (burden.真元 === '枯竭' || burden.真元 === '吃紧')
+  if (burdenTones.value.肉身 === 'critical')
+    return '先保命脉，再论得失；疗伤、求援或寻找安全之地皆优先于继续斗法。';
+  if (burdenTones.value.肉身 === 'strained')
+    return '静养肉身并查清暗伤，强行运功可能令战后代价进一步加深。';
+  if (burdenTones.value.肉身 === 'steady') return '运气温养伤处，待气血平复后再继续涉险。';
+  if (burdenTones.value.神识 === 'critical' || burdenTones.value.神识 === 'strained')
+    return '收束神念、稳守识海，暂避搜魂、幻术与高强度御器。';
+  if (burdenTones.value.真元 === 'critical' || burdenTones.value.真元 === 'strained')
     return '先恢复真元再涉险地；丹药与灵石只能加快恢复，不能抹去已有反噬。';
   if (battleResult.value.后患.length) return `此战未尽之事：${battleResult.value.后患[0]}`;
   return '可打坐温养气机、参悟所得，或为下一段道途预作准备。';

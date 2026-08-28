@@ -1,8 +1,8 @@
 <template>
-  <div class="footer">
+  <div class="footer" :class="{ 'compact-layout': compactLayout }">
     <!-- 左侧：行动提示按钮（原灵石/选项位置） -->
     <div class="footer-left">
-      <button class="footer-item action-btn" @click="$emit('open-actions')" title="查看可选行动">
+      <button class="footer-item action-btn" title="查看可选行动" @click="$emit('open-actions')">
         <i class="fa-solid fa-compass"></i>
         <span>行动</span>
         <span v-if="store.可选行动数 > 0" class="action-badge">{{ store.可选行动数 }}</span>
@@ -37,6 +37,10 @@
 import { useDataStore } from '../store';
 
 const store = useDataStore();
+
+defineProps<{
+  compactLayout?: boolean;
+}>();
 
 const dayNightLabel = computed(() => {
   const shichen = String(store.世界时钟.时辰 || '');
@@ -238,21 +242,49 @@ defineEmits<{
 // 手机端适配
 @media screen and (max-width: 480px) {
   .footer {
-    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'action difficulty'
+      'action time';
+    gap: 3px 8px;
+    padding: 7px 8px;
+
+    .footer-left {
+      grid-area: action;
+      align-self: center;
+      min-width: 0;
+    }
 
     .footer-item {
       font-size: 11px;
       gap: 4px;
-      padding: 5px 8px;
+      padding: 5px 6px;
     }
 
     .footer-center {
-      font-size: 11px;
-      gap: 4px;
+      position: static;
+      grid-area: time;
+      min-width: 0;
+      transform: none;
+      justify-content: flex-end;
+      gap: 3px;
+      overflow: hidden;
+      font-size: 10px;
+      white-space: nowrap;
+
+      span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
 
     .difficulty-widget {
-      max-width: 100px;
+      grid-area: difficulty;
+      min-width: 0;
+      max-width: none;
+      gap: 1px;
       
       .difficulty-row-1 {
         font-size: 10px;
@@ -262,6 +294,71 @@ defineEmits<{
       .difficulty-badge, .difficulty-level {
         padding: 1px 4px;
       }
+
+      .difficulty-warning {
+        display: none;
+      }
+    }
+  }
+}
+
+.footer.compact-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'action difficulty'
+    'action time';
+  gap: 3px 8px;
+  padding: 7px 8px;
+
+  .footer-left {
+    grid-area: action;
+    align-self: center;
+    min-width: 0;
+  }
+
+  .footer-item {
+    padding: 5px 6px;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .footer-center {
+    position: static;
+    grid-area: time;
+    min-width: 0;
+    transform: none;
+    justify-content: flex-end;
+    gap: 3px;
+    overflow: hidden;
+    font-size: 10px;
+    white-space: nowrap;
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .difficulty-widget {
+    grid-area: difficulty;
+    min-width: 0;
+    max-width: none;
+    gap: 1px;
+
+    .difficulty-row-1 {
+      gap: 4px;
+      font-size: 10px;
+    }
+
+    .difficulty-badge,
+    .difficulty-level {
+      padding: 1px 4px;
+    }
+
+    .difficulty-warning {
+      display: none;
     }
   }
 }

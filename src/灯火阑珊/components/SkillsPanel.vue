@@ -104,6 +104,7 @@ const store = useDataStore();
 
       .skill-desc {
         font-size: 11px;
+        overflow-wrap: anywhere;
       }
 
       .skill-proficiency {

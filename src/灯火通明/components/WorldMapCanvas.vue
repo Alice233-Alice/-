@@ -1,18 +1,63 @@
 <template>
-  <section class="world-map-panel has-painted-map">
+  <section class="world-map-panel has-painted-map" :style="mapPanelStyle">
     <div class="map-heading">
-      <div>
+      <div class="map-brand">
         <div class="map-title">
           <i class="fa-solid fa-map-location-dot"></i>
           三界山海图
         </div>
         <div class="map-subtitle">{{ activeMapView.label }} · {{ currentRealmLabel }} · {{ currentDomainLabel }}</div>
       </div>
-      <div class="map-status">
-        <span class="danger-pill" :style="{ backgroundColor: dangerColor }">险度 {{ currentDanger }}</span>
-        <span class="current-pill">{{ currentLocationLabel }}</span>
+      <div class="map-heading-guide">
+        <i class="fa-solid fa-hand-pointer"></i>
+        <span>点击地域查看详情，放大后可拖拽地图</span>
       </div>
     </div>
+
+    <aside class="map-location-panel" :style="{ '--location-danger': dangerColor }">
+      <div class="location-panel-heading">
+        <span><i class="fa-solid fa-location-crosshairs"></i> 旅者方位</span>
+        <small>定位同步</small>
+      </div>
+
+      <button type="button" class="current-location-focus" title="回到当前所在区域" @click="focusCurrentLocation">
+        <span class="location-focus-icon"><i class="fa-solid fa-location-dot"></i></span>
+        <span class="location-focus-copy">
+          <small>当前落点</small>
+          <strong>{{ currentLocationLabel }}</strong>
+          <em>点击在图中重新定位</em>
+        </span>
+        <i class="location-focus-affordance fa-solid fa-crosshairs"></i>
+      </button>
+
+      <dl class="location-facts">
+        <div>
+          <dt>所处地域</dt>
+          <dd>{{ currentDomainLabel }}</dd>
+        </div>
+        <div>
+          <dt>天地层级</dt>
+          <dd>{{ currentRealmLabel }}</dd>
+        </div>
+        <div>
+          <dt>当前险度</dt>
+          <dd>
+            <span class="danger-pill" :style="{ backgroundColor: dangerColor }">险度 {{ currentDanger }}</span>
+          </dd>
+        </div>
+      </dl>
+
+      <div class="location-route-block">
+        <div class="location-route-title">
+          <span>已知通路</span>
+          <small>{{ availableConnections.length }} 处</small>
+        </div>
+        <div v-if="availableConnections.length > 0" class="route-strip">
+          <span v-for="conn in availableConnections" :key="conn" class="route-chip">{{ conn }}</span>
+        </div>
+        <div v-else class="route-empty">尚未确认可直接抵达的地点</div>
+      </div>
+    </aside>
 
     <div
       ref="mapStageRef"
@@ -25,186 +70,190 @@
       @click.capture="suppressDraggedClick"
     >
       <Transition name="map-view-fade" mode="out-in">
-      <svg
-        :key="activeViewId"
-        :class="['map-canvas', 'expanded-map-canvas', `map-canvas-${activeViewId}`]"
-        :style="mapCanvasStyle"
-        viewBox="0 0 420 300"
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        :aria-label="activeMapView.ariaLabel"
-      >
-        <defs>
-          <radialGradient id="expandedWorldGlow" cx="50%" cy="48%" r="72%">
-            <stop offset="0%" stop-color="rgba(255, 205, 140, 0.18)" />
-            <stop offset="58%" stop-color="rgba(128, 84, 74, 0.08)" />
-            <stop offset="100%" stop-color="rgba(28, 8, 10, 0)" />
-          </radialGradient>
-          <linearGradient id="expandedMapTone" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stop-color="rgba(29, 13, 25, 0.08)" />
-            <stop offset="62%" stop-color="rgba(64, 28, 24, 0.02)" />
-            <stop offset="100%" stop-color="rgba(26, 8, 12, 0.22)" />
-          </linearGradient>
-          <radialGradient id="expandedMapVignette" cx="50%" cy="48%" r="70%">
-            <stop offset="62%" stop-color="rgba(18, 8, 10, 0)" />
-            <stop offset="100%" stop-color="rgba(15, 5, 8, 0.42)" />
-          </radialGradient>
-          <linearGradient id="expandedEarthMass" x1="0" x2="1" y1="0.1" y2="1">
-            <stop offset="0%" stop-color="rgba(211, 168, 107, 0.16)" />
-            <stop offset="54%" stop-color="rgba(137, 91, 56, 0.2)" />
-            <stop offset="100%" stop-color="rgba(72, 36, 35, 0.1)" />
-          </linearGradient>
-          <linearGradient id="expandedAbyssFade" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stop-color="rgba(71, 71, 158, 0.15)" />
-            <stop offset="52%" stop-color="rgba(73, 35, 78, 0.22)" />
-            <stop offset="100%" stop-color="rgba(146, 59, 44, 0.13)" />
-          </linearGradient>
-          <pattern id="expandedMapGrid" width="8" height="8" patternUnits="userSpaceOnUse">
-            <path d="M8 0 H0 V8" fill="none" stroke="rgba(255,255,255,0.035)" stroke-width="0.22" />
-          </pattern>
-          <filter id="expandedSoftGlow">
-            <feDropShadow dx="0" dy="0" stdDeviation="1.3" flood-color="rgba(255,190,150,0.35)" />
-          </filter>
-        </defs>
-
-        <rect class="expanded-map-bg" x="0" y="0" width="420" height="300" />
-        <rect class="expanded-map-grid" x="0" y="0" width="420" height="300" />
-        <image
-          class="painted-map-bg"
-          :href="activeMapView.image"
-          x="0"
-          y="0"
-          width="420"
-          height="300"
+        <svg
+          :key="activeViewId"
+          :class="['map-canvas', 'expanded-map-canvas', `map-canvas-${activeViewId}`]"
+          :style="mapCanvasStyle"
+          viewBox="0 0 420 300"
           preserveAspectRatio="xMidYMid meet"
-        />
-        <rect class="painted-map-tone" x="0" y="0" width="420" height="300" />
-        <rect class="painted-map-vignette" x="0" y="0" width="420" height="300" />
-        <path
-          v-if="activeMapView.showRealmLayers"
-          class="expanded-layer expanded-layer-sky"
-          d="M0 18 C48 1 116 9 172 14 C247 0 352 0 419 24 L418 66 C286 63 137 60 5 67Z"
-        />
-        <path
-          v-if="activeMapView.showRealmLayers"
-          class="expanded-layer expanded-layer-earth"
-          :d="earthOuterPath"
-        />
-        <path
-          v-if="activeMapView.showRealmLayers"
-          class="expanded-layer expanded-layer-abyss"
-          d="M0 249 C71 213 156 216 208 233 C280 207 380 214 420 248 L420 300 L0 300Z"
-        />
-
-        <g class="expanded-layer-labels">
-          <text v-for="label in activeMapView.layerLabels" :key="label.text" :x="label.x" :y="label.y">
-            {{ label.text }}
-          </text>
-        </g>
-
-        <g class="expanded-sea-labels" aria-hidden="true">
-          <text v-for="label in activeMapView.seaLabels" :key="label.text" :x="label.x" :y="label.y">
-            {{ label.text }}
-          </text>
-        </g>
-
-        <g class="expanded-areas">
-          <g
-            v-for="area in expandedMapAreas"
-            :key="area.id"
-            class="expanded-area"
-            :class="[
-              `expanded-kind-${area.kind}`,
-              {
-                current: area.id === currentAreaId,
-                selected: area.id === selectedAreaId,
-              },
-            ]"
-            :style="areaPaintStyle(area)"
-            role="button"
-            tabindex="0"
-            @click="selectArea(area.id)"
-            @keydown.enter.prevent="selectArea(area.id)"
-            @keydown.space.prevent="selectArea(area.id)"
-          >
-            <path class="expanded-area-shape" :d="area.path" />
-          </g>
-        </g>
-
-        <g class="expanded-earth-boundaries" aria-hidden="true">
-          <path
-            v-for="boundary in activeRegionBoundaries"
-            :key="boundary.id"
-            class="expanded-earth-boundary"
-            :d="boundary.path"
-          />
-        </g>
-
-        <g class="expanded-terrain" aria-hidden="true">
-          <path class="terrain mountain" d="M43 154 L59 124 L75 158 L91 111 L108 159 L124 134 L139 170" />
-          <path class="terrain mountain" d="M72 177 L90 147 L108 178 L126 154 L143 186" />
-          <path class="terrain river" d="M210 104 C194 128 219 151 205 174 C194 198 218 226 251 239" />
-          <path class="terrain river" d="M300 154 C324 162 351 160 388 173" />
-          <path class="terrain ice" d="M133 92 C171 76 228 78 264 96 M130 118 C171 104 217 109 258 125" />
-          <path
-            class="terrain forest"
-            d="M294 128 C286 115 300 108 312 121 C323 109 339 121 328 136 M314 136 L314 170"
-          />
-          <path
-            class="terrain forest"
-            d="M328 143 C319 131 332 123 344 137 C357 126 371 139 360 154 M345 154 L345 177"
-          />
-          <path class="terrain volcano" d="M171 222 L198 174 L230 225 Z M187 204 C202 187 219 187 230 204" />
-          <path class="terrain storm" d="M317 180 L296 211 L325 205 L310 236 L357 191 L328 205 L343 181" />
-          <path
-            class="terrain vortex"
-            d="M127 262 C108 247 85 255 88 273 C92 292 129 296 153 276 C176 256 150 225 118 238 C96 247 99 264 118 273 C139 284 158 268 145 254"
-          />
-          <path class="terrain fissure" d="M176 111 C158 153 140 218 126 263" />
-          <path class="terrain fissure" d="M205 174 C203 211 207 251 213 284" />
-          <path class="terrain fissure" d="M185 220 C222 238 270 250 307 266" />
-          <path class="terrain fissure" d="M303 166 C331 204 354 238 375 267" />
-        </g>
-
-        <g class="expanded-routes">
-          <path
-            v-for="route in expandedRoutes"
-            :key="route.id"
-            :class="['expanded-route', `expanded-route-${route.kind}`, { current: routeConnectsCurrent(route) }]"
-            :d="route.path"
-          />
-        </g>
-
-        <g class="expanded-labels">
-          <g
-            v-for="area in expandedMapAreas"
-            :key="`${area.id}-expanded-label`"
-            class="expanded-label"
-            :class="{ current: area.id === currentAreaId, selected: area.id === selectedAreaId }"
-            :transform="`translate(${area.labelX} ${area.labelY})`"
-            role="button"
-            tabindex="0"
-            @click="selectArea(area.id)"
-            @keydown.enter.prevent="selectArea(area.id)"
-            @keydown.space.prevent="selectArea(area.id)"
-          >
-            <circle r="2" />
-            <text x="4.6" y="1.5">{{ area.name }}</text>
-          </g>
-        </g>
-
-        <g
-          v-if="expandedCurrentArea"
-          class="expanded-current-marker"
-          :transform="`translate(${expandedCurrentArea.labelX} ${expandedCurrentArea.labelY})`"
+          role="img"
+          :aria-label="activeMapView.ariaLabel"
         >
-          <path class="expanded-current-pointer" d="M0 -4 V-8" />
-          <rect class="expanded-current-tag" x="-13" y="-17" width="26" height="8" rx="2.2" />
-          <text x="0" y="-11.7" text-anchor="middle">当前位置</text>
-          <circle class="expanded-current-ring" r="8" />
-          <circle class="expanded-current-core" r="2.2" />
-        </g>
-      </svg>
+          <defs>
+            <radialGradient id="expandedWorldGlow" cx="50%" cy="48%" r="72%">
+              <stop offset="0%" stop-color="rgba(255, 205, 140, 0.18)" />
+              <stop offset="58%" stop-color="rgba(128, 84, 74, 0.08)" />
+              <stop offset="100%" stop-color="rgba(28, 8, 10, 0)" />
+            </radialGradient>
+            <linearGradient id="expandedMapTone" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(29, 13, 25, 0.08)" />
+              <stop offset="62%" stop-color="rgba(64, 28, 24, 0.02)" />
+              <stop offset="100%" stop-color="rgba(26, 8, 12, 0.22)" />
+            </linearGradient>
+            <radialGradient id="expandedMapVignette" cx="50%" cy="48%" r="70%">
+              <stop offset="62%" stop-color="rgba(18, 8, 10, 0)" />
+              <stop offset="100%" stop-color="rgba(15, 5, 8, 0.42)" />
+            </radialGradient>
+            <linearGradient id="expandedEarthMass" x1="0" x2="1" y1="0.1" y2="1">
+              <stop offset="0%" stop-color="rgba(211, 168, 107, 0.16)" />
+              <stop offset="54%" stop-color="rgba(137, 91, 56, 0.2)" />
+              <stop offset="100%" stop-color="rgba(72, 36, 35, 0.1)" />
+            </linearGradient>
+            <linearGradient id="expandedAbyssFade" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="rgba(71, 71, 158, 0.15)" />
+              <stop offset="52%" stop-color="rgba(73, 35, 78, 0.22)" />
+              <stop offset="100%" stop-color="rgba(146, 59, 44, 0.13)" />
+            </linearGradient>
+            <pattern id="expandedMapGrid" width="8" height="8" patternUnits="userSpaceOnUse">
+              <path d="M8 0 H0 V8" fill="none" stroke="rgba(255,255,255,0.035)" stroke-width="0.22" />
+            </pattern>
+            <filter id="expandedSoftGlow">
+              <feDropShadow dx="0" dy="0" stdDeviation="1.3" flood-color="rgba(255,190,150,0.35)" />
+            </filter>
+          </defs>
+
+          <rect class="expanded-map-bg" x="0" y="0" width="420" height="300" />
+          <rect class="expanded-map-grid" x="0" y="0" width="420" height="300" />
+          <image
+            class="painted-map-bg"
+            :href="activeMapView.image"
+            x="0"
+            y="0"
+            width="420"
+            height="300"
+            preserveAspectRatio="xMidYMid meet"
+          />
+          <rect class="painted-map-tone" x="0" y="0" width="420" height="300" />
+          <rect class="painted-map-vignette" x="0" y="0" width="420" height="300" />
+          <path
+            v-if="activeMapView.showRealmLayers"
+            class="expanded-layer expanded-layer-sky"
+            d="M0 18 C48 1 116 9 172 14 C247 0 352 0 419 24 L418 66 C286 63 137 60 5 67Z"
+          />
+          <path v-if="activeMapView.showRealmLayers" class="expanded-layer expanded-layer-earth" :d="earthOuterPath" />
+          <path
+            v-if="activeMapView.showRealmLayers"
+            class="expanded-layer expanded-layer-abyss"
+            d="M0 249 C71 213 156 216 208 233 C280 207 380 214 420 248 L420 300 L0 300Z"
+          />
+
+          <g class="expanded-layer-labels">
+            <text v-for="label in activeMapView.layerLabels" :key="label.text" :x="label.x" :y="label.y">
+              {{ label.text }}
+            </text>
+          </g>
+
+          <g class="expanded-sea-labels" aria-hidden="true">
+            <text v-for="label in activeMapView.seaLabels" :key="label.text" :x="label.x" :y="label.y">
+              {{ label.text }}
+            </text>
+          </g>
+
+          <g class="expanded-areas">
+            <g
+              v-for="area in expandedMapAreas"
+              :key="area.id"
+              class="expanded-area"
+              :class="[
+                `expanded-kind-${area.kind}`,
+                {
+                  current: area.id === currentAreaId,
+                  selected: area.id === selectedAreaId,
+                },
+              ]"
+              :style="areaPaintStyle(area)"
+              role="button"
+              tabindex="0"
+              @click="selectArea(area.id)"
+              @keydown.enter.prevent="selectArea(area.id)"
+              @keydown.space.prevent="selectArea(area.id)"
+            >
+              <path class="expanded-area-shape" :d="area.path" />
+            </g>
+          </g>
+
+          <g class="expanded-earth-boundaries" aria-hidden="true">
+            <path
+              v-for="boundary in activeRegionBoundaries"
+              :key="boundary.id"
+              class="expanded-earth-boundary"
+              :d="boundary.path"
+            />
+          </g>
+
+          <g v-if="activeViewId === 'overview' || activeViewId === 'earth'" class="expanded-terrain" aria-hidden="true">
+            <path class="terrain mountain" d="M43 154 L59 124 L75 158 L91 111 L108 159 L124 134 L139 170" />
+            <path class="terrain mountain" d="M72 177 L90 147 L108 178 L126 154 L143 186" />
+            <path class="terrain river" d="M210 104 C194 128 219 151 205 174 C194 198 218 226 251 239" />
+            <path class="terrain river" d="M300 154 C324 162 351 160 388 173" />
+            <path class="terrain ice" d="M133 92 C171 76 228 78 264 96 M130 118 C171 104 217 109 258 125" />
+            <path
+              class="terrain forest"
+              d="M294 128 C286 115 300 108 312 121 C323 109 339 121 328 136 M314 136 L314 170"
+            />
+            <path
+              class="terrain forest"
+              d="M328 143 C319 131 332 123 344 137 C357 126 371 139 360 154 M345 154 L345 177"
+            />
+            <path class="terrain volcano" d="M171 222 L198 174 L230 225 Z M187 204 C202 187 219 187 230 204" />
+            <path class="terrain storm" d="M317 180 L296 211 L325 205 L310 236 L357 191 L328 205 L343 181" />
+            <path
+              class="terrain vortex"
+              d="M127 262 C108 247 85 255 88 273 C92 292 129 296 153 276 C176 256 150 225 118 238 C96 247 99 264 118 273 C139 284 158 268 145 254"
+            />
+            <path class="terrain fissure" d="M176 111 C158 153 140 218 126 263" />
+            <path class="terrain fissure" d="M205 174 C203 211 207 251 213 284" />
+            <path class="terrain fissure" d="M185 220 C222 238 270 250 307 266" />
+            <path class="terrain fissure" d="M303 166 C331 204 354 238 375 267" />
+          </g>
+
+          <g class="expanded-routes">
+            <path
+              v-for="route in expandedRoutes"
+              :key="route.id"
+              :class="['expanded-route', `expanded-route-${route.kind}`, { current: routeConnectsCurrent(route) }]"
+              :d="route.path"
+            />
+          </g>
+
+          <g class="expanded-labels">
+            <g
+              v-for="area in expandedMapAreas"
+              :key="`${area.id}-expanded-label`"
+              class="expanded-label"
+              :class="{ current: area.id === currentAreaId, selected: area.id === selectedAreaId }"
+              :transform="`translate(${area.labelX} ${area.labelY})`"
+              role="button"
+              tabindex="0"
+              @click="selectArea(area.id)"
+              @keydown.enter.prevent="selectArea(area.id)"
+              @keydown.space.prevent="selectArea(area.id)"
+            >
+              <circle r="2" />
+              <text x="4.6" y="1.5">{{ area.name }}</text>
+            </g>
+          </g>
+
+          <g
+            v-if="expandedCurrentArea"
+            class="expanded-current-marker"
+            :transform="`translate(${expandedCurrentArea.labelX} ${expandedCurrentArea.labelY})`"
+          >
+            <path class="expanded-current-pointer" d="M0 -4 V-8" />
+            <rect
+              class="expanded-current-tag"
+              :x="-currentMarkerTagWidth / 2"
+              y="-20"
+              :width="currentMarkerTagWidth"
+              height="10"
+              rx="2.8"
+            />
+            <text x="0" y="-13.4" text-anchor="middle">{{ currentMarkerLabel }}</text>
+            <circle class="expanded-current-ring outer" r="12" />
+            <circle class="expanded-current-ring" r="8" />
+            <circle class="expanded-current-core" r="2.6" />
+          </g>
+        </svg>
       </Transition>
     </div>
 
@@ -227,24 +276,40 @@
         <i class="fa-solid fa-chevron-right"></i>
       </button>
       <div class="map-zoom-controls" role="group" aria-label="地图缩放">
-        <button type="button" title="缩小地图" aria-label="缩小地图" :disabled="mapZoom <= 1" @click="changeMapZoom(-0.15)">
+        <button
+          type="button"
+          title="缩小地图"
+          aria-label="缩小地图"
+          :disabled="mapZoom <= 1"
+          @click="changeMapZoom(-0.15)"
+        >
           <i class="fa-solid fa-minus"></i>
         </button>
         <button type="button" class="map-zoom-value" title="完整展示地图" aria-label="完整展示地图" @click="fitMap">
           {{ Math.round(mapZoom * 100) }}%
         </button>
-        <button type="button" title="放大地图" aria-label="放大地图" :disabled="mapZoom >= 2.2" @click="changeMapZoom(0.15)">
+        <button
+          type="button"
+          title="放大地图"
+          aria-label="放大地图"
+          :disabled="mapZoom >= 2.2"
+          @click="changeMapZoom(0.15)"
+        >
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
     </div>
 
     <div class="map-detail">
+      <div class="detail-section-heading">
+        <span><i class="fa-solid fa-book-atlas"></i> 地域志</span>
+        <small>地图选中区域</small>
+      </div>
       <div class="detail-main">
-        <div class="detail-kicker">{{ selectedArea.realmLabel }} · 险度 {{ selectedArea.danger }}</div>
+        <div class="detail-kicker">{{ selectedArea.realmLabel }} · 区域基准险度 {{ selectedArea.danger }}</div>
         <div class="detail-title">
           <span>{{ selectedArea.name }}</span>
-          <span v-if="selectedArea.id === currentAreaId" class="detail-current">当前位置</span>
+          <span v-if="selectedArea.id === currentAreaId" class="detail-current">所在区域</span>
         </div>
         <div class="detail-summary">{{ selectedArea.summary }}</div>
       </div>
@@ -263,15 +328,11 @@
         </div>
       </div>
     </div>
-
-    <div class="route-strip" v-if="availableConnections.length > 0">
-      <span class="route-label">当前可行</span>
-      <span v-for="conn in availableConnections" :key="conn" class="route-chip">{{ conn }}</span>
-    </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { useElementSize } from '@vueuse/core';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { getDangerColor } from '../schema';
 
@@ -280,8 +341,9 @@ const MAP_ASSET_ROOT = 'https://pub-4d14ab94aa29488b977bc5be9f2a06ef.r2.dev/picg
 const overviewMapBg = `${MAP_ASSET_ROOT}/world-map-painted-bg-v3.png：世界总览.png`;
 const earthMapBg = `${MAP_ASSET_ROOT}/world-map-earth.png：地界地图.png`;
 const underworldMapBg = `${MAP_ASSET_ROOT}/world-map-underworld.png：冥界地图.png`;
+const MAP_VIEWBOX_ASPECT_RATIO = 420 / 300;
 
-type AreaKind = 'land' | 'core' | 'sea' | 'border' | 'celestial' | 'abyss';
+type AreaKind = 'land' | 'core' | 'sea' | 'border' | 'celestial' | 'abyss' | 'inverse';
 type RouteKind = 'mortal' | 'sea' | 'celestial' | 'abyss' | 'border';
 type MapViewId = 'overview' | 'earth' | 'underworld';
 
@@ -342,11 +404,17 @@ interface RouteLine {
 const props = defineProps<{
   currentLocation: string;
   currentDomain: string;
+  currentLayer: string;
   currentDanger: number;
   availableConnections: string[];
 }>();
 
 const mapStageRef = ref<HTMLDivElement>();
+const { height: mapStageHeight } = useElementSize(mapStageRef, undefined, { box: 'border-box' });
+const mapPanelStyle = computed<Record<string, string>>(() => ({
+  '--map-canvas-width':
+    mapStageHeight.value > 0 ? `${(mapStageHeight.value * MAP_VIEWBOX_ASPECT_RATIO).toFixed(3)}px` : '1000px',
+}));
 const mapZoom = ref(1);
 const isDraggingMap = ref(false);
 let suppressNextMapClick = false;
@@ -360,8 +428,12 @@ const mapDrag = {
   scrollTop: 0,
 };
 const mapCanvasStyle = computed(() => ({
-  width: `${mapZoom.value * 100}%`,
-  height: `${mapZoom.value * 100}%`,
+  width:
+    mapStageHeight.value > 0
+      ? `${(mapStageHeight.value * MAP_VIEWBOX_ASPECT_RATIO * mapZoom.value).toFixed(3)}px`
+      : `${mapZoom.value * 100}%`,
+  height:
+    mapStageHeight.value > 0 ? `${(mapStageHeight.value * mapZoom.value).toFixed(3)}px` : `${mapZoom.value * 100}%`,
 }));
 
 const centerMap = () => {
@@ -461,7 +533,7 @@ const mapAreas: MapArea[] = [
     danger: 45,
     fill: 'rgba(35, 122, 132, 0.22)',
     stroke: 'rgba(118, 221, 222, 0.58)',
-    aliases: ['四海', '潮音海', '龙眠海', '蓬莱幻海', '北冥冰海', '外海', '无尽洋', '天泣洋'],
+    aliases: ['四海', '外海'],
     summary: '五域之外的环海与外海总称，潮音、龙眠、蓬莱、北冥冰海各藏航路与秘境。',
     law: '海脉、蜃气、星陨与水族法度交错，外海越远越失序。',
     connection: '环接五域；西通潮音，东接龙眠，北入北冥冰海。',
@@ -482,7 +554,7 @@ const mapAreas: MapArea[] = [
     danger: 30,
     fill: 'rgba(102, 154, 190, 0.42)',
     stroke: 'rgba(174, 222, 255, 0.78)',
-    aliases: ['北冥', '北域', '玄武灵境', '北冥冰海'],
+    aliases: ['北冥', '北域', '玄武灵境'],
     summary: '北方水域，冰海、琉璃雪原、冰雪仙城与鲛人珊瑚宫并存。',
     law: '水冰法增强，心境空明，火法受抑。',
     connection: '南接神州；极北海眼被阵法封印，下通归墟。',
@@ -704,7 +776,7 @@ const mapAreas: MapArea[] = [
     danger: 90,
     fill: 'rgba(184, 215, 255, 0.19)',
     stroke: 'rgba(207, 228, 255, 0.6)',
-    aliases: ['星陨废墟', '下霄', '陨仙坟场'],
+    aliases: ['星陨废墟', '星陨废墟（下霄）', '下霄', '陨仙坟场'],
     summary: '天界崩碎残骸堆成的废墟海，古仙执念与法则碎片仍在漂流。',
     law: '空间一步百里，古仙残念随机触发。',
     connection: '下经罡风带通天渊，朔日可达九天遗迹。',
@@ -724,7 +796,7 @@ const mapAreas: MapArea[] = [
     danger: 97,
     fill: 'rgba(194, 171, 255, 0.2)',
     stroke: 'rgba(221, 205, 255, 0.6)',
-    aliases: ['太古战场', '九天遗迹', '中霄'],
+    aliases: ['太古战场', '太古战场·九天遗迹（中霄）', '九天遗迹', '中霄'],
     summary: '祖龙与神凤骸骨横陈的虚空战场，残杀意仍会诱人重演古战。',
     law: '龙威凤威撕裂神识，战意会同化来者。',
     connection: '下通星陨废墟，寂静中心黑孔通天道裂隙。',
@@ -744,7 +816,7 @@ const mapAreas: MapArea[] = [
     danger: 100,
     fill: 'rgba(237, 202, 103, 0.22)',
     stroke: 'rgba(255, 229, 146, 0.64)',
-    aliases: ['天道裂隙', '上霄', '法则残缺'],
+    aliases: ['天道裂隙', '天道裂隙（上霄）', '上霄', '法则残缺'],
     summary: '九天极巅的纯法则空间，金色裂纹浮于虚空，传闻无人完整归来。',
     law: '断裂天道法则外显，观之可悟道，也可被法则同化。',
     connection: '疑由太古战场寂静中心黑孔进入。',
@@ -765,7 +837,7 @@ const mapAreas: MapArea[] = [
     danger: 99,
     fill: 'rgba(29, 34, 72, 0.44)',
     stroke: 'rgba(116, 151, 255, 0.64)',
-    aliases: ['归墟', '万物终焉', '永夜海域', '北冥海眼', '幽界极渊'],
+    aliases: ['归墟', '万物终焉', '北冥海眼', '幽界极渊'],
     summary: '北冥海眼之底的幽界极渊，漆黑巨漩吞噬万物，深处有水蓝仙光镇压死气。',
     law: '死气与沉疴归宿，剥夺生机化混沌。',
     connection: '由北冥极北海眼垂直下入。',
@@ -785,7 +857,7 @@ const mapAreas: MapArea[] = [
     danger: 90,
     fill: 'rgba(170, 135, 64, 0.32)',
     stroke: 'rgba(225, 196, 122, 0.58)',
-    aliases: ['碎金渊', '万剑冢', '潮音海床裂隙'],
+    aliases: ['碎金渊', '碎金渊·万剑冢', '万剑冢', '潮音海床裂隙'],
     summary: '潮音海极西海沟中的万剑坟场，天渊折剑与人间残剑在此同悲。',
     law: '剑意侵蚀血肉神识，剑修或悟道或碎心。',
     connection: '上通潮音海深裂，底至金气本源。',
@@ -852,6 +924,163 @@ const mapAreas: MapArea[] = [
     landmarks: '枯骨林、畸变藤狱、岁月灰烬、枯荣本源。',
   },
 ];
+
+const supplementaryMapAreas: MapArea[] = [
+  {
+    id: '潮音海',
+    name: '潮音海',
+    realmLabel: '地界西海',
+    kind: 'sea',
+    path: 'M8 88 H94 V214 H8Z',
+    labelX: 32,
+    labelY: 148,
+    markerX: 32,
+    markerY: 148,
+    danger: 55,
+    fill: 'rgba(48, 132, 154, 0.3)',
+    stroke: 'rgba(113, 214, 226, 0.72)',
+    aliases: ['潮音海', '西海'],
+    summary: '西庚以西的环海，潮声蕴金，星陨与断剑随海流沉入深沟。',
+    law: '潮汐牵引金气，朔望时海床剑鸣尤盛。',
+    connection: '东接西庚，深处下通碎金渊，外缘通无尽洋。',
+    landmarks: '听潮群岛、断剑海沟、天渊坠星带。',
+  },
+  {
+    id: '龙眠海',
+    name: '龙眠海',
+    realmLabel: '地界东海',
+    kind: 'sea',
+    path: 'M328 78 H418 V214 H328Z',
+    labelX: 371,
+    labelY: 140,
+    markerX: 371,
+    markerY: 140,
+    danger: 50,
+    fill: 'rgba(42, 145, 166, 0.3)',
+    stroke: 'rgba(105, 220, 230, 0.72)',
+    aliases: ['龙眠海', '东海'],
+    summary: '东苍之外的广阔水域，龙族旧脉、水晶宫与沉眠海兽共守深蓝。',
+    law: '水压随龙脉起伏，未持水族路引者易受海流排斥。',
+    connection: '西经龙眠海峡入东苍，南通蓬莱幻海，外接天泣洋。',
+    landmarks: '水晶宫外围、龙骨洋流、沉眠礁群。',
+  },
+  {
+    id: '蓬莱幻海',
+    name: '蓬莱幻海',
+    realmLabel: '地界东南海',
+    kind: 'sea',
+    path: 'M286 190 C326 172 388 191 408 232 L397 290 H286Z',
+    labelX: 337,
+    labelY: 248,
+    markerX: 337,
+    markerY: 248,
+    danger: 65,
+    fill: 'rgba(82, 112, 174, 0.31)',
+    stroke: 'rgba(145, 184, 240, 0.72)',
+    aliases: ['蓬莱幻海', '蓬莱海'],
+    summary: '东南蜃雾常年的幻海，仙岛倒影与真实航道彼此错置。',
+    law: '蜃气映照心念，方向、距离与昼夜皆可能失真。',
+    connection: '北连龙眠海，西邻雷暴海，外缘通天泣洋。',
+    landmarks: '蓬莱蜃岛、镜潮、迷航仙礁。',
+  },
+  {
+    id: '北冥冰海',
+    name: '北冥冰海',
+    realmLabel: '地界北海',
+    kind: 'sea',
+    path: 'M52 8 C134 0 296 0 370 12 L356 76 H67Z',
+    labelX: 196,
+    labelY: 43,
+    markerX: 196,
+    markerY: 43,
+    danger: 60,
+    fill: 'rgba(108, 171, 207, 0.28)',
+    stroke: 'rgba(184, 229, 255, 0.75)',
+    aliases: ['北冥冰海', '冰海'],
+    summary: '北冥之外的极寒环海，浮冰、极光与海眼暗流共同封住北天。',
+    law: '寒潮冻结灵机，极夜时空间感与神识感知一并衰减。',
+    connection: '南接北冥，海眼下通归墟，外缘渐入永夜海域。',
+    landmarks: '万年浮冰带、极光航标、北冥海眼。',
+  },
+  {
+    id: '无尽洋',
+    name: '无尽洋',
+    realmLabel: '地界外海',
+    kind: 'sea',
+    path: 'M0 206 C38 194 92 213 132 250 L118 300 H0Z',
+    labelX: 48,
+    labelY: 267,
+    markerX: 48,
+    markerY: 267,
+    danger: 75,
+    fill: 'rgba(31, 89, 130, 0.35)',
+    stroke: 'rgba(91, 169, 206, 0.7)',
+    aliases: ['无尽洋'],
+    summary: '潮音海之外无岸可测的深洋，已知航图在此逐步失效。',
+    law: '远离地脉后灵气稀薄，天象成为唯一可靠坐标。',
+    connection: '内接潮音海，远航可绕至南炎外缘。',
+    landmarks: '失针带、无风海盆、远星航路。',
+  },
+  {
+    id: '天泣洋',
+    name: '天泣洋',
+    realmLabel: '地界外海',
+    kind: 'sea',
+    path: 'M112 244 C164 218 247 218 302 246 L291 300 H116Z',
+    labelX: 205,
+    labelY: 272,
+    markerX: 205,
+    markerY: 272,
+    danger: 80,
+    fill: 'rgba(53, 89, 151, 0.35)',
+    stroke: 'rgba(112, 158, 222, 0.72)',
+    aliases: ['天泣洋'],
+    summary: '东南外海终年落下灵雨与星泪，海天之间常有破碎光幕。',
+    law: '天泣会冲刷神识印记，也可能显露短暂的跨域航路。',
+    connection: '内连龙眠海与蓬莱幻海，外侧邻接永夜海域。',
+    landmarks: '星泪雨幕、碎光洋流、无返航线。',
+  },
+  {
+    id: '永夜海域',
+    name: '永夜海域',
+    realmLabel: '地界外海',
+    kind: 'sea',
+    path: 'M292 236 C338 217 397 229 420 254 V300 H291Z',
+    labelX: 354,
+    labelY: 277,
+    markerX: 354,
+    markerY: 277,
+    danger: 95,
+    fill: 'rgba(24, 31, 77, 0.43)',
+    stroke: 'rgba(100, 121, 210, 0.72)',
+    aliases: ['永夜海域', '归墟之海'],
+    summary: '北冥冰海外侧与归墟气息交叠的无光海域，昼夜与方位在此失去意义。',
+    law: '幽界死气上涌，光与声会被海面缓慢吞没。',
+    connection: '内接北冥冰海与天泣洋，深处暗通归墟。',
+    landmarks: '无光潮墙、归墟浮标、沉月海沟。',
+  },
+  {
+    id: '倒悬天墟',
+    name: '倒悬天墟',
+    realmLabel: '镜面阴界',
+    kind: 'inverse',
+    path: 'M28 24 C115 2 303 2 392 25 L380 278 C282 298 130 298 40 276Z',
+    labelX: 178,
+    labelY: 151,
+    markerX: 210,
+    markerY: 151,
+    danger: 100,
+    fill: 'rgba(121, 76, 156, 0.3)',
+    stroke: 'rgba(199, 151, 238, 0.78)',
+    aliases: ['倒悬天墟', '倒悬天墟·五行逆反界', '五行逆反界'],
+    summary: '与三界法则镜反的倒悬阴界，山河、五行与因果均以逆序运转。',
+    law: '五行生克逆反，常识与术法结论不可直接沿用。',
+    connection: '由五渊极底逆泉或天渊坍缩断口潜入。',
+    landmarks: '倒悬山河、逆泉、五行反相枢。',
+  },
+];
+
+mapAreas.push(...supplementaryMapAreas);
 
 const earthOuterPath =
   'M22 155 C34 118 76 102 113 91 C145 67 196 67 246 77 C279 70 338 76 382 105 C405 121 412 157 394 185 C368 218 318 226 283 212 C248 236 193 242 154 223 C126 236 74 221 43 197 C20 180 14 167 22 155Z';
@@ -1025,6 +1254,26 @@ const earthAreaLayout: Record<string, MapAreaLayout> = {
   },
 };
 
+const makeAreaLayout = (ids: string[]): Record<string, MapAreaLayout> =>
+  Object.fromEntries(
+    ids.map(id => {
+      const area = mapAreas.find(item => item.id === id);
+      return [id, { path: area?.path ?? '', labelX: area?.labelX ?? 210, labelY: area?.labelY ?? 150 }];
+    }),
+  );
+
+Object.assign(
+  earthAreaLayout,
+  makeAreaLayout(['潮音海', '龙眠海', '蓬莱幻海', '北冥冰海', '无尽洋', '天泣洋', '永夜海域']),
+);
+
+// 倒悬天墟属于三界之外的镜面阴界，只在总览边缘保留一个入口，不另开地图页。
+overviewAreaLayout.倒悬天墟 = {
+  path: 'M3 5 H417 V296 H3Z',
+  labelX: 344,
+  labelY: 294,
+};
+
 const underworldAreaLayout: Record<string, MapAreaLayout> = {
   归墟: {
     path: 'M145 7 C176 0 240 0 278 17 C300 39 291 76 267 93 C235 105 181 101 151 82 C131 62 127 27 145 7Z',
@@ -1107,6 +1356,7 @@ const mapViews: Record<MapViewId, MapViewDefinition> = {
       '黄泉古迹',
       '无尽炎渊',
       '神木枯冢',
+      '倒悬天墟',
     ],
     layout: overviewAreaLayout,
     layerLabels: [
@@ -1128,7 +1378,26 @@ const mapViews: Record<MapViewId, MapViewDefinition> = {
     icon: 'fa-solid fa-earth-asia',
     image: earthMapBg,
     ariaLabel: '踏月寻仙地界平面舆图',
-    areaIds: ['四海', '北冥', '西庚', '神州', '东苍', '南炎', '雪线', '苍茫古径', '赤金走廊', '龙眠海峡', '雷暴海'],
+    areaIds: [
+      '四海',
+      '北冥冰海',
+      '潮音海',
+      '龙眠海',
+      '蓬莱幻海',
+      '无尽洋',
+      '天泣洋',
+      '永夜海域',
+      '北冥',
+      '西庚',
+      '神州',
+      '东苍',
+      '南炎',
+      '雪线',
+      '苍茫古径',
+      '赤金走廊',
+      '龙眠海峡',
+      '雷暴海',
+    ],
     layout: earthAreaLayout,
     layerLabels: [{ text: '地界', x: 14, y: 22 }],
     seaLabels: [
@@ -1192,11 +1461,15 @@ const currentAreaId = computed(() => {
   const location = normalizeText(props.currentLocation);
   const source = `${domain} ${location}`;
 
+  // currentDomain 已经过地图锚点解析，必须优先于地点名中的模糊字样。
   const exactDomainArea = mapAreas.find(area => area.id === domain || area.name === domain);
   if (exactDomainArea) return exactDomainArea.id;
 
-  const directLocationArea = mapAreas.find(area => source.includes(area.id) || source.includes(area.name));
+  const directLocationArea = mapAreas.find(area => location.includes(area.id) || location.includes(area.name));
   if (directLocationArea) return directLocationArea.id;
+
+  const locationAliasArea = mapAreas.find(area => area.aliases.some(alias => alias && location.includes(alias)));
+  if (locationAliasArea) return locationAliasArea.id;
 
   const aliasArea = mapAreas.find(area => area.aliases.some(alias => alias && source.includes(alias)));
   return aliasArea?.id ?? '';
@@ -1207,7 +1480,7 @@ const currentArea = computed(() => mapAreas.find(area => area.id === currentArea
 const viewForAreaId = (areaId: string): MapViewId => {
   const area = mapAreas.find(item => item.id === areaId);
   if (area?.kind === 'abyss') return 'underworld';
-  if (area?.kind === 'celestial') return 'overview';
+  if (area?.kind === 'celestial' || area?.kind === 'inverse') return 'overview';
   if (area) return 'earth';
   return 'overview';
 };
@@ -1229,9 +1502,7 @@ watch(
 
 watch(activeViewId, viewId => {
   const visibleAreaIds = mapViews[viewId].areaIds;
-  selectedAreaId.value = visibleAreaIds.includes(currentAreaId.value)
-    ? currentAreaId.value
-    : defaultAreaByView[viewId];
+  selectedAreaId.value = visibleAreaIds.includes(currentAreaId.value) ? currentAreaId.value : defaultAreaByView[viewId];
 });
 
 const selectedArea = computed(
@@ -1241,10 +1512,31 @@ const expandedCurrentArea = computed(() => expandedMapAreas.value.find(area => a
 
 const currentLocationLabel = computed(() => normalizeText(props.currentLocation) || '未知之地');
 const currentDomainLabel = computed(() => normalizeText(props.currentDomain) || '未明地域');
-const currentRealmLabel = computed(() => currentArea.value?.realmLabel ?? '行踪');
+const currentRealmLabel = computed(() => {
+  const layer = normalizeText(props.currentLayer);
+  if (layer === '天层') return '天界 · 天层';
+  if (layer === '地层') return '地界 · 地层';
+  if (layer === '下层') return '幽界 · 下层';
+  return layer || currentArea.value?.realmLabel || '行踪';
+});
+const currentMarkerLabel = computed(() => {
+  const label = currentLocationLabel.value;
+  return label.length > 8 ? `${label.slice(0, 7)}…` : label;
+});
+const currentMarkerTagWidth = computed(() => _.clamp(currentMarkerLabel.value.length * 5 + 12, 34, 58));
 const dangerColor = computed(() => getDangerColor(props.currentDanger ?? 10));
 const selectArea = (id: string) => {
   selectedAreaId.value = id;
+};
+
+const focusCurrentLocation = async () => {
+  const areaId = currentAreaId.value;
+  if (areaId) {
+    activeViewId.value = viewForAreaId(areaId);
+    selectedAreaId.value = areaId;
+  }
+  await setMapZoom(1);
+  window.requestAnimationFrame(centerMap);
 };
 
 const shiftMapView = (direction: number) => {
@@ -1275,13 +1567,19 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 .map-heading {
   grid-column: 1 / -1;
   grid-row: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px 12px;
+  gap: 24px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--jade) 7%, transparent), transparent 30%),
+    linear-gradient(270deg, color-mix(in srgb, var(--gold) 5%, transparent), transparent 25%), var(--bg-secondary);
+}
+
+.map-brand {
+  min-width: 0;
 }
 
 .map-title {
@@ -1306,12 +1604,237 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   letter-spacing: 1px;
 }
 
-.map-status {
+.map-heading-guide {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
   gap: 8px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+
+  i {
+    color: var(--accent-color);
+    opacity: 0.8;
+  }
+}
+
+.map-location-panel {
+  --location-danger: var(--gold);
+
+  position: relative;
+  grid-column: 1;
+  grid-row: 2 / 4;
+  min-width: 0;
+  padding: clamp(16px, 1.5vw, 24px);
+  overflow: hidden auto;
+  border-right: 1px solid var(--border-color);
+  background:
+    radial-gradient(circle at 15% 92%, color-mix(in srgb, var(--location-danger) 8%, transparent), transparent 28%),
+    linear-gradient(145deg, color-mix(in srgb, var(--jade) 5%, transparent), transparent 38%), var(--bg-secondary);
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -74px;
+    bottom: -80px;
+    width: 220px;
+    aspect-ratio: 1;
+    border: 1px solid color-mix(in srgb, var(--gold) 10%, transparent);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 26px color-mix(in srgb, var(--gold) 3%, transparent),
+      0 0 0 54px color-mix(in srgb, var(--gold) 2%, transparent);
+    pointer-events: none;
+  }
+}
+
+.location-panel-heading,
+.detail-section-heading,
+.location-route-title {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.location-panel-heading,
+.detail-section-heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+
+  > span {
+    color: var(--text-primary);
+    font-family: 'Noto Serif SC', 'STKaiti', 'KaiTi', serif;
+    font-size: 14px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+  }
+
+  i {
+    margin-right: 5px;
+    color: var(--accent-color);
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+}
+
+.current-location-focus {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 18px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--location-danger) 32%, var(--line-subtle));
+  border-left: 3px solid var(--location-danger);
+  border-radius: 9px;
+  color: var(--text-primary);
+  text-align: left;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--location-danger) 10%, transparent), transparent 58%),
+    color-mix(in srgb, var(--bg-primary) 72%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 4%, transparent);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--location-danger) 56%, var(--line-subtle));
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--location-danger) 15%, transparent), transparent 66%),
+      color-mix(in srgb, var(--bg-primary) 84%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--location-danger) 62%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.location-focus-icon {
+  display: grid;
+  width: 34px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--location-danger) 40%, transparent);
+  border-radius: 50%;
+  color: color-mix(in srgb, var(--location-danger) 82%, white);
+  background: color-mix(in srgb, var(--location-danger) 13%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--location-danger) 13%, transparent);
+}
+
+.location-focus-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+
+  small {
+    color: var(--text-secondary);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+
+  strong {
+    overflow: hidden;
+    color: var(--text-accent);
+    font-family: 'Noto Serif SC', 'STKaiti', 'KaiTi', serif;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  em {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-style: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.location-focus-affordance {
+  color: color-mix(in srgb, var(--location-danger) 64%, var(--text-secondary));
+  font-size: 10px;
+}
+
+.location-facts {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0;
+  margin: 18px 0 0;
+  padding: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+
+  > div {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+  }
+
+  dt {
+    color: var(--text-secondary);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  dd {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.location-route-block {
+  position: relative;
+  z-index: 1;
+  margin-top: 26px;
+}
+
+.location-route-title {
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+
+  small {
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 500;
+  }
+}
+
+.route-empty {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px dashed color-mix(in srgb, var(--border-color) 72%, transparent);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .danger-pill,
@@ -1352,19 +1875,10 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   min-width: 0;
   min-height: 0;
   height: auto;
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 2;
   overflow: auto;
-  background: var(--surface-inset, var(--bg-primary));
-  /* 极简的星空/阵法底纹 */
-  background-image:
-    radial-gradient(circle at 50% 50%, var(--bg-secondary) 0%, transparent 70%),
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    20px 20px,
-    20px 20px;
+  background: color-mix(in srgb, var(--bg-secondary) 88%, var(--reading-surface));
   box-shadow:
     inset 0 1px rgba(255, 225, 205, 0.05),
     inset 0 -1px rgba(255, 225, 205, 0.05);
@@ -1375,7 +1889,40 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   user-select: none;
 
   &.dragging,
-  &.dragging * { cursor: grabbing !important; }
+  &.dragging * {
+    cursor: grabbing !important;
+  }
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  &::before {
+    background:
+      radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--jade) 8%, transparent), transparent 64%),
+      linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      20px 20px,
+      20px 20px;
+  }
+
+  &::after {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--bg-primary) 12%, transparent),
+        transparent 12% 88%,
+        color-mix(in srgb, var(--bg-primary) 12%, transparent)
+      ),
+      radial-gradient(circle at 50% 48%, transparent 66%, color-mix(in srgb, var(--bg-primary) 18%, transparent) 100%);
+  }
 }
 
 .map-view-fade-enter-active,
@@ -1399,7 +1946,7 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   justify-content: center;
   gap: 4px;
   min-height: 58px;
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 3;
   padding: 9px 12px;
   border-top: 1px solid var(--border-color);
@@ -1424,8 +1971,14 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
     background: var(--bg-primary);
     cursor: pointer;
 
-    &:hover:not(:disabled) { border-color: var(--border-active); color: var(--text-accent); }
-    &:disabled { opacity: 0.35; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      border-color: var(--border-active);
+      color: var(--text-accent);
+    }
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
   }
 
   .map-zoom-value {
@@ -1501,6 +2054,8 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 }
 
 .map-canvas {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
@@ -1765,7 +2320,7 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   background: var(--bg-primary);
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(260px, 1fr) minmax(560px, var(--map-canvas-width)) minmax(280px, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
   min-height: 0;
@@ -1776,15 +2331,30 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 16px;
-  padding: 16px;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  padding: clamp(16px, 1.5vw, 24px);
+  background:
+    radial-gradient(circle at 90% 95%, color-mix(in srgb, var(--gold) 5%, transparent), transparent 30%),
+    var(--bg-secondary);
   min-height: 0;
   overflow-y: auto;
-  grid-column: 2;
-  grid-row: 2;
+  grid-column: 3;
+  grid-row: 2 / 4;
   border-top: 0;
   border-left: 1px solid var(--border-color);
+}
+
+.detail-section-heading {
+  margin-bottom: 2px;
+}
+
+.detail-main {
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+  border-left: 3px solid var(--accent-color);
+  border-radius: 9px;
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--accent-color) 6%, transparent), transparent 45%),
+    color-mix(in srgb, var(--bg-primary) 78%, transparent);
 }
 
 .detail-kicker {
@@ -1825,7 +2395,11 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 .detail-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  padding: 2px 14px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg-primary) 62%, transparent);
 }
 
 .detail-line {
@@ -1834,6 +2408,12 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   gap: 8px;
   align-items: baseline;
   font-size: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 48%, transparent);
+
+  &:last-child {
+    border-bottom: 0;
+  }
 
   span {
     color: var(--accent-color);
@@ -1853,19 +2433,8 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 16px 16px;
-  background: var(--bg-secondary);
-  grid-column: 2;
-  grid-row: 3;
+  margin-top: 10px;
   align-content: center;
-  padding: 9px 12px;
-  border-top: 1px solid var(--border-color);
-}
-
-.route-label {
-  color: var(--text-secondary);
-  font-size: 11px;
-  letter-spacing: 1px;
 }
 
 .route-chip {
@@ -1904,29 +2473,31 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 
 .painted-map-bg {
   opacity: 0.97;
-  filter: saturate(0.94) contrast(1.02) brightness(0.98);
+  filter: saturate(1.08) contrast(1.035) brightness(1.01);
 }
 
 .map-canvas-overview .painted-map-bg {
-  filter: saturate(0.94) contrast(1.02) brightness(0.94);
+  filter: saturate(1.08) contrast(1.04) brightness(0.98);
 }
 
 .map-canvas-earth .painted-map-bg {
-  filter: saturate(0.96) contrast(1.02) brightness(0.96);
+  filter: saturate(1.1) contrast(1.035) brightness(1);
 }
 
 .map-canvas-underworld .painted-map-bg {
-  filter: saturate(0.92) contrast(1.04) brightness(0.95);
+  filter: saturate(1.06) contrast(1.055) brightness(0.98);
 }
 
 .painted-map-tone {
   fill: url(#expandedMapTone);
+  opacity: 0.42;
   pointer-events: none;
   mix-blend-mode: color;
 }
 
 .painted-map-vignette {
   fill: url(#expandedMapVignette);
+  opacity: 0.52;
   pointer-events: none;
 }
 
@@ -2187,13 +2758,16 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 
 .expanded-current-marker {
   pointer-events: none;
-  filter: url(#expandedSoftGlow);
+  filter: drop-shadow(0 0 2.2px rgba(255, 205, 177, 0.88));
 
   text {
     fill: rgba(255, 232, 219, 0.98);
-    font-size: 3.6px;
-    font-weight: 800;
+    font-size: 4.1px;
+    font-weight: 900;
     letter-spacing: 0;
+    paint-order: stroke;
+    stroke: rgba(39, 8, 11, 0.9);
+    stroke-width: 0.5;
   }
 }
 
@@ -2206,7 +2780,7 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 .expanded-current-pointer {
   fill: none;
   stroke: rgba(255, 190, 163, 0.9);
-  stroke-width: 0.45;
+  stroke-width: 0.65;
   stroke-linecap: round;
 }
 
@@ -2216,6 +2790,13 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   stroke-width: 0.62;
   stroke-dasharray: 1.6 1.2;
   animation: expanded-current-pulse 2.4s ease-in-out infinite;
+
+  &.outer {
+    fill: none;
+    stroke-width: 0.46;
+    opacity: 0.62;
+    animation-delay: -1.2s;
+  }
 }
 
 .expanded-current-core {
@@ -2326,6 +2907,69 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   }
 }
 
+@media screen and (max-width: 1100px) {
+  .world-map-panel {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .map-location-panel {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: minmax(220px, 0.85fr) minmax(280px, 1.3fr) minmax(200px, 0.85fr);
+    gap: 14px;
+    padding: 13px 16px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .location-panel-heading {
+    grid-column: 1 / -1;
+    padding-bottom: 8px;
+  }
+
+  .current-location-focus,
+  .location-facts,
+  .location-route-block {
+    margin-top: 0;
+  }
+
+  .location-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 0;
+
+    > div {
+      grid-template-columns: 1fr;
+      align-content: center;
+      gap: 3px;
+      padding: 0 10px;
+      border-bottom: 0;
+      border-left: 1px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+    }
+  }
+
+  .location-route-block {
+    align-self: center;
+  }
+
+  .map-stage {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .map-view-switcher {
+    grid-column: 1;
+    grid-row: 4;
+  }
+
+  .map-detail {
+    grid-column: 2;
+    grid-row: 3 / 5;
+  }
+}
+
 @media screen and (max-width: 680px) {
   .world-map-panel {
     display: flex;
@@ -2339,12 +2983,40 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
   }
 
   .map-heading {
-    align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 
-  .map-status {
-    justify-content: flex-start;
+  .map-heading-guide {
+    display: none;
+  }
+
+  .map-location-panel {
+    display: block;
+    padding: 14px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .current-location-focus,
+  .location-facts,
+  .location-route-block {
+    margin-top: 14px;
+  }
+
+  .location-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+
+    > div {
+      display: grid;
+      min-height: 54px;
+      padding: 7px;
+      border-bottom: 1px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+      border-left: 0;
+      text-align: center;
+    }
   }
 
   .map-stage {
@@ -2356,10 +3028,21 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
     overflow: auto;
   }
 
-  .map-view-switcher { justify-content: flex-start; }
-  .map-zoom-controls { position: static; margin-left: auto; }
-  .map-zoom-controls button { min-width: 30px; height: 32px; padding: 0 7px; }
-  .map-zoom-controls .map-zoom-value { min-width: 48px; }
+  .map-view-switcher {
+    justify-content: flex-start;
+  }
+  .map-zoom-controls {
+    position: static;
+    margin-left: auto;
+  }
+  .map-zoom-controls button {
+    min-width: 30px;
+    height: 32px;
+    padding: 0 7px;
+  }
+  .map-zoom-controls .map-zoom-value {
+    min-width: 48px;
+  }
 
   .map-detail {
     overflow: visible;
@@ -2384,6 +3067,21 @@ const routeConnectsCurrent = (route: RouteLine): boolean => {
 }
 
 @media screen and (max-width: 420px) {
+  .map-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .location-facts {
+    grid-template-columns: 1fr;
+
+    > div {
+      grid-template-columns: 72px minmax(0, 1fr);
+      min-height: 40px;
+      padding: 0;
+      text-align: left;
+    }
+  }
+
   .map-stage {
     height: auto;
   }

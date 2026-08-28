@@ -41,6 +41,14 @@
               <span v-if="entry.turns[0]?.tokenCount !== undefined" class="entry-token-count" title="本层回复 Token">
                 {{ entry.turns[0].tokenCount }}t
               </span>
+              <span
+                v-if="entry.turns[0]?.responseDuration !== undefined"
+                class="entry-response-time"
+                title="AI 回复总耗时"
+              >
+                <i class="fa-regular fa-clock"></i>
+                {{ formatDuration(entry.turns[0].responseDuration) }}
+              </span>
               <span class="entry-rule"></span>
               <span v-if="isRerollTargetEntry(entry)" class="live-mark">
                 <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -104,8 +112,8 @@
                       :disabled="!pseudo.canEditUserMessage || editingInputId !== null"
                       @click="startInputEdit(entry.turns[0].userMessageId)"
                     >
-                      <i class="fa-solid fa-pen"></i>
-                      <span>{{ editingInputId === entry.turns[0].userMessageId ? '编辑中' : '修改' }}</span>
+                      <i class="fa-solid fa-feather-pointed"></i>
+                      <span>{{ editingInputId === entry.turns[0].userMessageId ? '改写中' : '改写' }}</span>
                     </button>
                   </div>
                   <InlineInputEditor
@@ -156,23 +164,6 @@
                       · {{ formatDuration(pseudo.reasoningDuration) }}</span
                     >
                   </span>
-                  <span
-                    v-else-if="
-                      isRerollTargetEntry(entry) ? pseudo.reasoningDuration !== null : entry.turns[0].reasoningDuration
-                    "
-                    class="reasoning-shell-time"
-                  >
-                    <small>推演历时</small>
-                    <strong>
-                      {{
-                        formatDuration(
-                          isRerollTargetEntry(entry)
-                            ? (pseudo.reasoningDuration ?? 0)
-                            : (entry.turns[0].reasoningDuration ?? 0),
-                        )
-                      }}
-                    </strong>
-                  </span>
                   <span v-else class="reasoning-shell-state">观照已成</span>
                   <i class="fa-solid fa-chevron-down reasoning-shell-chevron"></i>
                 </button>
@@ -191,15 +182,16 @@
                   :message-id="entry.turns[0].assistantMessageId"
                   :open-preset-disclosure="!storyReasoningUsesOwnDisclosure(entry)"
                   :streaming="isRerollTargetEntry(entry) && liveReasoningStreaming"
+                  :editable="Boolean(entry.turns[0].reasoningEditable) && !isRerollTargetEntry(entry)"
                 />
               </section>
 
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <div
+              <RenderedMessageHtml
                 v-if="isRerollTargetEntry(entry) && liveStoryHtml"
                 class="story-prose reroll-live-copy"
-                v-html="liveStoryHtml"
-              ></div>
+                :html="liveStoryHtml"
+                :message-id="entry.turns[0].assistantMessageId"
+              />
               <div
                 v-else-if="isRerollTargetEntry(entry)"
                 class="live-waiting reroll-waiting"
@@ -208,13 +200,17 @@
                 <i class="fa-solid fa-feather-pointed"></i>
                 {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '正在重新推演本回……' }}
               </div>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <div
+              <RenderedMessageHtml
                 v-else
                 class="story-prose"
-                v-html="formatStory(entry.turns[0].assistantText, entry.turns[0].assistantMessageId)"
-              ></div>
+                :html="formatStory(entry.turns[0].assistantText, entry.turns[0].assistantMessageId)"
+                :message-id="entry.turns[0].assistantMessageId"
+              />
               <BranchChoicePanel v-if="storyBranchChoices(entry).length" :choices="storyBranchChoices(entry)" />
+              <InlineActionChoices
+                v-if="entry.representativeMessageId === latestStoryMessageId && !isRerollTargetEntry(entry)"
+                :raw-message="entry.turns[0].assistantText"
+              />
 
               <div v-if="storyDiagnostics(storyReasoningRawMessage(entry))" class="entry-context">
                 <button
@@ -248,6 +244,23 @@
                 class="context-detail variable-detail"
               >
                 <VariableDiagnosticsPanel :diagnostics="storyDiagnostics(storyReasoningRawMessage(entry))!" dense />
+              </section>
+
+              <section v-if="entry.dialogueThreads?.length" class="interlude-thread-list">
+                <button
+                  v-for="thread in entry.dialogueThreads"
+                  :key="thread.sessionId"
+                  type="button"
+                  class="interlude-thread-trigger"
+                  @click="pseudo.openDialogueThread(thread)"
+                >
+                  <span class="interlude-icon"><i class="fa-solid fa-comments"></i></span>
+                  <span>
+                    <small>{{ thread.channel === 'transmission' ? '远程传讯' : '当面交谈' }}</small>
+                    <strong>与{{ thread.targetName }}交谈 · {{ thread.turnCount }}轮</strong>
+                  </span>
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
               </section>
             </template>
           </article>
@@ -285,8 +298,8 @@
                       :disabled="!pseudo.canEditUserMessage || editingInputId !== null"
                       @click="startInputEdit(turn.userMessageId)"
                     >
-                      <i class="fa-solid fa-pen"></i>
-                      <span>{{ editingInputId === turn.userMessageId ? '编辑中' : '修改' }}</span>
+                      <i class="fa-solid fa-feather-pointed"></i>
+                      <span>{{ editingInputId === turn.userMessageId ? '改写中' : '改写' }}</span>
                     </button>
                     <InlineInputEditor
                       v-if="editingInputId === turn.userMessageId && turn.userMessageId !== undefined"
@@ -308,6 +321,14 @@
                     <span>{{ entry.stage.targetName }}</span>
                     <small v-if="turn.tokenCount !== undefined" class="dialogue-token-count" title="本层回复 Token">
                       {{ turn.tokenCount }}t
+                    </small>
+                    <small
+                      v-if="turn.responseDuration !== undefined"
+                      class="dialogue-response-time"
+                      title="AI 回复总耗时"
+                    >
+                      <i class="fa-regular fa-clock"></i>
+                      {{ formatDuration(turn.responseDuration) }}
                     </small>
                     <em v-if="isRerollTargetTurn(turn.assistantMessageId)">
                       <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -374,8 +395,12 @@
                   </div>
                   <template v-if="isRerollTargetTurn(turn.assistantMessageId)">
                     <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
-                    <!-- eslint-disable-next-line vue/no-v-html -->
-                    <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
+                    <RenderedMessageHtml
+                      v-if="pseudo.streamText"
+                      class="dialogue-copy"
+                      :html="liveDialogueHtml"
+                      :message-id="turn.assistantMessageId"
+                    />
                     <div v-else class="waiting-dots"><i></i><i></i><i></i></div>
                     <section
                       v-if="liveReasoningText && liveReasoningUsesOwnDisclosure"
@@ -405,11 +430,11 @@
                     <p v-if="turn.reaction || dialogueVisible(turn.assistantText).reaction" class="dialogue-reaction">
                       {{ turn.reaction || dialogueVisible(turn.assistantText).reaction }}
                     </p>
-                    <!-- eslint-disable-next-line vue/no-v-html -->
-                    <div
+                    <RenderedMessageHtml
                       class="dialogue-copy"
-                      v-html="formatDialogue(turn.assistantText, turn.assistantMessageId)"
-                    ></div>
+                      :html="formatDialogue(turn.assistantText, turn.assistantMessageId)"
+                      :message-id="turn.assistantMessageId"
+                    />
                     <section
                       v-if="turn.reasoning && messageUsesOwnDisclosure(turn.assistantText, turn.assistantMessageId)"
                       class="context-detail reasoning-detail"
@@ -419,6 +444,7 @@
                         :raw-message="turn.assistantText"
                         :message-id="turn.assistantMessageId"
                         :open-preset-disclosure="false"
+                        :editable="Boolean(turn.reasoningEditable)"
                       />
                     </section>
                     <section
@@ -429,6 +455,7 @@
                         :text="turn.reasoning"
                         :raw-message="turn.assistantText"
                         :message-id="turn.assistantMessageId"
+                        :editable="Boolean(turn.reasoningEditable)"
                       />
                     </section>
                   </template>
@@ -458,8 +485,12 @@
                     </button>
                   </div>
                   <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
-                  <!-- eslint-disable-next-line vue/no-v-html -->
-                  <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
+                  <RenderedMessageHtml
+                    v-if="pseudo.streamText"
+                    class="dialogue-copy"
+                    :html="liveDialogueHtml"
+                    :message-id="pseudo.view.latestMessageId"
+                  />
                   <div v-else class="waiting-dots"><i></i><i></i><i></i></div>
                   <section
                     v-if="liveReasoningText && liveReasoningUsesOwnDisclosure"
@@ -529,11 +560,7 @@
                 <i class="fa-solid fa-circle-notch fa-spin"></i>
                 观照流转中<span v-if="pseudo.reasoningDuration"> · {{ formatDuration(pseudo.reasoningDuration) }}</span>
               </span>
-              <span v-else-if="pseudo.reasoningDuration" class="reasoning-shell-time">
-                <small>推演历时</small>
-                <strong>{{ formatDuration(pseudo.reasoningDuration) }}</strong>
-              </span>
-              <span v-else class="reasoning-shell-state">观照流转中</span>
+              <span v-else class="reasoning-shell-state">观照已成</span>
               <i class="fa-solid fa-chevron-down reasoning-shell-chevron"></i>
             </button>
           </div>
@@ -552,8 +579,12 @@
               :streaming="liveReasoningStreaming"
             />
           </section>
-          <!-- eslint-disable-next-line vue/no-v-html -->
-          <div v-if="liveStoryHtml" class="story-prose" v-html="liveStoryHtml"></div>
+          <RenderedMessageHtml
+            v-if="liveStoryHtml"
+            class="story-prose"
+            :html="liveStoryHtml"
+            :message-id="pseudo.view.latestMessageId"
+          />
           <div v-else class="live-waiting">
             <i class="fa-solid fa-feather-pointed"></i>
             {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '等待第一缕回响……' }}
@@ -586,71 +617,6 @@
           >
             <VariableDiagnosticsPanel :diagnostics="liveVariableDiagnostics" dense />
           </section>
-        </article>
-
-        <article
-          v-if="isLiveDialogue && !pseudo.isRerolling && !liveDialogueAttached"
-          class="timeline-entry dialogue-entry live-dialogue"
-          data-timeline-live="dialogue"
-        >
-          <header class="dialogue-block-heading">
-            <span class="dialogue-avatar"><i class="fa-solid fa-comments"></i></span>
-            <span>
-              <small>{{ pseudo.activeDialogue?.channel === 'transmission' ? '传讯往来' : '此刻相谈' }}</small>
-              <strong>与{{ pseudo.activeDialogue?.targetName }}</strong>
-            </span>
-          </header>
-          <div class="dialogue-turn-list">
-            <div v-if="pendingUserText" class="timeline-dialogue-turn user pending">
-              <span>你</span>
-              <p>{{ pendingUserText }}</p>
-            </div>
-            <div class="timeline-dialogue-turn character live">
-              <div class="dialogue-turn-heading">
-                <span>{{ pseudo.activeDialogue?.targetName }}</span>
-                <em><i class="fa-solid fa-circle-notch fa-spin"></i> {{ liveStatus }}</em>
-                <button
-                  v-if="liveReasoningText && !liveReasoningUsesOwnDisclosure"
-                  type="button"
-                  class="reasoning-mini-trigger"
-                  :class="{ active: expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID }"
-                  :aria-expanded="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID"
-                  title="展开灵台观照"
-                  @click="toggleDialogueReasoning(LIVE_DIALOGUE_REASONING_ID)"
-                >
-                  <i class="fa-solid fa-fire-flame-curved"></i>
-                  <span>观照</span>
-                </button>
-              </div>
-              <p v-if="pseudo.streamReaction" class="dialogue-reaction">{{ pseudo.streamReaction }}</p>
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <div v-if="pseudo.streamText" class="dialogue-copy" v-html="liveDialogueHtml"></div>
-              <div v-else class="waiting-dots"><i></i><i></i><i></i></div>
-              <section
-                v-if="liveReasoningText && liveReasoningUsesOwnDisclosure"
-                class="context-detail reasoning-detail"
-              >
-                <ReasoningDisplay
-                  :text="liveReasoningText"
-                  :raw-message="pseudo.streamText"
-                  :message-id="pseudo.view.latestMessageId"
-                  :open-preset-disclosure="false"
-                  :streaming="liveReasoningStreaming"
-                />
-              </section>
-              <section
-                v-else-if="expandedDialogueReasoning === LIVE_DIALOGUE_REASONING_ID && liveReasoningText"
-                class="context-detail reasoning-detail"
-              >
-                <ReasoningDisplay
-                  :text="liveReasoningText"
-                  :raw-message="pseudo.streamText"
-                  :message-id="pseudo.view.latestMessageId"
-                  :streaming="liveReasoningStreaming"
-                />
-              </section>
-            </div>
-          </div>
         </article>
 
         <div v-if="!pseudo.timelineEntries.length && !pseudo.timelineLoading" class="timeline-empty">
@@ -697,15 +663,17 @@ import {
   formatMessageHtml,
   formatNarrativeHtml,
   hasInlineReasoningPresetDisclosure,
-  mergeReasoningText,
   parseMessageContent,
+  selectReasoningText,
   stripStructuredBlocks,
 } from '../message-content';
 import type { PseudoLayerTimelineEntry } from '../pseudo-layer-protocol';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import BranchChoicePanel from './BranchChoicePanel.vue';
+import InlineActionChoices from './InlineActionChoices.vue';
 import InlineInputEditor from './InlineInputEditor.vue';
 import ReasoningDisplay from './ReasoningDisplay.vue';
+import RenderedMessageHtml from './RenderedMessageHtml.vue';
 import ScenePortraitRail from './ScenePortraitRail.vue';
 import VariableDiagnosticsPanel from './VariableDiagnosticsPanel.vue';
 
@@ -721,6 +689,9 @@ const emit = defineEmits<{
 const pseudo = usePseudoLayerStore();
 const data = useDataStore();
 const appearance = useThemeStore();
+const latestStoryMessageId = computed(
+  () => pseudo.view.latestStoryMessageId ?? pseudo.view.histories.story.latestMessageId ?? pseudo.view.latestMessageId,
+);
 const showPortrait = computed(
   () => !props.immersive && !props.mobileLayout && appearance.preferences.showPortraitRail && data.hasGalleryCards,
 );
@@ -770,7 +741,7 @@ const pendingUserText = computed(() => pseudo.generationUserMessage.trim() || ps
 const liveMessageContent = computed(() => parseMessageContent(pseudo.streamText));
 const liveInlineReasoning = computed(() => liveMessageContent.value.reasoning);
 const liveReasoningText = computed(() =>
-  mergeReasoningText(pseudo.liveReasoning, liveInlineReasoning.value?.text ?? ''),
+  selectReasoningText(pseudo.liveReasoning, liveInlineReasoning.value?.text ?? ''),
 );
 const liveReasoningStreaming = computed(
   () =>
@@ -1119,26 +1090,14 @@ watch(
     if (initialPositioned && isFollowing.value) queueFollow();
   },
 );
-let autoOpenedReasoningRequest = '';
-watch([() => pseudo.activeRequestId, liveReasoningText], ([requestId, reasoning]) => {
-  if (!requestId || !reasoning || autoOpenedReasoningRequest === requestId) return;
-  if (pseudo.activeDialogue) {
-    expandedDialogueReasoning.value = pseudo.isRerolling ? pseudo.rerollTargetMessageId : LIVE_DIALOGUE_REASONING_ID;
-  } else {
-    const liveMessageId = pseudo.isRerolling
-      ? (pseudo.timelineEntries.find(entry => entry.messageIds.includes(pseudo.rerollTargetMessageId))
-          ?.representativeMessageId ?? pseudo.rerollTargetMessageId)
-      : LIVE_STORY_REASONING_ID;
-    expandedContext.value = contextKey(liveMessageId, 'reasoning');
-  }
-  autoOpenedReasoningRequest = requestId;
-  queueFollow();
-});
 watch([() => pseudo.streamText, () => pseudo.streamReaction, () => pseudo.liveReasoning], queueFollow);
 watch(
   () => pseudo.isGenerating,
   (generating, wasGenerating) => {
-    if (!generating) autoOpenedReasoningRequest = '';
+    if (!wasGenerating && generating) {
+      if (expandedContext.value === contextKey(LIVE_STORY_REASONING_ID, 'reasoning')) expandedContext.value = '';
+      if (expandedDialogueReasoning.value === LIVE_DIALOGUE_REASONING_ID) expandedDialogueReasoning.value = null;
+    }
     if (!wasGenerating || generating || isFollowing.value) return;
     const anchor = captureLiveViewportAnchor();
     if (anchor) restoreLiveViewportAnchor(anchor);
@@ -1247,6 +1206,58 @@ onBeforeUnmount(() => {
   border-color: color-mix(in srgb, var(--gold) 42%, var(--line-subtle));
 }
 
+.interlude-thread-list {
+  margin-top: 18px;
+  display: grid;
+  gap: 7px;
+}
+.interlude-thread-trigger {
+  width: 100%;
+  min-height: 48px;
+  padding: 7px 10px;
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--jade) 25%, var(--line-subtle));
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--jade) 5%, var(--surface-inset));
+  text-align: left;
+  cursor: pointer;
+}
+.interlude-thread-trigger:hover {
+  color: var(--gold);
+  border-color: var(--line-strong);
+  background: var(--button-hover);
+}
+.interlude-thread-trigger > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.interlude-thread-trigger small {
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+.interlude-thread-trigger strong {
+  overflow: hidden;
+  color: var(--text-accent);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.interlude-icon {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-subtle);
+  border-radius: 50%;
+  color: var(--jade);
+  background: var(--surface-raised);
+}
+
 .entry-heading {
   margin-bottom: clamp(18px, 3vw, 30px);
   display: flex;
@@ -1264,12 +1275,22 @@ onBeforeUnmount(() => {
 }
 
 .entry-token-count,
-.dialogue-token-count {
+.dialogue-token-count,
+.entry-response-time,
+.dialogue-response-time {
   flex: none;
   color: var(--text-secondary);
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   font-size: 9px;
   font-weight: 500;
+}
+
+.entry-response-time,
+.dialogue-response-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
 }
 
 .entry-rule {
@@ -1432,18 +1453,65 @@ onBeforeUnmount(() => {
 }
 
 .input-edit-button {
-  min-height: 22px;
-  padding: 0 7px !important;
+  position: relative;
+  min-height: 27px;
+  padding: 3px 11px 3px 31px !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--line-subtle)) !important;
-  border-radius: 999px;
-  color: var(--gold-soft) !important;
-  background: color-mix(in srgb, var(--gold) 6%, var(--surface-inset)) !important;
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 2px 10px 2px 10px;
+  color: color-mix(in srgb, var(--jade) 82%, var(--text-accent)) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--jade) 11%, transparent), transparent 88%),
+    color-mix(in srgb, var(--surface-inset) 30%, transparent) !important;
+  box-shadow:
+    inset 1px 0 color-mix(in srgb, var(--jade) 38%, transparent),
+    inset 0 -1px color-mix(in srgb, var(--gold) 14%, transparent);
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, serif;
   font-size: 9px;
+  letter-spacing: 0.14em;
+  isolation: isolate;
   cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.input-edit-button::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 8px;
+  width: 13px;
+  height: 13px;
+  border: 1px solid color-mix(in srgb, var(--jade) 42%, transparent);
+  background: color-mix(in srgb, var(--jade) 7%, transparent);
+  box-shadow: inset 0 0 7px color-mix(in srgb, var(--jade) 12%, transparent);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.input-edit-button::after {
+  content: '';
+  position: absolute;
+  right: 7px;
+  bottom: 3px;
+  left: 29px;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--jade) 52%, transparent), transparent);
+  opacity: 0.62;
+}
+
+.input-edit-button > i {
+  position: absolute;
+  left: 11px;
+  color: var(--jade);
+  font-size: 7px;
+  transform: rotate(-14deg);
 }
 
 .story-action .input-edit-button {
@@ -1451,9 +1519,15 @@ onBeforeUnmount(() => {
 }
 
 .input-edit-button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--gold) 48%, var(--line-strong)) !important;
-  color: var(--gold) !important;
-  background: var(--button-hover) !important;
+  color: var(--text-accent) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--jade) 17%, transparent), transparent 92%),
+    color-mix(in srgb, var(--surface-inset) 46%, transparent) !important;
+  box-shadow:
+    inset 1px 0 color-mix(in srgb, var(--jade) 58%, transparent),
+    inset 0 -1px color-mix(in srgb, var(--gold) 25%, transparent),
+    0 0 14px color-mix(in srgb, var(--jade) 9%, transparent);
+  transform: translateY(-1px);
 }
 
 .input-edit-button:disabled {
@@ -1690,25 +1764,6 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.reasoning-shell-time {
-  display: grid;
-  gap: 1px;
-}
-
-.reasoning-shell-time small {
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 8px;
-  font-weight: 400;
-  letter-spacing: 0.12em;
-}
-
-.reasoning-shell-time strong {
-  color: var(--gold-soft);
-  font-size: 10px;
-  font-weight: 500;
-}
-
 .reasoning-shell-state {
   display: inline-flex;
   align-items: center;
@@ -1906,10 +1961,12 @@ onBeforeUnmount(() => {
   line-height: 1.72;
 }
 
-/* Rich presets own their card surface. Do not place the generic timeline
+/* Rich presets and the built-in theme own their card surface. Do not place the generic timeline
  * detail panel behind them, otherwise its padding becomes a visible dark
- * frame around the preset. */
-.context-detail.reasoning-detail:has(.reasoning-presentation[data-presentation='preset']) {
+ * frame around the reasoning card. */
+.context-detail.reasoning-detail:has(
+    .reasoning-presentation:is([data-presentation='preset'], [data-presentation='theme'])
+  ) {
   padding: 0;
   border: 0;
   border-radius: 0;

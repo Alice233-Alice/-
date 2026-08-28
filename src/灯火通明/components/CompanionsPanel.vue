@@ -1,49 +1,82 @@
 <template>
   <div class="panel companions-panel">
-    <div v-if="companionNames.length > 0" class="companions-shell">
-      <aside class="companion-roster" aria-label="红颜名册">
-        <header class="roster-heading">
-          <div>
-            <span class="roster-kicker">红尘有记</span>
-            <strong>情谱名册</strong>
-          </div>
-          <span class="roster-count">{{ companionNames.length }}</span>
-        </header>
+    <div v-if="companionNames.length > 0 || npcEntries.length > 0" class="companions-shell">
+      <aside class="companion-sidebar" aria-label="人物名册">
+        <section v-if="companionNames.length > 0" class="companion-roster" aria-label="红颜名册">
+          <header class="roster-heading">
+            <div>
+              <span class="roster-kicker">红尘有记</span>
+              <strong>情谱名册</strong>
+            </div>
+            <span class="roster-count">{{ companionNames.length }}</span>
+          </header>
 
-        <div class="roster-list" role="listbox" aria-label="选择红颜">
-          <button
-            v-for="name in companionNames"
-            :key="name"
-            type="button"
-            class="roster-entry"
-            :class="{ active: selectedName === name }"
-            :aria-selected="selectedName === name"
-            role="option"
-            @click="selectedName = name"
-          >
-            <span class="roster-portrait" aria-hidden="true">
-              <img v-if="getPortrait(name)" :src="getPortrait(name)" :alt="name" />
-              <span v-else>{{ name.slice(0, 1) }}</span>
-            </span>
-            <span class="roster-copy">
-              <span class="roster-name">{{ name }}</span>
-              <span class="roster-meta">
-                {{ getCompanion(name)?.关系 || '缘分未明' }}
-                <template v-if="getCompanion(name)?.关系上下文?.当前情绪">
-                  · {{ getCompanion(name)?.关系上下文?.当前情绪 }}
-                </template>
-              </span>
-            </span>
-            <span
-              class="roster-favor"
-              :class="getFavorTone(getCompanion(name)?.好感度)"
-              :title="`好感 ${normalizeFavor(getCompanion(name)?.好感度)}`"
+          <div class="roster-list" role="listbox" aria-label="选择红颜">
+            <button
+              v-for="name in companionNames"
+              :key="name"
+              type="button"
+              class="roster-entry"
+              :class="{ active: selectedName === name }"
+              :aria-selected="selectedName === name"
+              role="option"
+              @click="selectedName = name"
             >
-              <i class="fa-solid fa-heart"></i>
-              {{ normalizeFavor(getCompanion(name)?.好感度) }}
-            </span>
-          </button>
-        </div>
+              <span class="roster-portrait" aria-hidden="true">
+                <img v-if="getPortrait(name)" :src="getPortrait(name)" :alt="name" />
+                <span v-else>{{ name.slice(0, 1) }}</span>
+              </span>
+              <span class="roster-copy">
+                <span class="roster-name">{{ name }}</span>
+                <span class="roster-meta">
+                  {{ getCompanion(name)?.关系 || '缘分未明' }}
+                  <template v-if="getCompanion(name)?.关系上下文?.当前情绪">
+                    · {{ getCompanion(name)?.关系上下文?.当前情绪 }}
+                  </template>
+                </span>
+              </span>
+              <span
+                class="roster-favor"
+                :class="getFavorTone(getCompanion(name)?.好感度)"
+                :title="`好感 ${normalizeFavor(getCompanion(name)?.好感度)}`"
+              >
+                <i class="fa-solid fa-heart"></i>
+                {{ normalizeFavor(getCompanion(name)?.好感度) }}
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section v-if="npcEntries.length > 0" class="npc-ledger" aria-label="尘缘客录">
+          <header class="npc-ledger-heading">
+            <div>
+              <span class="npc-ledger-kicker">萍踪入卷</span>
+              <strong>尘缘客录</strong>
+            </div>
+            <span class="npc-ledger-count">{{ npcEntries.length }}</span>
+          </header>
+
+          <div class="npc-ledger-list" role="list">
+            <article v-for="npc in npcEntries" :key="npc.name" class="npc-entry" role="listitem">
+              <header class="npc-entry-heading">
+                <span class="npc-monogram" aria-hidden="true">{{ npc.name.slice(0, 1) }}</span>
+                <span class="npc-identity">
+                  <strong :title="npc.name">{{ npc.name }}</strong>
+                  <small :style="{ color: getRealmColor(npc.level) }">
+                    {{ getRealmDescription(npc.level, '') }}
+                  </small>
+                </span>
+              </header>
+              <span class="npc-affiliation" :title="npc.sect">
+                <i class="fa-solid fa-landmark"></i>
+                {{ npc.sect }}
+              </span>
+              <p :class="{ muted: !npc.note }" :title="npc.note || '此人旧闻尚待补记'">
+                {{ npc.note || '此人旧闻尚待补记。' }}
+              </p>
+            </article>
+          </div>
+        </section>
       </aside>
 
       <article v-if="selectedCompanion" class="companion-dossier">
@@ -75,27 +108,44 @@
 
             <div class="affinity-card">
               <div class="affinity-heading">
-                <span><i class="fa-solid fa-heart-pulse"></i> 当前好感</span>
-                <strong :class="getFavorTone(selectedCompanion.好感度)">
-                  {{ formatFavor(selectedCompanion.好感度) }}
-                </strong>
+                <div class="affinity-title">
+                  <span class="affinity-seal" aria-hidden="true"><i class="fa-solid fa-knot"></i></span>
+                  <span>
+                    <small>红尘缘契</small>
+                    <strong>{{ selectedFavorStage }}</strong>
+                  </span>
+                </div>
+                <div class="affinity-value">
+                  <strong>{{ selectedFavor }}</strong
+                  ><span>/ 200</span>
+                </div>
               </div>
               <div
                 class="affinity-track"
                 role="progressbar"
                 aria-label="好感度"
-                aria-valuemin="-200"
+                aria-valuemin="0"
                 aria-valuemax="200"
-                :aria-valuenow="normalizeFavor(selectedCompanion.好感度)"
+                :aria-valuenow="selectedFavor"
               >
-                <span class="affinity-center"></span>
+                <span class="affinity-fill" :style="getFavorStyle(selectedCompanion.好感度)"></span>
                 <span
-                  class="affinity-fill"
-                  :class="getFavorTone(selectedCompanion.好感度)"
-                  :style="getFavorStyle(selectedCompanion.好感度)"
+                  v-for="stage in FAVOR_STAGES"
+                  :key="stage.value"
+                  class="affinity-node"
+                  :class="{ reached: selectedFavor >= stage.value }"
+                  :style="{ left: `${stage.value / 2}%` }"
                 ></span>
               </div>
-              <div class="affinity-scale" aria-hidden="true"><span>-200</span><span>0</span><span>200</span></div>
+              <div class="affinity-scale" aria-hidden="true">
+                <span
+                  v-for="stage in FAVOR_STAGES"
+                  :key="stage.label"
+                  :class="{ reached: selectedFavor >= stage.value }"
+                >
+                  {{ stage.label }}
+                </span>
+              </div>
             </div>
 
             <div class="dialogue-entry" :class="{ unavailable: interactionDisabled }">
@@ -280,6 +330,12 @@
           </div>
         </details>
       </article>
+
+      <div v-else class="companions-empty companions-main-empty">
+        <span class="empty-moon"><i class="fa-regular fa-heart"></i></span>
+        <strong>红尘情谱尚无一页</strong>
+        <p>尘缘客录已有来往之人，待与谁真正相识，她的名字与同行往事便会在此落笔。</p>
+      </div>
     </div>
 
     <div v-else class="companions-empty">
@@ -297,8 +353,8 @@ import { useDataStore, usePseudoLayerStore } from '../store';
 import type { DialogueTarget } from '../store';
 
 type CompanionRecord = Record<string, any>;
+type NpcRecord = { 等级?: unknown; 所在宗门?: unknown; 备注?: unknown };
 
-const emit = defineEmits<{ (event: 'open-dialogue'): void }>();
 const store = useDataStore();
 const pseudo = usePseudoLayerStore();
 const selectedName = ref('');
@@ -322,9 +378,29 @@ const CHRONICLE_ICONS: Record<string, string> = {
   其他: 'fa-feather',
 };
 
+const FAVOR_STAGES = [
+  { value: 0, label: '缘起' },
+  { value: 50, label: '相识' },
+  { value: 100, label: '相知' },
+  { value: 150, label: '相契' },
+  { value: 200, label: '同心' },
+] as const;
+
 const companionNames = computed(() => Object.keys(store.红颜 as Record<string, CompanionRecord>));
+const npcEntries = computed(() =>
+  Object.entries(store.NPC图鉴 as Record<string, NpcRecord>).map(([name, npc]) => ({
+    name,
+    level: normalizeRealmLevel(npc.等级),
+    sect: String(npc.所在宗门 ?? '').trim() || '散修',
+    note: String(npc.备注 ?? '').trim(),
+  })),
+);
 const selectedCompanion = computed<CompanionRecord | null>(() => getCompanion(selectedName.value));
 const selectedPortrait = computed(() => getPortrait(selectedName.value));
+const selectedFavor = computed(() => normalizeFavor(selectedCompanion.value?.好感度));
+const selectedFavorStage = computed(
+  () => [...FAVOR_STAGES].reverse().find(stage => selectedFavor.value >= stage.value)?.label ?? FAVOR_STAGES[0].label,
+);
 const relationshipProfile = computed(() => {
   const context = selectedCompanion.value?.关系上下文 ?? {};
   return {
@@ -465,27 +541,26 @@ function getRealmDescription(levelRaw: unknown, fallbackRaw: unknown): string {
   return major && minor ? `${major}${minor}` : fallback || '练气初期';
 }
 
+function normalizeRealmLevel(value: unknown): number {
+  const level = Number(value);
+  const maxLevel = REALM_NAMES.length * REALM_STAGES.length;
+  return Number.isFinite(level) ? _.clamp(Math.floor(level), 1, maxLevel) : 1;
+}
+
 function normalizeFavor(value: unknown): number {
   const number = Number(value);
-  return Number.isFinite(number) ? _.clamp(number, -200, 200) : 0;
+  return Number.isFinite(number) ? _.clamp(number, 0, 200) : 0;
 }
 
-function formatFavor(value: unknown): string {
+function getFavorTone(value: unknown): 'positive' | 'neutral' {
   const favor = normalizeFavor(value);
-  return favor > 0 ? `+${favor}` : String(favor);
-}
-
-function getFavorTone(value: unknown): 'positive' | 'negative' | 'neutral' {
-  const favor = normalizeFavor(value);
-  return favor > 0 ? 'positive' : favor < 0 ? 'negative' : 'neutral';
+  return favor > 0 ? 'positive' : 'neutral';
 }
 
 function getFavorStyle(value: unknown) {
   const favor = normalizeFavor(value);
-  const width = Math.abs(favor) / 4;
   return {
-    width: `${width}%`,
-    left: favor >= 0 ? '50%' : `${50 - width}%`,
+    width: `${favor / 2}%`,
   };
 }
 
@@ -503,7 +578,6 @@ function getCultivationProgress(companion: CompanionRecord): number {
 function startDialogue(target: DialogueTarget): void {
   if (interactionDisabled.value) return;
   pseudo.beginDialogue(target);
-  emit('open-dialogue');
 }
 
 function getDialogueButtonLabel(target: DialogueTarget): string {
@@ -589,6 +663,7 @@ async function clearPortrait(name: string, side: '正面' | '背面') {
 }
 
 .companion-roster,
+.npc-ledger,
 .companion-dossier {
   min-width: 0;
   border: 1px solid var(--line-subtle);
@@ -596,9 +671,16 @@ async function clearPortrait(name: string, side: '正面' | '背面') {
   box-shadow: 0 12px 28px color-mix(in srgb, var(--stage-shadow) 24%, transparent);
 }
 
-.companion-roster {
+.companion-sidebar {
   position: sticky;
   top: 12px;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.companion-roster,
+.npc-ledger {
   border-radius: 9px;
   overflow: hidden;
 }
@@ -648,6 +730,130 @@ async function clearPortrait(name: string, side: '正面' | '背面') {
   padding: 7px;
   display: grid;
   gap: 5px;
+}
+.npc-ledger {
+  --ledger-accent: var(--gold);
+  --ledger-soft: color-mix(in srgb, var(--ledger-accent) 12%, transparent);
+  --ledger-line: color-mix(in srgb, var(--ledger-accent) 27%, var(--line-subtle));
+}
+.npc-ledger-heading {
+  min-height: 54px;
+  padding: 9px 11px 8px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--ledger-line);
+  background:
+    radial-gradient(circle at 94% 10%, var(--ledger-soft), transparent 48%),
+    color-mix(in srgb, var(--surface-raised) 92%, transparent);
+}
+.npc-ledger-heading > div {
+  display: grid;
+  gap: 1px;
+}
+.npc-ledger-kicker {
+  color: var(--text-secondary);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+}
+.npc-ledger-heading strong {
+  color: color-mix(in srgb, var(--ledger-accent) 82%, var(--text-primary));
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+.npc-ledger-count {
+  min-width: 25px;
+  height: 25px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ledger-line);
+  border-radius: 999px;
+  color: var(--ledger-accent);
+  background: var(--ledger-soft);
+  font-size: 10px;
+}
+.npc-ledger-list {
+  max-height: clamp(146px, 34vh, 340px);
+  padding: 7px;
+  display: grid;
+  gap: 6px;
+  overflow-y: auto;
+  scrollbar-color: var(--ledger-line) transparent;
+  scrollbar-width: thin;
+}
+.npc-entry {
+  min-width: 0;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--ledger-line) 72%, transparent);
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--ledger-soft), color-mix(in srgb, var(--surface-inset) 62%, transparent));
+}
+.npc-entry-heading {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr);
+  gap: 7px;
+  align-items: center;
+}
+.npc-monogram {
+  width: 31px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ledger-line);
+  border-radius: 50%;
+  color: var(--ledger-accent);
+  background: color-mix(in srgb, var(--ledger-accent) 8%, var(--surface-inset));
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 14px;
+}
+.npc-identity {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.npc-identity strong,
+.npc-identity small,
+.npc-affiliation {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.npc-identity strong {
+  color: var(--text-primary);
+  font-size: 11px;
+}
+.npc-identity small {
+  font-size: 9px;
+}
+.npc-affiliation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--ledger-accent) 62%, var(--text-secondary));
+  font-size: 9px;
+}
+.npc-affiliation i {
+  flex: none;
+  font-size: 8px;
+}
+.npc-entry p {
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  color: var(--text-secondary);
+  font-size: 9px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.npc-entry p.muted {
+  opacity: 0.68;
 }
 .roster-entry {
   min-width: 0;
@@ -882,76 +1088,129 @@ async function clearPortrait(name: string, side: '正面' | '背面') {
 }
 
 .affinity-card {
-  padding: 11px 12px 9px;
-  border: 1px solid var(--line-subtle);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--surface-inset) 68%, transparent);
+  width: min(760px, 100%);
+  padding: 12px 15px 10px;
+  border: 1px solid var(--romance-line);
+  border-radius: 9px;
+  background:
+    linear-gradient(105deg, var(--romance-faint), transparent 58%),
+    color-mix(in srgb, var(--surface-inset) 72%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 4%, transparent);
 }
 .affinity-heading {
-  margin-bottom: 8px;
-  color: var(--text-secondary);
-  font-size: 10px;
+  margin-bottom: 11px;
 }
-.affinity-heading i {
-  margin-right: 4px;
+.affinity-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.affinity-seal {
+  width: 30px;
+  aspect-ratio: 1;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--romance-line);
+  border-radius: 50%;
   color: var(--romance);
+  background: var(--romance-faint);
+  font-size: 11px;
 }
-.affinity-heading strong {
-  font-size: 15px;
+.affinity-title > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
 }
-.affinity-heading strong.positive {
-  color: var(--romance);
-}
-.affinity-heading strong.negative {
-  color: var(--semantic-info);
-}
-.affinity-heading strong.neutral {
+.affinity-title small {
   color: var(--text-secondary);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+}
+.affinity-title strong {
+  color: color-mix(in srgb, var(--romance) 82%, var(--text-primary));
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+.affinity-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--text-secondary);
+}
+.affinity-value strong {
+  color: var(--romance);
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 20px;
+  line-height: 1;
+}
+.affinity-value span {
+  font-size: 9px;
 }
 .affinity-track {
   position: relative;
-  height: 8px;
-  overflow: hidden;
-  border: 1px solid var(--line-subtle);
+  height: 7px;
+  margin: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--romance-line) 66%, var(--line-subtle));
   border-radius: 999px;
-  background: var(--progress-bg);
-}
-.affinity-center {
-  position: absolute;
-  z-index: 2;
-  top: -2px;
-  bottom: -2px;
-  left: 50%;
-  width: 1px;
-  background: var(--text-secondary);
-  opacity: 0.55;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(25% - 1px),
+      color-mix(in srgb, var(--romance-line) 38%, transparent) calc(25% - 1px) 25%
+    ),
+    var(--progress-bg);
 }
 .affinity-fill {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  z-index: 1;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 66%, var(--romance)), var(--romance));
+  box-shadow: 0 0 12px var(--romance-soft);
+  transition: width 0.45s ease;
+}
+.affinity-node {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  width: 7px;
+  aspect-ratio: 1;
+  border: 1px solid var(--romance-line);
+  border-radius: 50%;
+  background: var(--surface-inset);
+  transform: translate(-50%, -50%);
   transition:
-    width 0.45s ease,
-    left 0.45s ease;
+    border-color 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
 }
-.affinity-fill.positive {
-  background: linear-gradient(90deg, var(--romance), color-mix(in srgb, var(--romance) 56%, var(--gold)));
-  box-shadow: 0 0 10px var(--romance-soft);
-}
-.affinity-fill.negative {
-  background: linear-gradient(
-    90deg,
-    var(--semantic-info),
-    color-mix(in srgb, var(--semantic-info) 55%, var(--text-primary))
-  );
+.affinity-node.reached {
+  border-color: color-mix(in srgb, var(--romance) 76%, var(--gold));
+  background: color-mix(in srgb, var(--romance) 72%, var(--gold));
+  box-shadow: 0 0 7px var(--romance-soft);
 }
 .affinity-scale {
-  margin-top: 4px;
-  display: flex;
-  justify-content: space-between;
+  margin-top: 7px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   color: var(--text-secondary);
   font-size: 8px;
-  opacity: 0.66;
+  letter-spacing: 0.08em;
+  opacity: 0.62;
+  text-align: center;
+}
+.affinity-scale span:first-child {
+  text-align: left;
+}
+.affinity-scale span:last-child {
+  text-align: right;
+}
+.affinity-scale span.reached {
+  color: color-mix(in srgb, var(--romance) 72%, var(--text-primary));
+  opacity: 1;
 }
 
 .dialogue-entry {
@@ -1558,13 +1817,17 @@ async function clearPortrait(name: string, side: '正面' | '背面') {
   .companions-shell {
     grid-template-columns: 1fr;
   }
-  .companion-roster {
+  .companion-sidebar {
     position: static;
   }
   .roster-heading {
     min-height: 50px;
   }
   .roster-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .npc-ledger-list {
+    max-height: none;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .roster-entry:hover {
@@ -1589,6 +1852,9 @@ async function clearPortrait(name: string, side: '正面' | '背面') {
 
 @media screen and (max-width: 480px) {
   .roster-list {
+    grid-template-columns: 1fr;
+  }
+  .npc-ledger-list {
     grid-template-columns: 1fr;
   }
   .roster-entry {

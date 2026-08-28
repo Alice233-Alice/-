@@ -100,10 +100,6 @@
                     <i class="fa-solid fa-circle-notch fa-spin"></i>
                     观照流转中<span v-if="reasoningTime"> · {{ reasoningTime }}</span>
                   </span>
-                  <span v-else-if="reasoningTime" class="reasoning-time">
-                    <small>推演历时</small>
-                    <strong>{{ reasoningTime }}</strong>
-                  </span>
                   <span v-else class="reasoning-state">观照已成</span>
                   <i class="fa-solid fa-chevron-down context-chevron"></i>
                 </button>
@@ -114,6 +110,7 @@
                   :raw-message="reasoningRawMessage"
                   :message-id="storyMessageId"
                   :streaming="liveReasoningStreaming"
+                  :editable="!isStoryGenerating && pseudo.storyFloorReasoningEditable"
                 />
               </div>
             </section>
@@ -125,6 +122,7 @@
                 :message-id="storyMessageId"
                 :open-preset-disclosure="false"
                 :streaming="liveReasoningStreaming"
+                :editable="!isStoryGenerating && pseudo.storyFloorReasoningEditable"
               />
             </section>
 
@@ -134,6 +132,7 @@
               此回尚无可供阅读的正文。
             </div>
             <BranchChoicePanel v-if="branchChoices.length" :choices="branchChoices" />
+            <InlineActionChoices v-if="!isStoryGenerating" :raw-message="currentRawMessage" />
 
             <section v-if="variableDiagnostics" class="story-inline-context variable-inline-context">
               <button
@@ -154,6 +153,26 @@
                 class="inline-context-detail variable-inline-detail"
                 :diagnostics="variableDiagnostics"
               />
+            </section>
+
+            <section v-if="!isStoryGenerating && pseudo.dialogueThreads.length" class="story-interludes">
+              <span class="interlude-heading"><i class="fa-solid fa-bookmark"></i> 此回幕间</span>
+              <button
+                v-for="thread in pseudo.dialogueThreads"
+                :key="thread.sessionId"
+                type="button"
+                @click="pseudo.openDialogueThread(thread)"
+              >
+                <i
+                  class="fa-solid"
+                  :class="thread.channel === 'transmission' ? 'fa-feather-pointed' : 'fa-comments'"
+                ></i>
+                <span>
+                  <small>{{ thread.channel === 'transmission' ? '远程传讯' : '当面交谈' }}</small>
+                  <strong>与{{ thread.targetName }}交谈 · {{ thread.turnCount }}轮</strong>
+                </span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
             </section>
           </template>
         </div>
@@ -183,13 +202,14 @@ import {
   formatMessageHtml,
   formatNarrativeHtml,
   hasInlineReasoningPresetDisclosure,
-  mergeReasoningText,
   parseMessageContent,
+  selectReasoningText,
   stripStructuredBlocks,
 } from '../message-content';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import { useStreamFollow } from '../composables/use-stream-follow';
 import BranchChoicePanel from './BranchChoicePanel.vue';
+import InlineActionChoices from './InlineActionChoices.vue';
 import InlineInputEditor from './InlineInputEditor.vue';
 import ReasoningDisplay from './ReasoningDisplay.vue';
 import ScenePortraitRail from './ScenePortraitRail.vue';
@@ -313,7 +333,7 @@ const liveReasoningStreaming = computed(
 );
 const reasoningText = computed(() => {
   if (!isStoryGenerating.value) return pseudo.storyFloorReasoning;
-  const liveText = mergeReasoningText(pseudo.liveReasoning, inlineStreamReasoning.value?.text ?? '');
+  const liveText = selectReasoningText(pseudo.liveReasoning, inlineStreamReasoning.value?.text ?? '');
   if (liveText) return liveText;
   return pseudo.streamText ? '' : pseudo.storyFloorReasoning;
 });
@@ -371,17 +391,6 @@ const generationLabel = computed(() => {
   return labels[pseudo.generationState];
 });
 
-let autoOpenedReasoningRequest = '';
-watch(
-  [() => pseudo.activeRequestId, () => pseudo.liveReasoning, () => inlineStreamReasoning.value?.text ?? ''],
-  ([requestId, liveReasoning, inlineReasoning]) => {
-    if (!requestId || (!liveReasoning && !inlineReasoning) || autoOpenedReasoningRequest === requestId) return;
-    contextPanel.value = 'reasoning';
-    autoOpenedReasoningRequest = requestId;
-    queueStreamFollow();
-  },
-);
-
 watch(
   () => pseudo.liveReasoning,
   () => {
@@ -412,13 +421,13 @@ watch(
       pendingStreamText = '';
       displayedStreamText.value = '';
       lastStreamRenderAt = 0;
+      if (contextPanel.value === 'reasoning') contextPanel.value = null;
       resumeStreamFollow(false);
     }
     if (next === 'idle') {
       cancelStreamRender();
       pendingStreamText = '';
       displayedStreamText.value = '';
-      autoOpenedReasoningRequest = '';
     }
   },
 );
@@ -1063,26 +1072,6 @@ defineExpose({ scrollElement: scrollRef });
   max-height: 220px;
 }
 
-.reasoning-time {
-  min-width: 70px;
-  padding-left: 11px;
-  display: grid;
-  gap: 1px;
-  border-left: 1px solid color-mix(in srgb, var(--gold) 24%, transparent);
-  text-align: left;
-  white-space: nowrap;
-}
-.reasoning-time small {
-  color: var(--text-secondary);
-  font-size: 8px;
-  letter-spacing: 0.12em;
-}
-.reasoning-time strong {
-  color: var(--gold-soft);
-  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
-  font-size: 10px;
-  font-weight: 500;
-}
 .reasoning-state {
   display: inline-flex;
   align-items: center;
@@ -1196,6 +1185,55 @@ defineExpose({ scrollElement: scrollRef });
   color: var(--text-secondary);
 }
 
+.story-interludes {
+  width: min(100%, 820px);
+  margin: 24px auto 8px;
+  display: grid;
+  gap: 7px;
+}
+.interlude-heading {
+  padding: 0 3px 3px;
+  color: var(--gold-soft);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+.story-interludes button {
+  width: 100%;
+  min-height: 48px;
+  padding: 7px 11px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--jade) 25%, var(--line-subtle));
+  border-radius: 6px;
+  color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 5%, var(--surface-inset));
+  text-align: left;
+  cursor: pointer;
+}
+.story-interludes button:hover {
+  border-color: var(--line-strong);
+  color: var(--gold);
+  background: var(--button-hover);
+}
+.story-interludes button span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.story-interludes button small {
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+.story-interludes button strong {
+  overflow: hidden;
+  color: var(--text-accent);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .story-waiting i {
   color: var(--gold);
 }
@@ -1280,11 +1318,6 @@ defineExpose({ scrollElement: scrollRef });
   .reasoning-title small,
   .reasoning-ornament {
     display: none;
-  }
-  .reasoning-time {
-    margin-left: auto;
-    min-width: 58px;
-    padding-left: 8px;
   }
   .context-popover {
     top: 42px;

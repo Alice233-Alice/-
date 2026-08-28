@@ -6,6 +6,21 @@
     </div>
 
     <div class="preset-content">
+      <!-- 仅开局一显示：手动编辑自定义开场正文 -->
+      <div v-if="isCustomOpeningEditable" class="preset-section custom-opening-section">
+        <div class="section-title">
+          <i class="fa-solid fa-pen-fancy"></i>
+          <span>自定义开局正文</span>
+        </div>
+        <div class="inline-hint opening-hint">只会更新开局一，其他固定开局正文不会被覆盖。</div>
+        <textarea
+          v-model="customOpeningText"
+          class="opening-textarea"
+          rows="8"
+          placeholder="填写开场场景、当前事件和希望从哪里开始。无需填写性别，人物设定继续沿用世界书。"
+        ></textarea>
+      </div>
+
       <!-- 境界修为 -->
       <div class="preset-section">
         <div class="section-title">
@@ -108,6 +123,14 @@
           <label>所属层级</label>
           <input v-model="formData.所属层级" type="text" />
         </div>
+        <div class="form-row vertical">
+          <label>当前处境</label>
+          <textarea
+            v-model="formData.当前处境"
+            rows="3"
+            placeholder="一句话说明人在哪里、和谁在一起、眼下要做什么"
+          ></textarea>
+        </div>
       </div>
 
       <!-- 身心与历劫状态 -->
@@ -118,30 +141,33 @@
         </div>
         <div class="form-row">
           <label>真元</label>
-          <select v-model="formData.战斗状态.负荷.真元">
+          <input v-model.trim="formData.战斗状态.负荷.真元" type="text" list="essence-burden-options" />
+          <datalist id="essence-burden-options">
             <option value="充盈">充盈</option>
             <option value="尚足">尚足</option>
             <option value="吃紧">吃紧</option>
             <option value="枯竭">枯竭</option>
-          </select>
+          </datalist>
         </div>
         <div class="form-row">
           <label>神识</label>
-          <select v-model="formData.战斗状态.负荷.神识">
+          <input v-model.trim="formData.战斗状态.负荷.神识" type="text" list="soul-burden-options" />
+          <datalist id="soul-burden-options">
             <option value="澄明">澄明</option>
             <option value="疲乏">疲乏</option>
             <option value="动荡">动荡</option>
             <option value="受创">受创</option>
-          </select>
+          </datalist>
         </div>
         <div class="form-row">
           <label>肉身</label>
-          <select v-model="formData.战斗状态.负荷.肉身">
+          <input v-model.trim="formData.战斗状态.负荷.肉身" type="text" list="body-burden-options" />
+          <datalist id="body-burden-options">
             <option value="无恙">无恙</option>
             <option value="轻创">轻创</option>
             <option value="重创">重创</option>
             <option value="濒危">濒危</option>
-          </select>
+          </datalist>
         </div>
         <div class="form-row">
           <label>正在渡劫</label>
@@ -489,6 +515,43 @@
           </div>
         </div>
       </div>
+
+      <!-- 杂物袋 -->
+      <div class="preset-section">
+        <div class="section-title">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span>杂物袋</span>
+          <button class="btn-add-small" @click="addMiscItem">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <div class="inline-hint">随身杂物、凡俗用品放在杂物袋；通用灵石不必重复登记成物品。</div>
+        <div v-if="Object.keys(formData.杂物袋).length === 0" class="empty-hint">暂无物品，点击右上角添加</div>
+        <div v-for="(item, itemName) in formData.杂物袋" :key="itemName" class="item-card">
+          <div class="item-header">
+            <input v-model="item.名称" type="text" placeholder="物品名称" class="item-name-input" />
+            <button class="btn-delete-small" @click="removeMiscItem(itemName as string)">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+          <div class="item-row">
+            <div class="item-field">
+              <label>品阶</label>
+              <input v-model="item.品阶" type="text" placeholder="如：凡物" />
+            </div>
+            <div class="item-field">
+              <label>数量</label>
+              <input v-model.number="item.数量" type="number" min="1" />
+            </div>
+          </div>
+          <div class="item-row full">
+            <div class="item-field full">
+              <label>描述</label>
+              <textarea v-model="item.描述" placeholder="物品描述..." rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 操作按钮 -->
@@ -527,6 +590,14 @@ const store = useDataStore();
 // 文件输入引用
 const fileInput = ref<HTMLInputElement | null>(null);
 const MANUAL_TRANSIENT_OVERRIDE_PATH = 'stat_data._系统设置._临时状态手动覆盖签名';
+const CUSTOM_OPENING_SWIPE_ID = 1;
+const CUSTOM_OPENING_TITLE = '【开局一·自定义】';
+const CUSTOM_OPENING_CONTROL_BLOCK_PATTERN =
+  /<UpdateVariable>[\s\S]*?<\/UpdateVariable>|<visual_cards>[\s\S]*?<\/visual_cards>/gi;
+
+const isCustomOpeningEditable = ref(false);
+const customOpeningText = ref('');
+const customOpeningControlBlocks = ref('');
 
 const maxRealmLevel = REALM_NAMES.length * REALM_STAGES.length;
 const RELATION_OPTIONS = ['陌生人', '点头之交', '熟人', '好友', '知己', '心动', '暧昧', '恋人', '道侣'];
@@ -600,9 +671,9 @@ interface CharacterLibraryData {
 
 interface CombatStatusData {
   负荷: {
-    真元: '充盈' | '尚足' | '吃紧' | '枯竭';
-    神识: '澄明' | '疲乏' | '动荡' | '受创';
-    肉身: '无恙' | '轻创' | '重创' | '濒危';
+    真元: string;
+    神识: string;
+    肉身: string;
   };
 }
 
@@ -643,6 +714,7 @@ const formData = ref({
   已活岁月: 0,
   当前区域: '',
   所属层级: '',
+  当前处境: '',
   战斗状态: {
     负荷: {
       真元: '充盈',
@@ -664,6 +736,7 @@ const formData = ref({
   神通列表: {} as Record<string, SkillData>,
   法宝: {} as Record<string, ItemData>,
   背包: {} as Record<string, ItemData>,
+  杂物袋: {} as Record<string, ItemData>,
   红颜: {} as Record<string, CompanionData>,
 });
 
@@ -761,6 +834,22 @@ const removeInventoryItem = (itemName: string) => {
   delete formData.value.背包[itemName];
 };
 
+// 添加杂物袋物品
+const addMiscItem = () => {
+  const id = generateId();
+  formData.value.杂物袋[id] = {
+    名称: '新杂物',
+    描述: '',
+    品阶: '',
+    数量: 1,
+  };
+};
+
+// 删除杂物袋物品
+const removeMiscItem = (itemName: string) => {
+  delete formData.value.杂物袋[itemName];
+};
+
 // 添加任务
 const addQuest = () => {
   const id = generateId();
@@ -854,6 +943,20 @@ const loadCurrentData = () => {
   }
   const normalizedBackpack = normalizeInventorySpiritStone(背包);
 
+  // 加载杂物袋
+  const 杂物袋: Record<string, ItemData> = {};
+  if (store.本尊.杂物袋) {
+    for (const [name, item] of Object.entries(store.本尊.杂物袋)) {
+      杂物袋[name] = {
+        名称: item.名称 || name,
+        描述: item.描述 || '',
+        品阶: item.品阶 || '',
+        数量: item.数量 || 1,
+      };
+    }
+  }
+  const normalizedMiscBag = normalizeInventorySpiritStone(杂物袋);
+
   // 加载任务列表
   const 任务列表: Record<string, QuestData> = {};
   if (store.任务列表) {
@@ -916,13 +1019,14 @@ const loadCurrentData = () => {
     体质: store.本尊.体质 ?? '',
     功法: store.本尊.功法 ?? '',
     本命兵器: store.本尊.本命兵器 ?? '',
-    灵石: (store.本尊.灵石 ?? 0) + normalizedBackpack.spiritStone,
+    灵石: (store.本尊.灵石 ?? 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone,
     姓名: store.本尊.身份?.姓名 ?? '',
     宗门: store.本尊.身份?.宗门 ?? '',
     出身: store.本尊.身份?.出身 ?? '',
     已活岁月: store.本尊.已活岁月 ?? 0,
     当前区域: store.本尊.行踪?.当前区域 ?? '',
     所属层级: store.本尊.行踪?.所属层级 ?? '',
+    当前处境: store.当前处境 ?? '',
     战斗状态: {
       负荷: {
         真元: store.本尊.战斗状态?.负荷?.真元 ?? '充盈',
@@ -944,8 +1048,61 @@ const loadCurrentData = () => {
     神通列表,
     法宝,
     背包: normalizedBackpack.inventory,
+    杂物袋: normalizedMiscBag.inventory,
     红颜,
   };
+};
+
+const loadCustomOpeningContent = () => {
+  isCustomOpeningEditable.value = false;
+  customOpeningText.value = '';
+  customOpeningControlBlocks.value = '';
+
+  if (getCurrentMessageId() !== 0) return;
+
+  const greetingMessage = getChatMessages(0, { include_swipes: true })[0];
+  if (greetingMessage?.swipe_id !== CUSTOM_OPENING_SWIPE_ID || !greetingMessage.swipes?.[CUSTOM_OPENING_SWIPE_ID]) {
+    return;
+  }
+
+  isCustomOpeningEditable.value = true;
+  const rawContent = String(greetingMessage.swipes[CUSTOM_OPENING_SWIPE_ID]);
+  customOpeningControlBlocks.value = (rawContent.match(CUSTOM_OPENING_CONTROL_BLOCK_PATTERN) ?? []).join('\n');
+  customOpeningText.value = rawContent
+    .replace(CUSTOM_OPENING_CONTROL_BLOCK_PATTERN, '')
+    .replace(CUSTOM_OPENING_TITLE, '')
+    .trim();
+};
+
+const normalizeCustomOpeningContent = (): string => {
+  const narrative = customOpeningText.value.trim();
+  const controlBlocks = customOpeningControlBlocks.value.trim();
+  return [CUSTOM_OPENING_TITLE, narrative, controlBlocks].filter(Boolean).join('\n\n');
+};
+
+const applyCustomOpeningContent = async (content: string): Promise<boolean> => {
+  if (!isCustomOpeningEditable.value) return true;
+
+  try {
+    const greetingMessage = getChatMessages(0, { include_swipes: true })[0];
+    if (greetingMessage?.swipe_id !== CUSTOM_OPENING_SWIPE_ID || !greetingMessage.swipes?.[CUSTOM_OPENING_SWIPE_ID]) {
+      toastr.error('当前已不是开局一，正文未修改');
+      return false;
+    }
+
+    const swipes = _.cloneDeep(greetingMessage.swipes);
+    swipes[CUSTOM_OPENING_SWIPE_ID] = content;
+    await setChatMessages(
+      [{ message_id: greetingMessage.message_id, swipes, swipe_id: CUSTOM_OPENING_SWIPE_ID }],
+      { refresh: 'affected' },
+    );
+    customOpeningText.value = content;
+    return true;
+  } catch (error) {
+    console.error('[踏月寻仙] 更新自定义开局正文失败', error);
+    toastr.error('变量已应用，但自定义开局正文更新失败');
+    return false;
+  }
 };
 
 // 将formData的神通列表转换为MVU格式（以名称为key）
@@ -1029,9 +1186,14 @@ const createPeaceCombatState = (status: CombatStatusData) => ({
 // 应用预设
 const applyPreset = async () => {
   const messageId = getCurrentMessageId();
-  const currentMessageContent = getCurrentFloorMessageContent();
+  const customOpeningContent = isCustomOpeningEditable.value ? normalizeCustomOpeningContent() : '';
+  const currentMessageContent = customOpeningContent || getCurrentFloorMessageContent();
   const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
-  const normalizedSpiritStone = Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone;
+  const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
+  const normalizedSpiritStone =
+    Math.max(0, Number(formData.value.灵石) || 0) +
+    normalizedBackpack.spiritStone +
+    normalizedMiscBag.spiritStone;
   const patchData = {
     本尊: {
       等级: formData.value.等级,
@@ -1066,9 +1228,11 @@ const applyPreset = async () => {
       神通列表: convertSkillsToMvu(),
       法宝: convertItemsToMvu(formData.value.法宝),
       背包: normalizedBackpack.inventory,
+      杂物袋: normalizedMiscBag.inventory,
     },
     红颜: convertCompanionsToMvu(),
     任务列表: convertQuestsToMvu(),
+    当前处境: formData.value.当前处境,
   };
   const favorSnapshot = Object.fromEntries(
     Object.entries(patchData.红颜).map(([name, companion]) => [name, Number(companion.好感度 ?? 0)]),
@@ -1083,6 +1247,7 @@ const applyPreset = async () => {
     _.set(mergedStatData, '本尊.神通列表', _.cloneDeep(patchData.本尊.神通列表));
     _.set(mergedStatData, '本尊.法宝', _.cloneDeep(patchData.本尊.法宝));
     _.set(mergedStatData, '本尊.背包', _.cloneDeep(patchData.本尊.背包));
+    _.set(mergedStatData, '本尊.杂物袋', _.cloneDeep(patchData.本尊.杂物袋));
     _.set(mergedStatData, '本尊.战斗状态', _.cloneDeep(patchData.本尊.战斗状态));
     _.set(mergedStatData, '本尊.当前敌人', {});
     // 红颜预设同理：所选即最终列表
@@ -1108,8 +1273,11 @@ const applyPreset = async () => {
       await applyToMessage(targetMessageId);
     }
 
+    const openingUpdated = await applyCustomOpeningContent(customOpeningContent);
     store.refresh();
-    toastr.success('预设已应用并同步到MVU变量');
+    if (openingUpdated) {
+      toastr.success(isCustomOpeningEditable.value ? '预设与自定义开局已应用' : '预设已应用并同步到MVU变量');
+    }
   } catch (e) {
     console.error('[踏月寻仙] 应用预设失败，回退到直接写入变量', e);
 
@@ -1134,8 +1302,10 @@ const applyPreset = async () => {
         _.set(vars, 'stat_data.本尊.神通列表', convertSkillsToMvu());
         _.set(vars, 'stat_data.本尊.法宝', convertItemsToMvu(formData.value.法宝));
         _.set(vars, 'stat_data.本尊.背包', normalizedBackpack.inventory);
+        _.set(vars, 'stat_data.本尊.杂物袋', normalizedMiscBag.inventory);
         _.set(vars, 'stat_data.红颜', convertCompanionsToMvu());
         _.set(vars, 'stat_data.任务列表', convertQuestsToMvu());
+        _.set(vars, 'stat_data.当前处境', formData.value.当前处境);
         _.set(vars, 'stat_data._好感度快照', favorSnapshot);
         _.set(
           vars,
@@ -1147,6 +1317,7 @@ const applyPreset = async () => {
       { type: 'message', message_id: messageId },
     );
 
+    await applyCustomOpeningContent(customOpeningContent);
     store.refresh();
     toastr.warning('预设已写入当前楼层，但MVU同步失败');
   }
@@ -1169,6 +1340,7 @@ const resetToDefault = () => {
     已活岁月: defaultData.本尊.已活岁月 ?? 0,
     当前区域: defaultData.本尊.行踪?.当前区域 ?? '',
     所属层级: defaultData.本尊.行踪?.所属层级 ?? '',
+    当前处境: defaultData.当前处境 ?? '',
     战斗状态: {
       负荷: _.cloneDeep(defaultData.本尊.战斗状态.负荷),
     },
@@ -1186,6 +1358,7 @@ const resetToDefault = () => {
     神通列表: {},
     法宝: {},
     背包: {},
+    杂物袋: {},
     红颜: {},
   };
   toastr.info('已恢复为默认值');
@@ -1194,9 +1367,13 @@ const resetToDefault = () => {
 // 导出预设
 const exportPreset = () => {
   const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
-  const normalizedSpiritStone = Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone;
+  const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
+  const normalizedSpiritStone =
+    Math.max(0, Number(formData.value.灵石) || 0) +
+    normalizedBackpack.spiritStone +
+    normalizedMiscBag.spiritStone;
   const exportData = {
-    version: '1.4',
+    version: '1.5',
     exportTime: new Date().toISOString(),
     preset: {
       基础属性: {
@@ -1217,7 +1394,9 @@ const exportPreset = () => {
       位置信息: {
         当前区域: formData.value.当前区域,
         所属层级: formData.value.所属层级,
+        当前处境: formData.value.当前处境,
       },
+      ...(isCustomOpeningEditable.value ? { 自定义开局正文: customOpeningText.value.trim() } : {}),
       历劫状态: {
         战斗状态: { 负荷: _.cloneDeep(formData.value.战斗状态.负荷) },
         渡劫状态: _.cloneDeep(formData.value.渡劫状态),
@@ -1226,6 +1405,7 @@ const exportPreset = () => {
       神通列表: convertSkillsToMvu(),
       法宝: convertItemsToMvu(formData.value.法宝),
       背包: normalizedBackpack.inventory,
+      杂物袋: normalizedMiscBag.inventory,
       红颜: convertCompanionsToMvu(),
     },
   };
@@ -1285,6 +1465,11 @@ const importPreset = (event: Event) => {
       if (preset.位置信息) {
         formData.value.当前区域 = preset.位置信息.当前区域 ?? formData.value.当前区域;
         formData.value.所属层级 = preset.位置信息.所属层级 ?? formData.value.所属层级;
+        formData.value.当前处境 = preset.位置信息.当前处境 ?? formData.value.当前处境;
+      }
+
+      if (isCustomOpeningEditable.value && typeof preset.自定义开局正文 === 'string') {
+        customOpeningText.value = preset.自定义开局正文;
       }
 
       // 加载历劫状态
@@ -1367,6 +1552,22 @@ const importPreset = (event: Event) => {
         formData.value.灵石 += normalizedBackpack.spiritStone;
       }
 
+      // 加载杂物袋
+      if (preset.杂物袋) {
+        formData.value.杂物袋 = {};
+        for (const [name, item] of Object.entries(preset.杂物袋 as Record<string, ItemData>)) {
+          formData.value.杂物袋[name] = {
+            名称: item.名称 || name,
+            描述: item.描述 || '',
+            品阶: item.品阶 || '',
+            数量: item.数量 || 1,
+          };
+        }
+        const normalizedMiscBag = normalizeInventorySpiritStone(formData.value.杂物袋);
+        formData.value.杂物袋 = normalizedMiscBag.inventory;
+        formData.value.灵石 += normalizedMiscBag.spiritStone;
+      }
+
       // 加载红颜
       if (preset.红颜) {
         formData.value.红颜 = {};
@@ -1422,6 +1623,7 @@ const importPreset = (event: Event) => {
 // 初始化加载当前数据
 onMounted(() => {
   loadCurrentData();
+  loadCustomOpeningContent();
 });
 </script>
 
@@ -1713,6 +1915,21 @@ onMounted(() => {
         min-height: 56px;
         font-family: inherit;
       }
+    }
+  }
+
+  .custom-opening-section {
+    border-color: var(--accent-color);
+
+    .opening-hint {
+      margin: -4px 0 10px;
+    }
+
+    .opening-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      min-height: 140px;
     }
   }
 

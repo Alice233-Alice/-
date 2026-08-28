@@ -8,6 +8,8 @@
     "lint:fix": "eslint --fix",
     "dump": "ts-node --transpile-only --files --project tsconfig.schema-test.json dump_schema.ts",
     "test:lantern-schema": "ts-node --files --project tsconfig.schema-test.json tests/lantern-schema.test.ts",
+    "test:bright-message-content": "ts-node --files --project tsconfig.schema-test.json tests/bright-message-content.test.ts",
+    "test:bright-dialogue-engine": "ts-node --files --project tsconfig.schema-test.json tests/bright-dialogue-engine.test.ts",
     "test:lantern-mvu": "pnpm run test:lantern-schema && ts-node --files --project tsconfig.schema-test.json tests/lantern-mvu-replay.test.ts",
     "test:lantern-mvu:fuzz": "ts-node --files --project tsconfig.schema-test.json tests/lantern-mvu-fuzz.test.ts",
     "sync": "node tavern_sync.mjs"

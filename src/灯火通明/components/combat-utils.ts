@@ -2,10 +2,11 @@ import { compareRealmStanding } from '../schema';
 
 export type BattlePhase = '平静' | '对峙' | '试探' | '交锋' | '决胜' | '脱战' | '余波';
 export type BattleMomentum = '敌方压制' | '敌方占先' | '相持' | '我方占先' | '我方压制';
-export type EssenceBurden = '充盈' | '尚足' | '吃紧' | '枯竭';
-export type SoulBurden = '澄明' | '疲乏' | '动荡' | '受创';
-export type BodyBurden = '无恙' | '轻创' | '重创' | '濒危';
+export type EssenceBurden = string;
+export type SoulBurden = string;
+export type BodyBurden = string;
 export type EnemyState = '全盛' | '受制' | '负伤' | '重创' | '失能' | '退走' | '被擒' | '败亡';
+export type BurdenTone = 'clear' | 'steady' | 'strained' | 'critical';
 
 export interface CombatState {
   正在战斗: boolean;
@@ -91,11 +92,47 @@ export const getEnemyStateIcon = (state: EnemyState): string => {
   return icons[state];
 };
 
-export const getBurdenTone = (value: string): 'clear' | 'steady' | 'strained' | 'critical' => {
-  if (['充盈', '澄明', '无恙'].includes(value)) return 'clear';
-  if (['尚足', '疲乏', '轻创'].includes(value)) return 'steady';
-  if (['吃紧', '动荡', '重创'].includes(value)) return 'strained';
-  return 'critical';
+const CANONICAL_BURDEN_TONES: Record<string, BurdenTone> = {
+  充盈: 'clear',
+  澄明: 'clear',
+  无恙: 'clear',
+  尚足: 'steady',
+  疲乏: 'steady',
+  轻创: 'steady',
+  吃紧: 'strained',
+  动荡: 'strained',
+  重创: 'strained',
+  枯竭: 'critical',
+  受创: 'critical',
+  濒危: 'critical',
+};
+
+const DESCRIPTIVE_BURDEN_PATTERNS: Array<{ tone: BurdenTone; pattern: RegExp }> = [
+  { tone: 'clear', pattern: /充盈|澄明|无恙|无伤|完好|平稳|安然|痊愈/gu },
+  { tone: 'steady', pattern: /尚足|疲乏|疲惫|轻创|轻伤|小伤|微伤|轻损|小损|微损|略耗|消耗|擦伤|不稳/gu },
+  { tone: 'strained', pattern: /吃紧|动荡|震荡|重创|重伤|伤重|中损|中创|受损|负伤|受伤|剧耗|大损|紊乱|反噬|迸裂/gu },
+  { tone: 'critical', pattern: /枯竭|耗尽|濒危|濒死|垂危|危殆|将死|命悬|识海崩|神魂崩/gu },
+];
+
+export const getBurdenTone = (value: string): BurdenTone => {
+  const description = String(value ?? '').trim();
+  if (!description) return 'clear';
+  if (CANONICAL_BURDEN_TONES[description]) return CANONICAL_BURDEN_TONES[description];
+
+  let lastMatchIndex = -1;
+  let inferredTone: BurdenTone | null = null;
+  for (const { tone, pattern } of DESCRIPTIVE_BURDEN_PATTERNS) {
+    pattern.lastIndex = 0;
+    for (const match of description.matchAll(pattern)) {
+      if ((match.index ?? -1) >= lastMatchIndex) {
+        lastMatchIndex = match.index ?? -1;
+        inferredTone = tone;
+      }
+    }
+  }
+
+  // 非空的未知描述代表“存在状态信息”，不能再按健康状态显示。
+  return inferredTone ?? 'strained';
 };
 
 export const getTribulationTypeColor = (type: string) => {

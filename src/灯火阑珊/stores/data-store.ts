@@ -882,7 +882,7 @@ export const useDataStore = defineStore(
           'stat_data._系统设置.修炼系统版本',
           Number(_.get(variables, 'stat_data._系统设置.修炼系统版本', 3)) || 3,
         );
-        _.set(variables, 'stat_data._系统设置.变量结构版本', 4);
+        _.set(variables, 'stat_data._系统设置.变量结构版本', 5);
         await Mvu.replaceMvuData(variables, { type: 'message', message_id });
 
         toastr.success(`已${newVal ? '开启' : '关闭'}行动提示生成`, '系统设置');

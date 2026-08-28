@@ -50,17 +50,17 @@
           @edit-message="openTimelineEditor"
         />
         <PseudoStoryReader v-if="activeView === 'story'" :immersive="isImmersive" :mobile-layout="isMobileViewport" />
-        <DialogueStage v-else-if="activeView === 'dialogue'" />
         <PresetPanel v-else-if="activeView === 'preset'" />
         <CultivationPanel v-else-if="activeView === 'cultivation'" />
         <SkillsPanel v-else-if="activeView === 'skills'" />
         <InventoryPanel v-else-if="activeView === 'inventory'" />
-        <CompanionsPanel v-else-if="activeView === 'companions'" @open-dialogue="openView('dialogue')" />
+        <CompanionsPanel v-else-if="activeView === 'companions'" />
         <MapPanel v-else-if="activeView === 'trace'" />
         <div v-else-if="activeView === 'map'" class="panel full-map-panel">
           <WorldMapCanvas
             :current-location="store.本尊.行踪.当前区域"
             :current-domain="parentRegion"
+            :current-layer="store.本尊.行踪.所属层级"
             :current-danger="store.本尊.行踪.危险度 ?? 10"
             :available-connections="store.本尊.行踪.可用通道 || []"
           />
@@ -79,7 +79,7 @@
     </main>
 
     <TabNav v-if="!isImmersive" v-model:active-tab="activeView" :tabs="tabs" />
-    <FooterSection v-if="!isImmersive" @open-actions="openView('actions')" />
+    <FooterSection v-if="!isImmersive" :actions-active="activeView === 'actions'" @open-actions="openView('actions')" />
     <PseudoCommandDock
       :active-view="activeView"
       :mobile-layout="isMobileViewport"
@@ -87,6 +87,7 @@
       :reading-mode="readingMode"
       @open-view="openView"
     />
+    <DialogueDrawer />
 
     <ReadingSettingsPanel
       :visible="showReadingSettings"
@@ -109,7 +110,7 @@ import ActionMenuPanel from './components/ActionMenuPanel.vue';
 import CombatPanel from './components/CombatPanel.vue';
 import CompanionsPanel from './components/CompanionsPanel.vue';
 import CultivationPanel from './components/CultivationPanel.vue';
-import DialogueStage from './components/DialogueStage.vue';
+import DialogueDrawer from './components/DialogueDrawer.vue';
 import FooterSection from './components/FooterSection.vue';
 import GalleryPanel from './components/GalleryPanel.vue';
 import GalleryPreviewDialog from './components/GalleryPreviewDialog.vue';
@@ -130,6 +131,7 @@ import duskInkArt from './assets/dusk-ink-landscape.svg?url';
 import lanternArt from './assets/lantern-water-town.svg?url';
 import shanhaiArt from './assets/shanhai-scroll.svg?url';
 import starAltarArt from './assets/star-altar-chart.svg?url';
+import { resolveMapAnchor } from '../灯火阑珊/map-system';
 import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from './store';
@@ -138,7 +140,6 @@ import type { ReadingMode } from './stores/theme-store';
 export type StageView =
   | 'timeline'
   | 'story'
-  | 'dialogue'
   | 'preset'
   | 'cultivation'
   | 'skills'
@@ -184,25 +185,27 @@ const appViewportWidth = ref(window.parent.innerWidth);
 const isMobileViewport = computed(() => viewportMode.value === 'mobile');
 const isPseudoStage = ref(Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root')));
 
-const utilityTabs: Array<{ id: StageView; label: string; icon: string }> = [
+type StageTab = { id: StageView; label: string; icon: string; badge?: number };
+
+const activeTaskCount = computed(() => Object.values(store.任务列表).filter(task => task.状态 === '进行中').length);
+
+const utilityTabs: Array<StageTab> = [
   { id: 'gallery', label: '图鉴', icon: 'fa-solid fa-images' },
   { id: 'cultivation', label: '修炼', icon: 'fa-solid fa-yin-yang' },
   { id: 'skills', label: '神通', icon: 'fa-solid fa-hand-sparkles' },
   { id: 'inventory', label: '储物', icon: 'fa-solid fa-box-open' },
-  { id: 'companions', label: '红颜', icon: 'fa-solid fa-heart' },
-  { id: 'trace', label: '行踪', icon: 'fa-solid fa-shoe-prints' },
+  { id: 'companions', label: '红尘', icon: 'fa-solid fa-feather-pointed' },
+  { id: 'trace', label: '任务', icon: 'fa-solid fa-list-check' },
   { id: 'map', label: '地图', icon: 'fa-solid fa-map-location-dot' },
   { id: 'tribulation', label: '历劫', icon: 'fa-solid fa-bolt' },
-  { id: 'actions', label: '行动', icon: 'fa-solid fa-compass' },
 ];
-const tabs = computed<Array<{ id: StageView; label: string; icon: string }>>(() => [
+const tabs = computed<Array<StageTab>>(() => [
   ...(readingMode.value === 'scroll'
     ? [{ id: 'timeline' as const, label: '历程', icon: 'fa-solid fa-scroll' }]
-    : [
-        { id: 'story' as const, label: '正文', icon: 'fa-solid fa-book-open' },
-        { id: 'dialogue' as const, label: '交谈', icon: 'fa-solid fa-comments' },
-      ]),
-  ...utilityTabs,
+    : [{ id: 'story' as const, label: '正文', icon: 'fa-solid fa-book-open' }]),
+  ...utilityTabs.map(tab =>
+    tab.id === 'trace' && activeTaskCount.value > 0 ? { ...tab, badge: activeTaskCount.value } : tab,
+  ),
 ]);
 
 const themeArtMap = {
@@ -290,7 +293,7 @@ const themeStyles = computed(() => {
   };
 });
 
-const parentRegion = computed(
+const inferredRegion = computed(
   () =>
     inferLayerFromTrack(
       String(store.本尊.行踪.当前区域 || '').trim(),
@@ -300,7 +303,18 @@ const parentRegion = computed(
       store.世界地图 as Record<string, { layer?: string }>,
     ) || '',
 );
-const isReadingView = (view: StageView) => view === 'timeline' || view === 'story' || view === 'dialogue';
+const parentRegion = computed(
+  () =>
+    resolveMapAnchor({
+      currentRegion: String(store.本尊.行踪.当前区域 || '').trim(),
+      currentDomain: inferredRegion.value,
+      environmentDesc: String(store.本尊.行踪.环境描述 || ''),
+      anchors: store.$地图锚点,
+      locationLib: store.地点库,
+      worldMap: store.世界地图,
+    }) || inferredRegion.value,
+);
+const isReadingView = (view: StageView) => view === 'timeline' || view === 'story';
 const dangerColor = computed(() => getDangerColor(store.本尊.行踪.危险度 ?? 10));
 const readingViewActive = computed(() => isReadingView(activeView.value));
 
@@ -315,8 +329,7 @@ const setReadingMode = (mode: ReadingMode) => {
   themeStore.setReadingMode(viewportMode.value, mode);
 };
 const openView = (view: StageView) => {
-  const target =
-    readingMode.value === 'scroll' && (view === 'story' || view === 'dialogue') ? ('timeline' as const) : view;
+  const target = readingMode.value === 'scroll' && view === 'story' ? ('timeline' as const) : view;
   if (isReadingView(target)) restoreReadingPreference();
   else isImmersive.value = false;
   activeView.value = target;
@@ -354,8 +367,8 @@ watch(activeView, (next, previous) => {
       modeViewport.value.scrollTop = isReadingView(next) ? 0 : (scrollPositions.get(next) ?? 0);
     }
   });
-  if (readingMode.value === 'paged' && (next === 'story' || next === 'dialogue') && next !== previous) {
-    pseudoLayerStore.selectHistory(next);
+  if (readingMode.value === 'paged' && next === 'story' && next !== previous) {
+    pseudoLayerStore.selectHistory('story');
   }
 });
 
@@ -368,16 +381,15 @@ watch(readingMode, (next, previous) => {
         : pseudoLayerStore.view.latestMessageId;
     timelineAnchorMessageId.value = anchor;
     timelineActiveMessageId.value = anchor;
-    if (activeView.value === 'story' || activeView.value === 'dialogue') activeView.value = 'timeline';
+    if (activeView.value === 'story') activeView.value = 'timeline';
     return;
   }
 
   if (activeView.value !== 'timeline') return;
   const target =
     timelineActiveMessageId.value >= 0 ? timelineActiveMessageId.value : pseudoLayerStore.view.latestMessageId;
-  const entry = pseudoLayerStore.timelineEntries.find(candidate => candidate.messageIds.includes(target));
   pseudoLayerStore.selectTimelineEntry(target);
-  activeView.value = entry?.stage.kind === 'dialogue' ? 'dialogue' : 'story';
+  activeView.value = 'story';
 });
 
 watch(
@@ -385,45 +397,20 @@ watch(
   (next, previous) => {
     if (next === 'generating') {
       hasEnteredStreaming.value = true;
-      activeView.value =
-        readingMode.value === 'scroll'
-          ? 'timeline'
-          : pseudoLayerStore.activeDialogue || pseudoLayerStore.view.stage.kind === 'dialogue'
-            ? 'dialogue'
-            : 'story';
+      activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'story';
       restoreReadingPreference();
     }
     if (previous !== 'idle' && next === 'idle' && hasEnteredStreaming.value && pseudoLayerStore.isLatest) {
       hasEnteredStreaming.value = false;
-      activeView.value =
-        readingMode.value === 'scroll'
-          ? 'timeline'
-          : pseudoLayerStore.activeDialogue || pseudoLayerStore.view.stage.kind === 'dialogue'
-            ? 'dialogue'
-            : 'story';
+      activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'story';
       restoreReadingPreference();
     }
   },
 );
 
 watch(
-  () => pseudoLayerStore.activeDialogue?.sessionId,
-  (sessionId, previousSessionId) => {
-    if (sessionId && sessionId !== previousSessionId) {
-      activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'dialogue';
-      restoreReadingPreference();
-      return;
-    }
-    if (readingMode.value === 'paged' && !sessionId && previousSessionId && activeView.value === 'dialogue') {
-      activeView.value = 'story';
-      restoreReadingPreference();
-    }
-  },
-);
-
-watch(
-  [() => pseudoLayerStore.view.selectedMessageId, () => pseudoLayerStore.view.stage.kind],
-  ([messageId, kind], [previousMessageId]) => {
+  () => pseudoLayerStore.view.selectedMessageId,
+  (messageId, previousMessageId) => {
     if (messageId < 0 || messageId === previousMessageId) return;
     if (readingMode.value === 'scroll') {
       if (timelineAnchorMessageId.value < 0) {
@@ -433,7 +420,7 @@ watch(
       if (isReadingView(activeView.value)) activeView.value = 'timeline';
       return;
     }
-    activeView.value = kind === 'dialogue' ? 'dialogue' : 'story';
+    activeView.value = 'story';
     restoreReadingPreference();
   },
   { immediate: true },
@@ -444,12 +431,22 @@ watch(
     () => pseudoLayerStore.view.hostMessageId,
     () => pseudoLayerStore.view.selectedMessageId,
     () => pseudoLayerStore.view.latestMessageId,
+    () => pseudoLayerStore.view.latestStateMessageId,
     () => pseudoLayerStore.view.revision,
     readingMode,
   ],
-  ([hostMessageId, selectedMessageId, latestMessageId, , mode]) => {
+  ([hostMessageId, selectedMessageId, latestMessageId, latestStateMessageId, , mode]) => {
     const targetMessageId = mode === 'scroll' ? latestMessageId : selectedMessageId;
     if (hostMessageId !== pseudoLayerStore.messageId || targetMessageId < 0) return;
+    const stateMessageId =
+      targetMessageId === latestMessageId && Number.isFinite(latestStateMessageId)
+        ? Number(latestStateMessageId)
+        : targetMessageId;
+    if (stateMessageId !== targetMessageId) {
+      store.viewMessage(stateMessageId, { preserveGallery: true });
+      if (!pseudoLayerStore.dialogueDrawerOpen) store.parseCurrentMessageCards(targetMessageId);
+      return;
+    }
     store.viewMessage(targetMessageId);
   },
   { immediate: true },

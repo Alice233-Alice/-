@@ -58,27 +58,43 @@
         <span v-if="store.启用行动提示" class="action-count">{{ actionSummaryLabel }}</span>
         <span v-else class="action-count muted">动态选项已停用，快捷行动仍可使用</span>
 
-        <div class="submit-mode" role="group" aria-label="行动提交模式">
+        <div class="toolbar-controls">
           <button
             type="button"
-            :class="{ active: submitMode === 'confirm' }"
-            :disabled="pseudo.isGenerating"
-            title="先填入草稿，确认后再推演"
-            @click="setSubmitMode('confirm')"
+            class="inline-display-toggle"
+            :class="{ active: inlineActionsEnabled }"
+            role="switch"
+            :aria-checked="inlineActionsEnabled"
+            :title="inlineActionsEnabled ? '不再把选项附在最新正文末尾' : '把选项附在最新正文末尾'"
+            @click="toggleInlineActions"
           >
-            <i class="fa-solid fa-pen-to-square"></i>
-            确认
+            <i class="fa-solid fa-book-open"></i>
+            <span>正文末尾</span>
+            <span class="mini-switch" aria-hidden="true"><i></i></span>
           </button>
-          <button
-            type="button"
-            :class="{ active: submitMode === 'direct' }"
-            :disabled="pseudo.isGenerating"
-            title="点击行动后立即推演"
-            @click="setSubmitMode('direct')"
-          >
-            <i class="fa-solid fa-paper-plane"></i>
-            直发
-          </button>
+
+          <div class="submit-mode" role="group" aria-label="行动提交模式">
+            <button
+              type="button"
+              :class="{ active: submitMode === 'confirm' }"
+              :disabled="pseudo.isGenerating"
+              title="先填入草稿，确认后再推演"
+              @click="setSubmitMode('confirm')"
+            >
+              <i class="fa-solid fa-pen-to-square"></i>
+              确认
+            </button>
+            <button
+              type="button"
+              :class="{ active: submitMode === 'direct' }"
+              :disabled="pseudo.isGenerating"
+              title="点击行动后立即推演"
+              @click="setSubmitMode('direct')"
+            >
+              <i class="fa-solid fa-paper-plane"></i>
+              直发
+            </button>
+          </div>
         </div>
       </div>
 
@@ -88,14 +104,6 @@
           <div>
             <strong>本轮只刷新了部分选项</strong>
             <span>已隐藏 {{ hiddenInheritedActionCount }} 项上一轮残留内容。</span>
-          </div>
-        </div>
-
-        <div v-else-if="actionFeedMode === 'fallback'" class="status-banner warn">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <div>
-            <strong>本轮行动更新异常</strong>
-            <span>已依据当前任务与处境提供临时行动。</span>
           </div>
         </div>
 
@@ -174,26 +182,20 @@
 </template>
 
 <script setup lang="ts">
-import { OpportunitySchema, unwrapOpportunityPatchPayload } from '../schema';
+import {
+  containsInitVar,
+  extractJsonPatch,
+  getActionIcon,
+  getActionKey,
+  resolveActionFeed,
+  type ActionFeedMode,
+  type JsonPatchOperation,
+  type OpportunityAction,
+} from '../action-feed';
+import { useActionPreferences } from '../action-preferences';
 import { useDataStore, usePseudoLayerStore } from '../store';
 
-type OpportunityType = '探索' | '交涉' | '战斗' | '修炼' | '整备' | '亲密';
-
-type OpportunityAction = {
-  行动: string;
-  类型: OpportunityType;
-  提示?: string;
-};
-
-type JsonPatchOperation = {
-  op?: string;
-  path?: string;
-  value?: unknown;
-};
-
-type ActionFeedMode = 'full' | 'partial' | 'fallback' | 'none' | 'cleared';
 type SituationRefreshState = 'fresh' | 'stale';
-type SubmitMode = 'confirm' | 'direct';
 
 type QuickAction = {
   id: 'continue' | 'random';
@@ -202,10 +204,9 @@ type QuickAction = {
   icon: string;
 };
 
-const SUBMIT_MODE_STORAGE_KEY = 'dhl-action-submit-mode-v1';
-
 const store = useDataStore();
 const pseudo = usePseudoLayerStore();
+const { submitMode, inlineActionsEnabled, setSubmitMode, toggleInlineActions } = useActionPreferences();
 const isRefreshing = ref(false);
 const actionSourceMessageId = computed(() => Number(store.viewedMessageId));
 const currentMessagePatchId = ref<number | null>(null);
@@ -213,25 +214,6 @@ const currentMessageContent = ref('');
 const currentMessagePatch = ref<JsonPatchOperation[]>([]);
 const patchListeners: Array<(() => void) | undefined> = [];
 let patchPollTimer: number | null = null;
-
-const readSubmitMode = (): SubmitMode => {
-  try {
-    return localStorage.getItem(SUBMIT_MODE_STORAGE_KEY) === 'direct' ? 'direct' : 'confirm';
-  } catch {
-    return 'confirm';
-  }
-};
-
-const submitMode = ref<SubmitMode>(readSubmitMode());
-
-const setSubmitMode = (mode: SubmitMode) => {
-  submitMode.value = mode;
-  try {
-    localStorage.setItem(SUBMIT_MODE_STORAGE_KEY, mode);
-  } catch (error) {
-    console.warn('[行动提示] 无法保存行动提交模式', error);
-  }
-};
 
 const quickActions: QuickAction[] = [
   {
@@ -247,72 +229,6 @@ const quickActions: QuickAction[] = [
     icon: 'fa-solid fa-dice',
   },
 ];
-
-const normalizeAction = (value: unknown): OpportunityAction | null => {
-  const result = OpportunitySchema.safeParse(value);
-  if (!result.success || !result.data.行动) return null;
-  return result.data;
-};
-
-const normalizeActionPayload = (value: unknown): OpportunityAction[] | null => {
-  const payload = unwrapOpportunityPatchPayload(value);
-  if (!Array.isArray(payload)) return null;
-  return payload.map(normalizeAction).filter((action): action is OpportunityAction => action !== null);
-};
-
-const buildFallbackActions = (): OpportunityAction[] => {
-  type TaskSnapshot = { 名称?: unknown; 类型?: unknown; 目标?: unknown };
-  const taskActions = Object.values(store.任务列表 as Record<string, TaskSnapshot>)
-    .slice(0, 2)
-    .flatMap(task => {
-      const name = String(task.名称 ?? '').trim();
-      const target = String(task.目标 ?? '').trim();
-      if (!name || !target) return [];
-
-      const typeByTask: Record<string, OpportunityType> = {
-        每日: '修炼',
-        临危受命: '战斗',
-        秘境探索: '探索',
-      };
-      return [
-        {
-          行动: `继续推进「${name}」：${target}`,
-          类型: typeByTask[String(task.类型 ?? '')] ?? '探索',
-          提示: '依据进行中任务生成的临时行动',
-        },
-      ];
-    });
-  if (taskActions.length > 0) return taskActions;
-  if (!store.当前处境) return [];
-
-  return [
-    {
-      行动: '继续观察当前局势，并根据眼前变化决定下一步。',
-      类型: '探索',
-      提示: '本轮行动更新异常时的临时选项',
-    },
-  ];
-};
-
-const extractJsonPatch = (content: string): JsonPatchOperation[] => {
-  const match = content.match(/<JSONPatch>\s*([\s\S]*?)\s*<\/JSONPatch>/i);
-  if (!match) return [];
-
-  const payload = match[1]
-    .trim()
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-
-  try {
-    const parsed = JSON.parse(payload);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    console.warn('[行动提示] 当前楼层 JSONPatch 解析失败', error);
-    return [];
-  }
-};
 
 const syncCurrentMessagePatch = () => {
   try {
@@ -417,53 +333,13 @@ const situationBadgeText = computed(() => {
 });
 
 const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAction[] }>(() => {
-  const operations = currentMessagePatch.value.filter(operation => typeof operation.path === 'string');
-  const replaceAll = operations.find(
-    operation => operation.op === 'replace' && (operation.path === '/$可参与机遇' || operation.path === '/可参与机遇'),
-  );
-
-  if (replaceAll) {
-    // 优先按本轮原始 patch 取值，可恢复已被旧 Schema 清空的双重嵌套行动列表。
-    const actions =
-      normalizeActionPayload(replaceAll.value) ??
-      (store.可参与机遇 as unknown[])
-        .map(normalizeAction)
-        .filter((action): action is OpportunityAction => action !== null);
-    if (actions.length > 0) return { mode: 'full', actions };
-
-    const fallbackActions = buildFallbackActions();
-    return fallbackActions.length > 0
-      ? { mode: 'fallback', actions: fallbackActions }
-      : { mode: 'cleared', actions: [] };
-  }
-
-  const clearActionList = operations.some(
-    operation => (operation.path === '/$可参与机遇' || operation.path === '/可参与机遇') && operation.op === 'remove',
-  );
-  if (clearActionList) {
-    const fallbackActions = buildFallbackActions();
-    return fallbackActions.length > 0
-      ? { mode: 'fallback', actions: fallbackActions }
-      : { mode: 'cleared', actions: [] };
-  }
-
-  const touchedIndices = _(operations)
-    .map(operation => /^\/\$?可参与机遇\/(\d+)$/u.exec(String(operation.path))?.[1])
-    .filter((index): index is string => index !== undefined)
-    .map(Number)
-    .filter(Number.isInteger)
-    .uniq()
-    .value();
-
-  if (touchedIndices.length > 0) {
-    const actions = touchedIndices
-      .map(index => normalizeAction((store.可参与机遇 as unknown[])[index]))
-      .filter((action): action is OpportunityAction => action !== null);
-    return { mode: actions.length > 0 ? 'partial' : 'none', actions };
-  }
-
-  const fallbackActions = buildFallbackActions();
-  return fallbackActions.length > 0 ? { mode: 'fallback', actions: fallbackActions } : { mode: 'none', actions: [] };
+  return resolveActionFeed({
+    operations: currentMessagePatch.value,
+    storedActions: store.可参与机遇 as unknown[],
+    tasks: store.任务列表,
+    situation: store.当前处境,
+    useStoredActionsWithoutPatch: containsInitVar(currentMessageContent.value),
+  });
 });
 
 const actionFeedMode = computed(() => freshActionState.value.mode);
@@ -481,24 +357,11 @@ const actionSummaryLabel = computed(() => {
     case 'cleared':
       return '本轮行动已清空';
     case 'fallback':
-      return `${freshActions.value.length} 项临时行动`;
+      return `${freshActions.value.length} 项默认行动`;
     default:
       return '等待本轮行动';
   }
 });
-
-const actionIconMap: Record<OpportunityType, string> = {
-  探索: 'fa-solid fa-mountain-sun',
-  交涉: 'fa-solid fa-comments',
-  战斗: 'fa-solid fa-swords',
-  修炼: 'fa-solid fa-yin-yang',
-  整备: 'fa-solid fa-toolbox',
-  亲密: 'fa-solid fa-heart',
-};
-
-const getActionIcon = (type: OpportunityType) => actionIconMap[type];
-const getActionKey = (action: OpportunityAction, index: number) =>
-  `${action.类型}|${action.行动}|${action.提示 ?? ''}|${index}`;
 
 const prepareAction = (title: string, prompt: string, allowDirect = true) => {
   if (pseudo.isGenerating) return;
@@ -565,8 +428,11 @@ const selectCustomAction = () => {
 .title-left,
 .title-right,
 .action-toolbar,
+.toolbar-controls,
 .controller-dot,
 .toggle-btn,
+.inline-display-toggle,
+.mini-switch,
 .submit-mode,
 .quick-list {
   display: flex;
@@ -650,6 +516,7 @@ button {
 
 .toggle-btn,
 .refresh-btn,
+.inline-display-toggle,
 .submit-mode button,
 .quick-action {
   border: 1px solid var(--line-subtle);
@@ -699,6 +566,66 @@ button {
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--line-subtle);
+}
+
+.toolbar-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.inline-display-toggle {
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 8px 5px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+
+  > i {
+    color: var(--text-secondary);
+    transition: color 0.18s ease;
+  }
+
+  &.active {
+    color: var(--jade);
+    border-color: color-mix(in srgb, var(--jade) 34%, transparent);
+    background: color-mix(in srgb, var(--jade) 9%, transparent);
+
+    > i {
+      color: var(--jade);
+    }
+  }
+}
+
+.mini-switch {
+  position: relative;
+  width: 24px;
+  height: 14px;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+
+  i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    transition:
+      transform 0.18s ease,
+      background 0.18s ease;
+  }
+
+  .inline-display-toggle.active & {
+    border-color: color-mix(in srgb, var(--jade) 56%, transparent);
+    background: color-mix(in srgb, var(--jade) 16%, transparent);
+
+    i {
+      transform: translateX(10px);
+      background: var(--jade);
+      box-shadow: 0 0 5px color-mix(in srgb, var(--jade) 60%, transparent);
+    }
+  }
 }
 
 .action-count.muted {
@@ -977,6 +904,7 @@ button {
   }
 
   .title-right,
+  .toolbar-controls,
   .quick-list {
     width: 100%;
     justify-content: flex-start;

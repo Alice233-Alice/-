@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { COMPANION_ALIASES_BY_CANONICAL } from '../灯火阑珊-变量结构/companion-aliases';
+import { resolveMapAnchor } from '../灯火阑珊/map-system';
 import { inferLayerFromTrack } from '../灯火阑珊/region-utils';
 import { Schema } from '../灯火阑珊/schema';
 import { mountDynamicWorldbookPanel, unmountDynamicWorldbookPanel } from './panel';
@@ -106,15 +107,34 @@ const REGION_TO_MAP: Record<string, string[]> = {
   潮音海: ['四海'],
   龙眠海: ['四海'],
   蓬莱幻海: ['四海'],
+  北冥冰海: ['四海'],
+  无尽洋: ['四海'],
+  天泣洋: ['四海'],
+  永夜海域: ['四海', '归墟'],
   归墟之海: ['四海', '归墟'],
+  龙眠海峡: ['龙眠海峡', '四海'],
+  苍茫古径: ['苍茫古径'],
+  赤金走廊: ['赤金走廊'],
+  雪线: ['雪线'],
   // 天层
   天渊: ['天渊'],
   九天罡风带: ['天渊'],
+  星陨废墟: ['星陨废墟'],
+  下霄: ['星陨废墟'],
+  太古战场: ['太古战场'],
+  九天遗迹: ['太古战场'],
+  中霄: ['太古战场'],
+  天道裂隙: ['天道裂隙'],
+  上霄: ['天道裂隙'],
   // 下层禁地
   归墟: ['归墟'],
+  碎金渊: ['碎金渊'],
+  万剑冢: ['碎金渊'],
   黄泉古迹: ['黄泉古迹'],
   无尽炎渊: ['无尽炎渊'],
   雷暴海: ['雷暴海'],
+  倒悬天墟: ['倒悬天墟'],
+  五行逆反界: ['倒悬天墟'],
   // 东苍下层禁地 / 特殊区域
   神木枯冢: ['神木枯冢'],
   万古枯荣渊: ['神木枯冢'],
@@ -134,7 +154,7 @@ const REGION_TO_MAP: Record<string, string[]> = {
   建木森林: ['东苍'],
   青帝陵: ['东苍'],
   百花秘境: ['东苍'],
-  万剑冢: ['西庚'],
+  万剑冢: ['碎金渊'],
   庚金矿脉: ['西庚'],
   白虎峡谷: ['西庚'],
   不灭火山: ['南炎'],
@@ -178,6 +198,28 @@ const DOMAIN_TO_MAP: Record<string, string[]> = {
   // 注意：不映射 '下层'，因为下层有多个子区域（归墟/黄泉古迹/无尽炎渊/雷暴海），
   // 应通过 所属层级 精确匹配子区域，而非笼统映射到某一个
   四海: ['四海'],
+  潮音海: ['四海'],
+  龙眠海: ['四海'],
+  蓬莱幻海: ['四海'],
+  北冥冰海: ['四海'],
+  无尽洋: ['四海'],
+  天泣洋: ['四海'],
+  永夜海域: ['四海', '归墟'],
+  龙眠海峡: ['龙眠海峡', '四海'],
+  雷暴海: ['雷暴海'],
+  苍茫古径: ['苍茫古径'],
+  赤金走廊: ['赤金走廊'],
+  雪线: ['雪线'],
+  天渊: ['天渊'],
+  星陨废墟: ['星陨废墟'],
+  太古战场: ['太古战场'],
+  天道裂隙: ['天道裂隙'],
+  归墟: ['归墟'],
+  碎金渊: ['碎金渊'],
+  黄泉古迹: ['黄泉古迹'],
+  无尽炎渊: ['无尽炎渊'],
+  神木枯冢: ['神木枯冢'],
+  倒悬天墟: ['倒悬天墟'],
 };
 
 /** 上一次成功匹配的地图（惯性推断缓存，用于处理 AI 生成的未知地名） */
@@ -378,11 +420,24 @@ const KEYWORD_TO_MAP: Record<string, string[]> = {
   天渊: ['天渊'],
   星辰碎片: ['天渊'],
   龙凤战场: ['天渊'],
+  // 专题地图按明确语义启用，避免常驻占用上下文
+  寰宇阵枢: ['九野通衢'],
+  跨域传送: ['九野通衢'],
+  七大异变: ['异变感应网'],
+  连锁共振: ['异变感应网'],
+  势力关系: ['宗门势力关系网'],
+  宗门联盟: ['宗门势力关系网'],
 };
 
 /** 地图条目名别称 → 统一地图名（解决条目名与上下文叫法不一致的问题） */
 const MAP_ENTRY_ALIAS_TO_CANONICAL: Record<string, string> = {
   万古枯荣渊: '神木枯冢',
+  '碎金渊·万剑冢': '碎金渊',
+  '星陨废墟（下霄）': '星陨废墟',
+  '太古战场·九天遗迹（中霄）': '太古战场',
+  '天道裂隙（上霄）': '天道裂隙',
+  '倒悬天墟·五行逆反界': '倒悬天墟',
+  '九野通衢·寰宇阵枢': '九野通衢',
 };
 
 // ============================================================================
@@ -411,6 +466,28 @@ interface Context {
   recentCharacterMessages: string[];
   /** MVU 变量数据 */
   mvuData: ReturnType<typeof Schema.parse> | null;
+}
+
+function getContextMapAnchor(ctx: Context): string {
+  if (!ctx.mvuData) return '';
+
+  const inferredDomain = inferLayerFromTrack(
+    ctx.currentRegion,
+    ctx.currentLayer,
+    ctx.environmentDesc,
+    ctx.mvuData.地点库,
+    ctx.mvuData.世界地图,
+    ctx.currentLayer,
+  );
+
+  return resolveMapAnchor({
+    currentRegion: ctx.currentRegion,
+    currentDomain: inferredDomain,
+    environmentDesc: ctx.environmentDesc,
+    anchors: ctx.mvuData.$地图锚点,
+    locationLib: ctx.mvuData.地点库,
+    worldMap: ctx.mvuData.世界地图,
+  });
 }
 
 type SectDomain = {
@@ -777,6 +854,11 @@ function collectMapScoreBucket(ctx: Context): ScoreBucket {
     ctx.mvuData?.世界地图 as Record<string, { layer?: string }> | undefined,
     currentLayer,
   );
+  const mapAnchor = getContextMapAnchor(ctx);
+
+  fuzzyMatchRegionToMaps(mapAnchor).forEach(name => {
+    addBucketScore(bucket, name, 140, `地图锚点命中“${mapAnchor}”`);
+  });
 
   fuzzyMatchRegionToMaps(currentRegion).forEach(name => {
     addBucketScore(bucket, name, 100, `当前区域命中“${currentRegion}”`);
@@ -1314,6 +1396,10 @@ const RULES: WorldbookRule[] = [
       if (canonicalMapName === '世界空间结构') return true;
 
       const shouldEnableMaps = new Set<string>();
+
+      // 显式/兼容推断的地图锚点优先，确保浮岛、秘境等地点落在正确母域。
+      const mapAnchor = getContextMapAnchor(ctx);
+      fuzzyMatchRegionToMaps(mapAnchor, '锚点→').forEach(m => shouldEnableMaps.add(m));
 
       // ====================================================================
       // 第1层：智能模糊匹配当前区域和所属层级

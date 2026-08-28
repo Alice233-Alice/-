@@ -248,6 +248,7 @@ const rootColor = computed(() => getRootColor(store.本尊.灵根));
       gap: 8px;
 
       .stat-item {
+        min-width: 0;
         padding: 8px 6px;
 
         .stat-label {
@@ -256,6 +257,8 @@ const rootColor = computed(() => getRootColor(store.本尊.灵根));
 
         .stat-value {
           font-size: 12px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
         }
       }
     }

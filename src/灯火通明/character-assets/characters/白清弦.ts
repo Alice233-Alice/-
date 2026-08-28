@@ -86,6 +86,17 @@ const FRONT_IMAGE_IDS = [
   133,
   136,
   130,
+  149,
+  145,
+  162,
+  161,
+  163,
+  160,
+  159,
+  158,
+  157,
+  156,
+  150,
 ] as const;
 
 const BACK_IMAGE_IDS = [
@@ -188,6 +199,18 @@ const BACK_IMAGE_IDS = [
   114,
   108,
   111,
+  148,
+  151,
+  152,
+  153,
+  154,
+  155,
+  164,
+  144,
+  166,
+  165,
+  146,
+  147,
 ] as const;
 
 export const assets = {

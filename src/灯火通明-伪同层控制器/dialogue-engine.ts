@@ -5,6 +5,8 @@ import {
   DialogueMemoryEvent,
   DialogueRelationEvent,
   DialogueSessionState,
+  DialogueVariableEffects,
+  DialogueVisualCard,
   PseudoLayerInteractionMetadata,
 } from '../灯火通明/pseudo-layer-protocol';
 
@@ -29,6 +31,7 @@ export type DialogueGenerationInput = {
   context: DialogueContext;
   messages: ChatMessage[];
   mvuData: Record<string, any>;
+  getStreamFallback?: () => { reaction?: string; dialogue?: string };
 };
 
 export type ParsedDialogueGeneration = {
@@ -38,6 +41,15 @@ export type ParsedDialogueGeneration = {
   sessionState?: DialogueSessionState;
   memoryEvents: DialogueMemoryEvent[];
   relationEvents: DialogueRelationEvent[];
+  visualCard: DialogueVisualCard;
+  variableUpdateBlock: string;
+  variableEffects: DialogueVariableEffects;
+};
+
+type DialogueVariablePatch = {
+  op: 'replace' | 'delta' | 'insert';
+  path: string;
+  value: unknown;
 };
 
 const isRecord = (value: unknown): value is Record<string, any> =>
@@ -68,7 +80,7 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
     message?.extra?.extra?.[INTERACTION_KEY]) as Partial<PseudoLayerInteractionMetadata> | undefined;
   if (
     !value ||
-    (value.version !== 1 && value.version !== 2) ||
+    (value.version !== 1 && value.version !== 2 && value.version !== 3) ||
     value.kind !== 'dialogue' ||
     (value.channel !== 'present' && value.channel !== 'transmission')
   ) {
@@ -292,25 +304,39 @@ const buildDialogueContract = (context: DialogueContext) => `
 - 不要固定套用“回答后反问”的模板；角色没有必要每次都提问。
 - 不得替用户决定言行，不得无请求地跳时间、换地点、开启任务或推进成长篇剧情。
 
-可见内容：
-- 严格按 <反应>、<正文>、<会话状态> 的顺序输出，除此之外不得输出任何文字或 Markdown 代码块。
+输出结构：
+- 严格按 <反应>、<正文>、<会话状态>、<visual_cards>、<UpdateVariable> 的顺序输出，除此之外不得输出任何文字或 Markdown 代码块。
 - <反应> 最多 32 个汉字，只写一个短动作、停顿或神态，可以为空。${context.channel === 'transmission' ? '本轮为远程传讯，<反应>必须为空，不能描写用户看不见的远端动作。' : ''}
 - <正文> 只写「${context.targetName}」亲口说出或传回的话，不写说话人标签，不用引号包裹整段。
 - 普通回应通常 30 至 70 字；复杂问答或明显情绪冲突可以更长，但 <反应> 与 <正文> 合计不得超过 160 字。
-- 禁止输出 visual_cards、UpdateVariable、JSONPatch、状态栏、旁白续写或其他结构块。
+- 不得输出旁白续写或其他结构块。
+
+立绘卡：
+- 每轮必须输出一张且只能一张「${context.targetName}」的 visual card；远程传讯也必须输出。
+- 格式为 <visual_cards>[{"name":"${context.targetName}","img_code":"normal","back_text":"即时心声"}]</visual_cards>。
+- img_code 仅限 normal、smile、shy、angry、sad、surprise；拿不准用 normal。back_text 要短且符合当前角色。
+
+受限变量：
+- 每轮必须输出标准 <UpdateVariable><Analysis>...</Analysis><JSONPatch>[...]</JSONPatch></UpdateVariable>；没有重要变化时 JSONPatch 输出 []。
+- 只能修改 /红颜/${context.canonicalName}/好感度、/关系、/关系上下文/当前情绪|态度缘由|关系诉求|相处禁忌|未了约定、/羁绊纪事/事件名。
+- 普通寒暄不得改变好感；只有明确交心、承诺、冲突或边界事件才可对好感 delta -1 或 1。
+- 关系仅在实际跨阶段时 replace；关系上下文单轮最多两项；羁绊纪事只记录以后确实需要记住的重要事件。
+- 禁止修改时间、地点、任务、物品、灵石、修炼、战斗、其他角色或任何未列出的字段。
 
 隐藏状态：
 <会话状态> 内输出一行严格 JSON，不得用代码围栏：
 {"emotion":"当前情绪","topic":"当前话题","subtext":"潜台词","unresolvedThreads":["未解线索"],"memoryEvents":[{"kind":"promise|boundary|conflict|disclosure","summary":"仅记录真正重要且以后应记住的事件","status":"open|resolved","resolves":[]}],"relationEvents":[]}
 - 没有重要记忆或关系事件时对应数组必须为空，不要把日常寒暄记为事件。
-- relationEvents 仅作候选记录，本阶段不会自动修改好感或关系。
+- relationEvents 应与 UpdateVariable 中的实际变化一致；没有重要变化时必须为空。
 `.trim();
 
 const readCompleteTag = (text: string, tag: string) =>
   text.match(new RegExp(`<${tag}(?=[\\s/>])[^>]*>([\\s\\S]*?)<\\/${tag}\\s*>`, 'i'))?.[1]?.trim() ?? '';
 
 const stripDialogueTags = (text: string) =>
-  text.replace(/<\/?(?:反应|正文|会话状态)(?=[\s/>])[^>]*>/gi, '').trim();
+  text
+    .replace(/<\/?(?:反应|正文|会话状态|visual_cards|UpdateVariable|Analysis|JSONPatch)(?=[\s/>])[^>]*>/gi, '')
+    .trim();
 
 const readBoundedTag = (text: string, tag: string, stopTags: string[]) => {
   const open = new RegExp(`<${tag}(?=[\\s/>])[^>]*>`, 'i').exec(text);
@@ -406,6 +432,132 @@ const normalizeRelationEvents = (value: unknown, operationId: string): DialogueR
     .slice(0, 2);
 };
 
+const normalizeVisualCard = (raw: string, context: DialogueContext): DialogueVisualCard => {
+  const fallback: DialogueVisualCard = { name: context.targetName, img_code: 'normal', back_text: '' };
+  const body = readCompleteTag(raw, 'visual_cards');
+  if (!body) return fallback;
+  try {
+    const parsed = JSON.parse(jsonrepair(body));
+    const candidate = Array.isArray(parsed) ? parsed[0] : parsed;
+    if (!isRecord(candidate)) return fallback;
+    const allowedExpressions = new Set(['normal', 'smile', 'shy', 'angry', 'sad', 'surprise']);
+    const imgCode = compactText(candidate.img_code, 24);
+    return {
+      name: context.targetName,
+      img_code: allowedExpressions.has(imgCode) ? imgCode : 'normal',
+      back_text: compactText(candidate.back_text, 80),
+    };
+  } catch (error) {
+    console.warn('[灯火阑珊·短对话] visual_cards 解析失败，已补用默认立绘卡', error);
+    return fallback;
+  }
+};
+
+const decodeJsonPointer = (path: string) =>
+  path
+    .split('/')
+    .slice(1)
+    .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
+
+const normalizeDialogueVariablePatches = (
+  raw: string,
+  context: DialogueContext,
+): { patches: DialogueVariablePatch[]; effects: DialogueVariableEffects } => {
+  const updateBody = readCompleteTag(raw, 'UpdateVariable');
+  const patchBody = readCompleteTag(updateBody || raw, 'JSONPatch');
+  if (!patchBody) return { patches: [], effects: {} };
+  let candidates: unknown;
+  try {
+    candidates = JSON.parse(jsonrepair(patchBody));
+  } catch (error) {
+    console.warn('[灯火阑珊·短对话] JSONPatch 解析失败，本轮对白仍会保存但不更新变量', error);
+    return { patches: [], effects: {} };
+  }
+  if (!Array.isArray(candidates)) return { patches: [], effects: {} };
+
+  const patches: DialogueVariablePatch[] = [];
+  const effects: DialogueVariableEffects = {};
+  const relationContextFields = new Set(['当前情绪', '态度缘由', '关系诉求', '相处禁忌', '未了约定']);
+  let relationContextCount = 0;
+  let chronicleCount = 0;
+  let favorCount = 0;
+  let relationshipCount = 0;
+
+  candidates.forEach(candidate => {
+    if (!isRecord(candidate) || typeof candidate.path !== 'string') return;
+    const segments = decodeJsonPointer(candidate.path);
+    if (segments[0] !== '红颜' || segments[1] !== context.canonicalName) return;
+
+    if (segments.length === 3 && segments[2] === '好感度' && candidate.op === 'delta' && favorCount < 1) {
+      const delta = Number(candidate.value);
+      if (delta !== -1 && delta !== 1) return;
+      patches.push({ op: 'delta', path: candidate.path, value: delta });
+      favorCount += 1;
+      effects.favor = true;
+      return;
+    }
+
+    if (segments.length === 3 && segments[2] === '关系' && candidate.op === 'replace' && relationshipCount < 1) {
+      const value = compactText(candidate.value, 80);
+      if (!value) return;
+      patches.push({ op: 'replace', path: candidate.path, value });
+      relationshipCount += 1;
+      effects.relationship = true;
+      return;
+    }
+
+    if (
+      segments.length === 4 &&
+      segments[2] === '关系上下文' &&
+      relationContextFields.has(segments[3]) &&
+      candidate.op === 'replace' &&
+      relationContextCount < 2
+    ) {
+      const value = compactText(candidate.value, 180);
+      if (!value) return;
+      patches.push({ op: 'replace', path: candidate.path, value });
+      relationContextCount += 1;
+      effects.relationContext = true;
+      return;
+    }
+
+    if (
+      segments.length === 4 &&
+      segments[2] === '羁绊纪事' &&
+      (candidate.op === 'insert' || candidate.op === 'replace') &&
+      chronicleCount < 1 &&
+      isRecord(candidate.value)
+    ) {
+      const summary = compactText(candidate.value.摘要, 180);
+      if (!segments[3] || !summary) return;
+      patches.push({
+        op: candidate.op,
+        path: candidate.path,
+        value: {
+          类型: compactText(candidate.value.类型, 20) || '其他',
+          摘要: summary,
+          时地: compactText(candidate.value.时地, 100),
+        },
+      });
+      chronicleCount += 1;
+      effects.chronicle = true;
+    }
+  });
+
+  return { patches, effects };
+};
+
+const buildVariableUpdateBlock = (patches: DialogueVariablePatch[]) => {
+  if (patches.length === 0) return '';
+  const labels = patches.map(patch => decodeJsonPointer(patch.path).slice(2).join('·'));
+  return [
+    '<UpdateVariable>',
+    `<Analysis>幕间交谈：${[...new Set(labels)].join('、')}</Analysis>`,
+    `<JSONPatch>${JSON.stringify(patches)}</JSONPatch>`,
+    '</UpdateVariable>',
+  ].join('\n');
+};
+
 export const parseDialogueGeneration = (
   raw: string,
   context: DialogueContext,
@@ -415,8 +567,8 @@ export const parseDialogueGeneration = (
   // Streaming extraction intentionally tolerates unfinished tags. A completed
   // reply needs stricter boundaries because some models open the next block
   // before closing the previous one.
-  const boundedReaction = readBoundedTag(raw, '反应', ['正文', '会话状态']);
-  const boundedDialogue = readBoundedTag(raw, '正文', ['会话状态']);
+  const boundedReaction = readBoundedTag(raw, '反应', ['正文', '会话状态', 'visual_cards', 'UpdateVariable']);
+  const boundedDialogue = readBoundedTag(raw, '正文', ['会话状态', 'visual_cards', 'UpdateVariable']);
   const reaction =
     context.channel === 'transmission'
       ? ''
@@ -430,13 +582,38 @@ export const parseDialogueGeneration = (
     dialogueLimit,
   );
   const state = parseStateJson(raw);
+  const memoryEvents = normalizeMemoryEvents(state?.memoryEvents, operationId);
+  const relationEvents = normalizeRelationEvents(state?.relationEvents, operationId);
+  const visualCard = normalizeVisualCard(raw, context);
+  const variableUpdate = normalizeDialogueVariablePatches(raw, context);
+  if (relationEvents.length === 0 && memoryEvents.length === 0 && variableUpdate.effects.favor) {
+    variableUpdate.patches = variableUpdate.patches.filter(
+      patch => decodeJsonPointer(patch.path)[2] !== '好感度',
+    );
+    delete variableUpdate.effects.favor;
+  }
+  if (relationEvents.length === 0 && variableUpdate.effects.relationship) {
+    variableUpdate.patches = variableUpdate.patches.filter(
+      patch => decodeJsonPointer(patch.path)[2] !== '关系',
+    );
+    delete variableUpdate.effects.relationship;
+  }
+  if (memoryEvents.length === 0 && variableUpdate.effects.chronicle) {
+    variableUpdate.patches = variableUpdate.patches.filter(
+      patch => decodeJsonPointer(patch.path)[2] !== '羁绊纪事',
+    );
+    delete variableUpdate.effects.chronicle;
+  }
   return {
     raw,
     reaction,
     dialogue,
     sessionState: normalizeSessionState(state),
-    memoryEvents: normalizeMemoryEvents(state?.memoryEvents, operationId),
-    relationEvents: normalizeRelationEvents(state?.relationEvents, operationId),
+    memoryEvents,
+    relationEvents,
+    visualCard,
+    variableUpdateBlock: buildVariableUpdateBlock(variableUpdate.patches),
+    variableEffects: variableUpdate.effects,
   };
 };
 
@@ -477,6 +654,25 @@ export const generateDialogueReply = async (
   });
   if (typeof result !== 'string') throw new Error('短对话模型返回了工具调用，未得到可见对白。');
   const parsed = parseDialogueGeneration(result, input.context, input.operationId);
+  if (!parsed.dialogue) {
+    const streamed = input.getStreamFallback?.();
+    const reaction =
+      input.context.channel === 'transmission'
+        ? ''
+        : truncateAtSentence(
+            compactText(stripDialogueTags(streamed?.reaction ?? ''), MAX_REACTION_CHARACTERS),
+            MAX_REACTION_CHARACTERS,
+          );
+    const dialogueLimit = Math.max(48, MAX_VISIBLE_CHARACTERS - reaction.length);
+    const dialogue = truncateAtSentence(
+      compactText(stripDialogueTags(streamed?.dialogue ?? ''), dialogueLimit),
+      dialogueLimit,
+    );
+    if (dialogue) {
+      console.warn('[灯火阑珊·短对话] 最终返回值缺少可见对白，已采用最后一份有效的流式对白');
+      return { ...parsed, reaction, dialogue };
+    }
+  }
   if (!parsed.dialogue) throw new Error('角色没有返回可供显示的对白，请重试。');
   return parsed;
 };

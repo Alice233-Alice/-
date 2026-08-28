@@ -1,9 +1,25 @@
 <template>
-  <div class="panel cultivation-panel" :style="panelStyle">
+  <div class="panel cultivation-panel" :class="{ 'archive-visible': archiveOpen }" :style="panelStyle">
     <div class="cultivation-shell">
       <header class="identity-masthead">
         <div class="identity-eyebrow"><span></span>本尊道基<span></span></div>
-        <h2>{{ store.本尊.身份.姓名 }}</h2>
+        <div class="identity-name-row">
+          <span aria-hidden="true"></span>
+          <h2>{{ store.本尊.身份.姓名 }}</h2>
+          <button
+            type="button"
+            class="archive-trigger"
+            :class="{ 'has-entry': hasArchive }"
+            aria-haspopup="dialog"
+            :aria-expanded="archiveOpen"
+            title="查看并编辑本尊档案"
+            @click="openArchive"
+          >
+            <i class="fa-solid fa-book-open"></i>
+            <span>命籍</span>
+            <b aria-hidden="true"></b>
+          </button>
+        </div>
         <p>
           <span>{{ store.本尊.身份.宗门 }}</span>
           <i></i>
@@ -91,12 +107,63 @@
         </div>
       </section>
     </div>
+
+    <Transition name="archive-sheet">
+      <div
+        v-if="archiveOpen"
+        class="archive-overlay"
+        tabindex="-1"
+        @click.self="closeArchive"
+        @keydown.esc="closeArchive"
+      >
+        <section class="archive-dialog" role="dialog" aria-modal="true" aria-labelledby="protagonist-archive-title">
+          <header class="archive-header">
+            <div class="archive-heading">
+              <span><i class="fa-solid fa-feather-pointed"></i> 本尊命籍</span>
+              <h3 id="protagonist-archive-title">{{ store.本尊.身份.姓名 }} · 个人档案</h3>
+            </div>
+            <button
+              type="button"
+              class="archive-close"
+              aria-label="关闭档案"
+              :disabled="archiveSaving"
+              @click="closeArchive"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </header>
+
+          <div class="archive-body">
+            <p class="archive-lead">在这里记录来历、性情、经历与想让故事始终记得的事。</p>
+            <textarea
+              ref="archiveInput"
+              v-model="archiveDraft"
+              aria-label="本尊个人档案"
+              placeholder="例如：故乡与家世、成长经历、性格习惯、执念、秘密，或其他希望 AI 始终知晓的背景……"
+              spellcheck="false"
+            ></textarea>
+            <div class="archive-meta">
+              <span><i class="fa-solid fa-lock"></i> 仅玩家可改，AI 可读取</span>
+              <span>{{ archiveDraft.length }} 字</span>
+            </div>
+          </div>
+
+          <footer class="archive-actions">
+            <button type="button" class="archive-cancel" :disabled="archiveSaving" @click="closeArchive">取消</button>
+            <button type="button" class="archive-save" :disabled="archiveSaving || !archiveDirty" @click="saveArchive">
+              <i :class="archiveSaving ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-check'"></i>
+              {{ archiveSaving ? '写入中' : '收录档案' }}
+            </button>
+          </footer>
+        </section>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { CSSProperties } from 'vue';
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 import { getRealmColor, getRootColor } from '../schema';
 import { useDataStore } from '../store';
@@ -114,6 +181,14 @@ interface PathNote {
 }
 
 const store = useDataStore();
+const archiveOpen = ref(false);
+const archiveDraft = ref('');
+const archiveSaving = ref(false);
+const archiveInput = ref<HTMLTextAreaElement | null>(null);
+
+const archiveContent = computed(() => String(store.本尊._档案 ?? ''));
+const hasArchive = computed(() => archiveContent.value.trim().length > 0);
+const archiveDirty = computed(() => archiveDraft.value.replace(/\r\n?/g, '\n').trim() !== archiveContent.value);
 
 const realmColor = computed(() => getRealmColor(store.本尊.等级));
 const rootColor = computed(() => getRootColor(store.本尊.灵根));
@@ -186,6 +261,30 @@ const pathNotes = computed<PathNote[]>(() => {
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('zh-CN').format(value);
 }
+
+function openArchive(): void {
+  archiveDraft.value = archiveContent.value;
+  archiveOpen.value = true;
+  void nextTick(() => archiveInput.value?.focus());
+}
+
+function closeArchive(): void {
+  if (archiveSaving.value) return;
+  archiveOpen.value = false;
+}
+
+async function saveArchive(): Promise<void> {
+  if (archiveSaving.value) return;
+  if (!archiveDirty.value) {
+    archiveOpen.value = false;
+    return;
+  }
+
+  archiveSaving.value = true;
+  const saved = await store.saveProtagonistArchive(archiveDraft.value);
+  archiveSaving.value = false;
+  if (saved) archiveOpen.value = false;
+}
 </script>
 
 <style lang="scss" scoped>
@@ -240,6 +339,12 @@ function formatNumber(value: number): string {
   font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
+.identity-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
 .identity-eyebrow {
   display: flex;
   align-items: center;
@@ -268,6 +373,56 @@ function formatNumber(value: number): string {
   font-weight: 600;
   line-height: 1.2;
   text-shadow: 0 0 22px color-mix(in srgb, var(--gold) 14%, transparent);
+}
+
+.archive-trigger {
+  position: relative;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0 0 10px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--gold) 28%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.archive-trigger:hover,
+.archive-trigger:focus-visible {
+  border-color: color-mix(in srgb, var(--gold) 62%, var(--line-strong));
+  color: var(--gold);
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gold) 12%, transparent);
+  outline: none;
+}
+
+.archive-trigger i {
+  font-size: 9px;
+}
+
+.archive-trigger b {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  opacity: 0.3;
+}
+
+.archive-trigger.has-entry b {
+  background: var(--jade);
+  box-shadow: 0 0 7px var(--jade);
+  opacity: 1;
 }
 
 .identity-masthead p {
@@ -659,6 +814,247 @@ function formatNumber(value: number): string {
   line-height: 1.45;
 }
 
+.cultivation-panel.archive-visible {
+  overflow: hidden;
+}
+
+.archive-overlay {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--jade) 6%, transparent), transparent 48%),
+    color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  backdrop-filter: blur(7px);
+}
+
+.archive-dialog {
+  position: relative;
+  width: min(100%, 610px);
+  max-height: calc(100% - 12px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line-strong));
+  border-radius: 8px;
+  color: var(--text-primary);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--jade) 5%, transparent), transparent 42%),
+    color-mix(in srgb, var(--surface-raised) 97%, transparent);
+  box-shadow:
+    0 22px 64px color-mix(in srgb, var(--stage-shadow) 82%, transparent),
+    inset 0 0 32px color-mix(in srgb, var(--gold) 3%, transparent);
+}
+
+.archive-dialog::before {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 12%;
+  left: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gold) 42%, transparent);
+}
+
+.archive-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px 15px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+
+.archive-heading {
+  min-width: 0;
+}
+
+.archive-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gold);
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.archive-heading h3 {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.archive-close {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-subtle);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.archive-close:hover,
+.archive-close:focus-visible {
+  border-color: var(--line-strong);
+  color: var(--text-primary);
+  outline: none;
+  transform: rotate(6deg);
+}
+
+.archive-body {
+  min-height: 0;
+  padding: 17px 22px 12px;
+  overflow-y: auto;
+}
+
+.archive-lead {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.archive-body textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: clamp(176px, 23vw, 280px);
+  display: block;
+  resize: vertical;
+  padding: 14px 15px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 62%, transparent);
+  border-radius: 5px;
+  outline: none;
+  color: var(--text-primary);
+  background:
+    linear-gradient(color-mix(in srgb, var(--line-subtle) 14%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--surface-inset) 88%, transparent);
+  background-size: 100% 1.75em;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-size: 13px;
+  line-height: 1.75;
+  caret-color: var(--gold);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.archive-body textarea::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 64%, transparent);
+}
+
+.archive-body textarea:focus {
+  border-color: color-mix(in srgb, var(--gold) 60%, var(--line-strong));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gold) 7%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--jade) 3%, transparent);
+}
+
+.archive-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.archive-meta span:first-child {
+  color: color-mix(in srgb, var(--jade) 72%, var(--text-secondary));
+}
+
+.archive-meta i {
+  margin-right: 4px;
+  font-size: 8px;
+}
+
+.archive-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 13px 22px 17px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.archive-actions button {
+  min-height: 30px;
+  padding: 5px 13px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.archive-actions button:disabled {
+  cursor: default;
+  opacity: 0.46;
+}
+
+.archive-cancel {
+  border: 1px solid var(--line-subtle);
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.archive-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--gold) 54%, var(--line-strong));
+  color: color-mix(in srgb, var(--gold) 82%, var(--text-primary));
+  background: color-mix(in srgb, var(--gold) 9%, var(--surface-raised));
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--gold) 5%, transparent);
+}
+
+.archive-cancel:not(:disabled):hover,
+.archive-cancel:focus-visible,
+.archive-save:not(:disabled):hover,
+.archive-save:focus-visible {
+  border-color: var(--gold-soft);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.archive-sheet-enter-active,
+.archive-sheet-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.archive-sheet-enter-active .archive-dialog,
+.archive-sheet-leave-active .archive-dialog {
+  transition:
+    opacity 0.2s ease,
+    transform 0.24s ease;
+}
+
+.archive-sheet-enter-from,
+.archive-sheet-leave-to {
+  opacity: 0;
+}
+
+.archive-sheet-enter-from .archive-dialog,
+.archive-sheet-leave-to .archive-dialog {
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+}
+
 @keyframes realm-breathe {
   0%,
   100% {
@@ -685,6 +1081,10 @@ function formatNumber(value: number): string {
 
   .identity-masthead h2 {
     font-size: 23px;
+  }
+
+  .archive-trigger {
+    margin-left: 8px;
   }
 
   .sanctum-grid {
@@ -746,6 +1146,33 @@ function formatNumber(value: number): string {
     border-right: 0;
     border-bottom: 1px solid var(--line-subtle);
   }
+
+  .archive-overlay {
+    place-items: end center;
+    padding: 8px 6px 0;
+  }
+
+  .archive-dialog {
+    width: 100%;
+    max-height: calc(100% - 8px);
+    border-radius: 14px 14px 0 0;
+  }
+
+  .archive-header {
+    padding: 16px 17px 12px;
+  }
+
+  .archive-body {
+    padding: 14px 17px 10px;
+  }
+
+  .archive-body textarea {
+    height: clamp(164px, 44vw, 250px);
+  }
+
+  .archive-actions {
+    padding: 11px 17px 14px;
+  }
 }
 
 @media screen and (max-width: 480px) {
@@ -757,6 +1184,14 @@ function formatNumber(value: number): string {
   }
   .identity-eyebrow {
     font-size: 10px;
+  }
+  .archive-trigger {
+    gap: 4px;
+    margin-left: 6px;
+    padding-inline: 6px;
+  }
+  .archive-trigger b {
+    display: none;
   }
   .realm-orbit {
     width: 158px;
@@ -784,6 +1219,24 @@ function formatNumber(value: number): string {
   .path-note-list {
     grid-template-columns: 1fr;
     gap: 3px;
+  }
+
+  .archive-heading h3 {
+    font-size: 17px;
+  }
+
+  .archive-lead {
+    font-size: 10px;
+  }
+
+  .archive-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .archive-actions button {
+    flex: 1;
   }
 }
 </style>

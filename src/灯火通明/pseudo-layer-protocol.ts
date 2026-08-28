@@ -1,5 +1,5 @@
 export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
-export const PSEUDO_LAYER_VERSION = 10;
+export const PSEUDO_LAYER_VERSION = 14;
 export const PSEUDO_LAYER_MIN_COMPATIBLE_VERSION = 4;
 export const PSEUDO_LAYER_SUPPORTED_VERSIONS = Array.from(
   { length: PSEUDO_LAYER_VERSION - PSEUDO_LAYER_MIN_COMPATIBLE_VERSION + 1 },
@@ -8,6 +8,10 @@ export const PSEUDO_LAYER_SUPPORTED_VERSIONS = Array.from(
 export const PSEUDO_LAYER_MESSAGE_EDITING_VERSION = 8;
 export const PSEUDO_LAYER_TIMELINE_PAGING_VERSION = 9;
 export const PSEUDO_LAYER_USER_MESSAGE_EDITING_VERSION = 10;
+export const PSEUDO_LAYER_REASONING_ISOLATION_VERSION = 11;
+export const PSEUDO_LAYER_PENDING_INPUT_RECOVERY_VERSION = 12;
+export const PSEUDO_LAYER_REASONING_EDITING_VERSION = 13;
+export const PSEUDO_LAYER_DIALOGUE_DRAWER_VERSION = 14;
 
 export const isSupportedPseudoLayerVersion = (value: unknown): value is number =>
   typeof value === 'number' &&
@@ -43,12 +47,27 @@ export type DialogueRelationEvent = {
   applied: boolean;
 };
 
+export type DialogueVisualCard = {
+  name: string;
+  img_code: string;
+  back_text: string;
+};
+
+export type DialogueVariableEffects = {
+  favor?: boolean;
+  relationship?: boolean;
+  relationContext?: boolean;
+  chronicle?: boolean;
+};
+
 export type DialogueContext = {
   mode: 'dialogue';
   sessionId: string;
   targetName: string;
   canonicalName: string;
   channel: DialogueChannel;
+  /** 发起幕间交谈时所在的正文楼层；旧记录允许缺省并由控制器向前推断。 */
+  anchorStoryMessageId?: number;
 };
 
 export type StoryInteraction = { mode: 'story' };
@@ -63,6 +82,7 @@ export type PseudoLayerDialogueStage = {
   channel: DialogueChannel;
   turnCount: number;
   engine?: DialogueEngineKind;
+  anchorStoryMessageId?: number;
 };
 export type PseudoLayerStage = PseudoLayerStoryStage | PseudoLayerDialogueStage;
 
@@ -74,7 +94,24 @@ export type PseudoLayerTimelineTurn = {
   reaction?: string;
   reasoning: string;
   reasoningDuration: number | null;
+  reasoningEditable?: boolean;
+  responseDuration?: number;
   tokenCount?: number;
+  visualCard?: DialogueVisualCard;
+  variableEffects?: DialogueVariableEffects;
+};
+
+export type PseudoLayerDialogueThread = {
+  sessionId: string;
+  anchorStoryMessageId: number;
+  representativeMessageId: number;
+  messageIds: number[];
+  targetName: string;
+  canonicalName: string;
+  channel: DialogueChannel;
+  turnCount: number;
+  engine?: DialogueEngineKind;
+  turns: PseudoLayerTimelineTurn[];
 };
 
 export type PseudoLayerTimelineEntry = {
@@ -84,6 +121,7 @@ export type PseudoLayerTimelineEntry = {
   historyIndex: number;
   stage: PseudoLayerStage;
   turns: PseudoLayerTimelineTurn[];
+  dialogueThreads?: PseudoLayerDialogueThread[];
 };
 
 export type PseudoLayerTimelineDirection = 'around' | 'older' | 'newer';
@@ -99,7 +137,7 @@ export type PseudoLayerHistoryState = {
 };
 
 export type PseudoLayerInteractionMetadata = {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   kind: 'dialogue';
   sessionId: string;
   targetName: string;
@@ -113,11 +151,21 @@ export type PseudoLayerInteractionMetadata = {
   sessionState?: DialogueSessionState;
   memoryEvents?: DialogueMemoryEvent[];
   relationEvents?: DialogueRelationEvent[];
+  anchorStoryMessageId?: number;
+  visualCard?: DialogueVisualCard;
+  variableEffects?: DialogueVariableEffects;
 };
 
 export type PseudoLayerGenerationState = 'idle' | 'preparing' | 'generating' | 'saving' | 'stopping';
 export type PseudoLayerGenerationOperation = 'generate' | 'reroll';
 export type PseudoLayerReasoningState = 'none' | 'thinking' | 'done' | 'hidden';
+
+export type PseudoLayerPendingInput = {
+  messageIds: number[];
+  latestMessageId: number;
+  text: string;
+  count: number;
+};
 
 export type PseudoLayerView = {
   hostMessageId: number;
@@ -130,10 +178,17 @@ export type PseudoLayerView = {
   nextMessageId?: number;
   isLatest: boolean;
   nativeInputCollapsed: boolean;
+  pendingInput?: PseudoLayerPendingInput;
   tokenCount?: number;
   stage: PseudoLayerStage;
   histories: Record<PseudoLayerHistoryKind, PseudoLayerHistoryState>;
   activeInteraction: PseudoLayerInteraction;
+  /** 新版界面的正文主轴锚点。 */
+  latestStoryMessageId?: number;
+  /** 包含隐藏幕间楼层在内的最新状态快照楼层。 */
+  latestStateMessageId?: number;
+  /** 当前所选正文下归档的幕间线程。 */
+  dialogueThreads?: PseudoLayerDialogueThread[];
 };
 
 export type PseudoLayerRequest =
@@ -179,6 +234,21 @@ export type PseudoLayerRequest =
       messageId: number;
       userMessageId: number;
       content: string;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
+      type: 'update_reasoning';
+      requestId: string;
+      messageId: number;
+      content: string;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
+      type: 'recover_pending_input';
+      requestId: string;
+      latestMessageId: number;
     }
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
@@ -286,6 +356,14 @@ export type PseudoLayerResponse =
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
       version: number;
+      type: 'pending_input_recovered';
+      requestId: string;
+      userText: string;
+      removedCount: number;
+    }
+  | {
+      channel: typeof PSEUDO_LAYER_CHANNEL;
+      version: number;
       type: 'timeline_page';
       requestId: string;
       revision: number;
@@ -316,6 +394,8 @@ const REQUEST_TYPES = new Set([
   'delete_message',
   'update_message',
   'update_user_message',
+  'update_reasoning',
+  'recover_pending_input',
   'navigate',
   'timeline_page',
   'select_entry',
@@ -334,6 +414,7 @@ const RESPONSE_TYPES = new Set([
   'complete',
   'deleted',
   'message_updated',
+  'pending_input_recovered',
   'timeline_page',
   'error',
 ]);

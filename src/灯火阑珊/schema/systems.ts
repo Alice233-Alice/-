@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { z } from 'zod';
+import { LOCATION_DOMAIN_VALUES } from '../map-system';
 import { finiteNumber, NormalizedStringListSchema } from './common';
 
 // 任务状态容错映射：兼容 AI 常见近义词，统一到三态
@@ -88,7 +89,7 @@ export const QuestSchema = z.object({
   // 秘境专属字段（仅当类型为秘境探索时需要）
   秘境信息: z
     .object({
-      域: z.enum(['天层', '神州', '东苍', '南炎', '西庚', '北冥', '下层', '四海']).optional(),
+      域: z.enum(LOCATION_DOMAIN_VALUES).optional(),
       危: finiteNumber(0)
         .transform(v => _.clamp(v, 0, 100))
         .optional(),
@@ -204,6 +205,26 @@ const 机遇类型映射: Record<string, OpportunityType> = {
   双修: '亲密',
   亲密: '亲密',
   调情: '亲密',
+  explore: '探索',
+  exploration: '探索',
+  adventure: '探索',
+  negotiate: '交涉',
+  negotiation: '交涉',
+  social: '交涉',
+  interaction: '交涉',
+  battle: '战斗',
+  combat: '战斗',
+  fight: '战斗',
+  cultivate: '修炼',
+  cultivation: '修炼',
+  training: '修炼',
+  prepare: '整备',
+  preparation: '整备',
+  supply: '整备',
+  trade: '整备',
+  intimate: '亲密',
+  intimacy: '亲密',
+  romance: '亲密',
 };
 
 const 机遇类型推断规则: Array<{ type: OpportunityType; pattern: RegExp }> = [
@@ -239,7 +260,7 @@ function normalizeOpportunityText(value: unknown): string {
 }
 
 function inferOpportunityType(rawType: string, payload: Record<string, string>): OpportunityType {
-  const mappedType = 机遇类型映射[rawType];
+  const mappedType = 机遇类型映射[normalizeOpportunityText(rawType).toLowerCase()];
   if (mappedType) return mappedType;
 
   const text = Object.values(payload)
@@ -263,7 +284,9 @@ function buildLegacyOpportunityHint(timeLimit: string, risk: string): string {
 }
 
 function getOpportunityPatchIndex(value: unknown): number | null | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || '行动' in value) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value) || '行动' in value || 'action' in value) {
+    return undefined;
+  }
 
   const wrapper = value as Record<string, unknown>;
   if (!['replace', 'insert'].includes(String(wrapper.op ?? '')) || !Object.hasOwn(wrapper, 'value')) {
@@ -316,7 +339,12 @@ function collectEmbeddedOpportunityItems(value: unknown, depth = 0): unknown[] {
   if (!value || typeof value !== 'object') return [];
 
   const item = value as Record<string, unknown>;
-  if (Object.hasOwn(item, '行动') || Object.hasOwn(item, '名称') || Object.hasOwn(item, '描述')) {
+  if (
+    Object.hasOwn(item, '行动') ||
+    Object.hasOwn(item, 'action') ||
+    Object.hasOwn(item, '名称') ||
+    Object.hasOwn(item, '描述')
+  ) {
     return [item];
   }
   if (Object.hasOwn(item, 'value') && (Object.hasOwn(item, 'op') || Object.hasOwn(item, 'path'))) {
@@ -355,6 +383,12 @@ const CompactOpportunitySchema = z.object({
   提示: z.coerce.string().transform(normalizeOpportunityText).optional(),
 });
 
+const EnglishOpportunitySchema = z.object({
+  action: z.coerce.string().transform(normalizeOpportunityText),
+  type: z.coerce.string().transform(normalizeOpportunityText).prefault('探索'),
+  hint: z.coerce.string().transform(normalizeOpportunityText).optional(),
+});
+
 const LegacyOpportunitySchema = z.object({
   名称: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
   来源: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
@@ -367,32 +401,49 @@ const LegacyOpportunitySchema = z.object({
   优先级: finiteNumber(0).optional(),
 });
 
-export const OpportunitySchema = z.union([CompactOpportunitySchema, LegacyOpportunitySchema]).transform(item => {
-  if ('行动' in item) {
-    const hint = normalizeOpportunityText(item.提示);
+export type NormalizedOpportunity = {
+  行动: string;
+  类型: OpportunityType;
+  提示?: string;
+};
+
+export const OpportunitySchema = z
+  .union([CompactOpportunitySchema, EnglishOpportunitySchema, LegacyOpportunitySchema])
+  .transform((item): NormalizedOpportunity => {
+    if ('行动' in item) {
+      const hint = normalizeOpportunityText(item.提示);
+      return {
+        行动: item.行动,
+        类型: inferOpportunityType(item.类型, { 行动: item.行动, 提示: hint }),
+        ...(hint ? { 提示: hint } : {}),
+      };
+    }
+
+    if ('action' in item) {
+      const hint = normalizeOpportunityText(item.hint);
+      return {
+        行动: item.action,
+        类型: inferOpportunityType(item.type, { action: item.action, hint }),
+        ...(hint ? { 提示: hint } : {}),
+      };
+    }
+
+    const action = item.描述 || item.名称;
+    const hint = buildLegacyOpportunityHint(item.时限 ?? '', item.风险评估);
     return {
-      行动: item.行动,
-      类型: inferOpportunityType(item.类型, { 行动: item.行动, 提示: hint }),
+      行动: action,
+      类型: inferOpportunityType(item.类型, {
+        名称: item.名称,
+        来源: item.来源,
+        描述: item.描述,
+        回报预期: item.回报预期,
+        风险评估: item.风险评估,
+        时限: item.时限 ?? '',
+        关联事件: item.关联事件 ?? '',
+      }),
       ...(hint ? { 提示: hint } : {}),
     };
-  }
-
-  const action = item.描述 || item.名称;
-  const hint = buildLegacyOpportunityHint(item.时限 ?? '', item.风险评估);
-  return {
-    行动: action,
-    类型: inferOpportunityType(item.类型, {
-      名称: item.名称,
-      来源: item.来源,
-      描述: item.描述,
-      回报预期: item.回报预期,
-      风险评估: item.风险评估,
-      时限: item.时限 ?? '',
-      关联事件: item.关联事件 ?? '',
-    }),
-    ...(hint ? { 提示: hint } : {}),
-  };
-});
+  });
 
 // 系统设置 Schema
 export const SystemSettingsSchema = z

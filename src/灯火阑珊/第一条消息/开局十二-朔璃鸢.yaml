@@ -59,7 +59,7 @@
 # yaml-language-server: $schema=../../schema.json
 
 世界时钟:
-  纪元: "末法时代"
+  纪元: "盛法时代"
   年份: 1
   月份: 1
   日期: 1

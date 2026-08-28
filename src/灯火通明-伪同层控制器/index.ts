@@ -9,16 +9,24 @@ import {
   PseudoLayerHistoryState,
   PseudoLayerInteraction,
   PseudoLayerInteractionMetadata,
+  PseudoLayerPendingInput,
   PseudoLayerReasoningState,
   PseudoLayerRequest,
   PseudoLayerResponse,
   PseudoLayerStage,
   PseudoLayerTimelineEntry,
+  PseudoLayerDialogueThread,
   PseudoLayerTimelineTurn,
   PseudoLayerView,
   isPseudoLayerRequest,
 } from '../灯火通明/pseudo-layer-protocol';
-import { extractDialogueContent, extractInlineReasoning, mergeReasoningText } from '../灯火通明/message-content';
+import { Schema } from '../灯火通明/schema';
+import {
+  extractDialogueContent,
+  extractInlineReasoning,
+  sanitizeReasoningText,
+  selectReasoningText,
+} from '../灯火通明/message-content';
 import { ParsedDialogueGeneration, generateDialogueReply, parseDialogueGeneration } from './dialogue-engine';
 
 type ReplyTarget = MessageEventSource & Pick<Window, 'postMessage'>;
@@ -112,6 +120,8 @@ type ActiveGeneration = {
   nativeSwipeOriginal?: NativeSwipeMessage;
   rerollRollback?: Promise<boolean>;
   rerollFailure?: Promise<void>;
+  generationFailure?: Promise<void>;
+  stopSettlementScheduled?: boolean;
 };
 
 type StageEntry = {
@@ -143,6 +153,7 @@ const INPUT_STORAGE_KEY = 'denghuolanshan:pseudo-layer:native-input-collapsed';
 const PENDING_NATIVE_REROLL_STORAGE_KEY = 'denghuolanshan:pseudo-layer:pending-native-rerolls-v1';
 const MOBILE_INPUT_DEFAULT_APPLIED_KEY = 'denghuolanshan:pseudo-layer:mobile-native-input-default-v1';
 const MOBILE_VIEWPORT_QUERY = '(max-width: 760px)';
+const DIALOGUE_CARRYOVER_PROMPT_ID = 'denghuolanshan:dialogue-carryover';
 const INTERACTION_KEY = 'dhl_pseudo_interaction';
 const STAGE_CLASS = 'dhl-pseudo-stage';
 const SELECTED_CLASS = 'dhl-pseudo-selected';
@@ -324,7 +335,15 @@ const normalizeDialogueContext = (value: unknown): DialogueContext | null => {
   const targetName = String(candidate.targetName ?? '').trim();
   const canonicalName = String(candidate.canonicalName ?? '').trim();
   if (!sessionId || !targetName || !canonicalName) return null;
-  return { mode: 'dialogue', sessionId, targetName, canonicalName, channel: candidate.channel };
+  const anchorStoryMessageId = Number(candidate.anchorStoryMessageId);
+  return {
+    mode: 'dialogue',
+    sessionId,
+    targetName,
+    canonicalName,
+    channel: candidate.channel,
+    ...(Number.isInteger(anchorStoryMessageId) && anchorStoryMessageId >= 0 ? { anchorStoryMessageId } : {}),
+  };
 };
 
 const isSameInteraction = (left: PseudoLayerInteraction, right: PseudoLayerInteraction) =>
@@ -334,11 +353,16 @@ const isSameInteraction = (left: PseudoLayerInteraction, right: PseudoLayerInter
       left.sessionId === right.sessionId &&
       left.targetName === right.targetName &&
       left.canonicalName === right.canonicalName &&
-      left.channel === right.channel));
+      left.channel === right.channel &&
+      left.anchorStoryMessageId === right.anchorStoryMessageId));
 
 const setActiveInteraction = (interaction: PseudoLayerInteraction) => {
-  const next =
+  const normalized =
     interaction.mode === 'dialogue' ? (normalizeDialogueContext(interaction) ?? STORY_INTERACTION) : STORY_INTERACTION;
+  const next =
+    normalized.mode === 'dialogue' && normalized.anchorStoryMessageId === undefined
+      ? { ...normalized, anchorStoryMessageId: latestStoryStageId() }
+      : normalized;
   if (isSameInteraction(activeInteraction, next)) return;
   activeInteraction = next;
 };
@@ -506,12 +530,49 @@ const invalidateStageSnapshot = () => {
   stageSnapshotLastMessageId = Number.NaN;
 };
 
+const migrateLegacyDialogueMessages = async () => {
+  const messages = [...getAllMessages()].sort((left, right) => left.message_id - right.message_id);
+  const updates: Parameters<typeof setChatMessages>[0] = [];
+  let latestStoryMessageId: number | undefined;
+
+  messages.forEach(message => {
+    const metadata = readInteractionMetadata(message);
+    if (message.role === 'assistant' && !metadata) {
+      latestStoryMessageId = message.message_id;
+      return;
+    }
+    if (!metadata || latestStoryMessageId === undefined) return;
+    const nextMetadata: PseudoLayerInteractionMetadata = {
+      ...metadata,
+      version: 3,
+      anchorStoryMessageId: metadata.anchorStoryMessageId ?? latestStoryMessageId,
+    };
+    if (message.is_hidden && metadata.version === 3 && metadata.anchorStoryMessageId !== undefined) return;
+    updates.push({
+      message_id: message.message_id,
+      is_hidden: true,
+      extra: {
+        ...(message.extra ?? {}),
+        [INTERACTION_KEY]: nextMetadata,
+      },
+    });
+  });
+
+  if (updates.length === 0) return;
+  await setChatMessages(updates, { refresh: 'affected' });
+  invalidateStageSnapshot();
+  viewRevision += 1;
+  console.info(`[灯火阑珊·幕间交谈] 已归档 ${updates.length} 条旧交谈楼层`);
+};
+
 const readInteractionMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionMetadata | null => {
   if (!message) return null;
   const direct = message.extra?.[INTERACTION_KEY];
   const nested = message.extra?.extra?.[INTERACTION_KEY];
   const value = (direct ?? nested) as Partial<PseudoLayerInteractionMetadata> | undefined;
-  if (!value || (value.version !== 1 && value.version !== 2) || value.kind !== 'dialogue') return null;
+  if (!value || (value.version !== 1 && value.version !== 2 && value.version !== 3) || value.kind !== 'dialogue') {
+    return null;
+  }
   const context = normalizeDialogueContext({ mode: 'dialogue', ...value });
   if (!context) return null;
   const userMessageId = Number(value.userMessageId);
@@ -531,6 +592,7 @@ const toDialogueContext = (metadata: PseudoLayerInteractionMetadata): DialogueCo
   targetName: metadata.targetName,
   canonicalName: metadata.canonicalName,
   channel: metadata.channel,
+  ...(Number.isInteger(metadata.anchorStoryMessageId) ? { anchorStoryMessageId: metadata.anchorStoryMessageId } : {}),
 });
 
 const findPreviousUserMessage = (messages: ChatMessage[], messageId: number) =>
@@ -575,6 +637,7 @@ const buildStageEntries = (
   previousMessages: Map<number, ChatMessage>,
 ): StageEntry[] => {
   const entries: StageEntry[] = [];
+  let latestStoryMessageId: number | undefined;
   assistantMessages.forEach(message => {
     const directMetadata = readInteractionMetadata(message);
     const previousMessage = previousMessages.get(message.message_id);
@@ -583,8 +646,14 @@ const buildStageEntries = (
     const metadata =
       directMetadata ??
       (inheritedMetadata ? { ...inheritedMetadata, userMessageId: previousMessage!.message_id } : null);
+    const anchorStoryMessageId = metadata?.anchorStoryMessageId ?? latestStoryMessageId;
     const previous = entries.at(-1);
-    if (metadata && previous?.stage.kind === 'dialogue' && previous.stage.sessionId === metadata.sessionId) {
+    if (
+      metadata &&
+      previous?.stage.kind === 'dialogue' &&
+      previous.stage.sessionId === metadata.sessionId &&
+      previous.stage.anchorStoryMessageId === anchorStoryMessageId
+    ) {
       previous.messageIds.push(message.message_id);
       previous.representativeMessageId = message.message_id;
       previous.stage.turnCount += 1;
@@ -604,9 +673,11 @@ const buildStageEntries = (
             channel: metadata.channel,
             turnCount: 1,
             engine: metadata.engine,
+            ...(anchorStoryMessageId !== undefined ? { anchorStoryMessageId } : {}),
           }
         : { kind: 'story' },
     });
+    if (!metadata) latestStoryMessageId = message.message_id;
   });
   return entries;
 };
@@ -653,14 +724,16 @@ const readTimelineReasoning = (message: ChatMessage | undefined) => {
       ? (direct.extra as Record<string, any>)
       : ({} as Record<string, any>);
   const inlineReasoning = extractInlineReasoning(String(message?.message ?? ''));
-  const reasoning = mergeReasoningText(
-    String(direct.reasoning ?? nested.reasoning ?? '').trim(),
+  const nativeReasoning = String(direct.reasoning ?? nested.reasoning ?? '').trim();
+  const reasoning = selectReasoningText(
+    nativeReasoning,
     inlineReasoning?.text ?? '',
   );
   const rawDuration = Number(direct.reasoning_duration ?? nested.reasoning_duration);
   return {
     reasoning,
     reasoningDuration: Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : null,
+    reasoningEditable: Boolean(nativeReasoning),
   };
 };
 
@@ -672,6 +745,18 @@ const toReasoningTimestamp = (value: unknown) => {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const timestamp = new Date(value).getTime();
   return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const readMessageResponseDuration = (message: ChatMessage | undefined) => {
+  const direct = (message?.extra ?? {}) as Record<string, any>;
+  const nested =
+    direct.extra && typeof direct.extra === 'object'
+      ? (direct.extra as Record<string, any>)
+      : ({} as Record<string, any>);
+  const startedAt = toReasoningTimestamp(direct.gen_started ?? nested.gen_started);
+  const finishedAt = toReasoningTimestamp(direct.gen_finished ?? nested.gen_finished);
+  if (startedAt === null || finishedAt === null || finishedAt < startedAt) return undefined;
+  return Math.round(finishedAt - startedAt);
 };
 
 const readNativeLiveReasoning = (generation: ActiveGeneration): GenerationReasoning | null => {
@@ -689,7 +774,7 @@ const readNativeLiveReasoning = (generation: ActiveGeneration): GenerationReason
       : typeof handler?.reasoning === 'string'
         ? handler.reasoning
         : '';
-  let text = runtimeReasoning.trim();
+  let text = sanitizeReasoningText(runtimeReasoning);
   let messageId = Number(processor?.messageId);
   let rawState: unknown = handler?.state;
   let duration: number | null = null;
@@ -707,15 +792,23 @@ const readNativeLiveReasoning = (generation: ActiveGeneration): GenerationReason
     if (startedAt !== null) duration = Math.max(0, (endedAt ?? Date.now()) - startedAt);
   }
 
+  const belongsToGeneration = (candidateId: number) => {
+    if (!Number.isInteger(candidateId) || candidateId < 0) return false;
+    if (generation.operation === 'reroll') return candidateId === generation.baseMessageId;
+    if (Number.isInteger(generation.userMessageId)) return candidateId > Number(generation.userMessageId);
+    return candidateId > generation.baseMessageId;
+  };
   const domMessage =
-    (Number.isInteger(messageId) && messageId >= 0 ? getMessageElement(messageId) : null) ??
-    [...tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes')]
+    (belongsToGeneration(messageId) ? getMessageElement(messageId) : null) ??
+    [...tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes[data-reasoning-state="thinking"]')]
       .reverse()
-      .find(element => element.dataset.reasoningState === 'thinking' || element.classList.contains('last_mes'));
+      .find(element => belongsToGeneration(Number(element.getAttribute('mesid'))));
   if (domMessage) {
     const domMessageId = Number(domMessage.getAttribute('mesid'));
     if (!Number.isInteger(messageId) || messageId < 0) messageId = domMessageId;
-    if (!text) text = (domMessage.querySelector<HTMLElement>('.mes_reasoning')?.innerText ?? '').trim();
+    if (!text) {
+      text = sanitizeReasoningText(domMessage.querySelector<HTMLElement>('.mes_reasoning')?.innerText ?? '');
+    }
     rawState ??=
       domMessage.dataset.reasoningState ??
       domMessage.querySelector<HTMLDetailsElement>('.mes_reasoning_details')?.dataset.state;
@@ -731,9 +824,7 @@ const readNativeLiveReasoning = (generation: ActiveGeneration): GenerationReason
     }
   }
 
-  if (!text) return null;
-  if (!Number.isInteger(messageId) || messageId < 0) messageId = getLastMessageId();
-  if (!Number.isInteger(messageId) || messageId < 0) messageId = generation.baseMessageId;
+  if (!text || !belongsToGeneration(messageId)) return null;
   const state = isReasoningState(rawState) && rawState !== 'none' ? rawState : 'thinking';
   return { messageId, text, duration, state };
 };
@@ -778,7 +869,7 @@ const hydrateTimelineEntries = (snapshot: StageSnapshot): PseudoLayerTimelineEnt
   if (snapshot.timelineEntries) return snapshot.timelineEntries;
   const historyIndexes: Record<PseudoLayerHistoryKind, number> = { story: 0, dialogue: 0 };
 
-  const timelineEntries = snapshot.entries.map((entry, index) => {
+  const hydratedEntries = snapshot.entries.map<PseudoLayerTimelineEntry>(entry => {
     const history = entry.stage.kind;
     historyIndexes[history] += 1;
     const turns = entry.messageIds.flatMap<PseudoLayerTimelineTurn>(assistantMessageId => {
@@ -791,6 +882,7 @@ const hydrateTimelineEntries = (snapshot: StageSnapshot): PseudoLayerTimelineEnt
         (previous?.role === 'user' ? previous : undefined);
       const visibleDialogue = metadata ? extractDialogueContent(String(assistant.message ?? '')) : null;
       const reasoning = readTimelineReasoning(assistant);
+      const responseDuration = readMessageResponseDuration(assistant);
       const tokenCount = readMessageTokenCount(assistant);
       return [
         {
@@ -804,9 +896,12 @@ const hydrateTimelineEntries = (snapshot: StageSnapshot): PseudoLayerTimelineEnt
                   String(metadata.reaction ?? visibleDialogue?.reaction ?? '')
                     .replace(/<\/?(?:反应|正文|会话状态)(?=[\s/>])[^>]*>/gi, '')
                     .trim() || undefined,
+                ...(metadata.visualCard ? { visualCard: { ...metadata.visualCard } } : {}),
+                ...(metadata.variableEffects ? { variableEffects: { ...metadata.variableEffects } } : {}),
               }
             : {}),
           ...reasoning,
+          ...(responseDuration !== undefined ? { responseDuration } : {}),
           ...(tokenCount !== undefined ? { tokenCount } : {}),
         },
       ];
@@ -815,21 +910,58 @@ const hydrateTimelineEntries = (snapshot: StageSnapshot): PseudoLayerTimelineEnt
     return {
       representativeMessageId: entry.representativeMessageId,
       messageIds: [...entry.messageIds],
-      index: index + 1,
+      index: historyIndexes[history],
       historyIndex: historyIndexes[history],
       stage: { ...entry.stage },
       turns,
     };
   });
-  snapshot.timelineEntries = timelineEntries;
-  return timelineEntries;
+
+  const storyEntries = hydratedEntries.filter(entry => entry.stage.kind === 'story');
+  hydratedEntries
+    .filter(entry => entry.stage.kind === 'dialogue')
+    .forEach(dialogueEntry => {
+      if (dialogueEntry.stage.kind !== 'dialogue') return;
+      const requestedAnchor = dialogueEntry.stage.anchorStoryMessageId;
+      const anchor =
+        storyEntries.find(entry => entry.representativeMessageId === requestedAnchor) ??
+        [...storyEntries]
+          .reverse()
+          .find(entry => entry.representativeMessageId < dialogueEntry.representativeMessageId);
+      if (!anchor) return;
+      const thread: PseudoLayerDialogueThread = {
+        sessionId: dialogueEntry.stage.sessionId,
+        anchorStoryMessageId: anchor.representativeMessageId,
+        representativeMessageId: dialogueEntry.representativeMessageId,
+        messageIds: [...dialogueEntry.messageIds],
+        targetName: dialogueEntry.stage.targetName,
+        canonicalName: dialogueEntry.stage.canonicalName,
+        channel: dialogueEntry.stage.channel,
+        turnCount: dialogueEntry.stage.turnCount,
+        engine: dialogueEntry.stage.engine,
+        turns: dialogueEntry.turns,
+      };
+      (anchor.dialogueThreads ??= []).push(thread);
+    });
+
+  storyEntries.forEach((entry, index) => {
+    entry.index = index + 1;
+    entry.historyIndex = index + 1;
+  });
+  snapshot.timelineEntries = storyEntries;
+  return storyEntries;
 };
 
 const findTimelineEntryIndex = (entries: PseudoLayerTimelineEntry[], messageId: number | undefined) => {
   if (!Number.isFinite(messageId)) return entries.length - 1;
   const normalized = Math.trunc(messageId!);
   const exact = entries.findIndex(
-    entry => entry.representativeMessageId === normalized || entry.messageIds.includes(normalized),
+    entry =>
+      entry.representativeMessageId === normalized ||
+      entry.messageIds.includes(normalized) ||
+      entry.dialogueThreads?.some(
+        thread => thread.representativeMessageId === normalized || thread.messageIds.includes(normalized),
+      ),
   );
   return exact >= 0 ? exact : entries.length - 1;
 };
@@ -866,6 +998,9 @@ const sendTimelinePage = (source: ReplyTarget, request: Extract<PseudoLayerReque
 const getStageEntries = () => getStageSnapshot().entries;
 
 const latestStageId = () => getStageEntries().at(-1)?.representativeMessageId;
+
+const latestStoryStageId = (entries = getStageEntries()) =>
+  getHistoryEntries(entries, 'story').at(-1)?.representativeMessageId;
 
 const getHistoryEntries = (entries: StageEntry[], history: PseudoLayerHistoryKind) =>
   entries.filter(entry => entry.stage.kind === history);
@@ -975,7 +1110,7 @@ const installFrameObserver = () => {
 };
 
 const parkLatestStageFrame = () => {
-  const messageId = latestStageId();
+  const messageId = latestStoryStageId();
   if (messageId === undefined) return;
   const frame = getMessageElement(messageId)?.querySelector<HTMLIFrameElement>('.TH-render iframe');
   if (frame) parkCandidateFrame(frame);
@@ -1009,21 +1144,24 @@ const getHostStageId = () => {
 };
 
 const makeView = (entries = getStageEntries()): PseudoLayerView => {
+  const pendingInput = getPendingInput();
   const lockedView = getRerollLock();
   if (lockedView) {
     return {
       ...lockedView,
       hostMessageId: getHostStageId() ?? lockedView.hostMessageId,
       nativeInputCollapsed,
+      ...(pendingInput ? { pendingInput } : {}),
       activeInteraction: activeInteraction.mode === 'dialogue' ? { ...activeInteraction } : STORY_INTERACTION,
     };
   }
 
-  const ids = entries.map(entry => entry.representativeMessageId);
+  const storyEntries = getHistoryEntries(entries, 'story');
+  const ids = storyEntries.map(entry => entry.representativeMessageId);
   const latestMessageId = ids.at(-1) ?? -1;
   const selected = selectedMessageId !== null && ids.includes(selectedMessageId) ? selectedMessageId : latestMessageId;
   const position = ids.indexOf(selected);
-  const selectedEntry = entries[position];
+  const selectedEntry = storyEntries[position];
   const selectedAssistantMessageId = selectedEntry?.messageIds.at(-1) ?? selected;
   const tokenCount = readMessageTokenCount(getStageSnapshot().messagesById.get(selectedAssistantMessageId));
   return {
@@ -1031,14 +1169,20 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
     revision: viewRevision,
     selectedMessageId: selected,
     latestMessageId,
+    latestStoryMessageId: latestMessageId,
+    latestStateMessageId: latestStageId() ?? latestMessageId,
     index: position >= 0 ? position + 1 : 0,
     total: ids.length,
     previousMessageId: position > 0 ? ids[position - 1] : undefined,
     nextMessageId: position >= 0 && position < ids.length - 1 ? ids[position + 1] : undefined,
     isLatest: selected === latestMessageId,
     nativeInputCollapsed,
+    ...(pendingInput ? { pendingInput } : {}),
     ...(tokenCount !== undefined ? { tokenCount } : {}),
     stage: selectedEntry?.stage ?? { kind: 'story' },
+    dialogueThreads:
+      hydrateTimelineEntries(getStageSnapshot()).find(entry => entry.representativeMessageId === selected)
+        ?.dialogueThreads ?? [],
     histories: {
       story: makeHistoryState(entries, 'story'),
       dialogue: makeHistoryState(entries, 'dialogue'),
@@ -1260,7 +1404,7 @@ const writeInteractionMetadata = async (
   const existing = readInteractionMetadata(message);
   const metadata: PseudoLayerInteractionMetadata = {
     ...existing,
-    version: 2,
+    version: 3,
     kind: 'dialogue',
     ...context,
     engine: existing?.engine ?? 'native',
@@ -1295,6 +1439,89 @@ const triggerNativeSend = (prompt: string) => {
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
   textarea.dispatchEvent(new Event('change', { bubbles: true }));
   sendButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+};
+
+const setDialogueCarryoverPrompt = async (content = '') => {
+  const context = (
+    tavernWindow as typeof tavernWindow & {
+      SillyTavern?: {
+        getContext?: () => {
+          setExtensionPrompt?: (
+            id: string,
+            content: string,
+            position: -1 | 1,
+            depth: number,
+            scan?: boolean,
+            role?: number,
+          ) => Promise<void> | void;
+        };
+      };
+    }
+  ).SillyTavern?.getContext?.();
+  if (typeof context?.setExtensionPrompt !== 'function') return;
+  await context.setExtensionPrompt(DIALOGUE_CARRYOVER_PROMPT_ID, content, content ? 1 : -1, 1, false, 0);
+};
+
+const buildDialogueCarryoverPrompt = (anchorStoryMessageId: number) => {
+  const snapshot = getStageSnapshot();
+  const storyEntry = hydrateTimelineEntries(snapshot).find(
+    entry => entry.representativeMessageId === anchorStoryMessageId,
+  );
+  const threads = storyEntry?.dialogueThreads ?? [];
+  if (threads.length === 0) return '';
+
+  const significantLines: string[] = [];
+  const recentTurns = threads
+    .flatMap(thread =>
+      thread.turns.map(turn => ({
+        ...turn,
+        targetName: thread.targetName,
+      })),
+    )
+    .sort((left, right) => left.assistantMessageId - right.assistantMessageId);
+
+  recentTurns.forEach(turn => {
+    const metadata = readInteractionMetadata(snapshot.messagesById.get(turn.assistantMessageId));
+    metadata?.memoryEvents?.forEach(event => {
+      if (event.status === 'open') significantLines.push(`${metadata.targetName}记住：${event.summary}`);
+    });
+    metadata?.relationEvents?.forEach(event => {
+      if (event.applied) significantLines.push(`${metadata.targetName}关系变化：${event.summary}`);
+    });
+    if (metadata?.sessionState?.unresolvedThreads?.length) {
+      significantLines.push(
+        `${metadata.targetName}未了话题：${metadata.sessionState.unresolvedThreads.join('；')}`,
+      );
+    }
+  });
+
+  const quoteLines = recentTurns.slice(-4).flatMap(turn => {
+    const visible = extractDialogueContent(turn.assistantText);
+    return [
+      turn.userText && `{{user}}：${turn.userText}`,
+      visible.dialogue && `${turn.targetName}：${visible.dialogue}`,
+    ].filter(Boolean) as string[];
+  });
+  const content = [
+    '【刚刚发生的幕间交谈】',
+    '以下交谈已经发生，是本轮正文的既成事实。自然承接其关系、承诺和情绪，不要机械复述整段对白。',
+    ...[...new Set(significantLines)].slice(-8),
+    quoteLines.length ? '【近期原话】' : '',
+    ...quoteLines,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return content.slice(0, 1200);
+};
+
+const prepareDialogueCarryoverPrompt = async (anchorStoryMessageId: number) => {
+  await setDialogueCarryoverPrompt(buildDialogueCarryoverPrompt(anchorStoryMessageId));
+};
+
+const clearDialogueCarryoverPrompt = () => {
+  void setDialogueCarryoverPrompt().catch(error => {
+    console.warn('[灯火阑珊·幕间交谈] 清理正文承接提示失败', error);
+  });
 };
 
 const triggerNativeReroll = async (messageId: number) => {
@@ -1345,6 +1572,64 @@ const isNativeSwipePlaceholder = (value: unknown) => stripNativeSwipeMarker(valu
 const isUsableNativeSwipeCandidate = (value: unknown) => {
   const visible = stripNativeSwipeMarker(value);
   return visible.length > 0 && !isNativeSwipePlaceholder(value);
+};
+
+function getPendingInput(): PseudoLayerPendingInput | undefined {
+  // 正常生成中的 user 楼层由流式视图承载；这里只暴露控制器已失去事务状态的孤立输入。
+  if (activeGeneration) return undefined;
+  const messages = getAllMessages();
+  const latestAssistantId = messages
+    .filter(message => message.role === 'assistant' && isUsableNativeSwipeCandidate(message.message))
+    .at(-1)?.message_id;
+  const pendingUsers = messages.filter(
+    message =>
+      message.role === 'user' &&
+      message.message_id > (latestAssistantId ?? -1) &&
+      String(message.message ?? '').trim().length > 0,
+  );
+  const latest = pendingUsers.at(-1);
+  if (!latest) return undefined;
+  return {
+    messageIds: pendingUsers.map(message => message.message_id),
+    latestMessageId: latest.message_id,
+    text: readTimelineUserText(latest, readInteractionMetadata(latest)),
+    count: pendingUsers.length,
+  };
+}
+
+const resolveNativeGenerationUserMessage = (generation: ActiveGeneration): ChatMessage | undefined => {
+  if (Number.isInteger(generation.userMessageId)) {
+    const explicit = getChatMessages(Number(generation.userMessageId))[0];
+    if (explicit?.role === 'user') return explicit;
+  }
+
+  const baseline = Number(generation.baselineLastMessageId ?? generation.baseMessageId);
+  const expectedText = generation.rawUserText.trim();
+  const inferred = getAllMessages().find(message => {
+    if (message.role !== 'user' || message.message_id <= baseline) return false;
+    if (!expectedText) return true;
+    return String(message.message ?? '').trim() === expectedText;
+  });
+  if (inferred) generation.userMessageId = inferred.message_id;
+  return inferred;
+};
+
+const isNativeGenerationAssistant = (generation: ActiveGeneration, messageId: number) => {
+  if (generation.engine !== 'native' || generation.operation !== 'generate') return false;
+  const message = getChatMessages(messageId)[0];
+  if (message?.role !== 'assistant' || !isUsableNativeSwipeCandidate(message.message)) return false;
+  const userMessage = resolveNativeGenerationUserMessage(generation);
+  const boundary = userMessage?.message_id ?? generation.baselineLastMessageId ?? generation.baseMessageId;
+  return message.message_id > boundary;
+};
+
+const findNativeGenerationAssistant = (generation: ActiveGeneration) => {
+  const userMessage = resolveNativeGenerationUserMessage(generation);
+  const boundary = userMessage?.message_id ?? generation.baselineLastMessageId ?? generation.baseMessageId;
+  return getAllMessages().find(
+    message =>
+      message.role === 'assistant' && message.message_id > boundary && isUsableNativeSwipeCandidate(message.message),
+  );
 };
 
 const isNativeSwipeCandidateIncomplete = (message: NativeSwipeMessage, index: number) => {
@@ -1693,6 +1978,7 @@ const failNativeReroll = (generation: ActiveGeneration, error: unknown): Promise
       console.error('[灯火阑珊·伪同层] 原生重生成回滚失败', rollbackError);
     }
     if (activeGeneration !== generation) return;
+    clearDialogueCarryoverPrompt();
     discardQueuedStream();
     send(generation.source, {
       type: 'error',
@@ -1706,6 +1992,84 @@ const failNativeReroll = (generation: ActiveGeneration, error: unknown): Promise
     schedulePostRerollRecoverySync(generation);
   })();
   generation.rerollFailure = task;
+  return task;
+};
+
+const rollbackNativeGenerationInput = async (generation: ActiveGeneration) => {
+  if (generation.engine !== 'native' || generation.operation !== 'generate') return false;
+  if (generation.chatId && getCurrentChatId() !== generation.chatId) return false;
+  if (findNativeGenerationAssistant(generation)) return false;
+
+  const userMessage = resolveNativeGenerationUserMessage(generation);
+  if (!userMessage) return false;
+  const baseline = Number(generation.baselineLastMessageId ?? generation.baseMessageId);
+  if (userMessage.message_id <= baseline) return false;
+
+  const transactionMessageIds = getAllMessages()
+    .filter(
+      message =>
+        message.message_id >= userMessage.message_id &&
+        (message.message_id === userMessage.message_id ||
+          (message.role === 'assistant' && !isUsableNativeSwipeCandidate(message.message))),
+    )
+    .map(message => message.message_id);
+  if (!transactionMessageIds.includes(userMessage.message_id)) return false;
+
+  const previousDeletingMessageId = deletingMessageId;
+  deletingMessageId = Math.max(...transactionMessageIds);
+  try {
+    await deleteChatMessages(transactionMessageIds, { refresh: 'affected' });
+  } finally {
+    deletingMessageId = previousDeletingMessageId;
+  }
+
+  invalidateStageSnapshot();
+  const fallbackMessageId = latestStageId() ?? generation.baseMessageId;
+  selectedMessageId = fallbackMessageId;
+  selectedHistoryKind = generation.interaction.mode;
+  rememberStageSelection(fallbackMessageId);
+  browsingHistory = false;
+  viewRevision += 1;
+  return true;
+};
+
+const failNativeGeneration = (generation: ActiveGeneration, error: unknown): Promise<void> => {
+  if (generation.generationFailure) return generation.generationFailure;
+  generation.cancelled = true;
+
+  const task = (async () => {
+    let rolledBack = false;
+    try {
+      rolledBack = await rollbackNativeGenerationInput(generation);
+    } catch (rollbackError) {
+      console.error('[灯火阑珊·伪同层] 失败推演的临时输入回滚失败', rollbackError);
+    }
+    if (activeGeneration !== generation) return;
+    clearDialogueCarryoverPrompt();
+    if (!rolledBack) {
+      const lateAssistant = findNativeGenerationAssistant(generation);
+      if (lateAssistant) {
+        await finishMessage(lateAssistant.message_id);
+        return;
+      }
+    }
+
+    discardQueuedStream();
+    const reason = error instanceof Error ? error.message : String(error);
+    const cleanupNotice = rolledBack
+      ? '本轮临时输入已撤销，原文仍保留在输入框中，可以直接重试。'
+      : Number.isInteger(generation.userMessageId)
+        ? '未能安全撤销本轮输入，请展开酒馆原生聊天检查是否残留孤立楼层。'
+        : '本轮尚未写入聊天记录，原文仍保留在输入框中。';
+    send(generation.source, {
+      type: 'error',
+      requestId: generation.requestId,
+      message: `${reason}；${cleanupNotice}`,
+    });
+    activeGeneration = null;
+    broadcastView();
+  })();
+  generation.generationFailure = task;
   return task;
 };
 
@@ -1787,9 +2151,39 @@ const stripDialogueStructureTags = (text: string) =>
 const buildDedicatedDialogueMessage = (result: ParsedDialogueGeneration) => {
   const reaction = stripDialogueStructureTags(result.reaction);
   const dialogue = stripDialogueStructureTags(result.dialogue);
-  return [`<反应>${reaction}</反应>`, `<正文>${dialogue}</正文>`, '<pseudo_layer>', '灯火阑珊', '</pseudo_layer>'].join(
-    '\n',
-  );
+  return [
+    `<反应>${reaction}</反应>`,
+    `<正文>${dialogue}</正文>`,
+    `<visual_cards>${JSON.stringify([result.visualCard])}</visual_cards>`,
+    result.variableUpdateBlock,
+    '<pseudo_layer>',
+    '灯火阑珊',
+    '</pseudo_layer>',
+  ]
+    .filter(Boolean)
+    .join('\n');
+};
+
+const applyDialogueVariableUpdate = async (
+  result: ParsedDialogueGeneration,
+  mvuSnapshot: Record<string, any>,
+): Promise<Record<string, any>> => {
+  const baseline = _.cloneDeep(mvuSnapshot);
+  if (!result.variableUpdateBlock) return baseline;
+  try {
+    await waitGlobalInitialized('Mvu');
+    const updated = await Mvu.parseMessage(result.variableUpdateBlock, baseline as Mvu.MvuData);
+    const statData = _.get(updated, 'stat_data');
+    if (statData && typeof statData === 'object') {
+      _.set(updated, 'stat_data', Schema.parse(statData));
+    }
+    return updated;
+  } catch (error) {
+    console.warn('[灯火阑珊·短对话] 受限变量更新未能通过 MVU/Schema 校验，已保留对白并沿用旧快照', error);
+    result.variableEffects = {};
+    result.variableUpdateBlock = '';
+    return baseline;
+  }
 };
 
 const buildDedicatedMetadata = (
@@ -1800,7 +2194,7 @@ const buildDedicatedMetadata = (
 ): PseudoLayerInteractionMetadata => {
   const reaction = result ? stripDialogueStructureTags(result.reaction) : '';
   return {
-    version: 2,
+    version: 3,
     kind: 'dialogue',
     ...context,
     engine: 'dedicated',
@@ -1810,7 +2204,18 @@ const buildDedicatedMetadata = (
     ...(reaction ? { reaction } : {}),
     ...(result?.sessionState ? { sessionState: result.sessionState } : {}),
     ...(result?.memoryEvents.length ? { memoryEvents: result.memoryEvents } : {}),
-    ...(result?.relationEvents.length ? { relationEvents: result.relationEvents } : {}),
+    ...(result?.relationEvents.length
+      ? {
+          relationEvents: result.relationEvents.map(event => ({
+            ...event,
+            applied: Object.values(result.variableEffects).some(Boolean),
+          })),
+        }
+      : {}),
+    ...(result?.visualCard ? { visualCard: { ...result.visualCard } } : {}),
+    ...(result && Object.values(result.variableEffects).some(Boolean)
+      ? { variableEffects: { ...result.variableEffects } }
+      : {}),
   };
 };
 
@@ -1850,6 +2255,7 @@ const commitDedicatedDialogue = async (
   context: DialogueContext,
   result: ParsedDialogueGeneration,
   mvuSnapshot: Record<string, any>,
+  updatedMvuData: Record<string, any>,
 ) => {
   const baseline = generation.baselineLastMessageId;
   if (
@@ -1869,14 +2275,16 @@ const commitDedicatedDialogue = async (
     [
       {
         role: 'user',
+        is_hidden: true,
         message: decorateDialogueInput(generation.rawUserText, context),
         data: _.cloneDeep(mvuSnapshot),
         extra: { [INTERACTION_KEY]: userMetadata },
       },
       {
         role: 'assistant',
+        is_hidden: true,
         message: buildDedicatedDialogueMessage(result),
-        data: _.cloneDeep(mvuSnapshot),
+        data: _.cloneDeep(updatedMvuData),
         extra: { [INTERACTION_KEY]: assistantMetadata },
       },
     ],
@@ -1902,7 +2310,7 @@ const commitDedicatedDialogueReroll = async (
   generation: ActiveGeneration,
   context: DialogueContext,
   result: ParsedDialogueGeneration,
-  mvuSnapshot: Record<string, any>,
+  updatedMvuData: Record<string, any>,
 ) => {
   const baseline = generation.baselineLastMessageId;
   const userMessageId = generation.userMessageId;
@@ -1924,8 +2332,9 @@ const commitDedicatedDialogueReroll = async (
     [
       {
         message_id: targetMessageId,
+        is_hidden: true,
         message: buildDedicatedDialogueMessage(result),
-        data: _.cloneDeep(mvuSnapshot),
+        data: _.cloneDeep(updatedMvuData),
         extra: {
           ...(current.extra ?? {}),
           [INTERACTION_KEY]: metadata,
@@ -1949,9 +2358,12 @@ const commitDedicatedDialogueReroll = async (
 
 const finishDedicatedGeneration = (generation: ActiveGeneration, messageId: number) => {
   invalidateStageSnapshot();
-  selectedMessageId = messageId;
-  selectedHistoryKind = 'dialogue';
-  rememberStageSelection(messageId);
+  selectedMessageId =
+    generation.interaction.mode === 'dialogue'
+      ? (generation.interaction.anchorStoryMessageId ?? latestStoryStageId() ?? messageId)
+      : messageId;
+  selectedHistoryKind = 'story';
+  if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
   browsingHistory = false;
   viewRevision += 1;
   flushQueuedStream(generation);
@@ -1980,14 +2392,19 @@ const runDedicatedDialogueGeneration = async (
       context,
       messages,
       mvuData: mvuSnapshot,
+      getStreamFallback: () => ({
+        reaction: generation.streamReaction,
+        dialogue: generation.streamText,
+      }),
     });
     if (activeGeneration !== generation) return;
     if (generation.cancelled) throw new Error('本轮短对话已停止。');
     sendGenerationState(generation, 'saving');
+    const updatedMvuData = await applyDialogueVariableUpdate(result, mvuSnapshot);
     const messageId =
       generation.operation === 'reroll'
-        ? await commitDedicatedDialogueReroll(generation, context, result, mvuSnapshot)
-        : await commitDedicatedDialogue(generation, context, result, mvuSnapshot);
+        ? await commitDedicatedDialogueReroll(generation, context, result, updatedMvuData)
+        : await commitDedicatedDialogue(generation, context, result, mvuSnapshot, updatedMvuData);
     if (activeGeneration !== generation) return;
     finishDedicatedGeneration(generation, messageId);
   } catch (error) {
@@ -2041,7 +2458,12 @@ const beginGeneration = (request: Extract<PseudoLayerRequest, { type: 'generate'
     return;
   }
 
-  const dialogue = request.interaction.mode === 'dialogue' ? normalizeDialogueContext(request.interaction) : null;
+  const normalizedDialogue =
+    request.interaction.mode === 'dialogue' ? normalizeDialogueContext(request.interaction) : null;
+  const dialogue =
+    normalizedDialogue && normalizedDialogue.anchorStoryMessageId === undefined
+      ? { ...normalizedDialogue, anchorStoryMessageId: latestStoryStageId(entries) }
+      : normalizedDialogue;
   const interaction: PseudoLayerInteraction = dialogue ?? STORY_INTERACTION;
   setActiveInteraction(interaction);
 
@@ -2097,6 +2519,8 @@ const beginGeneration = (request: Extract<PseudoLayerRequest, { type: 'generate'
     interaction,
     rawUserText: prompt,
     engine: 'native',
+    chatId: getCurrentChatId(),
+    baselineLastMessageId: getLastMessageId(),
     sent: false,
     received: false,
     streamText: '',
@@ -2107,118 +2531,76 @@ const beginGeneration = (request: Extract<PseudoLayerRequest, { type: 'generate'
   sendGenerationState(activeGeneration, 'preparing');
   applyStageVisibility();
 
-  try {
-    triggerNativeSend(prompt);
-    window.setTimeout(() => {
-      if (!activeGeneration || activeGeneration.requestId !== request.requestId || activeGeneration.sent) return;
-      send(source, {
-        type: 'error',
-        requestId: request.requestId,
-        message: '酒馆没有开始生成，请检查连接和发送按钮状态。',
-      });
-      activeGeneration = null;
-      broadcastView();
-    }, 1800);
-  } catch (error) {
-    send(source, {
-      type: 'error',
-      requestId: request.requestId,
-      message: error instanceof Error ? error.message : String(error),
+  const generation = activeGeneration;
+  void prepareDialogueCarryoverPrompt(request.messageId)
+    .then(() => {
+      if (activeGeneration !== generation || generation.cancelled) return;
+      triggerNativeSend(prompt);
+      window.setTimeout(() => {
+        if (!activeGeneration || activeGeneration.requestId !== request.requestId || activeGeneration.sent) return;
+        void failNativeGeneration(activeGeneration, new Error('酒馆没有开始生成，请检查连接和发送按钮状态'));
+      }, 1800);
+    })
+    .catch(error => {
+      if (activeGeneration === generation) void failNativeGeneration(generation, error);
     });
-    activeGeneration = null;
-    broadcastView();
-  }
 };
 
-const routeNativeDialoguePrompt = (prompt: string) => {
-  if (activeInteraction.mode !== 'dialogue') return false;
-  const source = getActiveSource();
-  const anchor = getGenerationAnchor('dialogue');
-  if (!source || anchor === undefined) return false;
-  const requestId = `native-dialogue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  beginGeneration(
-    {
-      channel: PSEUDO_LAYER_CHANNEL,
-      version: PSEUDO_LAYER_VERSION,
-      type: 'generate',
-      requestId,
-      messageId: anchor,
-      prompt,
-      interaction: { ...activeInteraction },
-    },
-    source,
-  );
-  return activeGeneration?.requestId === requestId;
-};
-
-const interceptNativeDialogueSend = (event: Event) => {
-  if (activeInteraction.mode !== 'dialogue') return;
-  const textarea = tavernDocument.querySelector<HTMLTextAreaElement>('#send_textarea');
-  const prompt = textarea?.value.trim() ?? '';
-  if (!prompt || prompt.startsWith('/')) return;
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null || browsingHistory) {
-    toastr.warning(browsingHistory ? '请先返回最新回合再继续交谈。' : '当前仍有操作正在进行。');
-    return;
-  }
-  if (!routeNativeDialoguePrompt(prompt) || !textarea) {
-    toastr.error('伪同层尚未就绪，未发送本轮交谈。');
-    return;
-  }
-  textarea.value = '';
-  textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  textarea.dispatchEvent(new Event('change', { bubbles: true }));
-};
-
-const handleNativeSendClick = (event: MouseEvent) => {
-  const target = event.target as HTMLElement | null;
-  if (typeof target?.closest !== 'function' || !target.closest('#send_but')) return;
-  interceptNativeDialogueSend(event);
-};
-
-const handleNativeSendSubmit = (event: SubmitEvent) => {
-  const target = event.target as HTMLElement | null;
-  if (typeof target?.closest !== 'function' || !target.closest('#form_sheld')) return;
-  interceptNativeDialogueSend(event);
-};
-
-const handleNativeSendKeydown = (event: KeyboardEvent) => {
-  if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
-  const target = event.target as HTMLElement | null;
-  if (typeof target?.matches !== 'function' || !target.matches('#send_textarea')) return;
-  if (!event.ctrlKey && !event.metaKey) return;
-  interceptNativeDialogueSend(event);
-};
-
-const installNativeDialogueBridge = () => {
-  tavernDocument.addEventListener('click', handleNativeSendClick, true);
-  tavernDocument.addEventListener('submit', handleNativeSendSubmit, true);
-  tavernDocument.addEventListener('keydown', handleNativeSendKeydown, true);
-};
-
-const removeNativeDialogueBridge = () => {
-  tavernDocument.removeEventListener('click', handleNativeSendClick, true);
-  tavernDocument.removeEventListener('submit', handleNativeSendSubmit, true);
-  tavernDocument.removeEventListener('keydown', handleNativeSendKeydown, true);
-};
-
-const beginReroll = (request: Extract<PseudoLayerRequest, { type: 'reroll' }>, source: ReplyTarget) => {
+const beginReroll = async (request: Extract<PseudoLayerRequest, { type: 'reroll' }>, source: ReplyTarget) => {
   if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
     send(source, { type: 'error', requestId: request.requestId, message: '已有一场生成正在进行。' });
     return;
   }
-  const messages = getAllMessages();
-  const message = messages.find(item => item.message_id === request.messageId);
-  const metadata = resolveAssistantInteractionMetadata(message, messages);
+  let messages = getAllMessages();
+  let message = messages.find(item => item.message_id === request.messageId);
+  let metadata = resolveAssistantInteractionMetadata(message, messages);
+  const entries = getStageEntries();
   const latest = latestStageId();
-  if (request.messageId !== latest) {
+  const latestStory = latestStoryStageId(entries);
+  if ((metadata && request.messageId !== latest) || (!metadata && request.messageId !== latestStory)) {
     send(source, {
       type: 'error',
       requestId: request.requestId,
-      message: '只能重答时间线中的最新回复，请先返回最新。',
+      message: metadata ? '只能重答最新一轮幕间回复。' : '只能重推最新正文。',
     });
     return;
+  }
+
+  if (!metadata) {
+    const dependentEntries = entries.filter(
+      entry => entry.stage.kind === 'dialogue' && entry.stage.anchorStoryMessageId === request.messageId,
+    );
+    const dependentIds = dependentEntries.flatMap(entry =>
+      entry.messageIds.flatMap(assistantMessageId => {
+        const dialogueAssistant = messages.find(candidate => candidate.message_id === assistantMessageId);
+        const dialogueMetadata = resolveAssistantInteractionMetadata(dialogueAssistant, messages);
+        const dialogueUser = Number.isFinite(dialogueMetadata?.userMessageId)
+          ? messages.find(candidate => candidate.message_id === dialogueMetadata?.userMessageId)
+          : findPreviousUserMessage(messages, assistantMessageId);
+        return [assistantMessageId, ...(dialogueUser ? [dialogueUser.message_id] : [])];
+      }),
+    );
+    if (dependentIds.length > 0) {
+      deletingMessageId = Math.max(...dependentIds);
+      try {
+        await deleteChatMessages([...new Set(dependentIds)].sort((left, right) => left - right), {
+          refresh: 'affected',
+        });
+      } catch (error) {
+        send(source, {
+          type: 'error',
+          requestId: request.requestId,
+          message: `移除依赖幕间交谈失败：${error instanceof Error ? error.message : String(error)}`,
+        });
+        return;
+      } finally {
+        deletingMessageId = null;
+      }
+      invalidateStageSnapshot();
+      messages = getAllMessages();
+      message = messages.find(item => item.message_id === request.messageId);
+      metadata = resolveAssistantInteractionMetadata(message, messages);
+    }
   }
 
   if (metadata) {
@@ -2389,6 +2771,21 @@ const finishMessageInternal = async (messageId: number) => {
   ) {
     return false;
   }
+  const targetMessage = getChatMessages(messageId)[0];
+  if (!targetMessage || targetMessage.role !== 'assistant') {
+    if (generation?.engine === 'native' && generation.operation === 'generate') {
+      await failNativeGeneration(generation, new Error('生成结束但没有形成有效的 AI 回复'));
+    }
+    return false;
+  }
+  if (
+    generation?.engine === 'native' &&
+    generation.operation === 'generate' &&
+    !isNativeGenerationAssistant(generation, messageId)
+  ) {
+    await failNativeGeneration(generation, new Error('生成结束但回复楼层与本轮输入不匹配'));
+    return false;
+  }
   if (generation) {
     generation.received = true;
     sendGenerationState(generation, 'saving');
@@ -2406,6 +2803,7 @@ const finishMessageInternal = async (messageId: number) => {
         throw new Error('重答在完成前被终止');
       }
     }
+    if (generation?.engine === 'native') clearDialogueCarryoverPrompt();
     if (generation?.interaction.mode === 'dialogue') {
       await writeInteractionMetadata(messageId, generation.interaction, {
         rawUserText: generation.rawUserText,
@@ -2484,6 +2882,42 @@ const finishMessage = (messageId: number) => {
   return task;
 };
 
+const settleNativeGeneration = (
+  generation: ActiveGeneration,
+  candidateMessageId: number,
+  failureMessage: string,
+  delayMs: number,
+) => {
+  if (isNativeGenerationAssistant(generation, candidateMessageId)) {
+    void finishMessage(candidateMessageId);
+    return;
+  }
+
+  window.setTimeout(() => {
+    if (activeGeneration !== generation || generation.received || generation.generationFailure) return;
+    const assistant = findNativeGenerationAssistant(generation);
+    if (assistant) {
+      void finishMessage(assistant.message_id);
+      return;
+    }
+    void failNativeGeneration(generation, new Error(failureMessage));
+  }, delayMs);
+};
+
+const settleStoppedNativeGeneration = (generation: ActiveGeneration) => {
+  if (activeGeneration !== generation || generation.engine !== 'native') return;
+  generation.cancelled = true;
+  if (generation.operation === 'reroll') {
+    void failNativeReroll(generation, new Error('重答在完成前被终止'));
+    return;
+  }
+  if (generation.stopSettlementScheduled) return;
+  generation.stopSettlementScheduled = true;
+  // 部分浏览器/酒馆版本在主动 stopGeneration 后不会继续派发 STOPPED/ENDED。
+  // 不再把解锁完全寄托于外部事件：给原生消息短暂落盘时间，再保留半截回复或回滚临时输入。
+  settleNativeGeneration(generation, Number.NaN, '生成在有效回复写入前停止', 3000);
+};
+
 const repairDialogueMetadata = async (messageId: number) => {
   const messages = getAdjacentMessages(messageId);
   const message = messages.find(item => item.message_id === messageId);
@@ -2550,16 +2984,20 @@ const deleteLatestTurn = async (
   }
 
   const entries = getStageEntries();
+  const target = entries.find(entry => entry.representativeMessageId === request.messageId);
   const latest = entries.at(-1);
-  if (!latest || request.messageId !== latest.representativeMessageId) {
+  const latestStory = getHistoryEntries(entries, 'story').at(-1);
+  const isLatestDialogue = target?.stage.kind === 'dialogue' && target === latest;
+  const isLatestStory = target?.stage.kind === 'story' && target === latestStory;
+  if (!target || (!isLatestDialogue && !isLatestStory)) {
     send(source, {
       type: 'error',
       requestId: request.requestId,
-      message: '只能删除最新回合，请先返回最新。',
+      message: '只能删除最新正文或最新一轮幕间交谈。',
     });
     return;
   }
-  if (entries.length === 1 && (latest.stage.kind !== 'dialogue' || latest.stage.turnCount <= 1)) {
+  if (target.stage.kind === 'story' && getHistoryEntries(entries, 'story').length <= 1) {
     send(source, {
       type: 'error',
       requestId: request.requestId,
@@ -2570,7 +3008,7 @@ const deleteLatestTurn = async (
 
   const messages = getAllMessages();
   const assistant = messages.find(
-    message => message.role === 'assistant' && message.message_id === latest.representativeMessageId,
+    message => message.role === 'assistant' && message.message_id === target.representativeMessageId,
   );
   if (!assistant) {
     send(source, { type: 'error', requestId: request.requestId, message: '没有找到要删除的回复。' });
@@ -2583,15 +3021,32 @@ const deleteLatestTurn = async (
     : undefined;
   const previousUser = findPreviousUserMessage(messages, assistant.message_id);
   const linkedUser = explicitUser ?? (previousUser?.message_id === assistant.message_id - 1 ? previousUser : undefined);
-  const messageIds = [assistant.message_id, ...(linkedUser ? [linkedUser.message_id] : [])].sort(
-    (left, right) => left - right,
-  );
+  const messageIds = new Set([assistant.message_id, ...(linkedUser ? [linkedUser.message_id] : [])]);
+  if (target.stage.kind === 'story') {
+    entries
+      .filter(
+        entry =>
+          entry.stage.kind === 'dialogue' && entry.stage.anchorStoryMessageId === target.representativeMessageId,
+      )
+      .forEach(entry => {
+        entry.messageIds.forEach(assistantMessageId => {
+          messageIds.add(assistantMessageId);
+          const dialogueAssistant = messages.find(message => message.message_id === assistantMessageId);
+          const dialogueMetadata = resolveAssistantInteractionMetadata(dialogueAssistant, messages);
+          const dialogueUser = Number.isFinite(dialogueMetadata?.userMessageId)
+            ? messages.find(message => message.message_id === dialogueMetadata?.userMessageId)
+            : findPreviousUserMessage(messages, assistantMessageId);
+          if (dialogueUser) messageIds.add(dialogueUser.message_id);
+        });
+      });
+  }
+  const sortedMessageIds = [...messageIds].sort((left, right) => left - right);
 
-  deletingMessageId = assistant.message_id;
+  deletingMessageId = Math.max(...sortedMessageIds);
   try {
-    await deleteChatMessages(messageIds, { refresh: 'affected' });
+    await deleteChatMessages(sortedMessageIds, { refresh: 'affected' });
     invalidateStageSnapshot();
-    selectedMessageId = latestStageId() ?? null;
+    selectedMessageId = latestStoryStageId() ?? null;
     selectedHistoryKind = null;
     if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
     browsingHistory = false;
@@ -2600,6 +3055,85 @@ const deleteLatestTurn = async (
       type: 'deleted',
       requestId: request.requestId,
       deletedMessageId: assistant.message_id,
+    });
+  } catch (error) {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    deletingMessageId = null;
+    scheduleViewRefresh(120, true);
+  }
+};
+
+const recoverPendingInput = async (
+  request: Extract<PseudoLayerRequest, { type: 'recover_pending_input' }>,
+  source: ReplyTarget,
+) => {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: '当前仍有操作正在进行，暂不能撤回残留输入。',
+    });
+    return;
+  }
+
+  const pending = getPendingInput();
+  if (!pending || pending.latestMessageId !== Math.trunc(request.latestMessageId)) {
+    send(source, { type: 'error', requestId: request.requestId, message: '这组残留输入已经变化，请稍后重试。' });
+    return;
+  }
+
+  const pendingIds = new Set(pending.messageIds);
+  const firstPendingId = Math.min(...pending.messageIds);
+  const messages = getAllMessages();
+  const hasCompletedReply = messages.some(
+    message =>
+      message.message_id > firstPendingId &&
+      message.role === 'assistant' &&
+      isUsableNativeSwipeCandidate(message.message),
+  );
+  if (hasCompletedReply) {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: '残留输入之后已经出现有效回复，未执行撤回。',
+    });
+    return;
+  }
+
+  const removableIds = messages
+    .filter(
+      message =>
+        pendingIds.has(message.message_id) ||
+        (message.message_id >= firstPendingId &&
+          message.role === 'assistant' &&
+          !isUsableNativeSwipeCandidate(message.message)),
+    )
+    .map(message => message.message_id);
+  if (removableIds.length === 0) {
+    send(source, { type: 'error', requestId: request.requestId, message: '没有找到可撤回的残留输入。' });
+    return;
+  }
+
+  const chatId = getCurrentChatId();
+  deletingMessageId = Math.max(...removableIds);
+  try {
+    await deleteChatMessages(removableIds, { refresh: 'affected' });
+    if (getCurrentChatId() !== chatId) throw new Error('撤回期间聊天已经切换。');
+    invalidateStageSnapshot();
+    selectedMessageId = latestStageId() ?? null;
+    selectedHistoryKind = null;
+    browsingHistory = false;
+    viewRevision += 1;
+    send(source, {
+      type: 'pending_input_recovered',
+      requestId: request.requestId,
+      userText: pending.text,
+      removedCount: pending.count,
     });
   } catch (error) {
     send(source, {
@@ -2673,6 +3207,66 @@ const updateMessageContent = async (
   }
 };
 
+const updateMessageReasoning = async (
+  request: Extract<PseudoLayerRequest, { type: 'update_reasoning' }>,
+  source: ReplyTarget,
+) => {
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
+    send(source, { type: 'error', requestId: request.requestId, message: '当前仍有操作正在进行。' });
+    return;
+  }
+
+  const messageId = Math.trunc(request.messageId);
+  const content = String(request.content ?? '').trim();
+  const entry = getStageEntries().find(candidate => candidate.messageIds.includes(messageId));
+  const message = getChatMessages(messageId)[0];
+  if (!Number.isFinite(messageId) || !entry || !message || message.role !== 'assistant') {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: '当前回合已经变化，请重新打开思维链编辑器。',
+    });
+    return;
+  }
+  if (!content) {
+    send(source, { type: 'error', requestId: request.requestId, message: '思维链内容不能为空。' });
+    return;
+  }
+
+  const extra = _.cloneDeep((message.extra ?? {}) as Record<string, any>);
+  if (extra.extra && typeof extra.extra === 'object') {
+    extra.extra = { ...(extra.extra as Record<string, any>), reasoning: content };
+  } else {
+    extra.reasoning = content;
+  }
+
+  const chatId = getCurrentChatId();
+  updatingMessageId = messageId;
+  try {
+    await setChatMessages([{ message_id: messageId, extra }], { refresh: 'affected' });
+    if (getCurrentChatId() !== chatId) throw new Error('保存期间聊天已经切换，本次编辑未完成。');
+    await eventEmit(tavern_events.MESSAGE_REASONING_EDITED, messageId);
+
+    invalidateStageSnapshot();
+    viewRevision += 1;
+    send(source, {
+      type: 'message_updated',
+      requestId: request.requestId,
+      messageId,
+    });
+    broadcastView();
+  } catch (error) {
+    send(source, {
+      type: 'error',
+      requestId: request.requestId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    updatingMessageId = null;
+    scheduleViewRefresh(120, true);
+  }
+};
+
 const updateUserMessageContent = async (
   request: Extract<PseudoLayerRequest, { type: 'update_user_message' }>,
   source: ReplyTarget,
@@ -2720,7 +3314,7 @@ const updateUserMessageContent = async (
       const existingUserMetadata = readInteractionMetadata(linkedUser);
       const userMetadata: PseudoLayerInteractionMetadata = {
         ...existingUserMetadata,
-        version: 2,
+        version: 3,
         kind: 'dialogue',
         ...context,
         engine: existingUserMetadata?.engine ?? metadata.engine ?? 'native',
@@ -2732,7 +3326,7 @@ const updateUserMessageContent = async (
       };
       const assistantMetadata: PseudoLayerInteractionMetadata = {
         ...metadata,
-        version: 2,
+        version: 3,
         kind: 'dialogue',
         ...context,
         rawUserText: content,
@@ -2839,7 +3433,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
   }
 
   if (request.type === 'reroll') {
-    beginReroll(request, source);
+    void beginReroll(request, source);
     return;
   }
 
@@ -2855,6 +3449,16 @@ const handleMessage = (event: MessageEvent<unknown>) => {
 
   if (request.type === 'update_user_message') {
     void updateUserMessageContent(request, source);
+    return;
+  }
+
+  if (request.type === 'update_reasoning') {
+    void updateMessageReasoning(request, source);
+    return;
+  }
+
+  if (request.type === 'recover_pending_input') {
+    void recoverPendingInput(request, source);
     return;
   }
 
@@ -2877,10 +3481,12 @@ const handleMessage = (event: MessageEvent<unknown>) => {
         broadcastView();
       }, 3000);
     } else {
-      SillyTavern.stopGeneration();
-      if (generation.operation === 'reroll') {
-        void failNativeReroll(generation, new Error('重答已被终止'));
+      try {
+        SillyTavern.stopGeneration();
+      } catch (error) {
+        console.warn('[灯火阑珊·伪同层] 酒馆停止生成接口抛出异常，转入本地收尾', error);
       }
+      settleStoppedNativeGeneration(generation);
     }
     return;
   }
@@ -2971,6 +3577,8 @@ const handleMessageSent = async (messageId: number) => {
       interaction,
       rawUserText: String(message?.message ?? '').trim(),
       engine: 'native',
+      chatId: getCurrentChatId(),
+      baselineLastMessageId: messageId - 1,
       userMessageId: messageId,
       sent: true,
       received: false,
@@ -2994,7 +3602,7 @@ const handleMessageSent = async (messageId: number) => {
           extra: {
             ...(message.extra ?? {}),
             [INTERACTION_KEY]: {
-              version: 2,
+              version: 3,
               kind: 'dialogue',
               ...activeGeneration.interaction,
               engine: 'native',
@@ -3078,6 +3686,7 @@ const disposeController = () => {
   if (controllerDisposed) return;
   const disposingGeneration = activeGeneration;
   controllerDisposed = true;
+  clearDialogueCarryoverPrompt();
 
   if (disposingGeneration?.engine === 'dedicated') {
     disposingGeneration.cancelled = true;
@@ -3115,7 +3724,6 @@ const disposeController = () => {
   discardQueuedStream();
   tavernWindow.removeEventListener('message', handleMessage);
   nativeInputMedia.removeEventListener('change', handleNativeInputViewportChange);
-  removeNativeDialogueBridge();
   releaseParkedFrames();
   tavernDocument.getElementById(STYLE_ID)?.remove();
   tavernDocument.body.classList.remove('dhl-pseudo-layer-active', 'dhl-native-input-collapsed', ROOT_ACTIVE_CLASS);
@@ -3187,22 +3795,28 @@ controllerEventStops.push(
 
 controllerEventStops.push(
   eventOn(tavern_events.STREAM_REASONING_DONE, (reasoning, duration, messageId, state) => {
-    if (activeGeneration?.engine === 'dedicated') return;
-    const source = getActiveSource();
-    if (!source) return;
-    const generation = activeGeneration?.engine === 'native' ? activeGeneration : null;
-    const completedReasoning = { messageId, text: reasoning, duration, state };
-    if (generation) {
-      generation.reasoning = completedReasoning;
-      if (pendingStreamDispatch?.requestId === generation.requestId) {
-        pendingStreamDispatch.reasoning = completedReasoning;
-        flushQueuedStream(generation);
-        return;
-      }
+    const generation = activeGeneration;
+    if (!generation || generation.engine !== 'native' || generation.cancelled) return;
+    const targetMessageId = Number(messageId);
+    const belongsToGeneration =
+      generation.operation === 'reroll'
+        ? targetMessageId === generation.baseMessageId
+        : Number.isInteger(generation.userMessageId)
+          ? targetMessageId > Number(generation.userMessageId)
+          : targetMessageId > generation.baseMessageId;
+    const text = sanitizeReasoningText(reasoning);
+    if (!belongsToGeneration || !text) return;
+
+    const completedReasoning = { messageId: targetMessageId, text, duration, state };
+    generation.reasoning = completedReasoning;
+    if (pendingStreamDispatch?.requestId === generation.requestId) {
+      pendingStreamDispatch.reasoning = completedReasoning;
+      flushQueuedStream(generation);
+      return;
     }
-    send(source, {
+    send(generation.source, {
       type: 'reasoning',
-      requestId: generation?.requestId,
+      requestId: generation.requestId,
       ...completedReasoning,
     });
   }),
@@ -3228,6 +3842,10 @@ controllerEventStops.push(
       void failNativeReroll(generation, new Error('重答没有形成完整回复'));
       return;
     }
+    if (generation?.engine === 'native' && generation.operation === 'generate') {
+      settleNativeGeneration(generation, targetMessageId, '生成结束但模型没有返回有效回复', 800);
+      return;
+    }
     const shouldRepairDialogueMetadata = activeGeneration?.interaction.mode === 'dialogue';
     void finishMessage(targetMessageId);
     if (shouldRepairDialogueMetadata) {
@@ -3244,22 +3862,7 @@ controllerEventStops.push(
   eventOn(tavern_events.GENERATION_STOPPED, () => {
     const generation = activeGeneration;
     if (!generation || generation.engine !== 'native') return;
-    generation.cancelled = true;
-    if (generation.operation === 'reroll') {
-      void failNativeReroll(generation, new Error('重答在完成前被终止'));
-      return;
-    }
-    window.setTimeout(async () => {
-      if (!activeGeneration || activeGeneration.requestId !== generation.requestId || generation.received) return;
-      flushQueuedStream(generation);
-      send(generation.source, {
-        type: 'complete',
-        requestId: generation.requestId,
-        messageId: generation.baseMessageId,
-      });
-      activeGeneration = null;
-      broadcastView();
-    }, 3000);
+    settleStoppedNativeGeneration(generation);
   }),
 );
 
@@ -3322,6 +3925,7 @@ void waitGlobalInitialized('Mvu')
 
 controllerEventStops.push(
   eventOn(tavern_events.CHAT_CHANGED, () => {
+    clearDialogueCarryoverPrompt();
     if (activeGeneration?.engine === 'dedicated') {
       activeGeneration.cancelled = true;
       if (activeGeneration.generationId) stopGenerationById(activeGeneration.generationId);
@@ -3349,7 +3953,9 @@ controllerEventStops.push(
     tavernDocument.body.classList.remove('dhl-pseudo-layer-active');
     scheduleViewRefresh(50);
     window.setTimeout(() => {
-      void recoverFailedNativeRerolls().finally(parkLatestStageFrame);
+      void migrateLegacyDialogueMessages()
+        .catch(error => console.warn('[灯火阑珊·幕间交谈] 旧交谈归档失败', error))
+        .finally(() => recoverFailedNativeRerolls().finally(parkLatestStageFrame));
     }, 300);
   }),
 );
@@ -3359,9 +3965,10 @@ applyNativeInputState();
 tavernWindow.addEventListener('message', handleMessage);
 nativeInputMedia.addEventListener('change', handleNativeInputViewportChange);
 installFrameObserver();
-installNativeDialogueBridge();
 window.setTimeout(() => {
-  void recoverFailedNativeRerolls().finally(parkLatestStageFrame);
+  void migrateLegacyDialogueMessages()
+    .catch(error => console.warn('[灯火阑珊·幕间交谈] 旧交谈归档失败', error))
+    .finally(() => recoverFailedNativeRerolls().finally(parkLatestStageFrame));
 }, 600);
 duplicatePruneTimers.push(
   window.setTimeout(() => {

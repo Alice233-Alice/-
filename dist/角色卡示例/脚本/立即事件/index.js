@@ -1,22 +1,2 @@
-/*!***********************************!*\
-  !*** ./示例/角色卡示例/脚本/立即事件/index.ts ***!
-  \***********************************/
-$(async () => {
-  injectPrompts([ {
-    id: "冲动啊，请平息吧",
-    position: "none",
-    depth: 0,
-    role: "system",
-    content: "【【冲动啊，请平息吧】】",
-    filter: () => _.get(getAllVariables(), "stat_data.白娅.依存度") === 0,
-    should_scan: true
-  }, {
-    id: "理智啊，请不要冻结",
-    position: "none",
-    depth: 0,
-    role: "system",
-    content: "【【理智啊，请不要冻结】】",
-    filter: () => _.get(getAllVariables(), "stat_data.白娅.依存度") === 100,
-    should_scan: true
-  } ]);
-});
+$(async()=>{injectPrompts([{id:'冲动啊，请平息吧',position:'none',depth:0,role:'system',content:'【【冲动啊，请平息吧】】',filter:()=>0===_.get(getAllVariables(),'stat_data.白娅.依存度'),should_scan:!0},{id:'理智啊，请不要冻结',position:'none',depth:0,role:'system',content:'【【理智啊，请不要冻结】】',filter:()=>100===_.get(getAllVariables(),'stat_data.白娅.依存度'),should_scan:!0}])});
+//# sourceMappingURL=index.js.map

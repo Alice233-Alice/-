@@ -20,6 +20,9 @@
       >
         <i :class="tab.icon"></i>
         <span class="tab-label">{{ tab.label }}</span>
+        <span v-if="tab.badge" class="tab-badge" :aria-label="`${tab.badge} 项进行中`">
+          {{ tab.badge > 99 ? '99+' : tab.badge }}
+        </span>
       </button>
     </div>
     <button
@@ -40,6 +43,7 @@ interface Tab {
   id: string;
   label: string;
   icon: string;
+  badge?: number;
 }
 
 interface Props {
@@ -112,6 +116,22 @@ onUnmounted(() => resizeObserver?.disconnect());
   position: relative;
   flex-shrink: 0;
   min-width: 0;
+}
+
+.tab-badge {
+  display: inline-grid;
+  min-width: 16px;
+  height: 16px;
+  place-items: center;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+  border-radius: 999px;
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 10%, var(--tab-bg));
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1;
 }
 
 .tab-nav {
@@ -193,13 +213,19 @@ onUnmounted(() => resizeObserver?.disconnect());
   box-shadow: 0 0 16px var(--stage-shadow);
   cursor: pointer;
 
-  &.is-left { left: 4px; }
-  &.is-right { right: 4px; }
+  &.is-left {
+    left: 4px;
+  }
+  &.is-right {
+    right: 4px;
+  }
 }
 
 // 手机端适配
 @media screen and (max-width: 480px) {
-  .tab-scroll-control { display: grid; }
+  .tab-scroll-control {
+    display: grid;
+  }
 
   .tab-nav {
     padding: 3px 36px;

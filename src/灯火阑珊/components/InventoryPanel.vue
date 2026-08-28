@@ -30,6 +30,23 @@
         <div v-if="!store.本尊.背包 || Object.keys(store.本尊.背包).length === 0" class="empty-hint">空空如也</div>
       </div>
     </div>
+
+    <div class="inventory-section">
+      <div class="section-title"><i class="fa-solid fa-bag-shopping"></i> 杂物袋</div>
+      <div class="items-grid">
+        <template v-for="(item, key) in store.本尊.杂物袋" :key="key">
+          <div v-if="key && String(key).trim()" class="item-card">
+            <div class="item-header">
+              <span class="item-name">{{ item?.名称 || key }}</span>
+              <span class="item-count">×{{ item?.数量 || 1 }}</span>
+            </div>
+            <div class="item-rank">{{ item?.品阶 || '未知' }}</div>
+            <div class="item-desc">{{ item?.描述 || '暂无描述' }}</div>
+          </div>
+        </template>
+        <div v-if="!store.本尊.杂物袋 || Object.keys(store.本尊.杂物袋).length === 0" class="empty-hint">空空如也</div>
+      </div>
+    </div>
   </div>
 </template>
 

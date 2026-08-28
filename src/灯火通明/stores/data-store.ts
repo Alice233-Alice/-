@@ -465,7 +465,7 @@ export const useDataStore = defineStore(
       }
     };
 
-    const viewMessage = (targetMessageId: number) => {
+    const viewMessage = (targetMessageId: number, options: { preserveGallery?: boolean } = {}) => {
       if (!Number.isFinite(targetMessageId) || targetMessageId < 0) return;
       viewedMessageId.value = targetMessageId;
 
@@ -487,7 +487,7 @@ export const useDataStore = defineStore(
         }
 
         if (snapshot) rawData.value = reconcileTransientStateFromNarrative(snapshot, content);
-        parseCurrentMessageCards(targetMessageId);
+        if (!options.preserveGallery) parseCurrentMessageCards(targetMessageId);
       } catch (error) {
         console.warn(`[灯火阑珊·伪同层] 读取第 ${targetMessageId} 楼状态快照失败`, error);
       }
@@ -707,6 +707,12 @@ export const useDataStore = defineStore(
       }
     };
 
+    // 幕间对话使用隐藏楼层，不切换正文阅读锚点；抽屉打开时临时让图鉴与该轮图卡保持一致。
+    const showTransientGalleryCards = (cards: GalleryCard[]) => {
+      galleryCards.value = cards;
+      if (cards.length > 0) preloadGalleryCardImages(cards);
+    };
+
     // 翻转卡片
     const toggleCardFlip = (index: number) => {
       if (galleryCards.value[index]) {
@@ -914,6 +920,8 @@ export const useDataStore = defineStore(
 
     const 世界图志 = computed(() => rawData.value?.世界图志 ?? {});
 
+    const $地图锚点 = computed(() => rawData.value?.$地图锚点 ?? {});
+
     const 本尊 = computed(() => rawData.value?.本尊 ?? Schema.parse({}).本尊);
 
     const 红颜 = computed(() => {
@@ -987,7 +995,7 @@ export const useDataStore = defineStore(
           'stat_data._系统设置.修炼系统版本',
           Number(_.get(variables, 'stat_data._系统设置.修炼系统版本', 3)) || 3,
         );
-        _.set(variables, 'stat_data._系统设置.变量结构版本', 4);
+        _.set(variables, 'stat_data._系统设置.变量结构版本', 5);
         await Mvu.replaceMvuData(variables, { type: 'message', message_id });
 
         toastr.success(`已${newVal ? '开启' : '关闭'}行动提示生成`, '系统设置');
@@ -1044,6 +1052,33 @@ export const useDataStore = defineStore(
 
     // 是否有图鉴卡片
     const hasGalleryCards = computed(() => galleryCards.value.length > 0);
+
+    const saveProtagonistArchive = async (content: string): Promise<boolean> => {
+      if (!rawData.value) {
+        toastr.warning('当前数据尚未就绪，请稍后再试', '本尊档案');
+        return false;
+      }
+
+      const normalizedContent = String(content).replace(/\r\n?/g, '\n').trim();
+
+      try {
+        await waitGlobalInitialized('Mvu');
+        const variables = _.cloneDeep(Mvu.getMvuData({ type: 'message', message_id }) ?? {});
+        const currentData = Schema.parse(_.get(variables, 'stat_data', rawData.value));
+
+        currentData.本尊._档案 = normalizedContent;
+        _.set(variables, 'stat_data.本尊._档案', normalizedContent);
+        await Mvu.replaceMvuData(variables, { type: 'message', message_id });
+
+        rawData.value = currentData;
+        saveLastValidSnapshot(currentData, currentMessageIdNumber);
+        return true;
+      } catch (e) {
+        console.error('[踏月寻仙] 保存本尊档案失败', e);
+        toastr.error('保存本尊档案失败', '本尊档案');
+        return false;
+      }
+    };
 
     const updateCustomCompanionPortrait = async (
       name: string,
@@ -1142,6 +1177,7 @@ export const useDataStore = defineStore(
       世界时钟,
       世界地图,
       世界图志,
+      $地图锚点,
       地点库,
       本尊,
       红颜角色库,
@@ -1158,6 +1194,7 @@ export const useDataStore = defineStore(
       toggleCardFlip,
       changeGalleryCardImage,
       parseCurrentMessageCards,
+      showTransientGalleryCards,
       // 行动提示系统
       可参与机遇,
       当前处境,
@@ -1170,6 +1207,7 @@ export const useDataStore = defineStore(
       难度系数,
       难度档位,
       难度趋势,
+      saveProtagonistArchive,
       isBuiltinCompanionName,
       updateCustomCompanionPortrait,
       clearCustomCompanionPortrait,

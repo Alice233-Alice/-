@@ -13,6 +13,7 @@ import {
   finiteNumber,
   normalizeCultivationState,
   normalizeRealmLevel,
+  normalizeSpiritStoneAmount,
   normalizeSpiritStoneState,
 } from './common';
 import { parseRealmToLevel } from './utils';
@@ -87,6 +88,12 @@ const 敌人状态映射: Record<string, EnemyState> = {
 };
 
 const limitedStringList = (limit: number) => NormalizedStringListSchema.transform(values => values.slice(-limit));
+const burdenDescription = (fallback: string) =>
+  z
+    .string()
+    .transform(value => value.trim() || fallback)
+    .catch(fallback)
+    .prefault(fallback);
 
 function migrateLegacyCombatStatus(value: unknown): unknown {
   if (!_.isPlainObject(value)) return {};
@@ -254,9 +261,9 @@ const BattleSceneSchema = z
 
 const BattleBurdenSchema = z
   .object({
-    真元: z.enum(['充盈', '尚足', '吃紧', '枯竭']).catch('充盈').prefault('充盈'),
-    神识: z.enum(['澄明', '疲乏', '动荡', '受创']).catch('澄明').prefault('澄明'),
-    肉身: z.enum(['无恙', '轻创', '重创', '濒危']).catch('无恙').prefault('无恙'),
+    真元: burdenDescription('充盈'),
+    神识: burdenDescription('澄明'),
+    肉身: burdenDescription('无恙'),
   })
   .prefault({ 真元: '充盈', 神识: '澄明', 肉身: '无恙' });
 
@@ -456,8 +463,11 @@ export const ProtagonistSchema = z
     功法: z.string().prefault('无'),
     本命兵器: z.string().prefault('无'),
     神通列表: SkillListSchema,
-    灵石: finiteNumber(0)
-      .transform(v => Math.max(0, v))
+    灵石: z
+      .preprocess(
+        normalizeSpiritStoneAmount,
+        finiteNumber(0).transform(v => Math.max(0, v)),
+      )
       .prefault(0),
     已活岁月: finiteNumber(0)
       .transform(v => Math.max(0, v))
@@ -466,6 +476,11 @@ export const ProtagonistSchema = z
     修炼状态: CultivationStateSchema,
     行踪: LocationTrackSchema,
     身份: IdentitySchema,
+    // 下划线前缀：正文 AI 可读取，但 MVU 不接受 AI 对它的更新命令；仅由玩家界面写入。
+    _档案: z
+      .string()
+      .transform(value => value.replace(/\r\n?/gu, '\n').trim())
+      .prefault(''),
     背包: InventorySchema,
     法宝: InventorySchema,
     杂物袋: InventorySchema,
@@ -508,6 +523,7 @@ export const ProtagonistSchema = z
       宗门: '散修',
       出身: '凡人',
     },
+    _档案: '',
     背包: {},
     法宝: {},
     杂物袋: {},

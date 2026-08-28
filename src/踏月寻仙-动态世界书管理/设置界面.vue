@@ -364,7 +364,7 @@
                 v-model="sandboxMessages"
                 class="text_pole"
                 rows="6"
-                placeholder="每行一条消息，例如：岚烟邀你前往天渊巡风观潮。"
+                placeholder="每行一条消息，例如：羽岚邀你前往渊缘察气接坠。"
               ></textarea>
             </label>
 

@@ -226,6 +226,87 @@ const stripEmbeddedHtmlDocuments = (text: string) => {
   return result;
 };
 
+const REASONING_FRONTEND_BOOTSTRAP_PATTERN =
+  /(?:\$\s*\(\s*['"]body['"]\s*\)\s*\.\s*load\s*\(|cdn\.jsdelivr\.net\/gh\/[^\s'"<>]+\/(?:灯火通明\/)?index\.html)/i;
+const REASONING_PLACEHOLDER_LINE_PATTERN =
+  /^\s*(?:\[\s*(?:story\s*text|narrative|正文|故事文本)\s*\]\s*)+\s*$/i;
+const REASONING_SCAFFOLD_LINE_PATTERN =
+  /^\s*(?:let(?:'|’)s\s+(?:write|produce|craft|compose|answer|respond|generate|begin|start)\b|(?:we|i)\s+(?:now\s+)?(?:need|should|must|will)\s+(?:to\s+)?(?:write|produce|craft|compose|answer|respond|output|generate)\b|need\s+to\s+(?:write|produce|craft|compose|answer|respond|output|generate)\b)/i;
+const REASONING_CHINESE_SCAFFOLD_LINE_PATTERN =
+  /^\s*(?:让我们|我们(?:现在)?需要|现在(?:让我们)?)\s*(?:开始)?(?:写作|生成|产出|回答|回复|输出|构思)/;
+
+export const hasReasoningFrontendBootstrap = (text: string) => REASONING_FRONTEND_BOOTSTRAP_PATTERN.test(text);
+
+const stripReasoningFrontendBootstrap = (text: string) => {
+  if (!hasReasoningFrontendBootstrap(text)) return text;
+
+  let result = text.replace(/<body(?=[\s>])[^>]*>[\s\S]*?<\/body\s*>/gi, block =>
+    hasReasoningFrontendBootstrap(block) ? '' : block,
+  );
+  result = result.replace(/<script(?=[\s>])[^>]*>[\s\S]*?<\/script\s*>/gi, block =>
+    hasReasoningFrontendBootstrap(block) ? '' : block,
+  );
+
+  // Streaming may expose the loader before its closing tags arrive. In that
+  // short window the whole unfinished bootstrap tail is presentation plumbing,
+  // not reasoning that should be shown to the player.
+  const unfinishedBody = result.search(/<body(?=[\s>])/i);
+  if (unfinishedBody >= 0 && hasReasoningFrontendBootstrap(result.slice(unfinishedBody))) {
+    result = result.slice(0, unfinishedBody);
+  }
+  const unfinishedScript = result.search(/<script(?=[\s>])/i);
+  if (unfinishedScript >= 0 && hasReasoningFrontendBootstrap(result.slice(unfinishedScript))) {
+    result = result.slice(0, unfinishedScript);
+  }
+
+  return result.replace(/<\/?body(?=[\s>])[^>]*>/gi, '');
+};
+
+export const sanitizeReasoningText = (text: string) => {
+  const withoutPresentation = stripReasoningFrontendBootstrap(stripEmbeddedHtmlDocuments(String(text ?? '')))
+    .replace(REASONING_MARKER_PATTERN, '')
+    .replace(REASONING_OPEN_PATTERN, '')
+    .replace(REASONING_CLOSE_PATTERN, '')
+    .replace(/\r\n?/g, '\n');
+
+  return withoutPresentation
+    .split('\n')
+    .filter(
+      line =>
+        !REASONING_PLACEHOLDER_LINE_PATTERN.test(line) &&
+        !REASONING_SCAFFOLD_LINE_PATTERN.test(line) &&
+        !REASONING_CHINESE_SCAFFOLD_LINE_PATTERN.test(line),
+    )
+    .join('\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+// Native SillyTavern reasoning is authoritative. Inline tags are only a
+// compatibility fallback for presets that do not populate `extra.reasoning`.
+export const selectReasoningText = (nativeText: string, inlineFallback: string) =>
+  sanitizeReasoningText(nativeText) || sanitizeReasoningText(inlineFallback);
+
+const escapeReasoningHtml = (text: string) =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+// Reasoning can contain prompt fragments or HTML-looking model output. Keep it
+// text-only so a stray loader/script cannot execute through the Tavern formatter.
+export const formatReasoningHtml = (text: string) => {
+  const value = sanitizeReasoningText(text);
+  if (!value) return '';
+  return value
+    .split(/\n{2,}/)
+    .map(paragraph => `<p>${escapeReasoningHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+};
+
 export type InlineReasoning = {
   text: string;
   source: string;
@@ -404,12 +485,7 @@ const extractOrphanClosingReasoning = (text: string): InlineReasoning | null => 
     return null;
   }
 
-  const cleaned = stripEmbeddedHtmlDocuments(prefix)
-    .replace(REASONING_ORPHAN_PREFIX_CUE, '')
-    .replace(REASONING_MARKER_PATTERN, '')
-    .replace(REASONING_OPEN_PATTERN, '')
-    .replace(REASONING_CLOSE_PATTERN, '')
-    .trim();
+  const cleaned = sanitizeReasoningText(prefix.replace(REASONING_ORPHAN_PREFIX_CUE, ''));
   return cleaned
     ? {
         text: cleaned,
@@ -420,12 +496,7 @@ const extractOrphanClosingReasoning = (text: string): InlineReasoning | null => 
 };
 
 export const mergeReasoningText = (primary: string, secondary: string) => {
-  const first = primary.trim();
-  const second = secondary.trim();
-  if (!first) return second;
-  if (!second || first.includes(second)) return first;
-  if (second.includes(first)) return second;
-  return `${first}\n\n${second}`;
+  return selectReasoningText(primary, secondary);
 };
 
 // Some presets keep their visible thought trace inside the assistant message
@@ -444,12 +515,7 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
     }
     fragments.push(fragment);
   };
-  const cleanReasoningText = (value: string) =>
-    stripEmbeddedHtmlDocuments(value)
-      .replace(REASONING_MARKER_PATTERN, '')
-      .replace(REASONING_OPEN_PATTERN, '')
-      .replace(REASONING_CLOSE_PATTERN, '')
-      .trim();
+  const cleanReasoningText = (value: string) => sanitizeReasoningText(value);
 
   REASONING_BLOCK_PATTERN.lastIndex = 0;
   let match: RegExpExecArray | null;

@@ -1,5 +1,14 @@
 <template>
-  <div class="cultivation-status" :class="{ collapsed: isCollapsed }" :style="themeStyles">
+  <div
+    class="cultivation-status"
+    :class="{
+      collapsed: isCollapsed,
+      'mobile-layout': isMobileLayout,
+      'compact-layout': isCompactLayout,
+      'ultra-compact-layout': isUltraCompactLayout,
+    }"
+    :style="themeStyles"
+  >
     <!-- 背景图案层 -->
     <div class="pattern-overlay"></div>
 
@@ -14,6 +23,8 @@
       :parent-region="parentRegion"
       :danger-color="dangerColor"
       :location-color="locationColor"
+      :compact-layout="isCompactLayout"
+      :ultra-compact-layout="isUltraCompactLayout"
       @toggle-collapse="toggleCollapse"
       @toggle-theme-selector="toggleThemeSelector"
       @toggle-preset-editor="activeTab = 'preset'"
@@ -24,7 +35,12 @@
     <ThemeSelector :visible="showThemeSelector" @close="showThemeSelector = false" @select="selectTheme" />
 
     <!-- 标签页导航 -->
-    <TabNav v-model:active-tab="activeTab" :tabs="tabs" />
+    <TabNav
+      v-model:active-tab="activeTab"
+      :tabs="tabs"
+      :compact-layout="isCompactLayout"
+      :ultra-compact-layout="isUltraCompactLayout"
+    />
 
     <!-- 内容区域 -->
     <div class="content">
@@ -74,13 +90,13 @@
     </div>
 
     <!-- 底部区域 -->
-    <FooterSection @open-actions="activeTab = 'actions'" />
+    <FooterSection :compact-layout="isCompactLayout" @open-actions="activeTab = 'actions'" />
   </div>
 </template>
 
 <script setup lang="ts">
 // 组件导入
-import ActionMenuPanel from './components/ActionMenuPanel.vue';
+import ActionMenuPanel from './components/UnifiedActionMenuPanel.vue';
 import CombatPanel from './components/CombatPanel.vue';
 import CompanionsPanel from './components/CompanionsPanel.vue';
 import CultivationPanel from './components/CultivationPanel.vue';
@@ -116,6 +132,29 @@ const tabs = [
 const activeTab = ref('gallery'); // 初始显示图鉴
 const isCollapsed = ref(false);
 const showThemeSelector = ref(false);
+const MOBILE_BREAKPOINT = 760;
+const COMPACT_BREAKPOINT = 520;
+const ULTRA_COMPACT_BREAKPOINT = 360;
+
+const readParentViewportWidth = () => {
+  try {
+    return Math.round(window.parent.visualViewport?.width ?? window.parent.innerWidth);
+  } catch {
+    return window.innerWidth;
+  }
+};
+
+const parentViewportWidth = ref(readParentViewportWidth());
+const frameViewportWidth = ref(window.innerWidth);
+const effectiveViewportWidth = computed(() => Math.min(parentViewportWidth.value, frameViewportWidth.value));
+const isMobileLayout = computed(() => parentViewportWidth.value <= MOBILE_BREAKPOINT);
+const isCompactLayout = computed(() => effectiveViewportWidth.value <= COMPACT_BREAKPOINT);
+const isUltraCompactLayout = computed(() => effectiveViewportWidth.value <= ULTRA_COMPACT_BREAKPOINT);
+
+const updateViewportLayout = () => {
+  parentViewportWidth.value = readParentViewportWidth();
+  frameViewportWidth.value = window.innerWidth;
+};
 
 // 切换折叠状态
 const toggleCollapse = () => {
@@ -202,6 +241,25 @@ const locationColor = computed(() => {
     return domainColors[region];
   }
   return '#44aa44';
+});
+
+onMounted(() => {
+  window.addEventListener('resize', updateViewportLayout);
+  window.visualViewport?.addEventListener('resize', updateViewportLayout);
+  if (window.parent !== window) {
+    window.parent.addEventListener('resize', updateViewportLayout);
+    window.parent.visualViewport?.addEventListener('resize', updateViewportLayout);
+  }
+  window.requestAnimationFrame(updateViewportLayout);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateViewportLayout);
+  window.visualViewport?.removeEventListener('resize', updateViewportLayout);
+  if (window.parent !== window) {
+    window.parent.removeEventListener('resize', updateViewportLayout);
+    window.parent.visualViewport?.removeEventListener('resize', updateViewportLayout);
+  }
 });
 </script>
 
@@ -345,11 +403,9 @@ const locationColor = computed(() => {
     font-size: 13px;
     border-radius: 8px;
 
-    // 仙鹤装饰 - 手机端缩小
+    // 超窄状态栏中装饰会遮挡按钮与地点，保留信息区的完整可用性
     .crane-decoration {
-      width: 45px;
-      height: 45px;
-      top: 18px;
+      display: none;
     }
   }
 
@@ -361,6 +417,46 @@ const locationColor = computed(() => {
 
   .panel {
     padding: 12px;
+  }
+}
+
+.cultivation-status.compact-layout {
+  font-size: 13px;
+  border-radius: 8px;
+
+  .crane-decoration {
+    display: none;
+  }
+
+  .content {
+    min-height: 220px;
+    max-height: 450px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+}
+
+@media screen and (max-width: 280px) {
+  .content {
+    min-height: 210px;
+    max-height: 400px;
+  }
+
+  .panel {
+    padding: 8px;
+  }
+}
+
+.cultivation-status.ultra-compact-layout {
+  .content {
+    min-height: 210px;
+    max-height: 400px;
+  }
+
+  .panel {
+    padding: 8px;
   }
 }
 

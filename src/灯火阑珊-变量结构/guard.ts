@@ -86,6 +86,7 @@ export type GuardRepairResult = {
 
 const pendingExplicitLevels = new Map<string, number>();
 let lastValidStatData: SchemaType | null = null;
+let pendingNarrativeText = '';
 
 function normalizeCommandPath(rawPath: string): string {
   let path = String(rawPath || '').trim();
@@ -110,6 +111,10 @@ function normalizeCommandPath(rawPath: string): string {
   ) {
     path = `stat_data.${path}`;
   }
+
+  // 兼容旧版把灵石建模成分级对象的更新路径。当前权威 Schema 中本尊.灵石是标量，
+  // 因而旧式 delta /本尊/灵石/下品灵石 必须在 MVU 执行加减前落到标量字段。
+  path = path.replace(/^stat_data\.本尊\.灵石\.(?:下品灵石|灵石)$/u, 'stat_data.本尊.灵石');
 
   return path;
 }
@@ -312,6 +317,52 @@ function normalizeTransition(raw: unknown) {
   return RealmTransitionSchema.parse(raw ?? EMPTY_REALM_TRANSITION);
 }
 
+function normalizeEvidenceText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
+export function extractNarrativeText(messageContent: unknown): string {
+  return normalizeEvidenceText(
+    String(messageContent ?? '')
+      .replace(/<update(?:variable)?>[\s\S]*?<\/update(?:variable)?>/giu, '')
+      .replace(/<analysis>[\s\S]*?<\/analysis>/giu, '')
+      .replace(/<jsonpatch>[\s\S]*?<\/jsonpatch>/giu, ''),
+  );
+}
+
+function getLastMentionedRealmLevel(text: unknown): number | null {
+  const pattern = new RegExp(`(${REALM_NAMES.join('|')})(${REALM_STAGES.join('|')})`, 'gu');
+  let level: number | null = null;
+
+  for (const match of String(text ?? '').matchAll(pattern)) {
+    const majorIndex = REALM_NAMES.indexOf(match[1] as (typeof REALM_NAMES)[number]);
+    const stageIndex = REALM_STAGES.indexOf(match[2] as (typeof REALM_STAGES)[number]);
+    if (majorIndex >= 0 && stageIndex >= 0) {
+      level = majorIndex * REALM_STAGES.length + stageIndex + 1;
+    }
+  }
+
+  return level;
+}
+
+function hasGroundedRealmTransitionEvidence(
+  transition: ReturnType<typeof normalizeTransition>,
+  requestedLevel: number,
+  narrativeText: string,
+): boolean {
+  const evidence = normalizeEvidenceText(transition.依据);
+  if (transition.目标等级 !== requestedLevel || evidence.length < 4) return false;
+
+  // “依据”必须自己写出最终境界，防止额外模型用一段泛化理由为错误等级背书。
+  if (getLastMentionedRealmLevel(evidence) !== requestedLevel) return false;
+
+  // 能取得正文时，“依据”必须是正文原句，而不是额外模型事后编造的解释。
+  const normalizedNarrative = normalizeEvidenceText(narrativeText);
+  return !normalizedNarrative || normalizedNarrative.includes(evidence);
+}
+
 function getEffectiveTransition(nextState: Record<string, any>, oldState: Record<string, any>) {
   const nextTransition = normalizeTransition(nextState.境界变动);
   if (nextTransition.类型 !== '无') return nextTransition;
@@ -336,6 +387,7 @@ function applyCultivatorRealmTransition(
   oldCultivator: CultivatorData,
   label: string,
   warnings: string[],
+  narrativeText: string = '',
 ): boolean {
   const oldLevel = normalizeRealmLevel(oldCultivator.等级);
   const requestedLevel = normalizeRealmLevel(nextCultivator.等级);
@@ -347,7 +399,8 @@ function applyCultivatorRealmTransition(
   if (requestedLevel > oldLevel) {
     if (requestedLevel > oldLevel + 1) {
       const hasValidCrossLevelEvidence =
-        transition.类型 === '跨级突破' && transition.目标等级 === requestedLevel && transition.依据.trim().length >= 4;
+        transition.类型 === '跨级突破' &&
+        hasGroundedRealmTransitionEvidence(transition, requestedLevel, narrativeText);
       if (!hasValidCrossLevelEvidence) {
         finalLevel = Math.min(oldLevel + 1, 48);
         warnings.push(`${label}缺少有效跨级依据，等级 ${requestedLevel} 已收敛为 ${finalLevel}`);
@@ -361,7 +414,7 @@ function applyCultivatorRealmTransition(
 
   if (requestedLevel < oldLevel) {
     const hasValidRealmLossEvidence =
-      transition.类型 === '跌境' && transition.目标等级 === requestedLevel && transition.依据.trim().length >= 4;
+      transition.类型 === '跌境' && hasGroundedRealmTransitionEvidence(transition, requestedLevel, narrativeText);
     if (!hasValidRealmLossEvidence) {
       nextCultivator.等级 = oldLevel;
       nextState.境界变动 = _.cloneDeep(EMPTY_REALM_TRANSITION);
@@ -382,7 +435,9 @@ function applyCultivatorRealmTransition(
   if (reportsSuccessfulSettlement && targetLevel > oldLevel) {
     const isNormalBreakthrough = transition.类型 === '突破' && targetLevel === oldLevel + 1;
     const isValidCrossLevel =
-      transition.类型 === '跨级突破' && targetLevel > oldLevel + 1 && transition.依据.trim().length >= 4;
+      transition.类型 === '跨级突破' &&
+      targetLevel > oldLevel + 1 &&
+      hasGroundedRealmTransitionEvidence(transition, targetLevel, narrativeText);
     finalLevel = isNormalBreakthrough || isValidCrossLevel ? targetLevel : Math.min(oldLevel + 1, 48);
     if (!isNormalBreakthrough && !isValidCrossLevel) {
       warnings.push(`${label}的成功结算缺少有效跨级依据，目标已收敛为 ${finalLevel}`);
@@ -402,6 +457,7 @@ function applyCultivatorRealmTransition(
 export function applyRealmTransitionGuards(
   nextStatData: Record<string, any>,
   oldStatData: Record<string, any>,
+  options: { protagonistNarrativeText?: string } = {},
 ): { data: Record<string, any>; warnings: string[]; protagonistLevelChanged: boolean } {
   const data = _.cloneDeep(nextStatData);
   const warnings: string[] = [];
@@ -410,6 +466,7 @@ export function applyRealmTransitionGuards(
     oldStatData.本尊 ?? {},
     '本尊',
     warnings,
+    options.protagonistNarrativeText ?? '',
   );
 
   for (const [name, companion] of Object.entries(data.红颜 ?? {}) as Array<[string, CultivatorData]>) {
@@ -457,11 +514,41 @@ function uniqueIssuePaths(issues: Array<{ path: PropertyKey[] }>): PropertyKey[]
   return paths;
 }
 
+const BATTLE_COST_BURDEN_FIELDS = [
+  { field: '真元', pattern: /真元/u },
+  { field: '神识', pattern: /神识|识海|神魂/u },
+  { field: '肉身', pattern: /肉身/u },
+] as const;
+
+function synchronizeBurdenFromNewBattleResult(candidate: unknown, oldData: unknown): string[] {
+  const nextResult = _.get(candidate, '本尊.战斗状态.最近战果');
+  const oldResult = _.get(oldData, '本尊.战斗状态.最近战果');
+  if (!_.isPlainObject(nextResult) || _.isEqual(nextResult, oldResult) || _.get(nextResult, '结果') === '无') return [];
+
+  const rawCosts: unknown = _.get(nextResult, '代价');
+  const costs = Array.isArray(rawCosts) ? rawCosts.map(value => String(value).trim()).filter(Boolean) : [];
+  const warnings: string[] = [];
+
+  for (const { field, pattern } of BATTLE_COST_BURDEN_FIELDS) {
+    const burdenPath = `本尊.战斗状态.负荷.${field}`;
+    if (!_.isEqual(_.get(candidate, burdenPath), _.get(oldData, burdenPath))) continue;
+
+    const matchingCost = costs.find(cost => pattern.test(cost));
+    pattern.lastIndex = 0;
+    if (!matchingCost) continue;
+
+    _.set(candidate as object, burdenPath, matchingCost);
+    warnings.push(`最近战果代价“${matchingCost}”已同步至${burdenPath}`);
+  }
+
+  return warnings;
+}
+
 export function repairStatDataWithFallback(nextStatData: unknown, oldStatData: unknown): GuardRepairResult {
   const candidate = _.cloneDeep(nextStatData);
   const oldData = oldStatData && typeof oldStatData === 'object' ? _.cloneDeep(oldStatData) : {};
-  const warnings: string[] = [];
-  let repaired = false;
+  const warnings = synchronizeBurdenFromNewBattleResult(candidate, oldData);
+  let repaired = warnings.length > 0;
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const parsed = Schema.safeParse(candidate);
@@ -498,7 +585,12 @@ export function repairStatDataWithFallback(nextStatData: unknown, oldStatData: u
   return { data: null, warnings, repaired };
 }
 
-export function guardParsedCommands(variables: Mvu.MvuData, commands: Mvu.CommandInfo[]): void {
+export function guardParsedCommands(
+  variables: Mvu.MvuData,
+  commands: Mvu.CommandInfo[],
+  messageContent: string = '',
+): void {
+  pendingNarrativeText = extractNarrativeText(messageContent);
   const mutableCommands = commands as unknown as GuardMutableCommand[];
   const appendedCommands: GuardMutableCommand[] = [];
 
@@ -537,7 +629,9 @@ function handleVariableUpdateEnded(newVariables: Mvu.MvuData, oldVariables: Mvu.
 
     const parsedOldStatData = Schema.safeParse(rawOldStatData);
     const oldStatData = parsedOldStatData.success ? parsedOldStatData.data : (lastValidStatData ?? rawOldStatData);
-    const transitionResult = applyRealmTransitionGuards(nextStatData, oldStatData);
+    const transitionResult = applyRealmTransitionGuards(nextStatData, oldStatData, {
+      protagonistNarrativeText: pendingNarrativeText,
+    });
     if (transitionResult.protagonistLevelChanged) {
       transitionResult.data.当前处境 = correctProtagonistRealmText(
         transitionResult.data.当前处境,
@@ -559,6 +653,7 @@ function handleVariableUpdateEnded(newVariables: Mvu.MvuData, oldVariables: Mvu.
     console.warn('[灯火阑珊] 变量守卫结算失败，保留 MVU 原始结果', error);
   } finally {
     pendingExplicitLevels.clear();
+    pendingNarrativeText = '';
   }
 }
 
@@ -589,6 +684,7 @@ export function installAuthoritativeMvuGuard(): () => void {
       }
     });
     pendingExplicitLevels.clear();
+    pendingNarrativeText = '';
     lastValidStatData = null;
     delete globalRef[GUARD_INSTALLED_KEY];
   };

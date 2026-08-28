@@ -2,7 +2,13 @@
   <div class="footer">
     <!-- 左侧：行动提示按钮（原灵石/选项位置） -->
     <div class="footer-left">
-      <button class="footer-item action-btn" @click="$emit('open-actions')" title="查看可选行动">
+      <button
+        class="footer-item action-btn"
+        :class="{ active: actionsActive }"
+        :aria-pressed="actionsActive"
+        title="查看可选行动"
+        @click="$emit('open-actions')"
+      >
         <i class="fa-solid fa-compass"></i>
         <span>行动</span>
         <span v-if="store.可选行动数 > 0" class="action-badge">{{ store.可选行动数 }}</span>
@@ -40,6 +46,13 @@
 import { useDataStore } from '../store';
 
 const store = useDataStore();
+
+withDefaults(
+  defineProps<{
+    actionsActive?: boolean;
+  }>(),
+  { actionsActive: false },
+);
 
 const eraLabel = computed(() => {
   const era = String(store.世界时钟.纪元 || '').trim();
@@ -133,6 +146,12 @@ defineEmits<{
   .action-btn {
     font-weight: 500;
     position: relative;
+
+    &.active {
+      color: var(--gold);
+      background: var(--button-active);
+      box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--gold) 70%, transparent);
+    }
 
     .action-badge {
       position: absolute;

@@ -1,38 +1,7 @@
 <template>
   <section class="command-dock" :class="{ expanded: isExpanded, historical: !isWorkspaceLatest }">
     <div v-if="isWorkspaceLatest" class="command-shell">
-      <div v-if="isDialogueWorkspace && pseudo.activeDialogue" class="selected-intent dialogue-intent">
-        <i
-          class="fa-solid"
-          :class="pseudo.activeDialogue.channel === 'transmission' ? 'fa-feather-pointed' : 'fa-comment-dots'"
-        ></i>
-        <strong>
-          {{ pseudo.activeDialogue.channel === 'transmission' ? '传讯' : '当面交谈' }} ·
-          {{ pseudo.activeDialogue.targetName }}
-        </strong>
-        <button type="button" title="更换交谈对象" :disabled="pseudo.isGenerating" @click="showTargetPicker = true">
-          <i class="fa-solid fa-user-group"></i>
-        </button>
-        <button type="button" title="结束交谈" :disabled="pseudo.isGenerating" @click="pseudo.endDialogue">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <div v-else-if="isDialogueWorkspace && pseudo.dialogueContext" class="selected-intent dialogue-intent paused">
-        <i class="fa-solid fa-clock-rotate-left"></i>
-        <strong>最近交谈 · {{ pseudo.dialogueContext.targetName }}</strong>
-        <button type="button" title="继续这段交谈" :disabled="pseudo.isGenerating" @click="pseudo.continueDialogue">
-          <i class="fa-solid fa-comment-dots"></i>
-        </button>
-        <button
-          type="button"
-          title="保留旧记录，另开一段交谈"
-          :disabled="pseudo.isGenerating"
-          @click="pseudo.resetDialogue"
-        >
-          <i class="fa-solid fa-comment-medical"></i>
-        </button>
-      </div>
-      <div v-else-if="!isDialogueWorkspace && pseudo.selectedTitle" class="selected-intent">
+      <div v-if="pseudo.selectedTitle" class="selected-intent">
         <i class="fa-solid fa-compass"></i>
         <strong>{{ pseudo.selectedTitle }}</strong>
         <button type="button" title="清除所选行动" :disabled="pseudo.isGenerating" @click="pseudo.clearDraft">
@@ -40,11 +9,29 @@
         </button>
       </div>
 
+      <div v-if="pseudo.view.pendingInput" class="pending-input-alert" role="status">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <div class="pending-input-copy">
+          <strong> 发现 {{ pseudo.view.pendingInput.count }} 条已发送但未获回复的输入 </strong>
+          <span :title="pseudo.view.pendingInput.text">{{ pseudo.view.pendingInput.text }}</span>
+        </div>
+        <button
+          type="button"
+          :disabled="pseudo.isGenerating || pseudo.isRecoveringPendingInput || !pseudo.supportsPendingInputRecovery"
+          title="撤销原生聊天中的残留楼层，并把最后一条内容放回输入框"
+          @click="pseudo.recoverPendingInput"
+        >
+          <i v-if="pseudo.isRecoveringPendingInput" class="fa-solid fa-circle-notch fa-spin"></i>
+          <i v-else class="fa-solid fa-rotate-left"></i>
+          <span>撤回到输入框</span>
+        </button>
+      </div>
+
       <div class="command-row">
         <div class="interaction-segments" role="group" aria-label="交互模式">
           <button
             type="button"
-            :class="{ active: !isDialogueWorkspace }"
+            class="active"
             :disabled="pseudo.isGenerating"
             title="普通剧情推演"
             @click="chooseStory"
@@ -53,7 +40,7 @@
           </button>
           <button
             type="button"
-            :class="{ active: isDialogueWorkspace }"
+            :class="{ active: pseudo.dialogueDrawerOpen }"
             :disabled="pseudo.isGenerating"
             title="与角色直接交谈"
             @click="chooseDialogue"
@@ -72,8 +59,8 @@
           ref="textareaRef"
           v-model="pseudo.draftPrompt"
           rows="1"
-          :disabled="pseudo.isGenerating || (isDialogueWorkspace && !pseudo.isDialogueActive)"
-          :placeholder="inputPlaceholder"
+          :disabled="pseudo.isGenerating"
+          placeholder="写下此刻想做的事……"
           @focus="isFocused = true"
           @blur="isFocused = false"
           @keydown.ctrl.enter.prevent="submitCurrent"
@@ -119,9 +106,9 @@
     </div>
 
     <div v-else class="history-command">
-      <span><i class="fa-solid fa-clock-rotate-left"></i> {{ historyLabel }}</span>
-      <button type="button" @click="pseudo.returnHistoryLatest(historyKind)">
-        <i class="fa-solid fa-forward-step"></i> {{ returnLatestLabel }}
+      <span><i class="fa-solid fa-clock-rotate-left"></i> 正在阅览旧正文</span>
+      <button type="button" @click="pseudo.returnHistoryLatest('story')">
+        <i class="fa-solid fa-forward-step"></i> 返回最新正文
       </button>
     </div>
 
@@ -130,7 +117,6 @@
 </template>
 
 <script setup lang="ts">
-import type { PseudoLayerHistoryKind } from '../pseudo-layer-protocol';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import type { ReadingMode } from '../stores/theme-store';
 import DialogueTargetPicker from './DialogueTargetPicker.vue';
@@ -142,20 +128,13 @@ const props = defineProps<{
   immersive?: boolean;
   readingMode: ReadingMode;
 }>();
-const emit = defineEmits<{ (event: 'open-view', view: 'story' | 'dialogue'): void }>();
+const emit = defineEmits<{ (event: 'open-view', view: 'story'): void }>();
 const pseudo = usePseudoLayerStore();
 const data = useDataStore();
 const appearance = useThemeStore();
 const textareaRef = ref<HTMLTextAreaElement>();
 const isFocused = ref(false);
 const showTargetPicker = ref(false);
-const timelineInteractionMode = ref<PseudoLayerHistoryKind>(pseudo.activeDialogue ? 'dialogue' : 'story');
-const historyKind = computed<PseudoLayerHistoryKind>(() => {
-  if (props.readingMode === 'scroll') return timelineInteractionMode.value;
-  if (props.activeView === 'story' || props.activeView === 'dialogue') return props.activeView;
-  return pseudo.view.stage.kind;
-});
-const isDialogueWorkspace = computed(() => historyKind.value === 'dialogue');
 const showDockPortrait = computed(
   () =>
     Boolean(props.mobileLayout) &&
@@ -163,48 +142,25 @@ const showDockPortrait = computed(
     appearance.preferences.showPortraitRail &&
     data.hasGalleryCards,
 );
-const workspaceHistory = computed(() => pseudo.view.histories[historyKind.value]);
 const isWorkspaceLatest = computed(
-  () => props.readingMode === 'scroll' || workspaceHistory.value.total === 0 || workspaceHistory.value.isLatest,
+  () =>
+    props.readingMode === 'scroll' ||
+    pseudo.view.histories.story.total === 0 ||
+    pseudo.view.histories.story.isLatest,
 );
 const isExpanded = computed(
   () =>
     isFocused.value ||
-    isDialogueWorkspace.value ||
-    Boolean(pseudo.draftPrompt.trim() || pseudo.selectedTitle || pseudo.generationError),
+    pseudo.dialogueDrawerOpen ||
+    Boolean(pseudo.draftPrompt.trim() || pseudo.selectedTitle || pseudo.generationError || pseudo.view.pendingInput),
 );
 const connectionLabel = computed(() =>
   pseudo.controllerReady ? pseudo.controllerConnectionDescription : '等待控制脚本',
 );
-const inputPlaceholder = computed(() => {
-  if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
-    return pseudo.dialogueContext ? '先继续这段交谈，或另开一段……' : '先选择一位交谈对象……';
-  }
-  if (!isDialogueWorkspace.value) return '写下此刻想做的事……';
-  const dialogue = pseudo.activeDialogue;
-  if (!dialogue) return '先选择一位交谈对象……';
-  return dialogue.channel === 'transmission' ? `向${dialogue.targetName}传讯……` : `对${dialogue.targetName}说……`;
-});
-const primaryLabel = computed(() => {
-  if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
-    return pseudo.dialogueContext ? '继续' : '择人';
-  }
-  if (!isDialogueWorkspace.value) return '推演';
-  const dialogue = pseudo.activeDialogue;
-  if (!dialogue) return '择人';
-  return dialogue.channel === 'transmission' ? '传讯' : '交谈';
-});
-const primaryTitle = computed(() => {
-  if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
-    return pseudo.dialogueContext ? `继续与${pseudo.dialogueContext.targetName}交谈` : '选择交谈对象';
-  }
-  if (!isDialogueWorkspace.value) return '开始推演';
-  const dialogue = pseudo.activeDialogue;
-  if (!dialogue) return '选择交谈对象';
-  return dialogue.channel === 'transmission' ? `向${dialogue.targetName}传讯` : `请${dialogue.targetName}回应`;
-});
+const primaryLabel = '推演';
+const primaryTitle = '开始推演';
 const generationLabel = computed(() => {
-  if (isDialogueWorkspace.value && pseudo.activeDialogue) {
+  if (pseudo.dialogueDrawerOpen && pseudo.activeDialogue) {
     const dialogueLabels = {
       idle: '',
       preparing: pseudo.activeDialogue.channel === 'transmission' ? '送出传讯' : '静候回应',
@@ -218,69 +174,30 @@ const generationLabel = computed(() => {
   return labels[pseudo.generationState];
 });
 
-const primaryIcon = computed(() => {
-  if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
-    return pseudo.dialogueContext ? 'fa-comment-dots' : 'fa-user-group';
-  }
-  return pseudo.activeDialogue?.channel === 'transmission' && isDialogueWorkspace.value
-    ? 'fa-feather-pointed'
-    : 'fa-paper-plane';
-});
-const primaryDisabled = computed(() => {
-  if (pseudo.isGenerating) return true;
-  if (isDialogueWorkspace.value && !pseudo.isDialogueActive) return false;
-  if (props.readingMode === 'scroll') {
-    return isDialogueWorkspace.value ? !pseudo.canSubmitLatestDialogue : !pseudo.canSubmitLatestStory;
-  }
-  return isDialogueWorkspace.value ? !pseudo.canSubmitDialogue : !pseudo.canSubmitStory;
-});
-const historyLabel = computed(() => (historyKind.value === 'dialogue' ? '正在阅览旧交谈' : '正在阅览旧正文'));
-const returnLatestLabel = computed(() => (historyKind.value === 'dialogue' ? '返回最新交谈' : '返回最新正文'));
+const primaryIcon = 'fa-paper-plane';
+const primaryDisabled = computed(() =>
+  props.readingMode === 'scroll' ? !pseudo.canSubmitLatestStory : !pseudo.canSubmitStory,
+);
 
 const chooseStory = () => {
   if (pseudo.isGenerating) return;
-  timelineInteractionMode.value = 'story';
   if (props.readingMode !== 'scroll') emit('open-view', 'story');
-  if (pseudo.isDialogueActive) pseudo.endDialogue();
 };
 
 const chooseDialogue = () => {
   if (pseudo.isGenerating) return;
-  timelineInteractionMode.value = 'dialogue';
-  if (props.readingMode !== 'scroll') emit('open-view', 'dialogue');
-  if (pseudo.isDialogueActive) return;
-  if (pseudo.dialogueContext) pseudo.continueDialogue();
-  else showTargetPicker.value = true;
+  showTargetPicker.value = true;
 };
 
 const submitCurrent = () => {
-  pseudo.submit(historyKind.value, props.readingMode === 'scroll');
+  pseudo.submit('story', props.readingMode === 'scroll');
 };
 
-const runPrimaryAction = () => {
-  if (isDialogueWorkspace.value && !pseudo.isDialogueActive) {
-    if (pseudo.dialogueContext) pseudo.continueDialogue();
-    else showTargetPicker.value = true;
-    return;
-  }
-  submitCurrent();
-};
+const runPrimaryAction = submitCurrent;
 
 watch(
   () => pseudo.focusNonce,
   () => nextTick(() => textareaRef.value?.focus()),
-);
-watch(
-  () => pseudo.activeDialogue?.sessionId,
-  sessionId => {
-    if (sessionId) timelineInteractionMode.value = 'dialogue';
-  },
-);
-watch(
-  () => props.readingMode,
-  mode => {
-    if (mode === 'scroll') timelineInteractionMode.value = pseudo.activeDialogue ? 'dialogue' : 'story';
-  },
 );
 </script>
 
@@ -298,6 +215,59 @@ watch(
   display: flex;
   align-items: stretch;
   gap: 7px;
+}
+.pending-input-alert {
+  min-height: 42px;
+  margin: 0 37px 7px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--semantic-warning) 48%, var(--line-subtle));
+  border-radius: 6px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--semantic-warning) 10%, var(--surface-inset));
+}
+.pending-input-alert > i {
+  flex: none;
+  color: var(--semantic-warning);
+}
+.pending-input-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+.pending-input-copy strong {
+  color: var(--semantic-warning);
+  font-size: 11px;
+}
+.pending-input-copy span {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pending-input-alert button {
+  min-height: 28px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--semantic-warning) 42%, var(--line-subtle));
+  border-radius: 5px;
+  color: var(--gold);
+  background: var(--button-active);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.pending-input-alert button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .interaction-segments {
   flex: none;
@@ -505,9 +475,13 @@ textarea {
     display: none;
   }
   .selected-intent,
+  .pending-input-alert,
   .command-error {
     margin-right: 0;
     margin-left: 31px;
+  }
+  .pending-input-alert button span {
+    display: none;
   }
 }
 

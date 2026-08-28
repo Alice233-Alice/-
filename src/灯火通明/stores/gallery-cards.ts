@@ -26,7 +26,10 @@ export interface CustomPortraitOverride {
 
 const imagePreloadCache = new Map<string, Promise<void>>();
 
-const VISUAL_CARDS_TAG_REGEX = /<visual_cards>\s*([\s\S]*?)\s*<\/visual_cards>/i;
+// AI 有时会在思维链、正文和变量更新块中重复输出 visual_cards，
+// 也可能给标签加属性、空格或外层 XML 壳。解析器需要把这些都视为候选块，
+// 而不是因为第一个占位符（例如 `<visual_cards>...</visual_cards>`）失败就停止。
+const VISUAL_CARDS_TAG_REGEX = /<\s*visual(?:[_-]|\s)?cards\b[^>]*>\s*([\s\S]*?)\s*<\s*\/\s*visual(?:[_-]|\s)?cards\s*>/gi;
 const STRUCTURAL_CHAR_MAP: Record<string, string> = {
     '【': '[',
     '】': ']',
@@ -58,6 +61,16 @@ function stripMarkdownCodeFence(content: string): string {
         .trim();
 }
 
+function decodeVisualCardsMarkup(content: string): string {
+    return content
+        .replace(/&lt;|&#0*60;/gi, '<')
+        .replace(/&gt;|&#0*62;/gi, '>')
+        .replace(/&quot;|&#0*34;/gi, '"')
+        .replace(/&apos;|&#0*39;/gi, "'")
+        .replace(/[＜﹤]/g, '<')
+        .replace(/[＞﹥]/g, '>');
+}
+
 function normalizeVisualCards(cards: VisualCardInput[]): VisualCard[] {
     return cards.flatMap(card => {
         const name = typeof card.name === 'string' ? card.name.trim() : '';
@@ -81,7 +94,124 @@ function normalizeVisualCards(cards: VisualCardInput[]): VisualCard[] {
 }
 
 function normalizeVisualCardsStructure(content: string): string {
-    return stripMarkdownCodeFence(content).replace(/[【】｛｝：，]/g, char => STRUCTURAL_CHAR_MAP[char] ?? char);
+    return stripMarkdownCodeFence(decodeVisualCardsMarkup(content)).replace(/[【】｛｝：，]/g, char => STRUCTURAL_CHAR_MAP[char] ?? char);
+}
+
+function findMatchingBracket(input: string, startIndex: number): number {
+    const opening = input[startIndex];
+    const closingForOpening: Record<string, string> = { '[': ']', '{': '}' };
+    const closing = closingForOpening[opening];
+    if (!closing) return -1;
+
+    const stack = [closing];
+    let quote: string | null = null;
+
+    for (let index = startIndex + 1; index < input.length; index += 1) {
+        const char = input[index];
+
+        if (quote) {
+            if (char === '\\') {
+                index += 1;
+                continue;
+            }
+            if (char === quote) {
+                quote = null;
+            }
+            continue;
+        }
+
+        if (isQuoteChar(char)) {
+            quote = QUOTE_PAIRS[char];
+            continue;
+        }
+
+        if (char === '[' || char === '{') {
+            stack.push(char === '[' ? ']' : '}');
+            continue;
+        }
+
+        if (char === ']' || char === '}') {
+            if (stack[stack.length - 1] !== char) return -1;
+            stack.pop();
+            if (stack.length === 0) return index;
+        }
+    }
+
+    return -1;
+}
+
+function extractJsonFragments(content: string): string[] {
+    const fragments: string[] = [];
+
+    for (let index = 0; index < content.length; index += 1) {
+        if (content[index] !== '[' && content[index] !== '{') continue;
+        const endIndex = findMatchingBracket(content, index);
+        if (endIndex < 0) continue;
+        fragments.push(content.slice(index, endIndex + 1));
+    }
+
+    return [...new Set(fragments)];
+}
+
+function extractVisualCardsPayloads(content: string): string[] {
+    const normalizedContent = decodeVisualCardsMarkup(content);
+    const regex = new RegExp(VISUAL_CARDS_TAG_REGEX.source, 'gi');
+    const payloads: string[] = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(normalizedContent)) !== null) {
+        payloads.push(match[1]);
+    }
+
+    return payloads;
+}
+
+function normalizeParsedVisualCards(value: unknown): VisualCard[] | null {
+    if (Array.isArray(value)) {
+        if (value.length === 0) return [];
+        const cards = normalizeVisualCards(value as VisualCardInput[]);
+        return cards.length > 0 ? cards : null;
+    }
+
+    if (!value || typeof value !== 'object') return null;
+
+    const record = value as Record<string, unknown>;
+    const preferredKeys = ['visual_cards', 'visualCards', 'cards', 'data', 'value'];
+    for (const key of preferredKeys) {
+        if (!(key in record)) continue;
+        const nestedCards = normalizeParsedVisualCards(record[key]);
+        if (nestedCards !== null) return nestedCards;
+    }
+
+    if ('name' in record || 'img_code' in record || 'back_text' in record) {
+        const cards = normalizeVisualCards([record as VisualCardInput]);
+        return cards.length > 0 ? cards : null;
+    }
+
+    return null;
+}
+
+function parseVisualCardsPayload(payload: string): VisualCard[] | null {
+    const normalizedPayload = normalizeVisualCardsStructure(payload);
+    if (!normalizedPayload || normalizedPayload === '...' || normalizedPayload === '…') return null;
+
+    const candidates = [normalizedPayload, ...extractJsonFragments(normalizedPayload)];
+    for (const candidate of [...new Set(candidates)]) {
+        const jsonCandidate = stripMarkdownCodeFence(candidate);
+
+        try {
+            const parsed = JSON.parse(jsonCandidate) as unknown;
+            const cards = normalizeParsedVisualCards(parsed);
+            if (cards !== null) return cards;
+        } catch {
+            // 继续尝试外层壳中的数组/对象以及宽容解析。
+        }
+
+        const lenientCards = parseVisualCardsLenient(jsonCandidate);
+        if (lenientCards.length > 0) return lenientCards;
+    }
+
+    return null;
 }
 
 function isQuoteChar(char: string | undefined): char is keyof typeof QUOTE_PAIRS {
@@ -252,33 +382,31 @@ function parseVisualCardsLenient(jsonLike: string): VisualCard[] {
 }
 
 function parseVisualCards(content: string): VisualCard[] {
-    try {
-        const match = content.match(VISUAL_CARDS_TAG_REGEX);
-        if (!match) return [];
+    const payloads = extractVisualCardsPayloads(content);
+    if (payloads.length === 0) return [];
 
-        const jsonStr = stripMarkdownCodeFence(match[1]);
-        if (!jsonStr) return [];
+    // 最后一个合法块通常位于最终正文或变量更新块中。
+    // 这样可以跳过思维链里的 `<visual_cards>...</visual_cards>` 占位符，
+    // 同时让最终明确输出的 `[]` 能覆盖前面误生成的示例卡片。
+    let lastValidCards: VisualCard[] | null = null;
+    let lastValidIndex = -1;
 
-        const parsed = JSON.parse(jsonStr) as unknown;
-        if (Array.isArray(parsed)) {
-            return normalizeVisualCards(parsed as VisualCardInput[]);
+    payloads.forEach((payload, index) => {
+        const cards = parseVisualCardsPayload(payload);
+        if (cards === null) return;
+        lastValidCards = cards;
+        lastValidIndex = index;
+    });
+
+    if (lastValidCards !== null) {
+        if (payloads.length > 1 && lastValidIndex > 0) {
+            console.info('[图鉴] 已跳过前面的无效或占位 visual_cards，使用第', lastValidIndex + 1, '个候选块');
         }
-
-        console.warn('[图鉴] visual_cards 不是标准数组，尝试宽容解析');
-        return parseVisualCardsLenient(jsonStr);
-    } catch (e) {
-        const match = content.match(VISUAL_CARDS_TAG_REGEX);
-        const jsonStr = match ? stripMarkdownCodeFence(match[1]) : '';
-        const lenientCards = parseVisualCardsLenient(jsonStr);
-
-        if (lenientCards.length > 0) {
-            console.info('[图鉴] 已通过宽容模式解析 visual_cards', lenientCards.length, '张');
-            return lenientCards;
-        }
-
-        console.error('[图鉴] 解析 visual_cards 失败', e, jsonStr.slice(0, 200));
-        return [];
+        return lastValidCards;
     }
+
+    console.error('[图鉴] 解析 visual_cards 失败：未找到可用的 JSON 数组');
+    return [];
 }
 
 function convertToGalleryCards(
