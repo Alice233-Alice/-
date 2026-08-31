@@ -187,13 +187,20 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
     .readFileSync(path.join(import.meta.dirname, entry.script), 'utf-8')
     .includes('@obfuscate');
   const script_filepath = path.parse(entry.script);
+<<<<<<< HEAD
   const sassLoader = { loader: 'sass-loader', options: { sassOptions: { charset: false } } };
+=======
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
 
   return (_env, argv) => ({
     experiments: {
       outputModule: true,
     },
+<<<<<<< HEAD
     devtool: argv.mode === 'production' ? 'source-map' : false,
+=======
+    devtool: argv.mode === 'production' ? 'source-map' : 'eval-source-map',
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
     watchOptions: {
       ignored: ['**/dist', '**/node_modules'],
     },
@@ -251,7 +258,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
             },
             {
               test: /\.(sa|sc)ss$/,
+<<<<<<< HEAD
               use: ['postcss-loader', sassLoader],
+=======
+              use: ['postcss-loader', 'sass-loader'],
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
               resourceQuery: /raw/,
               type: 'asset/source',
               exclude: /node_modules/,
@@ -285,7 +296,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
             },
             {
               test: /\.(sa|sc)ss$/,
+<<<<<<< HEAD
               use: ['postcss-loader', sassLoader],
+=======
+              use: ['postcss-loader', 'sass-loader'],
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
               resourceQuery: /url/,
               type: 'asset/inline',
               exclude: /node_modules/,
@@ -355,7 +370,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       { loader: 'vue-style-loader', options: { ssrId: true } },
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
+<<<<<<< HEAD
                       sassLoader,
+=======
+                      'sass-loader',
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
                     ],
                     exclude: /node_modules/,
                   },
@@ -374,7 +393,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       'style-loader',
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
+<<<<<<< HEAD
                       sassLoader,
+=======
+                      'sass-loader',
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
                     ],
                     exclude: /node_modules/,
                   },
@@ -391,7 +414,11 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
                       MiniCssExtractPlugin.loader,
                       { loader: 'css-loader', options: { url: false } },
                       'postcss-loader',
+<<<<<<< HEAD
                       sassLoader,
+=======
+                      'sass-loader',
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
                     ],
                     exclude: /node_modules/,
                   },
@@ -562,9 +589,23 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       const cdn = {
         sass: 'https://jspm.dev/sass',
       };
+<<<<<<< HEAD
       return callback(
         null,
         'module-import ' + (cdn[request as keyof typeof cdn] ?? `https://testingcf.jsdelivr.net/npm/${request}/+esm`),
+=======
+      const package_json = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'package.json'), 'utf-8')) as {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
+      const package_versions = { ...package_json.devDependencies, ...package_json.dependencies };
+      const version = package_versions[request]?.replace(/^[~^]/, '');
+      const versioned_request = /^[.\d]+$/.test(version) ? `${request}@${version}` : request;
+      return callback(
+        null,
+        'module-import ' +
+          (cdn[request as keyof typeof cdn] ?? `https://testingcf.jsdelivr.net/npm/${versioned_request}/+esm`),
+>>>>>>> 457044c57ea6141e665c88603ea84d7542da64a4
       );
     },
   });
