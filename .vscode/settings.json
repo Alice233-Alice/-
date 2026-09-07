@@ -49,7 +49,11 @@
   "[vue]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+<<<<<<< HEAD
   "typescript.tsdk": "node_modules/typescript/lib",
   "explorer.decorations.colors": false,
   "explorer.decorations.badges": true
+=======
+  "typescript.tsdk": "node_modules/typescript/lib"
+>>>>>>> c3dda85b40baa6188b2eff4e263cb20fedabcecf
 }
