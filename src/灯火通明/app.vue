@@ -234,10 +234,11 @@ const updateViewport = () => {
   // Older controllers keep the stage in the selected native message instead
   // of the owned stage root. Fit that host to the actual chat space as well.
   const nativeHost = frame?.closest('#chat > .mes.dhl-pseudo-selected');
+  // 缩放时酒馆可能临时滚动外层聊天区，先归零，避免把滚动偏移计入舞台高度。
+  if (parentChat && (isPseudoStage.value || nativeHost)) parentChat.scrollTop = 0;
   const availableNativeHeight =
     nativeHost && parentChat ? parentChat.getBoundingClientRect().bottom - frame!.getBoundingClientRect().top : 0;
   nativeStageHeight.value = availableNativeHeight > 0 ? Math.floor(availableNativeHeight) : null;
-  if (isPseudoStage.value && parentChat) parentChat.scrollTop = 0;
   parentViewportHeight.value = readParentViewportHeight();
   appViewportWidth.value = window.parent.innerWidth;
   const nextMode = getViewportMode();
