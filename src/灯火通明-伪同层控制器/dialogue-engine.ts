@@ -1,4 +1,5 @@
 import { jsonrepair } from 'jsonrepair';
+import { readPlayerInput } from '../灯火通明/player-input';
 import { extractDialogueContent, extractNarrative } from '../灯火通明/message-content';
 import {
   DialogueContext,
@@ -76,8 +77,8 @@ const truncateAtSentence = (value: string, maxLength: number) => {
 };
 
 const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionMetadata | null => {
-  const value = (message?.extra?.[INTERACTION_KEY] ??
-    message?.extra?.extra?.[INTERACTION_KEY]) as Partial<PseudoLayerInteractionMetadata> | undefined;
+  const value = (message?.extra?.[INTERACTION_KEY] ?? message?.extra?.extra?.[INTERACTION_KEY]) as
+    Partial<PseudoLayerInteractionMetadata> | undefined;
   if (
     !value ||
     (value.version !== 1 && value.version !== 2 && value.version !== 3) ||
@@ -102,14 +103,10 @@ const readMetadata = (message: ChatMessage | undefined): PseudoLayerInteractionM
 };
 
 const findPreviousUser = (messages: ChatMessage[], beforeMessageId: number) =>
-  [...messages]
-    .reverse()
-    .find(message => message.role === 'user' && message.message_id < beforeMessageId);
+  [...messages].reverse().find(message => message.role === 'user' && message.message_id < beforeMessageId);
 
 const findPreviousMessage = (messages: ChatMessage[], beforeMessageId: number) =>
-  [...messages]
-    .reverse()
-    .find(message => message.message_id < beforeMessageId);
+  [...messages].reverse().find(message => message.message_id < beforeMessageId);
 
 const resolveAssistantMetadata = (message: ChatMessage, messages: ChatMessage[]) => {
   const direct = readMetadata(message);
@@ -120,11 +117,7 @@ const resolveAssistantMetadata = (message: ChatMessage, messages: ChatMessage[])
 
 const rawUserText = (message: ChatMessage | undefined) => {
   const metadata = readMetadata(message);
-  return compactText(
-    metadata?.rawUserText ??
-      String(message?.message ?? '').replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, ''),
-    360,
-  );
+  return compactText(readPlayerInput(message, metadata?.rawUserText), 360);
 };
 
 const getStatData = (mvuData: Record<string, any>) => {
@@ -188,11 +181,7 @@ const buildSceneSummary = (
     .join('\n');
 };
 
-const collectSessionState = (
-  messages: ChatMessage[],
-  context: DialogueContext,
-  baseMessageId: number,
-) => {
+const collectSessionState = (messages: ChatMessage[], context: DialogueContext, baseMessageId: number) => {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message.message_id > baseMessageId || message.role !== 'assistant') continue;
@@ -202,11 +191,7 @@ const collectSessionState = (
   return undefined;
 };
 
-const collectOpenMemories = (
-  messages: ChatMessage[],
-  context: DialogueContext,
-  baseMessageId: number,
-) => {
+const collectOpenMemories = (messages: ChatMessage[], context: DialogueContext, baseMessageId: number) => {
   const projection = new Map<string, DialogueMemoryEvent>();
   messages.forEach(message => {
     if (message.message_id > baseMessageId || message.role !== 'assistant') return;
@@ -264,9 +249,7 @@ const buildHistoryPrompts = (
       return [
         {
           user: rawUserText(linkedUser),
-          assistant: [visible.reaction && `（${visible.reaction}）`, visible.dialogue]
-            .filter(Boolean)
-            .join(' '),
+          assistant: [visible.reaction && `（${visible.reaction}）`, visible.dialogue].filter(Boolean).join(' '),
         },
       ];
     })
@@ -284,16 +267,12 @@ const buildEngineContext = (input: DialogueGenerationInput): DialogueEngineConte
   const sceneSummary = buildSceneSummary(input.context, input.mvuData, latestState, memories);
   return {
     sceneSummary,
-    historyPrompts: buildHistoryPrompts(
-      input.messages,
-      input.context,
-      input.baseMessageId,
-      sceneSummary,
-    ),
+    historyPrompts: buildHistoryPrompts(input.messages, input.context, input.baseMessageId, sceneSummary),
   };
 };
 
-const buildDialogueContract = (context: DialogueContext) => `
+const buildDialogueContract = (context: DialogueContext) =>
+  `
 【灯火阑珊·红颜专用短对话引擎】
 你现在只扮演「${context.targetName}」（规范角色名：${context.canonicalName}）直接回应用户。
 这是${context.channel === 'present' ? '当面交谈' : '远程传讯'}，不是剧情续写任务。
@@ -353,7 +332,9 @@ const readBoundedTag = (text: string, tag: string, stopTags: string[]) => {
 };
 
 const parseStateJson = (text: string) => {
-  const raw = readCompleteTag(text, '会话状态').replace(/^```(?:json)?\s*|\s*```$/gi, '').trim();
+  const raw = readCompleteTag(text, '会话状态')
+    .replace(/^```(?:json)?\s*|\s*```$/gi, '')
+    .trim();
   if (!raw) return undefined;
   try {
     const parsed = JSON.parse(jsonrepair(raw));
@@ -367,7 +348,10 @@ const parseStateJson = (text: string) => {
 const normalizeSessionState = (value: unknown): DialogueSessionState | undefined => {
   if (!isRecord(value)) return undefined;
   const unresolvedThreads = Array.isArray(value.unresolvedThreads)
-    ? value.unresolvedThreads.map(item => compactText(item, 120)).filter(Boolean).slice(0, 8)
+    ? value.unresolvedThreads
+        .map(item => compactText(item, 120))
+        .filter(Boolean)
+        .slice(0, 8)
     : [];
   const state: DialogueSessionState = {
     emotion: compactText(value.emotion, 100) || undefined,
@@ -388,7 +372,10 @@ const normalizeMemoryEvents = (value: unknown, operationId: string): DialogueMem
       const summary = compactText(candidate.summary, 180);
       if (!summary) return [];
       const resolves = Array.isArray(candidate.resolves)
-        ? candidate.resolves.map(item => compactText(item, 120)).filter(Boolean).slice(0, 8)
+        ? candidate.resolves
+            .map(item => compactText(item, 120))
+            .filter(Boolean)
+            .slice(0, 8)
         : [];
       return [
         {
@@ -405,13 +392,7 @@ const normalizeMemoryEvents = (value: unknown, operationId: string): DialogueMem
 
 const normalizeRelationEvents = (value: unknown, operationId: string): DialogueRelationEvent[] => {
   if (!Array.isArray(value)) return [];
-  const kinds = new Set<DialogueRelationEvent['kind']>([
-    'positive',
-    'negative',
-    'promise',
-    'boundary',
-    'attitude',
-  ]);
+  const kinds = new Set<DialogueRelationEvent['kind']>(['positive', 'negative', 'promise', 'boundary', 'attitude']);
   return value
     .flatMap((candidate, index) => {
       if (!isRecord(candidate) || !kinds.has(candidate.kind)) return [];
@@ -587,21 +568,15 @@ export const parseDialogueGeneration = (
   const visualCard = normalizeVisualCard(raw, context);
   const variableUpdate = normalizeDialogueVariablePatches(raw, context);
   if (relationEvents.length === 0 && memoryEvents.length === 0 && variableUpdate.effects.favor) {
-    variableUpdate.patches = variableUpdate.patches.filter(
-      patch => decodeJsonPointer(patch.path)[2] !== '好感度',
-    );
+    variableUpdate.patches = variableUpdate.patches.filter(patch => decodeJsonPointer(patch.path)[2] !== '好感度');
     delete variableUpdate.effects.favor;
   }
   if (relationEvents.length === 0 && variableUpdate.effects.relationship) {
-    variableUpdate.patches = variableUpdate.patches.filter(
-      patch => decodeJsonPointer(patch.path)[2] !== '关系',
-    );
+    variableUpdate.patches = variableUpdate.patches.filter(patch => decodeJsonPointer(patch.path)[2] !== '关系');
     delete variableUpdate.effects.relationship;
   }
   if (memoryEvents.length === 0 && variableUpdate.effects.chronicle) {
-    variableUpdate.patches = variableUpdate.patches.filter(
-      patch => decodeJsonPointer(patch.path)[2] !== '羁绊纪事',
-    );
+    variableUpdate.patches = variableUpdate.patches.filter(patch => decodeJsonPointer(patch.path)[2] !== '羁绊纪事');
     delete variableUpdate.effects.chronicle;
   }
   return {
@@ -617,9 +592,7 @@ export const parseDialogueGeneration = (
   };
 };
 
-export const generateDialogueReply = async (
-  input: DialogueGenerationInput,
-): Promise<ParsedDialogueGeneration> => {
+export const generateDialogueReply = async (input: DialogueGenerationInput): Promise<ParsedDialogueGeneration> => {
   const engineContext = buildEngineContext(input);
   const decoratedInput =
     input.context.channel === 'present'

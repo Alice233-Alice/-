@@ -87,6 +87,7 @@ export type PseudoLayerDialogueStage = {
 export type PseudoLayerStage = PseudoLayerStoryStage | PseudoLayerDialogueStage;
 
 export type PseudoLayerTimelineTurn = {
+  generationNotice?: string;
   assistantMessageId: number;
   userMessageId?: number;
   userText: string;
@@ -192,7 +193,7 @@ export type PseudoLayerView = {
 };
 
 export type PseudoLayerRequest =
-  | { channel: typeof PSEUDO_LAYER_CHANNEL; version: number; type: 'hello'; messageId: number }
+  | { channel: typeof PSEUDO_LAYER_CHANNEL; version: number; type: 'hello'; messageId: number; requestId?: string }
   | { channel: typeof PSEUDO_LAYER_CHANNEL; version: number; type: 'goodbye'; messageId: number }
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;
@@ -337,6 +338,7 @@ export type PseudoLayerResponse =
       type: 'complete';
       requestId: string;
       messageId: number;
+      notice?: string;
     }
   | {
       channel: typeof PSEUDO_LAYER_CHANNEL;

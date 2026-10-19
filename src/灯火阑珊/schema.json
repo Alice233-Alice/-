@@ -72,17 +72,38 @@
       "type": "object",
       "propertyNames": {
         "type": "string",
-        "description": "事件名"
+        "description": "事件名或稳定事件ID"
       },
       "additionalProperties": {
         "type": "object",
         "properties": {
           "状态": {
-            "default": "",
+            "default": "活跃",
+            "type": "string"
+          },
+          "阶段": {
             "type": "string"
           },
           "事件": {
             "default": "",
+            "type": "string"
+          },
+          "地点": {
+            "type": "string"
+          },
+          "最近变化": {
+            "type": "string"
+          },
+          "可见影响": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "参与情况": {
+            "type": "string"
+          },
+          "影响等级": {
+            "type": "string"
+          },
+          "更新时间": {
             "type": "string"
           }
         }
@@ -1171,6 +1192,20 @@
             "丹青赋灵",
             "过目成诵"
           ]
+        },
+        "沈倩宁": {
+          "级": 8,
+          "根": "赤雷血灵根",
+          "质": "赤雷真血神体",
+          "龄": "实历二十三载",
+          "属": "雷暴海·赤霄阁嫡传",
+          "法": "血雷通玄/重剑法门",
+          "器": "赤血重刃",
+          "通": [
+            "真血化雷",
+            "雷遁",
+            "护刃磁场"
+          ]
         }
       },
       "type": "object",
@@ -1435,6 +1470,14 @@
             "default": "",
             "type": "string"
           },
+          "进度": {
+            "default": "",
+            "type": "string"
+          },
+          "下一步": {
+            "default": "",
+            "type": "string"
+          },
           "状态": {
             "default": "进行中",
             "type": "string"
@@ -1494,10 +1537,10 @@
             }
           },
           "创建时间": {
-            "default": 1787925502312,
+            "default": 1792397913534,
             "anyOf": [
               {
-                "default": 1787925502288,
+                "default": 1792397913508,
                 "type": "number"
               },
               {
@@ -1527,7 +1570,7 @@
             "type": "string"
           },
           "更新时间": {
-            "default": 1787925502312,
+            "default": 1792397913535,
             "type": "number"
           }
         }
@@ -1637,11 +1680,26 @@
           {
             "type": "object",
             "properties": {
+              "标题": {
+                "type": "string"
+              },
               "行动": {
                 "type": "string"
               },
               "类型": {
                 "default": "探索",
+                "type": "string"
+              },
+              "叙事类型": {
+                "type": "string"
+              },
+              "事件性质": {
+                "type": "string"
+              },
+              "事件": {
+                "type": "string"
+              },
+              "关联事件ID": {
                 "type": "string"
               },
               "提示": {
@@ -1655,11 +1713,26 @@
           {
             "type": "object",
             "properties": {
+              "title": {
+                "type": "string"
+              },
               "action": {
                 "type": "string"
               },
               "type": {
                 "default": "探索",
+                "type": "string"
+              },
+              "narrativeKind": {
+                "type": "string"
+              },
+              "eventNature": {
+                "type": "string"
+              },
+              "event": {
+                "type": "string"
+              },
+              "eventId": {
                 "type": "string"
               },
               "hint": {
@@ -1729,7 +1802,7 @@
           "type": "number"
         },
         "变量结构版本": {
-          "default": 4,
+          "default": 5,
           "type": "number"
         },
         "_临时状态手动覆盖签名": {
@@ -1802,7 +1875,7 @@
             "type": "string"
           },
           "领悟时间": {
-            "default": 1787925502311,
+            "default": 1792397913532,
             "type": "number"
           }
         }

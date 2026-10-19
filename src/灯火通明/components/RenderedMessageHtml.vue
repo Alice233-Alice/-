@@ -1,6 +1,7 @@
 <!-- eslint-disable vue/no-v-html -->
+<!-- Preset regex styles target `.mes_text`; keep that scope inside the pseudo layer. -->
 <template>
-  <div ref="host" class="rendered-message-html" v-bind="$attrs" v-html="html"></div>
+  <div ref="host" class="rendered-message-html mes_text" v-bind="$attrs" v-html="html"></div>
 </template>
 
 <script setup lang="ts">

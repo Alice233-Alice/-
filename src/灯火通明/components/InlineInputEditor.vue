@@ -10,10 +10,10 @@
       spellcheck="false"
       @input="resizeEditor"
       @keydown.esc.stop.prevent="cancel"
-      @keydown.ctrl.enter.prevent="save"
-      @keydown.meta.enter.prevent="save"
-      @keydown.ctrl.s.prevent="save"
-      @keydown.meta.s.prevent="save"
+      @keydown.ctrl.enter.prevent="save()"
+      @keydown.meta.enter.prevent="save()"
+      @keydown.ctrl.s.prevent="save()"
+      @keydown.meta.s.prevent="save()"
     ></textarea>
 
     <p v-if="pseudo.editError" class="inline-edit-error" role="alert">
@@ -27,9 +27,12 @@
       </span>
       <div>
         <button type="button" :disabled="saving" @click="cancel">取消</button>
-        <button type="button" class="save-button" :disabled="!canSave" @click="save">
+        <button type="button" class="save-button" :disabled="!canSave" @click="save()">
           <i class="fa-solid" :class="saving ? 'fa-circle-notch fa-spin' : 'fa-check'"></i>
           {{ saving ? '保存中' : '保存' }}
+        </button>
+        <button v-if="canRerollAfterSave" type="button" class="save-button" :disabled="!canSave" @click="save(true)">
+          <i class="fa-solid fa-rotate-right"></i> 保存并重答
         </button>
       </div>
     </footer>
@@ -57,6 +60,8 @@ const editorInput = ref<HTMLTextAreaElement>();
 const draft = ref(props.content);
 const original = ref(props.content);
 const saving = ref(false);
+const rerollAfterSave = ref(false);
+const canRerollAfterSave = computed(() => props.assistantMessageId === pseudo.latestStoryMessageId);
 
 const canSave = computed(
   () => draft.value !== original.value && draft.value.trim().length > 0 && pseudo.canEditUserMessage && !saving.value,
@@ -75,9 +80,10 @@ const cancel = () => {
   emit('cancel');
 };
 
-const save = () => {
+const save = (reroll = false) => {
   if (!canSave.value) return;
   saving.value = true;
+  rerollAfterSave.value = reroll;
   pseudo.updateUserMessage(draft.value, props.userMessageId, props.assistantMessageId);
 };
 
@@ -87,6 +93,7 @@ watch(
     if (!saving.value) return;
     saving.value = false;
     emit('saved');
+    if (rerollAfterSave.value) pseudo.reroll(props.assistantMessageId);
   },
 );
 
@@ -177,6 +184,8 @@ footer > span.invalid {
 
 footer > div {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 6px;
 }

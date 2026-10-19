@@ -42,7 +42,9 @@
         @scroll="rememberScroll"
       >
         <TimelineReader
-          v-if="activeView === 'timeline'"
+          v-if="readingMode === 'scroll'"
+          v-show="activeView === 'timeline'"
+          :active="activeView === 'timeline'"
           :anchor-message-id="timelineAnchorMessageId"
           :immersive="isImmersive"
           :mobile-layout="isMobileViewport"
@@ -56,15 +58,6 @@
         <InventoryPanel v-else-if="activeView === 'inventory'" />
         <CompanionsPanel v-else-if="activeView === 'companions'" />
         <MapPanel v-else-if="activeView === 'trace'" />
-        <div v-else-if="activeView === 'map'" class="panel full-map-panel">
-          <WorldMapCanvas
-            :current-location="store.本尊.行踪.当前区域"
-            :current-domain="parentRegion"
-            :current-layer="store.本尊.行踪.所属层级"
-            :current-danger="store.本尊.行踪.危险度 ?? 10"
-            :available-connections="store.本尊.行踪.可用通道 || []"
-          />
-        </div>
         <div v-else-if="activeView === 'tribulation'" class="panel tribulation-panel">
           <CombatPanel
             :combat-state="store.本尊.战斗状态"
@@ -75,11 +68,28 @@
         </div>
         <GalleryPanel v-else-if="activeView === 'gallery'" />
         <ActionMenuPanel v-else-if="activeView === 'actions'" />
+        <div v-if="mapOpened" v-show="activeView === 'map'" class="panel full-map-panel">
+          <WorldMapCanvas
+            :active="activeView === 'map'"
+            :current-location="store.本尊.行踪.当前区域"
+            :current-domain="parentRegion"
+            :current-layer="store.本尊.行踪.所属层级"
+            :location-description="atlasLocationDescription"
+            :current-danger="store.本尊.行踪.危险度 ?? 10"
+            :available-connections="store.本尊.行踪.可用通道 || []"
+          />
+        </div>
       </div>
     </main>
 
-    <TabNav v-if="!isImmersive" v-model:active-tab="activeView" :tabs="tabs" />
-    <FooterSection v-if="!isImmersive" :actions-active="activeView === 'actions'" @open-actions="openView('actions')" />
+    <div v-if="!isImmersive" class="stage-navigation">
+      <TabNav v-model:active-tab="activeView" :tabs="tabs" />
+      <FooterSection
+        :compact="activeView === 'map'"
+        :actions-active="activeView === 'actions'"
+        @open-actions="openView('actions')"
+      />
+    </div>
     <PseudoCommandDock
       :active-view="activeView"
       :mobile-layout="isMobileViewport"
@@ -169,6 +179,8 @@ const readImmersivePreference = (mode: ViewportMode) => {
 const viewportMode = ref<ViewportMode>(getViewportMode());
 const readingMode = computed<ReadingMode>(() => themeStore.readingModes[viewportMode.value]);
 const activeView = ref<StageView>(readingMode.value === 'scroll' ? 'timeline' : 'story');
+// Prepare the atlas only on first entry; tab changes retain its textures and camera.
+const mapOpened = ref(false);
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
 const showReadingSettings = ref(false);
 const showGreetingIndex = ref(false);
@@ -184,6 +196,7 @@ const parentViewportHeight = ref(readParentViewportHeight());
 const appViewportWidth = ref(window.parent.innerWidth);
 const isMobileViewport = computed(() => viewportMode.value === 'mobile');
 const isPseudoStage = ref(Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root')));
+const nativeStageHeight = ref<number | null>(null);
 
 type StageTab = { id: StageView; label: string; icon: string; badge?: number };
 
@@ -216,7 +229,14 @@ const themeArtMap = {
 } as const;
 const updateViewport = () => {
   const parentChat = window.parent.document.querySelector<HTMLElement>('#chat');
-  isPseudoStage.value = Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root'));
+  const frame = window.frameElement;
+  isPseudoStage.value = Boolean(frame?.closest('#dhl-pseudo-stage-root'));
+  // Older controllers keep the stage in the selected native message instead
+  // of the owned stage root. Fit that host to the actual chat space as well.
+  const nativeHost = frame?.closest('#chat > .mes.dhl-pseudo-selected');
+  const availableNativeHeight =
+    nativeHost && parentChat ? parentChat.getBoundingClientRect().bottom - frame!.getBoundingClientRect().top : 0;
+  nativeStageHeight.value = availableNativeHeight > 0 ? Math.floor(availableNativeHeight) : null;
   if (isPseudoStage.value && parentChat) parentChat.scrollTop = 0;
   parentViewportHeight.value = readParentViewportHeight();
   appViewportWidth.value = window.parent.innerWidth;
@@ -226,8 +246,26 @@ const updateViewport = () => {
     isImmersive.value = readImmersivePreference(nextMode);
   }
 };
+let viewportUpdateFrame: number | null = null;
+const scheduleViewportUpdate = () => {
+  if (viewportUpdateFrame !== null) return;
+  viewportUpdateFrame = window.parent.requestAnimationFrame(() => {
+    viewportUpdateFrame = null;
+    updateViewport();
+  });
+};
+const parentChatResizeObserver = new ResizeObserver(scheduleViewportUpdate);
+watch(
+  [
+    () => pseudoLayerStore.controllerReady,
+    () => pseudoLayerStore.view.hostMessageId,
+    () => pseudoLayerStore.view.nativeInputCollapsed,
+  ],
+  scheduleViewportUpdate,
+);
 
 const stageHeight = computed(() => {
+  if (nativeStageHeight.value !== null) return nativeStageHeight.value;
   const mobile = appViewportWidth.value <= MOBILE_BREAKPOINT;
   const mobileOffset = pseudoLayerStore.view.nativeInputCollapsed ? 42 : 118;
   const availableHeight = parentViewportHeight.value - (mobile ? mobileOffset : 132);
@@ -314,6 +352,10 @@ const parentRegion = computed(
       worldMap: store.世界地图,
     }) || inferredRegion.value,
 );
+const atlasLocationDescription = computed(() => {
+  const name = String(store.本尊.行踪.当前区域 || '').trim();
+  return [store.地点库[name]?.特, store.世界地图[name]?.desc, store.本尊.行踪.环境描述].filter(Boolean).join('；');
+});
 const isReadingView = (view: StageView) => view === 'timeline' || view === 'story';
 const dangerColor = computed(() => getDangerColor(store.本尊.行踪.危险度 ?? 10));
 const readingViewActive = computed(() => isReadingView(activeView.value));
@@ -359,6 +401,7 @@ const closeRawEditor = () => {
 };
 
 watch(activeView, (next, previous) => {
+  if (next === 'map') mapOpened.value = true;
   if (!isReadingView(previous) && modeViewport.value) {
     scrollPositions.set(previous, modeViewport.value.scrollTop);
   }
@@ -395,7 +438,7 @@ watch(readingMode, (next, previous) => {
 watch(
   () => pseudoLayerStore.generationState,
   (next, previous) => {
-    if (next === 'generating') {
+    if (previous === 'idle' && next !== 'idle') {
       hasEnteredStreaming.value = true;
       activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'story';
       restoreReadingPreference();
@@ -454,15 +497,19 @@ watch(
 
 onMounted(() => {
   pseudoLayerStore.start();
-  window.parent.addEventListener('resize', updateViewport);
-  window.parent.visualViewport?.addEventListener('resize', updateViewport);
-  window.parent.requestAnimationFrame(updateViewport);
+  const parentChat = window.parent.document.querySelector('#chat');
+  if (parentChat) parentChatResizeObserver.observe(parentChat);
+  window.parent.addEventListener('resize', scheduleViewportUpdate);
+  window.parent.visualViewport?.addEventListener('resize', scheduleViewportUpdate);
+  scheduleViewportUpdate();
 });
 onBeforeUnmount(() => {
+  parentChatResizeObserver.disconnect();
   pseudoLayerStore.dispose();
   store.dispose();
-  window.parent.removeEventListener('resize', updateViewport);
-  window.parent.visualViewport?.removeEventListener('resize', updateViewport);
+  window.parent.removeEventListener('resize', scheduleViewportUpdate);
+  window.parent.visualViewport?.removeEventListener('resize', scheduleViewportUpdate);
+  if (viewportUpdateFrame !== null) window.parent.cancelAnimationFrame(viewportUpdateFrame);
 });
 </script>
 
@@ -556,9 +603,12 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid;
 }
 
-.cultivation-status > :where(.stage-header, .stage-main, .tab-nav, .footer, .command-dock) {
+.cultivation-status > :where(.stage-header, .stage-main, .stage-navigation, .command-dock) {
   position: relative;
   z-index: 1;
+}
+.stage-navigation {
+  display: contents;
 }
 .stage-main {
   min-height: 0;
@@ -1065,6 +1115,14 @@ onBeforeUnmount(() => {
   transition-duration: 0.01ms !important;
 }
 
+// 手机阅读时保留背景构图，避免大面积背景动画持续占用合成与绘制资源。
+.cultivation-status.mobile-layout .ambient-overlay {
+  animation: none;
+}
+.cultivation-status.mobile-layout {
+  transition: none;
+}
+
 .cultivation-status[data-theme='lantern'] .ambient-overlay {
   animation-name: lantern-breathe;
 }
@@ -1159,6 +1217,64 @@ onBeforeUnmount(() => {
 
   .cultivation-status[data-theme] :deep(.command-dock) {
     margin-bottom: 5px !important;
+  }
+}
+// Map browsing gets a compact shell without changing the reading layouts.
+.cultivation-status.map-expanded[data-theme] :deep(.stage-header) {
+  min-height: 44px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  margin-top: 5px;
+}
+.map-expanded :deep(.scene-kicker),
+.map-expanded :deep(.turn-copy > span) {
+  display: none;
+}
+.map-expanded :deep(.crane-mark) {
+  width: 28px;
+  height: 28px;
+}
+.cultivation-status.map-expanded[data-theme] .stage-main {
+  margin-top: 4px;
+}
+.map-expanded .stage-viewport {
+  overflow: hidden;
+}
+.map-expanded :deep(.command-dock) {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+@media (min-width: 1100px) {
+  .map-expanded .stage-navigation {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: stretch;
+    min-width: 0;
+    margin: 0 10px;
+    background: var(--tab-bg);
+    border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line-subtle);
+  }
+  .map-expanded .stage-navigation :deep(.tab-nav-shell) {
+    flex: 1;
+  }
+  .cultivation-status.map-expanded[data-theme] .stage-navigation :deep(.tab-nav),
+  .cultivation-status.map-expanded[data-theme] .stage-navigation :deep(.footer) {
+    margin: 0;
+    border: 0;
+  }
+  .map-expanded .stage-navigation :deep(.tab-nav) {
+    height: 40px;
+    padding: 2px 4px;
+  }
+  .map-expanded .stage-navigation :deep(.tab-btn) {
+    min-height: 34px;
+    padding: 4px 6px;
+  }
+  .map-expanded .stage-navigation :deep(.footer) {
+    flex: 0 0 auto;
+    gap: 16px;
+    border-left: 1px solid var(--line-subtle);
   }
 }
 </style>

@@ -1,12 +1,18 @@
 ﻿import { Schema } from '../schema';
 
 import { COMPANION_CANONICAL_NAMES } from '../../灯火阑珊-变量结构/companion-aliases';
+import {
+  parseWorldEventPatchOperation,
+  restoreWorldEventLedger,
+  type WorldEventPatchOperation,
+} from '../world-event-patch-guard';
 
 const GUARD_INSTALLED_KEY = '__踏月寻仙_ui_mvu_guard_installed__';
 const LAST_VALID_STAT_DATA_KEY = '__踏月寻仙_last_valid_stat_data';
 const READONLY_DERIVED_FIELDS = new Set(['突破阈值', '寿元上限', '境界描述', '寿元状态', '状态', '进度']);
 const pendingCompanionLevels = new Map<string, number>();
 const pendingCompanionLibraryLevels = new Map<string, number>();
+const pendingWorldEventOperations: WorldEventPatchOperation[] = [];
 
 type GuardMutableCommand = {
   type: 'set' | 'insert' | 'delete' | 'add';
@@ -259,12 +265,22 @@ export function bootstrapMvuGuard() {
     .then(() => {
       if (disposed) return;
       eventStops.push(
+        eventOn(Mvu.events.VARIABLE_UPDATE_STARTED, () => {
+          if (!isActiveStageFrame()) return;
+          pendingWorldEventOperations.length = 0;
+        }).stop,
+      );
+
+      eventStops.push(
         eventOn(Mvu.events.COMMAND_PARSED, (variables: Mvu.MvuData, commands: Mvu.CommandInfo[]) => {
           if (!isActiveStageFrame()) return;
           const normalizedCommands = commands as unknown as GuardMutableCommand[];
           const appendedCommands: GuardMutableCommand[] = [];
 
           for (const command of normalizedCommands) {
+            const worldEventOperation = parseWorldEventPatchOperation(command.full_match);
+            if (worldEventOperation) pendingWorldEventOperations.push(worldEventOperation);
+
             if (!Array.isArray(command.args) || command.args.length === 0) continue;
 
             const rawPath = String(command.args[0] ?? '');
@@ -311,13 +327,22 @@ export function bootstrapMvuGuard() {
       );
 
       eventStops.push(
-        eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (newVariables: Mvu.MvuData) => {
+        eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (newVariables: Mvu.MvuData, variablesBeforeUpdate: Mvu.MvuData) => {
           if (!isActiveStageFrame()) return;
           applyPendingCompanionLevels(newVariables);
+
+          const restoredWorldEvents = restoreWorldEventLedger(
+            _.get(variablesBeforeUpdate, 'stat_data.世界图志'),
+            _.get(newVariables, 'stat_data.世界图志'),
+            pendingWorldEventOperations,
+          );
+          _.set(newVariables, 'stat_data.世界图志', restoredWorldEvents);
+
           const statData = _.get(newVariables, 'stat_data');
           const parsed = Schema.safeParse(statData);
           pendingCompanionLevels.clear();
           pendingCompanionLibraryLevels.clear();
+          pendingWorldEventOperations.length = 0;
           if (!parsed.success) return;
           if (!_.isEqual(statData, parsed.data)) {
             _.set(newVariables, 'stat_data', parsed.data);

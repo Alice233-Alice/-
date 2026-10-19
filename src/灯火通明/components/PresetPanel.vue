@@ -258,6 +258,18 @@
               <textarea v-model="task.目标" placeholder="如：前往栖月洞府寻药，为疗伤做准备" rows="2"></textarea>
             </div>
           </div>
+          <div class="item-row full">
+            <div class="item-field full">
+              <label>任务进度</label>
+              <textarea v-model="task.进度" placeholder="已完成的事项或已发现的线索" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="item-row full">
+            <div class="item-field full">
+              <label>下一步</label>
+              <textarea v-model="task.下一步" placeholder="尚待完成的事项，未明确时可留空" rows="2"></textarea>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -582,6 +594,7 @@
 </template>
 
 <script setup lang="ts">
+import { copyQuestForPreset, type QuestPresetData as QuestData } from '../quest-preset';
 import { extractSpiritStoneFromInventory, REALM_NAMES, REALM_STAGES, Schema } from '../schema';
 import { useDataStore } from '../store';
 
@@ -686,14 +699,6 @@ interface TribulationStatusData {
   劫力承受: number;
   劫难描述: string;
   触发原因: string;
-}
-
-interface QuestData {
-  名称: string;
-  类型: '主线' | '支线' | '每日' | '临危受命' | '秘境探索';
-  目标: string;
-  状态: '进行中';
-  创建时间: number;
 }
 
 const 默认红颜角色库 = (Schema.parse({}).红颜角色库 || {}) as Record<string, CharacterLibraryData>;
@@ -853,13 +858,13 @@ const removeMiscItem = (itemName: string) => {
 // 添加任务
 const addQuest = () => {
   const id = generateId();
-  formData.value.任务列表[id] = {
+  formData.value.任务列表[id] = copyQuestForPreset({
     名称: '新任务',
     类型: '支线',
     目标: '',
     状态: '进行中',
     创建时间: Date.now(),
-  };
+  });
 };
 
 // 删除任务
@@ -961,13 +966,7 @@ const loadCurrentData = () => {
   const 任务列表: Record<string, QuestData> = {};
   if (store.任务列表) {
     for (const [taskId, task] of Object.entries(store.任务列表)) {
-      任务列表[taskId] = {
-        名称: task.名称 || '',
-        类型: (task.类型 as QuestData['类型']) || '支线',
-        目标: task.目标 || '',
-        状态: '进行中',
-        创建时间: task.创建时间 || Date.now(),
-      };
+      任务列表[taskId] = copyQuestForPreset(task);
     }
   }
 
@@ -1134,13 +1133,7 @@ const convertQuestsToMvu = () => {
     if (!String(task.名称 || '').trim() && !String(task.目标 || '').trim()) {
       continue;
     }
-    result[taskId] = {
-      名称: task.名称 || '',
-      类型: task.类型 || '支线',
-      目标: task.目标 || '',
-      状态: '进行中',
-      创建时间: task.创建时间 || Date.now(),
-    };
+    result[taskId] = copyQuestForPreset(task);
   }
   return result;
 };
@@ -1498,13 +1491,7 @@ const importPreset = (event: Event) => {
       if (preset.任务列表) {
         formData.value.任务列表 = {};
         for (const [taskId, task] of Object.entries(preset.任务列表 as Record<string, QuestData>)) {
-          formData.value.任务列表[taskId] = {
-            名称: task.名称 || '',
-            类型: task.类型 || '支线',
-            目标: task.目标 || '',
-            状态: '进行中',
-            创建时间: task.创建时间 || Date.now(),
-          };
+          formData.value.任务列表[taskId] = copyQuestForPreset(task);
         }
       }
 

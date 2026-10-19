@@ -1,5 +1,52 @@
 <template>
   <div class="action-menu-panel">
+    <section class="world-events-section">
+      <div class="section-title">
+        <div class="title-left">
+          <i class="fa-solid fa-earth-asia"></i>
+          <span>世闻</span>
+        </div>
+        <span class="section-badge" :class="{ 'mode-fresh': store.活跃世界事件.length > 0 }">
+          {{ worldEventSummary }}
+        </span>
+      </div>
+
+      <div v-if="displayedWorldEvents.length > 0" class="world-event-list">
+        <article
+          v-for="event in displayedWorldEvents"
+          :key="event.id"
+          class="world-event-card"
+          :class="[`stage-${event.阶段}`, { settled: !event.isActive }]"
+        >
+          <header class="world-event-card__header">
+            <span class="event-stage"><i :class="eventStageIconMap[event.阶段]"></i>{{ event.阶段 }}</span>
+            <strong>{{ event.名称 }}</strong>
+            <span v-if="event.地点" class="event-location"
+              ><i class="fa-solid fa-location-dot"></i>{{ event.地点 }}</span
+            >
+          </header>
+          <p class="event-summary">{{ event.事件 }}</p>
+          <p v-if="event.最近变化" class="event-change">
+            <i class="fa-solid fa-arrow-trend-up"></i>
+            {{ event.最近变化 }}
+          </p>
+          <div class="event-footer">
+            <span>{{ eventParticipationLabelMap[event.参与情况] }}</span>
+            <span>{{ eventImpactLabelMap[event.影响等级] }}</span>
+            <span v-for="effect in event.可见影响.slice(0, 2)" :key="effect" class="event-effect">{{ effect }}</span>
+          </div>
+        </article>
+      </div>
+
+      <div v-else class="world-event-calm">
+        <i class="fa-solid fa-feather"></i>
+        <div>
+          <strong>此刻风物平静</strong>
+          <span>新的异动会先以传闻或征兆浮现，为下一步旅程留下线索。</span>
+        </div>
+      </div>
+    </section>
+
     <section v-if="store.当前处境" class="situation-section">
       <div class="section-title">
         <div class="title-left">
@@ -17,7 +64,7 @@
       <div class="section-title action-heading">
         <div class="title-left">
           <i class="fa-solid fa-list-check"></i>
-          <span>可选行动</span>
+          <span>下一步提案</span>
         </div>
 
         <div class="title-right">
@@ -34,7 +81,7 @@
             type="button"
             class="toggle-btn"
             :class="{ active: store.启用行动提示 }"
-            :title="store.启用行动提示 ? '关闭动态行动生成' : '开启动态行动生成'"
+            :title="store.启用行动提示 ? '关闭动态叙事提案' : '开启动态叙事提案'"
             @click="store.toggleActionPrompt"
           >
             <i class="fa-solid" :class="store.启用行动提示 ? 'fa-toggle-on' : 'fa-toggle-off'"></i>
@@ -45,7 +92,7 @@
             v-if="store.启用行动提示"
             type="button"
             class="refresh-btn"
-            title="重新解析本轮行动"
+            title="重新解析本轮提案"
             :disabled="isRefreshing"
             @click="refreshActions"
           >
@@ -56,7 +103,7 @@
 
       <div class="action-toolbar">
         <span v-if="store.启用行动提示" class="action-count">{{ actionSummaryLabel }}</span>
-        <span v-else class="action-count muted">动态选项已停用，快捷行动仍可使用</span>
+        <span v-else class="action-count muted">动态提案已停用，快捷行动仍可使用</span>
 
         <div class="toolbar-controls">
           <button
@@ -137,7 +184,15 @@
               <i :class="getActionIcon(action.类型)"></i>
             </span>
             <span class="action-copy">
-              <span class="action-text">{{ action.行动 }}</span>
+              <span class="action-label-row">
+                <span class="proposal-kind">{{ getProposalLabel(action) }}</span>
+                <span class="action-text">{{ action.标题 || action.行动 }}</span>
+              </span>
+              <span v-if="action.标题" class="action-detail">{{ action.行动 }}</span>
+              <span v-if="action.事件" class="action-event">
+                <i class="fa-solid fa-sparkles"></i>
+                {{ action.事件 }}
+              </span>
               <span v-if="action.提示" class="action-hint">
                 <i class="fa-solid fa-circle-info"></i>
                 {{ action.提示 }}
@@ -194,6 +249,13 @@ import {
 } from '../action-feed';
 import { useActionPreferences } from '../action-preferences';
 import { useDataStore, usePseudoLayerStore } from '../store';
+import {
+  eventImpactLabelMap,
+  eventParticipationLabelMap,
+  eventStageIconMap,
+  selectWorldEventsForDisplay,
+  type WorldEventView,
+} from '../world-events';
 
 type SituationRefreshState = 'fresh' | 'stale';
 
@@ -229,6 +291,29 @@ const quickActions: QuickAction[] = [
     icon: 'fa-solid fa-dice',
   },
 ];
+
+const displayedWorldEvents = computed<WorldEventView[]>(() =>
+  selectWorldEventsForDisplay(store.世界事件 as WorldEventView[]),
+);
+const worldEventSummary = computed(() => {
+  if (store.活跃世界事件.length > 0) return `${store.活跃世界事件.length} 则正在流转`;
+  if (store.世界事件.length > 0) return `近闻 ${Math.min(store.世界事件.length, 3)} 则已有结果`;
+  return '暂无线索';
+});
+
+const getProposalLabel = (action: OpportunityAction) => {
+  if (action.事件性质 === '选中后成立') return '新事将起';
+  if (action.事件性质 === '回应已发生事件') return '回应世闻';
+  const labels: Record<OpportunityAction['叙事类型'], string> = {
+    平淡延续: '顺势而行',
+    当前行动: '当前行动',
+    事件行动: '事件行动',
+    回应事件: '回应世闻',
+    场景大纲: '场景大纲',
+    时间推进: '时间推进',
+  };
+  return labels[action.叙事类型];
+};
 
 const syncCurrentMessagePatch = () => {
   try {
@@ -338,6 +423,8 @@ const freshActionState = computed<{ mode: ActionFeedMode; actions: OpportunityAc
     storedActions: store.可参与机遇 as unknown[],
     tasks: store.任务列表,
     situation: store.当前处境,
+    worldEvents: store.世界图志,
+    companionNames: Object.keys(store.红颜),
     useStoredActionsWithoutPatch: containsInitVar(currentMessageContent.value),
   });
 });
@@ -386,7 +473,7 @@ const prepareAction = (title: string, prompt: string, allowDirect = true) => {
 };
 
 const selectAction = (action: OpportunityAction) => {
-  prepareAction(action.类型, action.行动);
+  prepareAction(action.标题 || getProposalLabel(action), action.行动);
   console.info('[行动提示] 选择行动:', action.行动, '提交模式:', submitMode.value);
 };
 
@@ -409,6 +496,7 @@ const selectCustomAction = () => {
 }
 
 .situation-section,
+.world-events-section,
 .actions-section {
   border: 1px solid var(--line-subtle);
   border-radius: 12px;
@@ -418,6 +506,137 @@ const selectCustomAction = () => {
 
 .situation-section {
   padding: 14px 16px;
+}
+
+.world-events-section {
+  padding: 14px 16px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--gold) 5%, transparent), transparent 45%),
+    color-mix(in srgb, var(--reading-surface) 88%, transparent);
+}
+
+.world-event-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 11px;
+}
+
+.world-event-card {
+  --event-color: var(--jade);
+
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--event-color) 28%, var(--line-subtle));
+  border-left-width: 3px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
+
+  &.stage-余波,
+  &.stage-落幕,
+  &.settled {
+    --event-color: var(--text-secondary);
+  }
+}
+
+.world-event-card__header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+
+  strong {
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+}
+
+.event-stage,
+.event-location,
+.event-footer {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.event-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--event-color);
+  background: color-mix(in srgb, var(--event-color) 11%, transparent);
+}
+
+.event-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.event-summary,
+.event-change {
+  margin: 8px 0 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.event-change {
+  color: var(--text-secondary);
+  font-size: 11px;
+
+  i {
+    margin-right: 4px;
+    color: var(--event-color);
+  }
+}
+
+.event-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+
+  > span {
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--surface-raised) 74%, transparent);
+  }
+}
+
+.event-effect {
+  color: color-mix(in srgb, var(--text-secondary) 88%, var(--event-color));
+}
+
+.world-event-calm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 11px;
+  padding: 11px 12px;
+  border: 1px dashed var(--line-subtle);
+  border-radius: 9px;
+
+  > i {
+    color: var(--jade);
+  }
+
+  div {
+    display: grid;
+    gap: 3px;
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 12px;
+  }
+
+  span {
+    color: var(--text-secondary);
+    font-size: 10px;
+    line-height: 1.45;
+  }
 }
 
 .actions-section {
@@ -790,11 +1009,42 @@ button {
   gap: 4px;
 }
 
+.action-label-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.proposal-kind {
+  flex: 0 0 auto;
+  color: var(--action-color);
+  font-size: 10px;
+  font-weight: 650;
+}
+
 .action-text {
   overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 620;
   line-height: 1.45;
+}
+
+.action-detail,
+.action-event {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.action-event {
+  color: color-mix(in srgb, var(--action-color) 62%, var(--text-secondary));
+
+  i {
+    margin-right: 4px;
+    font-size: 9px;
+  }
 }
 
 .action-hint {
@@ -891,6 +1141,7 @@ button {
   }
 
   .situation-section,
+  .world-events-section,
   .actions-section {
     padding: 11px;
     border-radius: 10px;

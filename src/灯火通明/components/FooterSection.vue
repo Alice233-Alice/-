@@ -1,17 +1,17 @@
 <template>
-  <div class="footer">
+  <div class="footer" :class="{ compact }">
     <!-- 左侧：行动提示按钮（原灵石/选项位置） -->
     <div class="footer-left">
       <button
         class="footer-item action-btn"
         :class="{ active: actionsActive }"
         :aria-pressed="actionsActive"
-        title="查看可选行动"
+        title="查看世闻与下一步提案"
         @click="$emit('open-actions')"
       >
         <i class="fa-solid fa-compass"></i>
-        <span>行动</span>
-        <span v-if="store.可选行动数 > 0" class="action-badge">{{ store.可选行动数 }}</span>
+        <span>世闻</span>
+        <span v-if="store.世闻数 > 0" class="action-badge">{{ store.世闻数 }}</span>
       </button>
     </div>
 
@@ -25,7 +25,7 @@
     </div>
 
     <!-- 右侧：难度模块 -->
-    <div class="footer-right difficulty-widget">
+    <div class="footer-right difficulty-widget" :title="store.难度警告">
       <div class="difficulty-row-1">
         <span class="difficulty-badge" :class="store.难度感应">{{ store.难度感应 }}</span>
         <span class="difficulty-level" :class="store.难度档位">{{ store.难度档位 }}</span>
@@ -50,8 +50,9 @@ const store = useDataStore();
 withDefaults(
   defineProps<{
     actionsActive?: boolean;
+    compact?: boolean;
   }>(),
-  { actionsActive: false },
+  { actionsActive: false, compact: false },
 );
 
 const eraLabel = computed(() => {
@@ -235,27 +236,47 @@ defineEmits<{
       padding: 2px 6px;
       border-radius: 10px;
       color: var(--text-primary);
-      
-      &.顺遂 { background-color: var(--semantic-success); }
-      &.平稳 { background-color: color-mix(in srgb, var(--text-secondary) 62%, var(--surface-inset)); }
-      &.受挫 { background-color: var(--semantic-warning); }
+
+      &.顺遂 {
+        background-color: var(--semantic-success);
+      }
+      &.平稳 {
+        background-color: color-mix(in srgb, var(--text-secondary) 62%, var(--surface-inset));
+      }
+      &.受挫 {
+        background-color: var(--semantic-warning);
+      }
     }
 
     .difficulty-level {
       padding: 2px 6px;
       border-radius: 4px;
       background-color: rgba(255, 255, 255, 0.1);
-      
-      &.低压 { color: var(--jade); }
-      &.常态 { color: var(--text-accent); }
-      &.高压 { color: var(--gold); }
-      &.极压 { color: var(--semantic-danger); }
+
+      &.低压 {
+        color: var(--jade);
+      }
+      &.常态 {
+        color: var(--text-accent);
+      }
+      &.高压 {
+        color: var(--gold);
+      }
+      &.极压 {
+        color: var(--semantic-danger);
+      }
     }
 
     .difficulty-trend {
-      &.up { color: var(--semantic-danger); }
-      &.flat { color: var(--text-secondary); }
-      &.down { color: var(--jade); }
+      &.up {
+        color: var(--semantic-danger);
+      }
+      &.flat {
+        color: var(--text-secondary);
+      }
+      &.down {
+        color: var(--jade);
+      }
     }
 
     .difficulty-warning {
@@ -300,16 +321,33 @@ defineEmits<{
 
     .difficulty-widget {
       max-width: 100px;
-      
+
       .difficulty-row-1 {
         font-size: 10px;
         gap: 4px;
       }
-      
-      .difficulty-badge, .difficulty-level {
+
+      .difficulty-badge,
+      .difficulty-level {
         padding: 1px 4px;
       }
     }
+  }
+}
+.footer.compact {
+  min-height: 32px;
+  padding: 3px 10px;
+  .footer-center {
+    position: static;
+    transform: none;
+    width: auto;
+  }
+  .world-time {
+    font-size: 11px;
+  }
+  .footer-signature,
+  .difficulty-row-2 {
+    display: none;
   }
 }
 </style>

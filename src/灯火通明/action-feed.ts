@@ -1,10 +1,22 @@
-import { OpportunitySchema, unwrapOpportunityPatchPayload } from './schema';
+import {
+  OpportunitySchema,
+  unwrapOpportunityPatchPayload,
+  type NarrativeProposalKind,
+  type ProposalEventNature,
+} from './schema';
+import { preservesRelationshipContinuity } from './narrative-continuity';
+import { getForegroundWorldEvent, getWorldEventEntries } from './world-events';
 
 export type OpportunityType = '探索' | '交涉' | '战斗' | '修炼' | '整备' | '亲密';
 
 export type OpportunityAction = {
+  标题?: string;
   行动: string;
   类型: OpportunityType;
+  叙事类型: NarrativeProposalKind;
+  事件性质: ProposalEventNature;
+  事件?: string;
+  关联事件ID?: string;
   提示?: string;
 };
 
@@ -23,6 +35,8 @@ type ResolveActionFeedOptions = {
   storedActions: unknown[];
   tasks: Record<string, TaskSnapshot>;
   situation: unknown;
+  worldEvents?: unknown;
+  companionNames?: string[];
   useStoredActionsWithoutPatch?: boolean;
 };
 
@@ -32,16 +46,79 @@ export const normalizeAction = (value: unknown): OpportunityAction | null => {
   return result.data;
 };
 
-const normalizeActionPayload = (value: unknown): OpportunityAction[] | null => {
-  const payload = unwrapOpportunityPatchPayload(value);
-  if (!Array.isArray(payload)) return null;
-  return payload.map(normalizeAction).filter((action): action is OpportunityAction => action !== null);
+const isActionAllowed = (action: OpportunityAction, companionNames: string[]) =>
+  preservesRelationshipContinuity(
+    [action.标题, action.行动, action.事件, action.提示].filter(Boolean).join('｜'),
+    companionNames,
+  );
+
+const reconcileActionEventReference = (
+  action: OpportunityAction,
+  knownWorldEventIds: ReadonlySet<string>,
+): OpportunityAction => {
+  const claimsExistingEvent = action.事件性质 === '回应已发生事件' || action.叙事类型 === '回应事件';
+  if (!claimsExistingEvent) return action;
+
+  const eventId = action.关联事件ID?.trim();
+  if (eventId && knownWorldEventIds.has(eventId)) {
+    return {
+      ...action,
+      叙事类型: '回应事件',
+      事件性质: '回应已发生事件',
+      关联事件ID: eventId,
+    };
+  }
+
+  // 世界图志中没有对应事实时，只能把它当作普通的当前行动，避免界面凭空显示“回应世闻”。
+  const { 事件: _event, 关联事件ID: _eventId, ...plainAction } = action;
+  return {
+    ...plainAction,
+    叙事类型: '当前行动',
+    事件性质: '无事件',
+  };
 };
 
-export const buildFallbackActions = (tasks: Record<string, TaskSnapshot>, situation: unknown): OpportunityAction[] => {
+const normalizeActionList = (values: unknown[], companionNames: string[], worldEvents?: unknown) => {
+  const knownWorldEventIds = new Set(getWorldEventEntries(worldEvents).map(event => event.id));
+  return values
+    .map(normalizeAction)
+    .filter((action): action is OpportunityAction => action !== null)
+    .map(action => reconcileActionEventReference(action, knownWorldEventIds))
+    .filter(action => isActionAllowed(action, companionNames));
+};
+
+const normalizeActionPayload = (
+  value: unknown,
+  companionNames: string[],
+  worldEvents?: unknown,
+): OpportunityAction[] | null => {
+  const payload = unwrapOpportunityPatchPayload(value);
+  if (!Array.isArray(payload)) return null;
+  return normalizeActionList(payload, companionNames, worldEvents);
+};
+
+export const buildFallbackActions = (
+  tasks: Record<string, TaskSnapshot>,
+  situation: unknown,
+  worldEvents?: unknown,
+): OpportunityAction[] => {
+  const foregroundEvent = getForegroundWorldEvent(worldEvents);
+  const eventActions: OpportunityAction[] = foregroundEvent
+    ? [
+        {
+          标题: `留意「${foregroundEvent.名称}」`,
+          行动: `先从眼前可见的动静入手，了解「${foregroundEvent.名称}」的最新变化，再决定是否介入。`,
+          类型: '探索',
+          叙事类型: '回应事件',
+          事件性质: '回应已发生事件',
+          关联事件ID: foregroundEvent.id,
+          提示: `${foregroundEvent.阶段} · ${foregroundEvent.参与情况}`,
+        },
+      ]
+    : [];
   const taskActions = Object.values(tasks)
     .slice(0, 2)
-    .flatMap(task => {
+    .flatMap<OpportunityAction>(task => {
       const name = String(task.名称 ?? '').trim();
       const target = String(task.目标 ?? '').trim();
       if (!name || !target) return [];
@@ -53,19 +130,25 @@ export const buildFallbackActions = (tasks: Record<string, TaskSnapshot>, situat
       };
       return [
         {
+          标题: `推进「${name}」`,
           行动: `继续推进「${name}」：${target}`,
           类型: typeByTask[String(task.类型 ?? '')] ?? '探索',
+          叙事类型: '当前行动',
+          事件性质: '无事件',
           提示: '依据进行中任务生成的行动',
         },
       ];
     });
-  if (taskActions.length > 0) return taskActions;
+  if (eventActions.length > 0 || taskActions.length > 0) return [...eventActions, ...taskActions].slice(0, 3);
   if (!String(situation ?? '').trim()) return [];
 
   return [
     {
+      标题: '静观其变',
       行动: '继续观察当前局势，并根据眼前变化决定下一步。',
       类型: '探索',
+      叙事类型: '平淡延续',
+      事件性质: '无事件',
       提示: '依据当前处境提供的行动',
     },
   ];
@@ -98,6 +181,8 @@ export const resolveActionFeed = ({
   storedActions,
   tasks,
   situation,
+  worldEvents,
+  companionNames = [],
   useStoredActionsWithoutPatch = false,
 }: ResolveActionFeedOptions): { mode: ActionFeedMode; actions: OpportunityAction[] } => {
   const validOperations = operations.filter(operation => typeof operation.path === 'string');
@@ -107,11 +192,11 @@ export const resolveActionFeed = ({
 
   if (replaceAll) {
     const actions =
-      normalizeActionPayload(replaceAll.value) ??
-      storedActions.map(normalizeAction).filter((action): action is OpportunityAction => action !== null);
+      normalizeActionPayload(replaceAll.value, companionNames, worldEvents) ??
+      normalizeActionList(storedActions, companionNames, worldEvents);
     if (actions.length > 0) return { mode: 'full', actions };
 
-    const fallbackActions = buildFallbackActions(tasks, situation);
+    const fallbackActions = buildFallbackActions(tasks, situation, worldEvents);
     return fallbackActions.length > 0
       ? { mode: 'fallback', actions: fallbackActions }
       : { mode: 'cleared', actions: [] };
@@ -121,7 +206,7 @@ export const resolveActionFeed = ({
     operation => (operation.path === '/$可参与机遇' || operation.path === '/可参与机遇') && operation.op === 'remove',
   );
   if (clearActionList) {
-    const fallbackActions = buildFallbackActions(tasks, situation);
+    const fallbackActions = buildFallbackActions(tasks, situation, worldEvents);
     return fallbackActions.length > 0
       ? { mode: 'fallback', actions: fallbackActions }
       : { mode: 'cleared', actions: [] };
@@ -138,18 +223,20 @@ export const resolveActionFeed = ({
   ];
 
   if (touchedIndices.length > 0) {
-    const actions = touchedIndices
-      .map(index => normalizeAction(storedActions[index]))
-      .filter((action): action is OpportunityAction => action !== null);
+    const actions = normalizeActionList(
+      touchedIndices.map(index => storedActions[index]),
+      companionNames,
+      worldEvents,
+    );
     return { mode: actions.length > 0 ? 'partial' : 'none', actions };
   }
 
   if (useStoredActionsWithoutPatch) {
-    const actions = storedActions.map(normalizeAction).filter((action): action is OpportunityAction => action !== null);
+    const actions = normalizeActionList(storedActions, companionNames, worldEvents);
     if (actions.length > 0) return { mode: 'full', actions };
   }
 
-  const fallbackActions = buildFallbackActions(tasks, situation);
+  const fallbackActions = buildFallbackActions(tasks, situation, worldEvents);
   return fallbackActions.length > 0 ? { mode: 'fallback', actions: fallbackActions } : { mode: 'none', actions: [] };
 };
 
@@ -164,4 +251,4 @@ export const actionIconMap: Record<OpportunityType, string> = {
 
 export const getActionIcon = (type: OpportunityType) => actionIconMap[type];
 export const getActionKey = (action: OpportunityAction, index: number) =>
-  `${action.类型}|${action.行动}|${action.提示 ?? ''}|${index}`;
+  `${action.叙事类型}|${action.类型}|${action.标题 ?? ''}|${action.行动}|${action.提示 ?? ''}|${index}`;

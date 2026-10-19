@@ -5,8 +5,10 @@
       <div
         ref="scrollRef"
         class="timeline-scroll"
+        tabindex="0"
         @scroll="handleScroll"
         @wheel.passive="handleWheel"
+        @keydown="handleKeydown"
         @touchstart.passive="handleTouchStart"
         @touchmove.passive="handleTouchMove"
         @touchend.passive="handleTouchEnd"
@@ -76,7 +78,7 @@
                     <i class="fa-solid fa-pen-to-square"></i> 编辑原文
                   </button>
                   <button
-                    v-if="entry.representativeMessageId === pseudo.view.latestMessageId"
+                    v-if="entry.representativeMessageId === latestStoryMessageId"
                     type="button"
                     role="menuitem"
                     :disabled="!pseudo.canRerollLatest"
@@ -85,7 +87,7 @@
                     <i class="fa-solid fa-rotate-right"></i> 重新生成
                   </button>
                   <button
-                    v-if="entry.representativeMessageId === pseudo.view.latestMessageId"
+                    v-if="entry.representativeMessageId === latestStoryMessageId"
                     type="button"
                     role="menuitem"
                     class="danger"
@@ -198,7 +200,7 @@
                 :class="{ 'reasoning-active': Boolean(liveReasoningText) }"
               >
                 <i class="fa-solid fa-feather-pointed"></i>
-                {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '正在重新推演本回……' }}
+                {{ pseudo.generationWaitingText }}
               </div>
               <RenderedMessageHtml
                 v-else
@@ -207,6 +209,16 @@
                 :message-id="entry.turns[0].assistantMessageId"
               />
               <BranchChoicePanel v-if="storyBranchChoices(entry).length" :choices="storyBranchChoices(entry)" />
+              <GenerationRecoveryPanel
+                v-if="
+                  !isRerollTargetEntry(entry) &&
+                  (entry.turns[0].generationNotice ||
+                    !parseMessageContent(entry.turns[0].assistantText).narrative.trim())
+                "
+                :message-id="entry.turns[0].assistantMessageId"
+                :raw-message="entry.turns[0].assistantText"
+                :notice="entry.turns[0].generationNotice"
+              />
               <InlineActionChoices
                 v-if="entry.representativeMessageId === latestStoryMessageId && !isRerollTargetEntry(entry)"
                 :raw-message="entry.turns[0].assistantText"
@@ -587,7 +599,7 @@
           />
           <div v-else class="live-waiting">
             <i class="fa-solid fa-feather-pointed"></i>
-            {{ liveReasoningText ? '观照仍在流转，正文尚未落笔……' : '等待第一缕回响……' }}
+            {{ pseudo.generationWaitingText }}
           </div>
           <BranchChoicePanel v-if="liveBranchChoices.length" :choices="liveBranchChoices" />
           <div v-if="liveVariableDiagnostics" class="entry-context">
@@ -670,6 +682,7 @@ import {
 import type { PseudoLayerTimelineEntry } from '../pseudo-layer-protocol';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import BranchChoicePanel from './BranchChoicePanel.vue';
+import GenerationRecoveryPanel from './GenerationRecoveryPanel.vue';
 import InlineActionChoices from './InlineActionChoices.vue';
 import InlineInputEditor from './InlineInputEditor.vue';
 import ReasoningDisplay from './ReasoningDisplay.vue';
@@ -679,6 +692,7 @@ import VariableDiagnosticsPanel from './VariableDiagnosticsPanel.vue';
 
 const props = defineProps<{
   anchorMessageId: number;
+  active: boolean;
   immersive?: boolean;
   mobileLayout?: boolean;
 }>();
@@ -700,6 +714,7 @@ const {
   isFollowing,
   handleScroll: handleStreamScroll,
   handleWheel,
+  handleKeydown,
   handleTouchStart,
   handleTouchMove,
   handleTouchEnd,
@@ -718,12 +733,14 @@ const LIVE_STORY_REASONING_ID = -1;
 const LIVE_DIALOGUE_REASONING_ID = -2;
 const deleteTarget = ref<{ messageId: number; label: string } | null>(null);
 let initialPositioned = false;
-let prependAnchor: {
+type ViewportAnchor = {
   messageId: number | null;
   relativeTop: number;
   fallbackHeight: number;
   fallbackTop: number;
-} | null = null;
+};
+let prependAnchor: ViewportAnchor | null = null;
+let savedViewport: { anchor: ViewportAnchor; following: boolean } | null = null;
 let activeEntryFrame: number | null = null;
 let settleAnchorFrame: number | null = null;
 const initialSettleTimers: number[] = [];
@@ -735,8 +752,8 @@ type LiveViewportAnchor = {
   relativeTop: number;
 };
 
-const isLiveDialogue = computed(() => pseudo.isGenerating && Boolean(pseudo.activeDialogue));
-const isLiveStory = computed(() => pseudo.isGenerating && !pseudo.activeDialogue);
+const isLiveDialogue = computed(() => pseudo.isGenerating && pseudo.generationInteractionMode === 'dialogue');
+const isLiveStory = computed(() => pseudo.isGenerating && pseudo.generationInteractionMode !== 'dialogue');
 const pendingUserText = computed(() => pseudo.generationUserMessage.trim() || pseudo.draftPrompt.trim());
 const liveMessageContent = computed(() => parseMessageContent(pseudo.streamText));
 const liveInlineReasoning = computed(() => liveMessageContent.value.reasoning);
@@ -759,13 +776,7 @@ const liveStoryHtml = computed(() =>
 const liveBranchChoices = computed(() => liveMessageContent.value.choices);
 const liveVariableDiagnostics = computed(() => extractVariableUpdateDiagnostics(pseudo.streamText));
 const liveDialogueHtml = computed(() => formatMessageHtml(pseudo.streamText, pseudo.view.latestMessageId));
-const liveStatus = computed(() => {
-  if (pseudo.generationState === 'preparing') return '整理前因';
-  if (pseudo.generationState === 'saving') return '落定记录';
-  if (pseudo.generationState === 'stopping') return '收束回应';
-  if (liveReasoningStreaming.value && !pseudo.streamText) return '推演中';
-  return pseudo.activeDialogue?.channel === 'transmission' ? '回信中' : '生成中';
-});
+const liveStatus = computed(() => pseudo.generationLabel);
 const isRerollTargetTurn = (messageId: number) => pseudo.isRerolling && messageId === pseudo.rerollTargetMessageId;
 const isRerollTargetEntry = (entry: PseudoLayerTimelineEntry) =>
   pseudo.isRerolling && entry.messageIds.includes(pseudo.rerollTargetMessageId);
@@ -876,16 +887,16 @@ const toggleDialogueReasoning = (messageId: number) => {
 };
 
 const requestInitialPage = () => {
-  if (!pseudo.controllerReady || pseudo.timelineLoading) return;
+  if (!props.active || !pseudo.controllerReady || pseudo.timelineLoading) return;
   initialPositioned = false;
   pseudo.resetTimeline(props.anchorMessageId);
 };
 
 const positionInitialAnchor = () => {
-  if (initialPositioned || pseudo.timelineLoading || pseudo.timelineEntries.length === 0) return;
+  if (!props.active || initialPositioned || pseudo.timelineLoading || pseudo.timelineEntries.length === 0) return;
   void nextTick(() => {
     const element = scrollRef.value;
-    if (!element) return;
+    if (!props.active || !element || initialPositioned) return;
     const anchor =
       element.querySelector<HTMLElement>(`[data-timeline-id='${props.anchorMessageId}']`) ??
       element.querySelector<HTMLElement>('[data-timeline-id]:last-of-type');
@@ -894,7 +905,7 @@ const positionInitialAnchor = () => {
       [80, 260].forEach(delay => {
         initialSettleTimers.push(
           window.setTimeout(() => {
-            if (isFollowing.value) resumeFollowing(false);
+            if (props.active && isFollowing.value) resumeFollowing(false);
           }, delay),
         );
       });
@@ -906,20 +917,38 @@ const positionInitialAnchor = () => {
   });
 };
 
-const loadOlder = () => {
+const captureViewportAnchor = (): ViewportAnchor | null => {
   const element = scrollRef.value;
-  if (!element || pseudo.timelineLoading || !pseudo.timelineHasOlder) return;
+  if (!element) return null;
   const scrollRect = element.getBoundingClientRect();
   const visibleEntry = [...element.querySelectorAll<HTMLElement>('[data-timeline-id]')].find(
     entry => entry.getBoundingClientRect().bottom > scrollRect.top,
   );
   const messageId = Number(visibleEntry?.dataset.timelineId);
-  prependAnchor = {
+  return {
     messageId: Number.isFinite(messageId) ? messageId : null,
     relativeTop: visibleEntry ? visibleEntry.getBoundingClientRect().top - scrollRect.top : 0,
     fallbackHeight: element.scrollHeight,
     fallbackTop: element.scrollTop,
   };
+};
+
+const restoreViewportAnchor = (anchor: ViewportAnchor) => {
+  const element = scrollRef.value;
+  if (!props.active || !element) return;
+  const anchoredEntry =
+    anchor.messageId === null ? null : element.querySelector<HTMLElement>(`[data-timeline-id='${anchor.messageId}']`);
+  if (anchoredEntry) {
+    const relativeTop = anchoredEntry.getBoundingClientRect().top - element.getBoundingClientRect().top;
+    element.scrollTop += relativeTop - anchor.relativeTop;
+    return;
+  }
+  element.scrollTop = anchor.fallbackTop + (element.scrollHeight - anchor.fallbackHeight);
+};
+
+const loadOlder = () => {
+  if (!props.active || !scrollRef.value || pseudo.timelineLoading || !pseudo.timelineHasOlder) return;
+  prependAnchor = captureViewportAnchor();
   pseudo.loadOlderTimeline();
 };
 
@@ -951,6 +980,9 @@ const captureLiveViewportAnchor = (): LiveViewportAnchor | null => {
   if (blocks.length === 0) return null;
 
   const scrollRect = element.getBoundingClientRect();
+  const copyRect = copy.getBoundingClientRect();
+  // 结束时可能正在阅读旧回合。屏幕外的 live 正文不能成为阅读锚点。
+  if (copyRect.bottom <= scrollRect.top || copyRect.top >= scrollRect.bottom) return null;
   const readingLine = scrollRect.top + Math.min(element.clientHeight * 0.32, 220);
   const block =
     blocks.find(candidate => {
@@ -971,7 +1003,7 @@ const captureLiveViewportAnchor = (): LiveViewportAnchor | null => {
 const restoreLiveViewportAnchor = (anchor: LiveViewportAnchor) => {
   const restore = () => {
     const element = scrollRef.value;
-    if (!element) return;
+    if (!props.active || !element || isFollowing.value) return;
     const latestEntry = [...element.querySelectorAll<HTMLElement>('[data-timeline-id]')].at(-1);
     if (!latestEntry) return;
     const copies =
@@ -1009,7 +1041,7 @@ const restoreLiveViewportAnchor = (anchor: LiveViewportAnchor) => {
 const updateActiveEntry = () => {
   activeEntryFrame = null;
   const element = scrollRef.value;
-  if (!element) return;
+  if (!props.active || !element) return;
   const center = element.getBoundingClientRect().top + element.clientHeight / 2;
   const entries = [...element.querySelectorAll<HTMLElement>('[data-timeline-id]')];
   const closest = entries.reduce<{ id: number; distance: number } | null>((current, entry) => {
@@ -1023,6 +1055,7 @@ const updateActiveEntry = () => {
 };
 
 const handleScroll = () => {
+  if (!props.active) return;
   handleStreamScroll();
   const element = scrollRef.value;
   if (!element) return;
@@ -1051,6 +1084,35 @@ const handleDocumentKeydown = (event: KeyboardEvent) => {
 };
 
 watch(
+  () => props.active,
+  active => {
+    if (!active) {
+      // Capture before v-show hides the reader and its layout becomes zero-sized.
+      // A scroll event may still be queued when the player immediately changes tabs.
+      handleStreamScroll();
+      const anchor = captureViewportAnchor();
+      savedViewport = initialPositioned && anchor ? { anchor, following: isFollowing.value } : null;
+      pauseFollowing();
+      return;
+    }
+    void nextTick(() => {
+      if (!props.active) return;
+      if (!initialPositioned) {
+        if (pseudo.timelineEntries.length > 0) positionInitialAnchor();
+        else requestInitialPage();
+        return;
+      }
+      const saved = savedViewport;
+      savedViewport = null;
+      if (saved?.following) resumeFollowing(false);
+      else if (saved) restoreViewportAnchor(saved.anchor);
+      updateActiveEntry();
+    });
+  },
+  { flush: 'pre' },
+);
+
+watch(
   () => pseudo.controllerReady,
   ready => {
     if (ready && pseudo.timelineEntries.length === 0) requestInitialPage();
@@ -1063,42 +1125,54 @@ watch(
     if (previous && !loading && prependAnchor) {
       const anchor = prependAnchor;
       prependAnchor = null;
-      void nextTick(() => {
-        const element = scrollRef.value;
-        if (!element) return;
-        const anchoredEntry =
-          anchor.messageId === null
-            ? null
-            : [...element.querySelectorAll<HTMLElement>('[data-timeline-id]')].find(
-                entry => Number(entry.dataset.timelineId) === anchor.messageId,
-              );
-        if (anchoredEntry) {
-          const relativeTop = anchoredEntry.getBoundingClientRect().top - element.getBoundingClientRect().top;
-          element.scrollTop += relativeTop - anchor.relativeTop;
-          return;
-        }
-        element.scrollTop = anchor.fallbackTop + (element.scrollHeight - anchor.fallbackHeight);
-      });
+      void nextTick(() => restoreViewportAnchor(anchor));
     }
     if (!loading) positionInitialAnchor();
   },
 );
 watch(
+  () => pseudo.timelineEntries,
+  () => {
+    if (!props.active || !initialPositioned || isFollowing.value || prependAnchor) return;
+    const anchor = captureViewportAnchor();
+    if (anchor?.messageId === null || !anchor) return;
+    // MVU 补写和超时后的历史重读只更新内容；保留正在阅读的楼层及楼内偏移。
+    void nextTick(() => {
+      if (!isFollowing.value && initialPositioned) restoreViewportAnchor(anchor);
+    });
+  },
+  { flush: 'pre' },
+);
+watch(
   () => pseudo.timelineEntries.length,
   () => {
     positionInitialAnchor();
-    if (initialPositioned && isFollowing.value) queueFollow();
+    if (props.active && initialPositioned && isFollowing.value) queueFollow();
   },
 );
-watch([() => pseudo.streamText, () => pseudo.streamReaction, () => pseudo.liveReasoning], queueFollow);
+watch([() => pseudo.streamText, () => pseudo.streamReaction, () => pseudo.liveReasoning], () => {
+  if (props.active) queueFollow();
+});
 watch(
   () => pseudo.isGenerating,
   (generating, wasGenerating) => {
     if (!wasGenerating && generating) {
       if (expandedContext.value === contextKey(LIVE_STORY_REASONING_ID, 'reasoning')) expandedContext.value = '';
       if (expandedDialogueReasoning.value === LIVE_DIALOGUE_REASONING_ID) expandedDialogueReasoning.value = null;
+      if (
+        props.active &&
+        !pseudo.isRerolling &&
+        isLiveStory.value &&
+        (pseudo.generationState === 'preparing' || pseudo.generationState === 'generating')
+      ) {
+        resumeFollowing(false);
+      }
     }
-    if (!wasGenerating || generating || isFollowing.value) return;
+    if (!props.active || !wasGenerating || generating) return;
+    if (isFollowing.value) {
+      queueFollow();
+      return;
+    }
     const anchor = captureLiveViewportAnchor();
     if (anchor) restoreLiveViewportAnchor(anchor);
   },

@@ -814,14 +814,12 @@ export const useDataStore = defineStore(
     const 红颜 = computed(() => {
       const companions = rawData.value?.红颜 ?? {};
       const companionLib = rawData.value?.红颜角色库 ?? {};
-      const allowedNames =
-        Object.keys(companionLib).length > 0
-          ? new Set(Object.keys(companionLib))
-          : new Set(Object.keys(DEFAULT_CHARACTER_LIB));
+      // 旧存档的角色库可能尚未收录新红颜，仍允许已登场的内置角色显示。
+      const allowedNames = new Set([...Object.keys(DEFAULT_CHARACTER_LIB), ...Object.keys(companionLib)]);
 
       return Object.fromEntries(Object.entries(companions).filter(([name]) => allowedNames.has(name)));
     });
-    const 红颜角色库 = computed(() => rawData.value?.红颜角色库 ?? DEFAULT_CHARACTER_LIB);
+    const 红颜角色库 = computed(() => ({ ...DEFAULT_CHARACTER_LIB, ...rawData.value?.红颜角色库 }));
 
     const NPC图鉴 = computed(() => rawData.value?.NPC图鉴 ?? {});
 
@@ -844,7 +842,7 @@ export const useDataStore = defineStore(
         rawData.value?._系统设置 ?? {
           启用行动提示: true,
           修炼系统版本: 3,
-          变量结构版本: 4,
+          变量结构版本: 5,
           _临时状态手动覆盖签名: '',
         },
     );
@@ -862,13 +860,13 @@ export const useDataStore = defineStore(
             rawData.value._系统设置 = {
               启用行动提示: newVal,
               修炼系统版本: 3,
-              变量结构版本: 4,
+              变量结构版本: 5,
               _临时状态手动覆盖签名: '',
             };
           } else {
             rawData.value._系统设置.启用行动提示 = newVal;
             rawData.value._系统设置.修炼系统版本 = Number(rawData.value._系统设置.修炼系统版本 ?? 3) || 3;
-            rawData.value._系统设置.变量结构版本 = 4;
+            rawData.value._系统设置.变量结构版本 = 5;
             rawData.value._系统设置._临时状态手动覆盖签名 = rawData.value._系统设置._临时状态手动覆盖签名 ?? '';
           }
         }

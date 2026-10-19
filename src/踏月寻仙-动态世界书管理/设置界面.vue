@@ -26,6 +26,7 @@
               <div>世界书：{{ runtime.worldbookName || '未绑定 / 未读取' }}</div>
               <div>最后原因：{{ runtime.lastReason || '暂无' }}</div>
               <div>最后时间：{{ lastUpdatedAtText }}</div>
+              <div v-if="runtime.generationMessage">{{ runtime.generationMessage }}</div>
             </div>
             <div v-if="runtime.lastMessage" class="dw-tip">{{ runtime.lastMessage }}</div>
             <div v-if="runtime.lastError" class="dw-error">{{ runtime.lastError }}</div>
@@ -73,15 +74,20 @@
             </label>
 
             <label class="dw-field">
-              <span>角色延续轮数</span>
+              <span>人物正文窗口（最近楼层）</span>
               <input
-                v-model.number="settings.character_sticky_cycles"
+                v-model.number="settings.character_context_window"
                 class="text_pole"
                 type="number"
-                min="0"
+                min="1"
                 max="8"
               />
             </label>
+
+            <div class="dw-tip">
+              人物仅按窗口内的正文与实际输入开灯；思考、变量、候选行动及“泠泠”等歧义昵称不单独触发。
+              超出窗口即恢复绿灯，不因加入红颜表或曾经亮灯而常驻。手动覆盖仍优先。
+            </div>
 
             <div class="dw-actions">
               <input

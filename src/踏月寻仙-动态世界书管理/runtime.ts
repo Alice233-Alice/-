@@ -67,6 +67,7 @@ export type DynamicWorldbookRuntimeSnapshot = {
     lastUpdatedAt: number;
     lastMessage: string;
     lastError: string;
+    generationMessage: string;
     worldbookName: string;
     settings: DynamicWorldbookSettings;
     context: DynamicWorldbookContextSnapshot | null;
@@ -100,6 +101,7 @@ let runtimeSnapshot: DynamicWorldbookRuntimeSnapshot = {
     lastUpdatedAt: 0,
     lastMessage: '',
     lastError: '',
+    generationMessage: '',
     worldbookName: '',
     settings: {
         enabled: true,
@@ -109,7 +111,7 @@ let runtimeSnapshot: DynamicWorldbookRuntimeSnapshot = {
         context_window: 2,
         debounce_delay: 500,
         map_sticky_cycles: 3,
-        character_sticky_cycles: 2,
+        character_context_window: 2,
         forced_enable_entries: [],
         forced_disable_entries: [],
     },

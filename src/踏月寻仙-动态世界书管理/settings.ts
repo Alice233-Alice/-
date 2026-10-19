@@ -11,8 +11,8 @@ export const DynamicWorldbookSettingsSchema = z
         show_toasts: z.boolean().prefault(true),
         context_window: z.coerce.number().transform(value => _.clamp(Number(value) || 2, 1, 8)).prefault(2),
         debounce_delay: z.coerce.number().transform(value => _.clamp(Number(value) || 500, 100, 5000)).prefault(500),
-        map_sticky_cycles: z.coerce.number().transform(value => _.clamp(Number(value) || 3, 0, 8)).prefault(3),
-        character_sticky_cycles: z.coerce.number().transform(value => _.clamp(Number(value) || 2, 0, 8)).prefault(2),
+        map_sticky_cycles: z.coerce.number().transform(value => _.clamp(Math.trunc(value), 0, 8)).prefault(3),
+        character_context_window: z.coerce.number().transform(value => _.clamp(Math.trunc(value) || 2, 1, 8)).prefault(2),
         forced_enable_entries: EntryListSchema,
         forced_disable_entries: EntryListSchema,
     })

@@ -57,13 +57,17 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
 const openTagPattern = (tag: string) => `<${escapeRegExp(tag)}(?=[\\s/>])[^>]*>`;
 const closeTagPattern = (tag: string) => `<\\/${escapeRegExp(tag)}\\s*>`;
 
+// Keep offsets intact while excluding Markdown examples from structural tag searches.
+const maskMarkdownCode = (text: string) =>
+  text.replace(/(`+)[\s\S]*?\1(?!`)/g, block => block.replace(/[^\r\n]/g, ' '));
+
 const DIALOGUE_REACTION_TAGS = ['反应', 'reaction', 'emotion', 'stage_direction'] as const;
 const DIALOGUE_BODY_TAGS = ['正文', 'dialogue', 'reply', 'speech', 'response'] as const;
 const DIALOGUE_STATE_TAGS = ['会话状态', 'dialogue_state', 'conversation_state'] as const;
 const DIALOGUE_TAGS = [...DIALOGUE_REACTION_TAGS, ...DIALOGUE_BODY_TAGS, ...DIALOGUE_STATE_TAGS] as const;
 
 const REASONING_TAG_NAME_SOURCE =
-  'think(?:ing)?|reasoning|thought|reflection|inner[_-]?monologue|internal[_-]?monologue|chain[_-]?of[_-]?thought|scratchpad|cot|think_?fox~?|思考|思维链|推理';
+  'think(?:ing)?|planning|reasoning|thought|reflection|inner[_-]?monologue|internal[_-]?monologue|chain[_-]?of[_-]?thought|scratchpad|cot|think_?fox~?|思考|思维链|推理';
 const REASONING_OPEN_PATTERN = new RegExp(`<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>`, 'gi');
 const REASONING_CLOSE_PATTERN = new RegExp(`<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>`, 'gi');
 const REASONING_BLOCK_PATTERN = new RegExp(
@@ -118,8 +122,27 @@ const REASONING_BODY_AFTER_CLOSE_PATTERN = new RegExp(
   'i',
 );
 
+// Some presets end an untagged reasoning prefix with a handoff sentence.
+// Only accept it immediately before the real body (or at the live stream's end).
+const findReasoningHandoff = (text: string) => {
+  const searchable = maskMarkdownCode(text);
+  const pattern = /您好[，,]\s*(?:这是约定的|这里是)稿件[，,]\s*请查收[：:]?/g;
+  for (const match of searchable.matchAll(pattern)) {
+    const end = match.index + match[0].length;
+    const prefix = searchable.slice(0, match.index);
+    const suffix = searchable.slice(end);
+    if (new RegExp(`<(?:${BODY_TAG_NAME_SOURCE})(?=[\\s/>])`, 'i').test(prefix)) continue;
+    if (!suffix.trim() || REASONING_BODY_AFTER_CLOSE_PATTERN.test(suffix)) {
+      return { start: match.index, end };
+    }
+  }
+  return null;
+};
+
 // Strip reasoning before Tavern display regexes can expand it into embedded UI markup.
 const stripReasoningPrefix = (text: string) => {
+  const handoff = findReasoningHandoff(text);
+  if (handoff) return text.slice(handoff.end);
   let delimitedPrefixEnd = -1;
 
   REASONING_COMMENT_OPEN_PATTERN.lastIndex = 0;
@@ -162,7 +185,7 @@ const stripReasoningPrefix = (text: string) => {
     new RegExp(
       `<(?:${BODY_TAG_NAME_SOURCE})(?=[\\s/>])|^#{1,6}\\s*(?:正文|content|narrative|story|response|answer|final)\\s*$`,
       'im',
-    ).test(closingPrefix);
+    ).test(maskMarkdownCode(closingPrefix));
   const closingActsAsPrefix =
     lastClosingEnd >= 0 &&
     (!closingPrefixContainsBody ||
@@ -191,7 +214,7 @@ const stripReasoningPrefix = (text: string) => {
   if (!opening) return text;
 
   const remainder = text.slice(opening.index + opening.marker.length);
-  const bodyBoundary = remainder.search(REASONING_FALLBACK_BOUNDARY);
+  const bodyBoundary = maskMarkdownCode(remainder).search(REASONING_FALLBACK_BOUNDARY);
   return bodyBoundary >= 0 ? remainder.slice(bodyBoundary) : text.slice(0, opening.index);
 };
 
@@ -228,8 +251,7 @@ const stripEmbeddedHtmlDocuments = (text: string) => {
 
 const REASONING_FRONTEND_BOOTSTRAP_PATTERN =
   /(?:\$\s*\(\s*['"]body['"]\s*\)\s*\.\s*load\s*\(|cdn\.jsdelivr\.net\/gh\/[^\s'"<>]+\/(?:灯火通明\/)?index\.html)/i;
-const REASONING_PLACEHOLDER_LINE_PATTERN =
-  /^\s*(?:\[\s*(?:story\s*text|narrative|正文|故事文本)\s*\]\s*)+\s*$/i;
+const REASONING_PLACEHOLDER_LINE_PATTERN = /^\s*(?:\[\s*(?:story\s*text|narrative|正文|故事文本)\s*\]\s*)+\s*$/i;
 const REASONING_SCAFFOLD_LINE_PATTERN =
   /^\s*(?:let(?:'|’)s\s+(?:write|produce|craft|compose|answer|respond|generate|begin|start)\b|(?:we|i)\s+(?:now\s+)?(?:need|should|must|will)\s+(?:to\s+)?(?:write|produce|craft|compose|answer|respond|output|generate)\b|need\s+to\s+(?:write|produce|craft|compose|answer|respond|output|generate)\b)/i;
 const REASONING_CHINESE_SCAFFOLD_LINE_PATTERN =
@@ -476,7 +498,7 @@ const extractOrphanClosingReasoning = (text: string): InlineReasoning | null => 
   const prefixAlreadyContainsBody = new RegExp(
     `<(?:${BODY_TAG_NAME_SOURCE})(?=[\\s/>])|^#{1,6}\\s*(?:正文|content|narrative|story|response|answer|final)\\s*$`,
     'im',
-  ).test(prefix);
+  ).test(maskMarkdownCode(prefix));
   if (
     !REASONING_ORPHAN_PREFIX_CUE.test(prefix) &&
     !REASONING_BODY_AFTER_CLOSE_PATTERN.test(suffix) &&
@@ -503,6 +525,14 @@ export const mergeReasoningText = (primary: string, secondary: string) => {
 // instead of SillyTavern's `extra.reasoning`. Read the raw tag content here so
 // the pseudo layer can render it without running the preset's embedded UI.
 export const extractInlineReasoning = (text: string): InlineReasoning | null => {
+  const handoff = findReasoningHandoff(text);
+  if (handoff && text.slice(0, handoff.start).trim()) {
+    return {
+      text: sanitizeReasoningText(text.slice(0, handoff.start)),
+      source: text.slice(0, handoff.end).trim(),
+      isComplete: true,
+    };
+  }
   type ReasoningFragment = InlineReasoning & { start: number; end: number };
   const fragments: ReasoningFragment[] = [];
 
@@ -524,7 +554,7 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
     const closingTag = match[2];
     let content = match[1];
     if (!closingTag) {
-      const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+      const boundary = maskMarkdownCode(content).search(REASONING_FALLBACK_BOUNDARY);
       if (boundary >= 0) content = content.slice(0, boundary);
     }
 
@@ -545,7 +575,7 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
     const closingMarker = match[3];
     let content = match[2];
     if (!closingMarker) {
-      const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+      const boundary = maskMarkdownCode(content).search(REASONING_FALLBACK_BOUNDARY);
       if (boundary >= 0) content = content.slice(0, boundary);
     }
 
@@ -565,7 +595,7 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
 
   const bracketMatch = REASONING_BRACKET_PATTERN.exec(text);
   if (bracketMatch) {
-    const boundary = bracketMatch[3] ? -1 : bracketMatch[2].search(REASONING_FALLBACK_BOUNDARY);
+    const boundary = bracketMatch[3] ? -1 : maskMarkdownCode(bracketMatch[2]).search(REASONING_FALLBACK_BOUNDARY);
     const content = boundary >= 0 ? bracketMatch[2].slice(0, boundary) : bracketMatch[2];
     addFragment({
       text: cleanReasoningText(content),
@@ -580,7 +610,7 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
   while ((match = REASONING_FENCE_PATTERN.exec(text)) !== null) {
     let content = match[1];
     if (!match[2]) {
-      const boundary = content.search(REASONING_FALLBACK_BOUNDARY);
+      const boundary = maskMarkdownCode(content).search(REASONING_FALLBACK_BOUNDARY);
       if (boundary >= 0) content = content.slice(0, boundary);
     }
     addFragment({
@@ -596,7 +626,7 @@ export const extractInlineReasoning = (text: string): InlineReasoning | null => 
 
   const analysisMatch = REASONING_ANALYSIS_PREFIX_PATTERN.exec(text);
   if (analysisMatch) {
-    const boundary = analysisMatch[3] ? -1 : analysisMatch[2].search(REASONING_FALLBACK_BOUNDARY);
+    const boundary = analysisMatch[3] ? -1 : maskMarkdownCode(analysisMatch[2]).search(REASONING_FALLBACK_BOUNDARY);
     const content = boundary >= 0 ? analysisMatch[2].slice(0, boundary) : analysisMatch[2];
     addFragment({
       text: cleanReasoningText(content),
@@ -656,15 +686,17 @@ const stripDialogueTagFragments = (text: string) =>
     .trim();
 
 const readBoundedTaggedContent = (text: string, tag: string, stopTags: readonly string[], preferLast = false) => {
-  const matches = [...text.matchAll(new RegExp(openTagPattern(tag), 'gi'))];
+  const searchable = maskMarkdownCode(text);
+  const matches = [...searchable.matchAll(new RegExp(openTagPattern(tag), 'gi'))];
   const match = preferLast ? matches.at(-1) : matches[0];
   if (!match || match.index === undefined) return '';
 
   const start = match.index + match[0].length;
   const remainder = text.slice(start);
+  const searchableRemainder = searchable.slice(start);
   const boundaries = [
-    remainder.search(new RegExp(closeTagPattern(tag), 'i')),
-    ...stopTags.map(stopTag => remainder.search(new RegExp(openTagPattern(stopTag), 'i'))),
+    searchableRemainder.search(new RegExp(closeTagPattern(tag), 'i')),
+    ...stopTags.map(stopTag => searchableRemainder.search(new RegExp(openTagPattern(stopTag), 'i'))),
   ].filter(index => index >= 0);
   const end = boundaries.length > 0 ? Math.min(...boundaries) : remainder.length;
   return stripDialogueTagFragments(remainder.slice(0, end));
@@ -677,7 +709,7 @@ const readFirstTaggedContent = (
   preferLast = false,
 ) => {
   for (const tag of tags) {
-    if (!new RegExp(openTagPattern(tag), 'i').test(text)) continue;
+    if (!new RegExp(openTagPattern(tag), 'i').test(maskMarkdownCode(text))) continue;
     return {
       found: true,
       tag,
@@ -752,7 +784,8 @@ export const extractVariableUpdateDiagnostics = (text: string): VariableUpdateDi
   const updateRemainder = text.slice(updateStart);
   const updateCloseIndex = updateRemainder.search(new RegExp(`<\\/${escapeRegExp(updateOpen[1])}\\s*>`, 'i'));
   const updateBody = updateRemainder.slice(0, updateCloseIndex >= 0 ? updateCloseIndex : undefined);
-  const analysisTag = /<(Analysis|reasoning|summary)(?=[\s/>])/i.exec(updateBody)?.[1] ?? '';
+  // MVU 将格式化输出的 analysis 转成 <Analyze>，普通消息常用 <Analysis>。
+  const analysisTag = /<(Analysis|Analyze|reasoning|summary)(?=[\s/>])/i.exec(updateBody)?.[1] ?? '';
   const patchTag = /<(JSONPatch|json_patch|patch)(?=[\s/>])/i.exec(updateBody)?.[1] ?? '';
   if (!analysisTag && !patchTag) return null;
 

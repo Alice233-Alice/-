@@ -38,6 +38,8 @@
               <span class="task-type" :class="`type-${task.类型}`">{{ task.类型 }}</span>
             </div>
             <div class="task-target">{{ task.目标 }}</div>
+            <div v-if="task.进度" class="task-target">进展：{{ task.进度 }}</div>
+            <div v-if="task.下一步" class="task-target">下一步：{{ task.下一步 }}</div>
             <div class="task-status">{{ task.状态 }}</div>
           </div>
         </template>

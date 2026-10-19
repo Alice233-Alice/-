@@ -8,6 +8,12 @@ import { COMPANION_ALIASES_BY_CANONICAL } from '../灯火阑珊-变量结构/com
 import { resolveMapAnchor } from '../灯火阑珊/map-system';
 import { inferLayerFromTrack } from '../灯火阑珊/region-utils';
 import { Schema } from '../灯火阑珊/schema';
+import {
+  collectCharacterMentions,
+  collectRecentContext,
+  readContextMessage,
+  sanitizeContextMessage,
+} from './character-context';
 import { mountDynamicWorldbookPanel, unmountDynamicWorldbookPanel } from './panel';
 import {
   getRuntimeSnapshot,
@@ -35,7 +41,7 @@ const CONFIG = {
   CONTEXT_WINDOW: 2, // 只检查最近2条消息，更精准
 
   // 红颜人设窗口（检查最近几层楼是否出现过红颜名字）
-  CHARACTER_CONTEXT_WINDOW: 10,
+  CHARACTER_CONTEXT_WINDOW: 2,
 
   // 固定使用默认最优策略：生成前开灯，回复后保留核心条目
   STRATEGY: 'balanced' as const,
@@ -72,6 +78,7 @@ function applySettingsToConfig(settings: DynamicWorldbookSettings): void {
   currentSettings = settings;
   CONFIG.DEBUG = settings.debug;
   CONFIG.CONTEXT_WINDOW = settings.context_window;
+  CONFIG.CHARACTER_CONTEXT_WINDOW = settings.character_context_window;
   CONFIG.DEBOUNCE_DELAY = settings.debounce_delay;
 
   updateRuntimeSnapshot({
@@ -154,7 +161,6 @@ const REGION_TO_MAP: Record<string, string[]> = {
   建木森林: ['东苍'],
   青帝陵: ['东苍'],
   百花秘境: ['东苍'],
-  万剑冢: ['碎金渊'],
   庚金矿脉: ['西庚'],
   白虎峡谷: ['西庚'],
   不灭火山: ['南炎'],
@@ -163,6 +169,8 @@ const REGION_TO_MAP: Record<string, string[]> = {
   玄冰山: ['北冥'],
   归墟海眼: ['北冥', '归墟'],
   冥海: ['北冥'],
+  赤霄阁: ['雷暴海'],
+  浮空雷磁崖: ['雷暴海'],
   // 常见缩写与变体（确保 AI 常见简写也能第一层匹配）
   黄泉: ['黄泉古迹'],
   炎渊: ['无尽炎渊'],
@@ -224,8 +232,7 @@ const DOMAIN_TO_MAP: Record<string, string[]> = {
 
 /** 上一次成功匹配的地图（惯性推断缓存，用于处理 AI 生成的未知地名） */
 let lastSuccessfulMaps: Set<string> | null = null;
-let mapStickyHeat: Record<string, number> = {};
-let characterStickyHeat: Record<string, number> = {};
+const mapStickyHeat: Record<string, number> = {};
 
 // ============================================================================
 // 地图智能匹配 - 辅助函数
@@ -736,10 +743,6 @@ type EntryDecisionResult = {
 
 type ScoreBucket = Record<string, { score: number; reasons: string[] }>;
 
-function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function addBucketScore(bucket: ScoreBucket, name: string, score: number, reason: string): void {
   if (!name || score === 0) return;
   if (!bucket[name]) {
@@ -802,42 +805,6 @@ function resolveCharacterEntryTarget(characterName: string): { mainCharacterName
     mainCharacterName: characterName,
     isAliasEntry: false,
   };
-}
-
-function countMentions(messages: string[], names: string[]) {
-  let count = 0;
-  const details: string[] = [];
-
-  for (const name of names) {
-    const matchedCount = messages.filter(message => messageMentionsName(message, name)).length;
-    if (matchedCount > 0) {
-      count += matchedCount;
-      details.push(`${name}(${matchedCount}次)`);
-    }
-  }
-
-  return {
-    count,
-    details,
-  };
-}
-
-function messageMentionsName(message: string, name: string): boolean {
-  const normalizedMessage = String(message || '');
-  const normalizedName = String(name || '').trim();
-  if (!normalizedMessage || !normalizedName) {
-    return false;
-  }
-
-  if (normalizedMessage.includes(normalizedName)) {
-    return true;
-  }
-
-  const regex = new RegExp(
-    `(?:^|[^\\p{Script=Han}\\w])(${escapeRegex(normalizedName)})(?:[^\\p{Script=Han}\\w]|$)`,
-    'u',
-  );
-  return regex.test(normalizedMessage);
 }
 
 function collectMapScoreBucket(ctx: Context): ScoreBucket {
@@ -1057,65 +1024,24 @@ function getCharacterBaseDecision(ctx: Context, entryName: string): EntryDecisio
 
   const characterName = match[1].trim();
   const { mainCharacterName, isAliasEntry } = resolveCharacterEntryTarget(characterName);
-  const hongyanData = ctx.mvuData?.红颜?.[mainCharacterName];
   const checkNames = isAliasEntry
     ? [characterName]
     : [characterName, ...(CONFIG.CHARACTER_ALIASES[characterName] ?? [])];
-  const mentionStats = countMentions(ctx.recentCharacterMessages, checkNames);
-  const reasons: string[] = [];
-  let score = 0;
-
-  if (!hongyanData) {
-    if (mentionStats.count > 0) {
-      const preheatScore = Math.min(75, 40 + mentionStats.count * 15);
-      return {
-        matched: preheatScore >= 50,
-        category: '角色',
-        score: preheatScore,
-        threshold: 50,
-        reasons: [
-          `+${preheatScore} 红颜尚未入表，但近期消息提及 ${mentionStats.details.join('、')}，先为主人设预热开灯`,
-        ],
-        source: 'score',
-        forced: '',
-      };
-    }
-
-    return {
-      matched: false,
-      category: '角色',
-      score: 0,
-      threshold: 50,
-      reasons: [`主角色“${mainCharacterName}”不在红颜列表中，且近期消息没有提及，暂不预热开启`],
-      source: 'score',
-      forced: '',
-    };
-  }
-
-  score += 20;
-  reasons.push(`+20 红颜列表中存在“${mainCharacterName}”`);
-
-  const hasMessages = ctx.recentCharacterMessages.length > 0;
-  if (!hasMessages) {
-    score += 35;
-    reasons.push('+35 开局阶段允许已存在红颜直接常亮');
-  }
-
-  if (mentionStats.count > 0) {
-    const mentionScore = Math.min(60, 30 + mentionStats.count * 12);
-    score += mentionScore;
-    reasons.push(`+${mentionScore} 近期消息提及 ${mentionStats.details.join('、')}`);
-  }
-
-  const sticky = characterStickyHeat[mainCharacterName] ?? 0;
-  if (sticky > 0) {
-    const stickyScore = sticky * 15;
-    score += stickyScore;
-    reasons.push(`+${stickyScore} 角色热度延续 ${sticky} 轮`);
+  const mentionStats = collectCharacterMentions(ctx.recentCharacterMessages, checkNames);
+  const matched = mentionStats.count > 0;
+  const score = matched ? Math.min(90, 50 + mentionStats.count * 10) : 0;
+  const reasons = matched
+    ? [
+        `+${score} 近期正文 / 实际输入明确提及 ${mentionStats.details.join('、')}`,
+        ...mentionStats.evidence.map(text => `依据：${text}`),
+      ]
+    : [`最近 ${CONFIG.CHARACTER_CONTEXT_WINDOW} 层正文 / 实际输入未明确提及“${mainCharacterName}”，不自动开灯`];
+  if (mentionStats.ignored.length) {
+    reasons.push(`忽略歧义别名：${mentionStats.ignored.join('、')}，不能单独作为人物出现的依据`);
   }
 
   return {
-    matched: score >= 50,
+    matched,
     category: '角色',
     score,
     threshold: 50,
@@ -1210,27 +1136,14 @@ function getCharacterStageDecision(ctx: Context, entryName: string): EntryDecisi
     }
   }
 
-  const hasMessages = ctx.recentCharacterMessages.length > 0;
-  if (!hasMessages) {
-    score += 20;
-    reasons.push('+20 开局阶段允许当前阶段条目直接常亮');
-  }
-
   const checkNames = isAliasEntry
     ? [characterName]
     : [characterName, ...(CONFIG.CHARACTER_ALIASES[characterName] ?? [])];
-  const mentionStats = countMentions(ctx.recentCharacterMessages, checkNames);
+  const mentionStats = collectCharacterMentions(ctx.recentCharacterMessages, checkNames);
   if (mentionStats.count > 0) {
     const mentionScore = Math.min(50, 25 + mentionStats.count * 10);
     score += mentionScore;
     reasons.push(`+${mentionScore} 近期消息提及 ${mentionStats.details.join('、')}`);
-  }
-
-  const sticky = characterStickyHeat[mainCharacterName] ?? 0;
-  if (sticky > 0) {
-    const stickyScore = sticky * 12;
-    score += stickyScore;
-    reasons.push(`+${stickyScore} 角色阶段热度延续 ${sticky} 轮`);
   }
 
   return {
@@ -1284,7 +1197,6 @@ function getEntryCategoryLabel(entryName: string): string {
 
 function refreshStickyHeatsFromEntries(entryNames: string[]): void {
   const activeMaps = new Set<string>();
-  const activeCharacters = new Set<string>();
 
   entryNames.forEach(entryName => {
     const mapMatch = entryName.match(/^\[地图\]\s*(.+)$/);
@@ -1294,18 +1206,6 @@ function refreshStickyHeatsFromEntries(entryNames: string[]): void {
         activeMaps.add(canonicalMapName);
       }
     }
-
-    const baseCharacterMatch = entryName.match(/^\[角色\]\s*([^-]+)$/);
-    if (baseCharacterMatch) {
-      const target = resolveCharacterEntryTarget(baseCharacterMatch[1].trim());
-      activeCharacters.add(target.mainCharacterName);
-    }
-
-    const stageCharacterMatch = parseCharacterStageEntry(entryName);
-    if (stageCharacterMatch) {
-      const target = resolveCharacterEntryTarget(stageCharacterMatch.characterName);
-      activeCharacters.add(target.mainCharacterName);
-    }
   });
 
   if (activeMaps.size > 0) {
@@ -1313,7 +1213,6 @@ function refreshStickyHeatsFromEntries(entryNames: string[]): void {
   }
 
   primeStickyHeat(mapStickyHeat, [...activeMaps], currentSettings.map_sticky_cycles);
-  primeStickyHeat(characterStickyHeat, [...activeCharacters], currentSettings.character_sticky_cycles);
 }
 
 const RULES: WorldbookRule[] = [
@@ -1499,193 +1398,15 @@ const RULES: WorldbookRule[] = [
   // ============================================================================
   // 角色相关 - 精确匹配角色名和阶段（支持别名）
   // ============================================================================
-  // 1. 带阶段的角色条目（如：[角色] 羽岚 - 陌生期）
+  // 与评分诊断使用同一判定，避免旧的宽松规则重新开启人物条目。
   {
     entryPattern: /^\[角色\]\s*(.+?)\s*-\s*(.+)$/,
-    shouldEnable: (ctx, entryName) => {
-      if (!entryName) return false;
-      const parsed = parseCharacterStageEntry(entryName);
-      if (!parsed) return false;
-
-      const { characterName, stageName, rawStageName } = parsed;
-      const { mainCharacterName } = resolveCharacterEntryTarget(characterName);
-
-      // 检查角色是否在红颜列表中
-      const hongyanData = ctx.mvuData?.红颜?.[mainCharacterName];
-      if (!hongyanData) {
-        if (CONFIG.DEBUG) {
-          console.log(`[动态世界书] 角色不在红颜列表中: ${characterName} -> ${mainCharacterName}`);
-        }
-        return false;
-      }
-
-      // 【修复】如果没有消息（开局），直接根据好感度阶段开启，不检查提及
-      const hasMessages = ctx.recentCharacterMessages.length > 0;
-
-      // 如果有消息，需要检查是否被提及
-      if (hasMessages) {
-        // 获取角色的所有可能名称（主名称 + 别名）
-        const allNames = [characterName];
-        if (mainCharacterName !== characterName) {
-          allNames.push(mainCharacterName);
-        }
-        if (CONFIG.CHARACTER_ALIASES[mainCharacterName]) {
-          allNames.push(...CONFIG.CHARACTER_ALIASES[mainCharacterName]);
-        }
-
-        // 检查是否提到任何一个名称
-        let isMentioned = false;
-        for (const name of allNames) {
-          if (ctx.recentCharacterMessages.some(msg => messageMentionsName(msg, name))) {
-            isMentioned = true;
-            if (CONFIG.DEBUG) {
-              console.log(`[动态世界书] 匹配到别名: ${name} -> ${characterName}`);
-            }
-            break;
-          }
-        }
-
-        if (!isMentioned) {
-          if (CONFIG.DEBUG) {
-            console.log(`[动态世界书] 角色未在近期消息中提及: ${characterName} (含别名)`);
-          }
-          return false;
-        }
-      } else if (CONFIG.DEBUG) {
-        console.log(`[动态世界书] 开局无消息，直接根据好感度阶段开启: ${characterName}`);
-      }
-
-      // 好感度阶段精确映射
-      // 虞汐颜无陌生期，前段保持较长缓冲，避免过早切入心动/确认阶段
-      const favor = hongyanData.好感度 ?? 0;
-      const resolvedStageName = resolveFavorStageName(mainCharacterName, favor);
-      const range = getFavorStageRange(mainCharacterName, stageName);
-      const isInRange = resolvedStageName === stageName;
-
-      if (CONFIG.DEBUG) {
-        console.log(
-          `[动态世界书] 角色阶段匹配: ${characterName} -> ${mainCharacterName} - ${rawStageName} => ${stageName}, 好感度=${favor}, 解析阶段=${resolvedStageName ?? '无'}, 范围=${range ? `[${range[0]}, ${range[1]}]` : '[未定义]'}, 匹配=${isInRange}`,
-        );
-      }
-
-      return isInRange;
-    },
+    shouldEnable: (ctx, entryName) => Boolean(entryName && getCharacterStageDecision(ctx, entryName)?.matched),
     priority: 9,
   },
-
-  // 2. 基础角色条目（如：[角色] 羽岚）- 支持别名匹配，开局时根据红颜列表开启
   {
     entryPattern: /^\[角色\]\s*([^-]+)$/,
-    shouldEnable: (ctx, entryName) => {
-      if (!entryName) return false;
-      const match = entryName.match(/^\[角色\]\s*([^-]+)$/);
-      if (!match) return false;
-      const characterName = match[1].trim();
-
-      // 【调试】检查上下文消息
-      if (CONFIG.DEBUG) {
-        console.log(`[动态世界书] 🔍 检查角色: ${characterName}`);
-        console.log(
-          `[动态世界书] 🔍 红颜检测消息 (${ctx.recentCharacterMessages.length}条):`,
-          ctx.recentCharacterMessages,
-        );
-      }
-
-      // 【关键修复】检查这是不是某个角色的别名条目
-      // 如果是别名条目，找到它对应的主角色名
-      let mainCharacterName = characterName;
-      let isAliasEntry = false;
-
-      for (const [mainName, aliases] of Object.entries(CONFIG.CHARACTER_ALIASES)) {
-        if (aliases.includes(characterName)) {
-          mainCharacterName = mainName;
-          isAliasEntry = true;
-          if (CONFIG.DEBUG) {
-            console.log(`[动态世界书] 🔗 识别到别名条目: ${characterName} -> 主角色: ${mainName}`);
-          }
-          break;
-        }
-      }
-
-      // 【关键修复】开局时直接根据红颜列表开启（使用主角色名检查）
-      const hasMessages = ctx.recentCharacterMessages.length > 0;
-
-      if (!hasMessages) {
-        // 开局：检查主角色是否在红颜列表中
-        const isInHongyan = ctx.mvuData?.红颜?.[mainCharacterName] !== undefined;
-
-        if (CONFIG.DEBUG) {
-          if (isInHongyan) {
-            console.log(
-              `[动态世界书] ✅ 开局-应该开启: ${characterName}${isAliasEntry ? ` (主角色: ${mainCharacterName})` : ''} (在红颜列表中)`,
-            );
-          } else {
-            console.log(
-              `[动态世界书] ❌ 开局-不应开启: ${characterName}${isAliasEntry ? ` (主角色: ${mainCharacterName})` : ''} (不在红颜列表中)`,
-            );
-          }
-        }
-
-        return isInHongyan;
-      }
-
-      // 有消息：检查提及次数
-      // 如果这是别名条目，检查这个别名是否被提及
-      // 如果这是主条目，检查主名称或任何别名是否被提及
-      let checkNames: string[];
-
-      if (isAliasEntry) {
-        // 别名条目：只检查这个别名本身
-        checkNames = [characterName];
-      } else {
-        // 主条目：检查主名称 + 所有别名
-        checkNames = [characterName];
-        if (CONFIG.CHARACTER_ALIASES[characterName]) {
-          checkNames.push(...CONFIG.CHARACTER_ALIASES[characterName]);
-        }
-      }
-
-      // 累计所有名称的提及次数
-      let mentionCount = 0;
-      const mentionDetails: string[] = [];
-
-      for (const name of checkNames) {
-        const count = ctx.recentCharacterMessages.filter(msg => messageMentionsName(msg, name)).length;
-
-        if (count > 0) {
-          mentionCount += count;
-          mentionDetails.push(`${name}(${count}次)`);
-
-          if (CONFIG.DEBUG) {
-            console.log(`[动态世界书] 🔍 匹配到: ${name}, 次数=${count}`);
-          }
-        }
-      }
-
-      // 【严格】必须在最近消息中被明确提及至少1次才开启
-      const shouldEnable = mentionCount >= 1;
-
-      if (CONFIG.DEBUG) {
-        const typeInfo = isAliasEntry ? ` [别名条目 -> ${mainCharacterName}]` : '';
-        const aliasInfo =
-          !isAliasEntry && CONFIG.CHARACTER_ALIASES[characterName]
-            ? ` [别名: ${CONFIG.CHARACTER_ALIASES[characterName].join(', ')}]`
-            : '';
-        const detailInfo = mentionDetails.length > 0 ? ` 提及详情: ${mentionDetails.join(', ')}` : '';
-
-        if (shouldEnable) {
-          console.log(
-            `[动态世界书] ✅ 应该开启: ${characterName}${typeInfo}${aliasInfo}, 累计提及=${mentionCount}次${detailInfo}`,
-          );
-        } else {
-          console.log(
-            `[动态世界书] ❌ 不应开启: ${characterName}${typeInfo}${aliasInfo}, 累计提及=${mentionCount}次 (需≥1次)`,
-          );
-        }
-      }
-
-      return shouldEnable;
-    },
+    shouldEnable: (ctx, entryName) => Boolean(entryName && getCharacterBaseDecision(ctx, entryName)?.matched),
     priority: 8,
   },
 
@@ -1903,23 +1624,6 @@ function getCharacterEntryMainName(entryName: string): string | null {
   return null;
 }
 
-function isBaseCharacterEntry(entryName: string): boolean {
-  return /^\[角色\]\s*([^-]+)$/.test(entryName);
-}
-
-function shouldKeepBaseCharacterEntryWarm(ctx: Context, entryName: string): boolean {
-  if (!isBaseCharacterEntry(entryName)) {
-    return false;
-  }
-
-  const mainCharacterName = getCharacterEntryMainName(entryName);
-  if (!mainCharacterName) {
-    return false;
-  }
-
-  return Boolean(ctx.mvuData?.红颜?.[mainCharacterName]);
-}
-
 function buildDiagnosticsReport(entries: WorldbookEntrySnapshot[], ctx: Context | null): DynamicWorldbookDiagnostics {
   const sortedRules = getSortedRules();
   const emptyContext = createEmptyContext();
@@ -1988,7 +1692,7 @@ function buildDiagnosticsReport(entries: WorldbookEntrySnapshot[], ctx: Context 
 }
 
 function buildPreviewContext(baseContext: Context | null, input: DynamicWorldbookPreviewInput): Context {
-  const recentMessages = input.recentMessages.map(message => String(message).trim()).filter(Boolean);
+  const recentMessages = input.recentMessages.map(sanitizeContextMessage);
 
   return {
     currentRegion: String(input.currentRegion || baseContext?.currentRegion || '未知').trim() || '未知',
@@ -2046,28 +1750,19 @@ type UpdateRequest = {
   reason: string;
   allowWhenDisabled?: boolean;
   latestMessageHint?: string;
+  context?: Context;
+  chatId?: string;
+  syncVariables?: boolean;
 };
 
 let isProcessing = false;
+let processingDone: Promise<void> = Promise.resolve();
 let lastProcessTime = 0;
 let queuedUpdate: UpdateRequest | null = null;
 let pendingUserInputHint = '';
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function sanitizeContextMessage(content: string): string {
-  let result = content || '';
-
-  // 移除不应作为剧情内容的各种标记和代码块
-  result = result.replace(/\[动态世界书\][^\n]*/g, '');
-  result = result.replace(/【[^】]*】/g, '');
-  result = result.replace(/<UpdateVariable>[\s\S]*?<\/UpdateVariable>/g, '');
-  result = result.replace(/```mvu_update[\s\S]*?```/g, '');
-  result = result.replace(/```[\s\S]*?```/g, '');
-
-  return result.trim();
 }
 
 function mergeLatestMessageHint(
@@ -2080,7 +1775,7 @@ function mergeLatestMessageHint(
     return recentMessages;
   }
 
-  const trimmedMessages = recentMessages.filter(Boolean);
+  const trimmedMessages = recentMessages;
   if (trimmedMessages.at(-1) === hint) {
     return trimmedMessages;
   }
@@ -2091,7 +1786,7 @@ function mergeLatestMessageHint(
 async function readMessageTextById(messageId: number, retries = 4, waitMs = 25): Promise<string> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     const message = getChatMessages(messageId, { role: 'user' })[0];
-    const text = sanitizeContextMessage(message?.message || '');
+    const text = readContextMessage(message);
     if (text) {
       return text;
     }
@@ -2101,46 +1796,19 @@ async function readMessageTextById(messageId: number, retries = 4, waitMs = 25):
     }
   }
 
-  return readLatestUserContextHint() || readDraftInputText();
+  return readLatestUserContextHint();
 }
 
-function readDraftInputText(): string {
-  const textarea = $('#send_textarea').get(0) as HTMLTextAreaElement | undefined;
-  return sanitizeContextMessage(textarea?.value || '');
-}
-
-function isUserRoleMessage(message: any): boolean {
-  return (
-    message?.role === 'user' || message?.is_user === true || message?.is_user === 'true' || message?.mes === 'user'
-  );
-}
-
-function readLatestUserContextHint(
-  windowSize = Math.max(CONFIG.CHARACTER_CONTEXT_WINDOW, CONFIG.CONTEXT_WINDOW, 10),
-): string {
+function readLatestUserContextHint(): string {
   try {
     const lastMessageId = getLastMessageId();
     if (lastMessageId < 0) {
       return '';
     }
 
-    const messages = getChatMessages(`0-${lastMessageId}`);
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return '';
-    }
-
-    const recentMessages = messages.slice(-Math.max(windowSize, 1));
-    for (let index = recentMessages.length - 1; index >= 0; index -= 1) {
-      const message = recentMessages[index];
-      if (!isUserRoleMessage(message)) {
-        continue;
-      }
-
-      const text = sanitizeContextMessage(message?.message || '');
-      if (text) {
-        return text;
-      }
-    }
+    // 只补入正在发送的最后一层，不能在重生成时把旧用户输入搬到窗口末尾。
+    const message = getChatMessages(lastMessageId, { role: 'user' })[0];
+    return readContextMessage(message);
   } catch (error) {
     if (CONFIG.DEBUG) {
       console.warn('[动态世界书] 读取最近一条用户消息失败', error);
@@ -2148,19 +1816,6 @@ function readLatestUserContextHint(
   }
 
   return '';
-}
-
-async function waitForUpdatePipelineIdle(timeoutMs = 5000): Promise<void> {
-  const startedAt = Date.now();
-  while (isProcessing || queuedUpdate) {
-    if (Date.now() - startedAt >= timeoutMs) {
-      if (CONFIG.DEBUG) {
-        console.warn('[动态世界书] 等待更新管线空闲超时，继续执行强制刷新');
-      }
-      return;
-    }
-    await delay(20);
-  }
 }
 
 function queueNextUpdate(nextRequest: UpdateRequest) {
@@ -2199,7 +1854,7 @@ async function waitForMvu(): Promise<boolean> {
   }
 }
 
-async function getContext(latestMessageHint?: string): Promise<Context | null> {
+async function getContext(latestMessageHint?: string, excludeLastAssistant = false): Promise<Context | null> {
   // 安全地等待 MVU 初始化
   const mvuReady = await waitForMvu();
   if (!mvuReady) {
@@ -2213,16 +1868,17 @@ async function getContext(latestMessageHint?: string): Promise<Context | null> {
   let recentMessages: string[] = [];
   let recentCharacterMessages: string[] = [];
   try {
-    const lastMessageId = getLastMessageId();
+    let lastMessageId = getLastMessageId();
+    // 重 roll 时旧回复尚在聊天数组里；不能拿准备被替换的回复来激活人物。
+    if (excludeLastAssistant && lastMessageId >= 0 && getChatMessages(lastMessageId)[0]?.role === 'assistant') {
+      lastMessageId -= 1;
+    }
     if (lastMessageId >= 0) {
-      const allMessages = getChatMessages(`0-${lastMessageId}`);
+      const windowSize = Math.max(CONFIG.CONTEXT_WINDOW, CONFIG.CHARACTER_CONTEXT_WINDOW);
+      const allMessages = getChatMessages(`${Math.max(0, lastMessageId - windowSize + 1)}-${lastMessageId}`);
       if (allMessages && allMessages.length > 0) {
-        const sanitizedMessages = allMessages
-          .map(m => sanitizeContextMessage(m.message || ''))
-          .filter(msg => msg.length > 0);
-
-        recentMessages = sanitizedMessages.slice(-CONFIG.CONTEXT_WINDOW);
-        recentCharacterMessages = sanitizedMessages.slice(-CONFIG.CHARACTER_CONTEXT_WINDOW);
+        recentMessages = collectRecentContext(allMessages, CONFIG.CONTEXT_WINDOW);
+        recentCharacterMessages = collectRecentContext(allMessages, CONFIG.CHARACTER_CONTEXT_WINDOW);
 
         if (CONFIG.DEBUG) {
           console.log(`[动态世界书] 🔍 过滤后的消息内容:`, recentMessages);
@@ -2249,11 +1905,17 @@ async function getContext(latestMessageHint?: string): Promise<Context | null> {
   let mvuData: ReturnType<typeof Schema.parse> | null = null;
   try {
     const lastMessageId = getLastMessageId();
-    if (lastMessageId >= 0) {
-      const variables = getVariables({ type: 'message', message_id: -1 });
+    // 用户新楼层可能还没复制 MVU，优先用最新快照，缺失时读取相邻楼层。
+    let variableMessageId = lastMessageId;
+    if (excludeLastAssistant && lastMessageId >= 0 && getChatMessages(lastMessageId)[0]?.role === 'assistant') {
+      variableMessageId -= 1;
+    }
+    for (let id = variableMessageId; id >= Math.max(0, variableMessageId - 2); id -= 1) {
+      const variables = getVariables({ type: 'message', message_id: id });
       const statData = _.get(variables, 'stat_data', null);
       if (statData) {
         mvuData = Schema.parse(statData);
+        break;
       }
     }
 
@@ -2319,7 +1981,12 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
     reason: options.reason ?? 'unknown',
     allowWhenDisabled: options.allowWhenDisabled ?? false,
     latestMessageHint: options.latestMessageHint ?? '',
+    context: options.context,
+    chatId: options.chatId ?? SillyTavern.getCurrentChatId(),
+    syncVariables: options.syncVariables ?? true,
   };
+
+  if (request.chatId !== SillyTavern.getCurrentChatId()) return getRuntimeSnapshot();
 
   if (!currentSettings.enabled && !request.allowWhenDisabled) {
     const message = '动态世界书已停用，跳过自动刷新';
@@ -2373,6 +2040,11 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
   }
 
   if (isProcessing) {
+    // 生成前的强制刷新必须等待真正写完，不能只排队就让调用方继续扫描。
+    if (request.force) {
+      await processingDone;
+      return updateWorldbookEntries(mode, request);
+    }
     queueNextUpdate(request);
     if (CONFIG.DEBUG) {
       console.log(`[动态世界书] 正在处理中，已排队等待下一次更新: ${request.reason}`);
@@ -2385,6 +2057,10 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
 
   lastProcessTime = now;
   isProcessing = true;
+  let finishProcessing!: () => void;
+  processingDone = new Promise<void>(resolve => {
+    finishProcessing = resolve;
+  });
   updateRuntimeSnapshot({
     processing: true,
     pendingReason: request.reason,
@@ -2398,7 +2074,8 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
   });
 
   try {
-    const context = await getContext(request.latestMessageHint);
+    const context = request.context ?? (await getContext(request.latestMessageHint));
+    if (request.chatId !== SillyTavern.getCurrentChatId()) return getRuntimeSnapshot();
 
     // 如果上下文获取失败(MVU未初始化),直接返回,不报错
     if (!context) {
@@ -2416,9 +2093,8 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
       });
     }
 
-    const sectPromptState = syncSectPromptState(context);
+    const sectPromptState = request.syncVariables ? syncSectPromptState(context) : deriveSectPromptState(context);
     decayStickyHeat(mapStickyHeat);
-    decayStickyHeat(characterStickyHeat);
 
     // 获取世界书名称
     const worldbookName = resolveManagedWorldbookName();
@@ -2448,6 +2124,7 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
 
     // 使用 updateWorldbookWith 更新世界书
     await updateWorldbookWith(worldbookName, worldbook => {
+      if (request.chatId !== SillyTavern.getCurrentChatId()) return worldbook;
       if (CONFIG.DEBUG) {
         console.log(`[动态世界书] 开始处理世界书 [${mode}模式]: ${worldbookName}, 共 ${worldbook.length} 个条目`);
         console.log(
@@ -2481,7 +2158,7 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
           continue;
         }
 
-        let decision = resolvedDecision.decision;
+        const decision = resolvedDecision.decision;
 
         const currentType = entry.strategy.type;
 
@@ -2495,8 +2172,6 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
             /^\[mvu_update\]/.test(entryName) ||
             /^\[mvu\]变量列表$/.test(entryName) ||
             /^\[红颜索引\]$/.test(entryName);
-          const shouldKeepWarmCharacterBlue =
-            decision.category === '角色' && shouldKeepBaseCharacterEntryWarm(context, entryName);
 
           // 精准控制：符合条件的开启，不符合条件的关闭
           if (decision.matched && currentType !== 'constant') {
@@ -2508,7 +2183,11 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
             if (CONFIG.DEBUG) {
               console.log(`[动态世界书] ✅ 开启(绿→蓝): ${entryName}`);
             }
-          } else if (!decision.matched && currentType === 'constant' && !isAlwaysOn && !shouldKeepWarmCharacterBlue) {
+          } else if (
+            !decision.matched &&
+            currentType === 'constant' &&
+            (!isAlwaysOn || decision.forced === 'disable')
+          ) {
             // 蓝灯 → 绿灯（但保留核心条目）
             entry.strategy.type = 'selective';
             disabledCount++;
@@ -2517,8 +2196,6 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
             if (CONFIG.DEBUG) {
               console.log(`[动态世界书] ⚠️ 关闭(蓝→绿): ${entryName}`);
             }
-          } else if (!decision.matched && currentType === 'constant' && shouldKeepWarmCharacterBlue && CONFIG.DEBUG) {
-            console.log(`[动态世界书] ♨️ 保温保留基础角色蓝灯: ${entryName}`);
           }
         } else if (currentType === 'constant') {
           decisionTraces.push(buildDecisionTrace(entryName, decision));
@@ -2534,7 +2211,7 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
             const shouldKeepMatchedCharacterStage = decision.category === '角色阶段' && decision.matched;
             shouldKeepEnabled =
               CONFIG.KEEP_ENABLED_AFTER_REPLY.some(pattern => pattern.test(entryName)) ||
-              (decision.category === '角色' && shouldKeepBaseCharacterEntryWarm(context, entryName)) ||
+              (decision.category === '角色' && decision.matched) ||
               shouldKeepMatchedCharacterStage;
           }
 
@@ -2563,6 +2240,7 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
       return worldbook;
     });
 
+    if (request.chatId !== SillyTavern.getCurrentChatId()) return getRuntimeSnapshot();
     refreshStickyHeatsFromEntries(activeEntries);
     const topScoredEntries = [...decisionTraces]
       .filter(trace => trace.score > 0 || trace.forced !== '')
@@ -2625,6 +2303,7 @@ async function updateWorldbookEntries(mode: UpdateMode = 'enable', options: Part
     });
   } finally {
     isProcessing = false;
+    finishProcessing();
 
     const nextRequest = queuedUpdate;
     queuedUpdate = null;
@@ -2743,8 +2422,111 @@ registerRuntimeActions({
 // 初始化
 // ============================================================================
 
+type ScanEntry = { world: string } & SillyTavern.FlattenedWorldInfoEntry;
+type ScanLores = Record<'globalLore' | 'characterLore' | 'chatLore' | 'personaLore', ScanEntry[]>;
+let generationType = '';
+let generationPreview = false;
+let generationEpoch = 0;
+let characterScan: { chatId: string; expected: Map<string, string> } | null = null;
+
+function resetGenerationScan(): void {
+  generationEpoch += 1;
+  generationType = '';
+  generationPreview = false;
+  characterScan = null;
+}
+
+async function prepareWorldbookScan(lores: ScanLores): Promise<void> {
+  if (!shouldAutoApply() || generationType === 'quiet' || generationType === 'impersonate') return;
+  const epoch = generationEpoch;
+  const chatId = SillyTavern.getCurrentChatId();
+  const worldbookName = resolveManagedWorldbookName();
+  if (!worldbookName) return;
+  const lists = [lores.globalLore, lores.characterLore, lores.chatLore, lores.personaLore];
+  if (!lists.some(list => list.some(entry => entry.world === worldbookName))) return;
+
+  const context = await getContext(undefined, generationType === 'swipe' || generationType === 'regenerate');
+  const isCurrent = () => epoch === generationEpoch && chatId === SillyTavern.getCurrentChatId() && shouldAutoApply();
+  if (!isCurrent()) return;
+  if (!context) {
+    updateRuntimeSnapshot({ generationMessage: '本轮人设：变量尚未就绪，未完成扫描前核对' });
+    return;
+  }
+
+  // 预览不保存开关；真实生成等待保存完成。已取出的 lores 仍可能是保存前的旧副本。
+  if (!generationPreview) {
+    await updateWorldbookEntries('enable', {
+      force: true,
+      reason: 'WORLDINFO_ENTRIES_LOADED',
+      context,
+      chatId,
+      syncVariables: false,
+    });
+    if (!isCurrent()) return;
+  }
+
+  const expected = new Map<string, string>();
+  for (const list of lists) {
+    for (let index = 0; index < list.length; index += 1) {
+      const entry = list[index];
+      const name = entry.comment ?? '';
+      if (entry.world !== worldbookName || entry.disable || !/^\[角色\]/.test(name)) continue;
+      const decision = getSpecializedDecision(context, name);
+      if (!decision) continue;
+      // 替换本轮数组中的副本；不污染世界书缓存，也不额外注入一份重复的人设。
+      // 没有明确命中的人物本轮不参与递归/关键词/旧 sticky 激活。
+      list[index] = { ...entry, constant: decision.matched, disable: !decision.matched };
+      if (decision.matched && entry.content.trim()) expected.set(`${entry.world}.${entry.uid}`, name);
+    }
+  }
+  characterScan = generationPreview ? null : { chatId, expected };
+  updateRuntimeSnapshot({
+    generationMessage: `${generationPreview ? '预览' : '本轮'}人设：${expected.size ? `已准备 ${expected.size} 项，等待世界书扫描` : '无须加载人物条目'}`,
+  });
+}
+
+function reportActivatedCharacters(entries: ScanEntry[]): void {
+  if (!shouldAutoApply() || !characterScan || characterScan.chatId !== SillyTavern.getCurrentChatId()) return;
+  const activated = new Set(entries.map(entry => `${entry.world}.${entry.uid}`));
+  const missing = [...characterScan.expected].filter(([key]) => !activated.has(key)).map(([, name]) => name);
+  updateRuntimeSnapshot({
+    generationMessage: missing.length
+      ? `本轮人设：${characterScan.expected.size - missing.length}/${characterScan.expected.size} 项已通过世界书扫描；未纳入：${missing.join('、')}（请检查世界书预算或条目限制）`
+      : `本轮人设：${characterScan.expected.size} 项已通过世界书扫描`,
+  });
+  characterScan = null;
+}
+
+function registerGenerationHooks(): void {
+  eventOn(tavern_events.GENERATION_AFTER_COMMANDS, (type, _options, dryRun) => {
+    resetGenerationScan();
+    generationType = type ?? '';
+    generationPreview = dryRun;
+    // 新一轮只读实际聊天，取消/重生成不携带上次尚未清除的输入提示。
+    pendingUserInputHint = '';
+  });
+  // 此事件在世界书扫描之前，并且酒馆会 await 监听器；拼装提示词前的事件已太晚。
+  eventMakeLast(tavern_events.WORLDINFO_ENTRIES_LOADED, prepareWorldbookScan);
+  eventOn(tavern_events.WORLD_INFO_ACTIVATED, reportActivatedCharacters);
+  eventOn(tavern_events.GENERATION_ENDED, () => {
+    // 部分酒馆版本在零条激活时不发送 WORLD_INFO_ACTIVATED，不能一直显示“等待扫描”。
+    if (characterScan) reportActivatedCharacters([]);
+    resetGenerationScan();
+  });
+  eventOn(tavern_events.GENERATION_STOPPED, () => {
+    if (characterScan) updateRuntimeSnapshot({ generationMessage: '本轮人设核对已取消' });
+    resetGenerationScan();
+  });
+  eventOn(tavern_events.CHAT_CHANGED, () => {
+    resetGenerationScan();
+    updateRuntimeSnapshot({ generationMessage: '' });
+  });
+}
+
 $(() => {
   mountDynamicWorldbookPanel();
+  // 不等 MVU 初始化和开场延时结束，避免用户马上发送时漏掉生成前监听。
+  registerGenerationHooks();
   updateRuntimeSnapshot({
     bootStatus: 'initializing',
     lastMessage: '扩展面板已挂载，准备初始化动态世界书引擎',
@@ -2789,27 +2571,10 @@ $(() => {
           latestInput: pendingUserInputHint,
         });
       }
-      await waitForUpdatePipelineIdle();
       await updateWorldbookEntries('enable', {
         force: true,
         reason: 'MESSAGE_SENT',
         latestMessageHint: pendingUserInputHint,
-      });
-    });
-
-    // 监听真正进入生成拼装前的时机，作为最终兜底，确保本轮生成前已经完成开灯
-    eventMakeFirst(tavern_events.GENERATE_BEFORE_COMBINE_PROMPTS, async () => {
-      const latestMessageHint = pendingUserInputHint || readLatestUserContextHint() || readDraftInputText();
-      if (CONFIG.DEBUG) {
-        console.log('[动态世界书] 🚦 生成前最终检查，强制刷新需要启用的世界书条目', {
-          latestInput: latestMessageHint,
-        });
-      }
-      await waitForUpdatePipelineIdle();
-      await updateWorldbookEntries('enable', {
-        force: true,
-        reason: 'GENERATE_BEFORE_COMBINE_PROMPTS',
-        latestMessageHint,
       });
     });
 
@@ -2832,7 +2597,7 @@ $(() => {
       pendingUserInputHint = '';
       // 延迟一小段时间，确保消息完全接收
       await delay(200);
-      await updateWorldbookEntries('disable', { reason: 'MESSAGE_RECEIVED' });
+      await updateWorldbookEntries('disable', { force: true, reason: 'MESSAGE_RECEIVED' });
     });
 
     // 监听消息删除 - 删除后重新评估上下文，避免重发前沿用旧的开灯结果
@@ -2842,7 +2607,7 @@ $(() => {
       }
       pendingUserInputHint = '';
       await delay(100);
-      await updateWorldbookEntries('enable', { reason: 'MESSAGE_DELETED' });
+      await updateWorldbookEntries('enable', { force: true, reason: 'MESSAGE_DELETED' });
     });
 
     // 监听消息编辑 - 编辑后的上下文可能直接改变需要开启的条目
@@ -2852,7 +2617,7 @@ $(() => {
       }
       pendingUserInputHint = '';
       await delay(100);
-      await updateWorldbookEntries('enable', { reason: 'MESSAGE_EDITED' });
+      await updateWorldbookEntries('enable', { force: true, reason: 'MESSAGE_EDITED' });
     });
 
     // ========================================================================

@@ -10,7 +10,15 @@ import {
   REALM_STAGES,
   REALM_THRESHOLDS,
 } from './constants';
-import { calculateBaseCombatPower } from './utils';
+
+export function finiteNumber(fallback = 0) {
+  return z.coerce.number().catch(fallback);
+}
+
+export const NormalizedStringListSchema = z
+  .union([z.array(z.string()), z.string().transform(value => (value ? [value] : []))])
+  .prefault([])
+  .transform(values => _.uniq(values.map(value => value.trim()).filter(Boolean)));
 
 // 品阶容错映射
 export const 品阶映射: Record<string, string> = {
@@ -85,12 +93,20 @@ function normalizeSkillProficiency(raw: unknown): string {
 
 // 物品 Schema
 export const ItemSchema = z.object({
-  名称: z.string().prefault(''),
-  描述: z.string().prefault(''),
-  品阶: z.string().prefault(''),
-  数量: z.coerce
-    .number()
-    .transform(v => Math.max(0, v))
+  名称: z
+    .string()
+    .transform(value => value.trim())
+    .prefault(''),
+  描述: z
+    .string()
+    .transform(value => value.trim())
+    .prefault(''),
+  品阶: z
+    .string()
+    .transform(value => value.trim())
+    .prefault(''),
+  数量: finiteNumber(0)
+    .transform(v => Math.max(0, Math.floor(v)))
     .prefault(1),
 });
 
@@ -133,14 +149,32 @@ export function extractSpiritStoneFromInventory<T extends { 名称?: unknown; �
   return { inventory: nextInventory, spiritStone };
 }
 
+/**
+ * 把现行标量与旧版 `{ 下品灵石: number }` 账本统一为当前使用的灵石数值。
+ * 这里只识别同义的“灵石/下品灵石”，不擅自换算中品、上品等不同币值。
+ */
+export function normalizeSpiritStoneAmount(value: unknown): number {
+  const candidates: unknown[] = [value];
+  if (_.isPlainObject(value)) {
+    const legacyLedger = value as Record<string, unknown>;
+    candidates.unshift(legacyLedger.下品灵石, legacyLedger.灵石, legacyLedger.数量);
+  }
+
+  for (const candidate of candidates) {
+    const amountSource = _.isPlainObject(candidate) ? (candidate as Record<string, unknown>).数量 : candidate;
+    if (amountSource == null || (typeof amountSource === 'string' && !amountSource.trim())) continue;
+    const amount = Number(amountSource);
+    if (Number.isFinite(amount)) return Math.max(0, amount);
+  }
+
+  return 0;
+}
+
 export function normalizeSpiritStoneState<T extends { 名称?: unknown; 数量?: unknown }>(
   spiritStone: unknown,
   ...inventories: Array<Record<string, T> | undefined>
 ): { spiritStone: number; inventories: Array<Record<string, T>> } {
-  let nextSpiritStone = Number(spiritStone);
-  if (!Number.isFinite(nextSpiritStone) || nextSpiritStone < 0) {
-    nextSpiritStone = 0;
-  }
+  let nextSpiritStone = normalizeSpiritStoneAmount(spiritStone);
 
   const normalizedInventories = inventories.map(inventory => {
     const normalized = extractSpiritStoneFromInventory(inventory);
@@ -187,6 +221,46 @@ const 突破结果映射: Record<string, '无' | '成功' | '失败'> = {
   冲关失败: '失败',
 };
 
+const 境界变动类型映射: Record<string, '无' | '突破' | '跨级突破' | '跌境'> = {
+  无: '无',
+  '': '无',
+  突破: '突破',
+  正常突破: '突破',
+  晋升: '突破',
+  跨级突破: '跨级突破',
+  连续突破: '跨级突破',
+  连破: '跨级突破',
+  跌境: '跌境',
+  境界跌落: '跌境',
+  境界倒退: '跌境',
+};
+
+export function normalizeRealmLevel(value: unknown): number {
+  const level = Number(value);
+  if (!Number.isFinite(level)) return 1;
+  return _.clamp(Math.floor(level), 1, REALM_THRESHOLDS.length);
+}
+
+export const RealmTransitionSchema = z
+  .object({
+    类型: z
+      .string()
+      .transform(value => 境界变动类型映射[String(value).trim()] || '无')
+      .prefault('无'),
+    目标等级: finiteNumber(0)
+      .transform(value => (Number.isFinite(value) ? _.clamp(Math.floor(value), 0, REALM_THRESHOLDS.length) : 0))
+      .prefault(0),
+    依据: z.coerce
+      .string()
+      .transform(value => String(value).replace(/\s+/gu, ' ').trim())
+      .prefault(''),
+  })
+  .prefault({
+    类型: '无',
+    目标等级: 0,
+    依据: '',
+  });
+
 export const CultivationStateSchema = z
   .object({
     阶段: z
@@ -205,16 +279,22 @@ export const CultivationStateSchema = z
       .string()
       .transform(v => 突破结果映射[String(v).trim()] || '无')
       .prefault('无'),
+    境界变动: RealmTransitionSchema,
   })
   .prefault({
     阶段: '修炼中',
     瓶颈原因: '',
     突破目标: '',
     上次结果: '无',
+    境界变动: {
+      类型: '无',
+      目标等级: 0,
+      依据: '',
+    },
   });
 
 export function describeRealmByLevel(level: number): string {
-  const normalizedLevel = _.clamp(Math.floor(Number(level) || 1), 1, REALM_THRESHOLDS.length);
+  const normalizedLevel = normalizeRealmLevel(level);
   const majorIdx = Math.floor((normalizedLevel - 1) / 4);
   const minorIdx = (normalizedLevel - 1) % 4;
   return `${REALM_NAMES[majorIdx] ?? '练气'}${REALM_STAGES[minorIdx] ?? '初期'}`;
@@ -277,7 +357,8 @@ export function normalizeCultivationState(
   },
 ): z.output<typeof CultivationStateSchema> {
   const parsedState = CultivationStateSchema.parse(rawState ?? {});
-  const threshold = getRealmThreshold(options.level);
+  const level = normalizeRealmLevel(options.level);
+  const threshold = getRealmThreshold(level);
   let phase = parsedState.阶段;
 
   if (options.legacyAttemptBreakthrough || phase === '突破中') {
@@ -286,15 +367,25 @@ export function normalizeCultivationState(
     phase = '瓶颈中';
   }
 
-  const nextRealmTarget =
-    options.level < REALM_THRESHOLDS.length ? describeRealmByLevel(options.level + 1) : parsedState.突破目标;
+  const transition = _.cloneDeep(parsedState.境界变动);
+  if (transition.类型 === '无') {
+    transition.目标等级 = 0;
+    transition.依据 = '';
+  }
+
+  const configuredTarget =
+    transition.类型 !== '无' && transition.类型 !== '跌境' && transition.目标等级 > level
+      ? transition.目标等级
+      : Math.min(level + 1, REALM_THRESHOLDS.length);
+  const nextRealmTarget = level < REALM_THRESHOLDS.length ? describeRealmByLevel(configuredTarget) : '';
   const shouldHaveBreakthroughTarget = ['瓶颈中', '突破中', '压境中'].includes(phase);
 
   return {
     阶段: phase,
     瓶颈原因: shouldHaveBreakthroughTarget ? parsedState.瓶颈原因 : '',
-    突破目标: shouldHaveBreakthroughTarget ? parsedState.突破目标 || nextRealmTarget : '',
+    突破目标: shouldHaveBreakthroughTarget ? nextRealmTarget : '',
     上次结果: parsedState.上次结果,
+    境界变动: transition,
   };
 }
 
@@ -312,10 +403,22 @@ export function getCultivationStatusLabel(
 }
 
 // 神通 Schema（本尊和红颜共用）
-export const SkillSchema = z
-  .object({
-    名称: z.string().prefault(''),
-    描述: z.string().prefault(''),
+export const SkillSchema = z.preprocess(
+  value =>
+    typeof value === 'string'
+      ? {
+          描述: value,
+        }
+      : value,
+  z.object({
+    名称: z
+      .string()
+      .transform(value => value.trim())
+      .prefault(''),
+    描述: z
+      .string()
+      .transform(value => value.trim())
+      .prefault(''),
     类型: z.enum(['功法', '神通', '秘术']).prefault('神通'),
     品阶: z
       .string()
@@ -325,45 +428,63 @@ export const SkillSchema = z
       .string()
       .transform(v => normalizeSkillProficiency(v))
       .catch('入门'),
-    领悟时间: z.coerce.number().catch(() => Date.now()),
-    威力等级: z.coerce.number().optional(),
-  })
-  .transform(skill => {
-    // 仅当威力等级不存在或为0时才计算
-    if (!skill.威力等级 || skill.威力等级 === 0) {
-      const 品阶权重: Record<string, number> = { 凡: 1, 黄: 2, 玄: 3, 地: 4, 天: 5, 仙: 6, 圣: 7, 先天: 8 };
-      const 熟练度权重: Record<string, number> = { 入门: 1, 熟练: 2, 精通: 3, 大成: 4, 圆满: 5, 化境: 6 };
+    领悟时间: finiteNumber(Date.now()).prefault(() => Date.now()),
+  }),
+);
 
-      const 品阶值 = 品阶权重[skill.品阶] || 1;
-      const 熟练值 = 熟练度权重[skill.熟练度] || 1;
-
-      return {
-        ...skill,
-        威力等级: 品阶值 * 10 + 熟练值,
-      };
-    }
-    return skill;
-  });
+export const SkillListSchema = z
+  .record(z.string().describe('神通名'), SkillSchema)
+  .prefault({})
+  .transform(skills =>
+    _(skills)
+      .entries()
+      .map(([rawName, skill]) => {
+        const name = String(rawName).trim();
+        return [
+          name,
+          {
+            ...skill,
+            名称: skill.名称 || name,
+          },
+        ] as const;
+      })
+      .filter(([name]) => !!name)
+      .fromPairs()
+      .value(),
+  );
 
 // 背包类物品 Schema（自动过滤数量<=0的物品）
 export const InventorySchema = z
   .record(z.string().describe('物品名'), ItemSchema)
   .prefault({})
-  .transform(data => _.pickBy(data, ({ 数量 }) => 数量 > 0));
+  .transform(data =>
+    _(data)
+      .entries()
+      .map(([rawName, item]) => {
+        const name = String(rawName).trim();
+        return [
+          name,
+          {
+            ...item,
+            名称: item.名称 || name,
+          },
+        ] as const;
+      })
+      .filter(([name, item]) => !!name && item.数量 > 0)
+      .fromPairs()
+      .value(),
+  );
 
 // 境界计算 transform（本尊和红颜共用）
-export function computeRealmInfo(
-  data: {
-    等级: number;
-    修为: number;
-    已活岁月: number;
-    尝试突破?: boolean;
-    修炼状态?: Pick<z.output<typeof CultivationStateSchema>, '阶段'>;
-    神通列表?: Record<string, { 威力等级?: number }>;
-    体质?: string;
-  },
-  includesCombatPower: boolean = false,
-) {
+export function computeRealmInfo(data: {
+  等级: number;
+  修为: number;
+  已活岁月: number;
+  尝试突破?: boolean;
+  修炼状态?: Pick<z.output<typeof CultivationStateSchema>, '阶段'>;
+  神通列表?: Record<string, unknown>;
+  体质?: string;
+}) {
   const level = data.等级;
   const 突破阈值 = getRealmThreshold(level);
   const 寿元上限 = REALM_LIFESPANS[level - 1] ?? 100;
@@ -373,23 +494,5 @@ export function computeRealmInfo(
   const progressRatio = 突破阈值 > 0 ? _.clamp(data.修为 / 突破阈值, 0, 1) : 0;
   const 进度 = `${(progressRatio * 100).toFixed(1)}%`;
 
-  const base = { 突破阈值, 寿元上限, 境界描述, 寿元状态, 状态, 进度 };
-
-  if (!includesCombatPower) return base;
-
-  // 战力计算：境界基础（指数级） + 神通加成 + 体质加成
-  const 境界战力 = calculateBaseCombatPower(level);
-  const 神通列表 = Object.values(data.神通列表 || {});
-  const 最高神通威力 = 神通列表.length > 0 ? Math.max(...神通列表.map(s => s.威力等级 || 0)) : 0;
-  const 体质加成 = (() => {
-    const 体质 = data.体质 || '';
-    if (体质.includes('神')) return 500;
-    if (体质.includes('圣')) return 200;
-    if (体质.includes('道')) return 100;
-    if (体质.includes('灵')) return 50;
-    return 0;
-  })();
-  const 战力值 = 境界战力 + 最高神通威力 + 体质加成;
-
-  return { ...base, 战力值 };
+  return { 突破阈值, 寿元上限, 境界描述, 寿元状态, 状态, 进度 };
 }

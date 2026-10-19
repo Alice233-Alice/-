@@ -9,6 +9,11 @@ import {
   unwrapOpportunityPatchPayload,
   type SchemaType,
 } from '../灯火阑珊/schema';
+import {
+  parseWorldEventPatchOperation,
+  restoreWorldEventLedger,
+  type WorldEventPatchOperation,
+} from '../灯火通明/world-event-patch-guard';
 import { COMPANION_CANONICAL_NAMES } from './companion-aliases';
 
 const GUARD_INSTALLED_KEY = '__灯火阑珊_authoritative_mvu_guard_installed__';
@@ -85,6 +90,7 @@ export type GuardRepairResult = {
 };
 
 const pendingExplicitLevels = new Map<string, number>();
+const pendingWorldEventOperations: WorldEventPatchOperation[] = [];
 let lastValidStatData: SchemaType | null = null;
 let pendingNarrativeText = '';
 
@@ -399,8 +405,7 @@ function applyCultivatorRealmTransition(
   if (requestedLevel > oldLevel) {
     if (requestedLevel > oldLevel + 1) {
       const hasValidCrossLevelEvidence =
-        transition.类型 === '跨级突破' &&
-        hasGroundedRealmTransitionEvidence(transition, requestedLevel, narrativeText);
+        transition.类型 === '跨级突破' && hasGroundedRealmTransitionEvidence(transition, requestedLevel, narrativeText);
       if (!hasValidCrossLevelEvidence) {
         finalLevel = Math.min(oldLevel + 1, 48);
         warnings.push(`${label}缺少有效跨级依据，等级 ${requestedLevel} 已收敛为 ${finalLevel}`);
@@ -595,6 +600,9 @@ export function guardParsedCommands(
   const appendedCommands: GuardMutableCommand[] = [];
 
   for (const command of mutableCommands) {
+    const worldEventOperation = parseWorldEventPatchOperation(command.full_match);
+    if (worldEventOperation) pendingWorldEventOperations.push(worldEventOperation);
+
     if (!Array.isArray(command.args) || command.args.length === 0) continue;
     const rawPath = String(command.args[0] ?? '');
     const path = normalizeCompanionAliasPath(normalizeCommandPath(rawPath));
@@ -627,6 +635,13 @@ function handleVariableUpdateEnded(newVariables: Mvu.MvuData, oldVariables: Mvu.
     const rawOldStatData = _.get(oldVariables, 'stat_data', {});
     if (!nextStatData || typeof nextStatData !== 'object') return;
 
+    const restoredWorldEvents = restoreWorldEventLedger(
+      _.get(rawOldStatData, '世界图志'),
+      _.get(nextStatData, '世界图志'),
+      pendingWorldEventOperations,
+    );
+    _.set(nextStatData, '世界图志', restoredWorldEvents);
+
     const parsedOldStatData = Schema.safeParse(rawOldStatData);
     const oldStatData = parsedOldStatData.success ? parsedOldStatData.data : (lastValidStatData ?? rawOldStatData);
     const transitionResult = applyRealmTransitionGuards(nextStatData, oldStatData, {
@@ -643,6 +658,12 @@ function handleVariableUpdateEnded(newVariables: Mvu.MvuData, oldVariables: Mvu.
     const repairResult = repairStatDataWithFallback(transitionResult.data, oldStatData);
     const warnings = [...transitionResult.warnings, ...repairResult.warnings];
     if (repairResult.data) {
+      const eventIdsBeforeCompaction = Object.keys(transitionResult.data.世界图志 ?? {});
+      const eventIdsAfterCompaction = new Set(Object.keys(repairResult.data.世界图志 ?? {}));
+      const evictedEventIds = eventIdsBeforeCompaction.filter(eventId => !eventIdsAfterCompaction.has(eventId));
+      if (evictedEventIds.length > 0) {
+        warnings.push(`世界图志滚动窗口已淘汰过期事件：${evictedEventIds.join('、')}`);
+      }
       _.set(newVariables, 'stat_data', repairResult.data);
       lastValidStatData = _.cloneDeep(repairResult.data);
     }
@@ -653,6 +674,7 @@ function handleVariableUpdateEnded(newVariables: Mvu.MvuData, oldVariables: Mvu.
     console.warn('[灯火阑珊] 变量守卫结算失败，保留 MVU 原始结果', error);
   } finally {
     pendingExplicitLevels.clear();
+    pendingWorldEventOperations.length = 0;
     pendingNarrativeText = '';
   }
 }
@@ -670,6 +692,9 @@ export function installAuthoritativeMvuGuard(): () => void {
   }
 
   const eventStops = [
+    eventOn(Mvu.events.VARIABLE_UPDATE_STARTED, () => {
+      pendingWorldEventOperations.length = 0;
+    }).stop,
     eventOn(Mvu.events.COMMAND_PARSED, guardParsedCommands).stop,
     eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, handleVariableUpdateEnded).stop,
   ];
@@ -684,6 +709,7 @@ export function installAuthoritativeMvuGuard(): () => void {
       }
     });
     pendingExplicitLevels.clear();
+    pendingWorldEventOperations.length = 0;
     pendingNarrativeText = '';
     lastValidStatData = null;
     delete globalRef[GUARD_INSTALLED_KEY];

@@ -1,6 +1,7 @@
 // ============================================================================
 // Character asset API
 // Character-specific URL lists live in ./character-assets/characters/*.
+// 多存储桶图片的添加方式见 ./character-assets/README.md。
 // ============================================================================
 
 import { CHARACTER_ASSETS, CHARACTER_IMAGE_POOLS } from './character-assets/index';
@@ -8,6 +9,8 @@ import type { CharacterImagePool, DualSoulImagePool, ExpressionImages } from './
 import { COMPANION_CANONICAL_NAMES } from '../灯火阑珊-变量结构/companion-aliases';
 
 export { CHARACTER_ASSETS, CHARACTER_IMAGE_POOLS } from './character-assets/index';
+export { buildCharacterImageUrls, CHARACTER_IMAGE_BASE_URLS } from './character-assets/image-url';
+export type { CharacterImageSource, CharacterImageToken } from './character-assets/image-url';
 export type {
   CharacterAssetConfig,
   CharacterAssets,

@@ -1,7 +1,10 @@
+import { parseMessageContent } from './message-content';
+
 export type GreetingIndexItem = {
   index: number;
   title: string;
   content: string;
+  searchText: string;
   preview: string;
 };
 
@@ -31,18 +34,22 @@ function getGreetingItems(): GreetingIndexItem[] {
   const alternates = Array.isArray(alternateRaw) ? alternateRaw.map(item => String(item ?? '')) : [];
 
   return alternates.map((content, offset) => {
+    const narrative = parseMessageContent(content).narrative;
     const firstLine = content
       .split('\n')
       .map(line => line.trim())
       .find(Boolean);
-    const bracketTitle = firstLine?.match(/^\[(.+?)\]/)?.[1]?.trim();
-    const plainTitle = normalizeSpace(firstLine ?? '').slice(0, 24);
+    const bracketTitle = firstLine?.match(/^(?:\[(.+?)\]|【(.+?)】)/);
+    const plainTitle = normalizeSpace(firstLine ?? '')
+      .replace(/^\*+|\*+$/g, '')
+      .slice(0, 24);
 
     return {
       index: offset + 1,
-      title: bracketTitle || plainTitle || `开场白 #${offset + 1}`,
+      title: bracketTitle?.[1]?.trim() || bracketTitle?.[2]?.trim() || plainTitle || `开场白 #${offset + 1}`,
       content,
-      preview: toPreviewText(content),
+      searchText: narrative,
+      preview: toPreviewText(firstLine && /^(?:【|\[)/.test(firstLine) ? narrative.replace(firstLine, '') : narrative),
     };
   });
 }
@@ -61,7 +68,8 @@ function extractBracketTitle(text: string): string {
     .split('\n')
     .map(line => line.trim())
     .find(Boolean);
-  return firstLine?.match(/^\[(.+?)\]/)?.[1]?.trim() ?? '';
+  const match = firstLine?.match(/^(?:\[(.+?)\]|【(.+?)】)/);
+  return (match?.[1] ?? match?.[2])?.trim() ?? '';
 }
 
 function getFirstMessageContent(): string {

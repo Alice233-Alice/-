@@ -70,10 +70,17 @@
         <div
           ref="scrollRef"
           class="dialogue-scroll"
+          tabindex="0"
           @scroll="handleStreamScroll"
           @wheel.passive="handleStreamWheel"
+          @keydown="handleStreamKeydown"
           @touchstart.passive="handleStreamTouchStart"
           @touchmove.passive="handleStreamTouchMove"
+          @touchend.passive="handleStreamTouchEnd"
+          @touchcancel.passive="handleStreamTouchEnd"
+          @pointerdown.passive="handleStreamPointerDown"
+          @pointerup.passive="handleStreamPointerUp"
+          @pointercancel.passive="handleStreamPointerUp"
         >
           <div v-if="visibleTurns.length === 0 && !pseudo.isGenerating" class="dialogue-empty">
             <div class="empty-crest" aria-hidden="true">
@@ -288,8 +295,12 @@
         ></textarea>
         <small>此言只入心境，不推动世界时间 · Ctrl + Enter</small>
       </div>
-      <button v-if="pseudo.isGenerating" type="button" class="stop" @click="pseudo.stop">
-        <i class="fa-solid fa-stop"></i><span><strong>停止</strong><small>收束回应</small></span>
+      <button v-if="pseudo.isGenerating" type="button" class="stop" :disabled="!pseudo.canStop" @click="pseudo.stop">
+        <i class="fa-solid" :class="pseudo.canStop ? 'fa-stop' : 'fa-circle-notch fa-spin'"></i>
+        <span
+          ><strong>{{ pseudo.canStop ? '停止' : pseudo.generationLabel }}</strong
+          ><small>收束回应</small></span
+        >
       </button>
       <button v-else type="submit" :disabled="!pseudo.canSubmitDialogue">
         <i class="fa-solid" :class="context?.channel === 'transmission' ? 'fa-feather-pointed' : 'fa-paper-plane'"></i>
@@ -332,8 +343,12 @@ const {
   isFollowing: isFollowingStream,
   handleScroll: handleStreamScroll,
   handleWheel: handleStreamWheel,
+  handleKeydown: handleStreamKeydown,
   handleTouchStart: handleStreamTouchStart,
   handleTouchMove: handleStreamTouchMove,
+  handleTouchEnd: handleStreamTouchEnd,
+  handlePointerDown: handleStreamPointerDown,
+  handlePointerUp: handleStreamPointerUp,
   queueFollow: queueStreamFollow,
   resumeFollowing: resumeStreamFollow,
 } = useStreamFollow(scrollRef);
@@ -438,14 +453,7 @@ const liveReasoningStreaming = computed(
     pseudo.isGenerating &&
     (pseudo.liveReasoningState === 'thinking' || Boolean(liveInlineReasoning.value?.isComplete === false)),
 );
-const liveStatus = computed(() => {
-  if (pseudo.generationState === 'preparing')
-    return context.value?.channel === 'transmission' ? '传讯送出' : '静候回应';
-  if (pseudo.generationState === 'saving') return '落定记录';
-  if (pseudo.generationState === 'stopping') return '收束回应';
-  if (liveReasoningStreaming.value && !pseudo.streamText) return '推演中';
-  return context.value?.channel === 'transmission' ? '回信中' : '回应中';
-});
+const liveStatus = computed(() => pseudo.generationLabel);
 
 const formatReply = (text: string, messageId: number) => formatMessageHtml(text, messageId);
 const formatDuration = (duration: number) => `${Math.max(1, Math.round(duration / 1000))} 秒`;

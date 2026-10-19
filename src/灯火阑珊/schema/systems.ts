@@ -82,6 +82,8 @@ export const QuestSchema = z.object({
     .transform(v => 任务类型映射[String(v).trim()] || '支线')
     .prefault('主线'),
   目标: z.string().prefault(''),
+  进度: z.string().prefault(''),
+  下一步: z.string().prefault(''),
   状态: z
     .string()
     .transform(v => 任务状态映射[String(v).trim()] || '进行中')
@@ -173,8 +175,45 @@ export const ReputationSystemSchema = z
       .value();
   });
 
-// 可参与机遇 Schema
+// 可参与机遇 / 叙事提案 Schema
 export type OpportunityType = '探索' | '交涉' | '战斗' | '修炼' | '整备' | '亲密';
+export type NarrativeProposalKind = '平淡延续' | '当前行动' | '事件行动' | '回应事件' | '场景大纲' | '时间推进';
+export type ProposalEventNature = '无事件' | '选中后成立' | '回应已发生事件';
+
+const 叙事类型映射: Record<string, NarrativeProposalKind> = {
+  平淡: '平淡延续',
+  平淡延续: '平淡延续',
+  继续: '当前行动',
+  当前行动: '当前行动',
+  行动: '当前行动',
+  事件: '事件行动',
+  事件行动: '事件行动',
+  回应: '回应事件',
+  回应事件: '回应事件',
+  大纲: '场景大纲',
+  场景大纲: '场景大纲',
+  时间跳转: '时间推进',
+  时间推进: '时间推进',
+  calm: '平淡延续',
+  action: '当前行动',
+  event: '事件行动',
+  response: '回应事件',
+  outline: '场景大纲',
+  timeskip: '时间推进',
+};
+
+const 事件性质映射: Record<string, ProposalEventNature> = {
+  无: '无事件',
+  无事件: '无事件',
+  候选: '选中后成立',
+  候选事件: '选中后成立',
+  选中后成立: '选中后成立',
+  已发生: '回应已发生事件',
+  回应已发生事件: '回应已发生事件',
+  none: '无事件',
+  candidate: '选中后成立',
+  existing: '回应已发生事件',
+};
 
 const 机遇类型映射: Record<string, OpportunityType> = {
   探索: '探索',
@@ -231,7 +270,7 @@ const 机遇类型推断规则: Array<{ type: OpportunityType; pattern: RegExp }
   {
     type: '亲密',
     pattern:
-      /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|亲吻|亲密|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|羽岚|羽岚烟|岚烟|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜/,
+      /红颜|佳人|道侣|双修|温情|独处|相拥|相守|调情|缠绵|共寝|同眠|亲吻|亲密|忘忧|听雨|清弦|晚棠|云裳|梦杳泠|羽岚|羽岚烟|岚烟|朔璃鸢|阿鸢|血手飞鸢|朔望舒|赤月女帝|幽影宗主|虞汐|虞颜|虞汐颜|沈倩宁|倩宁|赤血狂刃/,
   },
   {
     type: '修炼',
@@ -257,6 +296,22 @@ const 机遇类型推断规则: Array<{ type: OpportunityType; pattern: RegExp }
 
 function normalizeOpportunityText(value: unknown): string {
   return String(value ?? '').trim();
+}
+
+function normalizeNarrativeKind(value: unknown, eventNature: ProposalEventNature): NarrativeProposalKind {
+  const mapped = 叙事类型映射[normalizeOpportunityText(value).toLowerCase()];
+  if (mapped) return mapped;
+  if (eventNature === '回应已发生事件') return '回应事件';
+  if (eventNature === '选中后成立') return '事件行动';
+  return '当前行动';
+}
+
+function normalizeProposalEventNature(value: unknown, event: string, eventId: string): ProposalEventNature {
+  const mapped = 事件性质映射[normalizeOpportunityText(value).toLowerCase()];
+  if (mapped) return mapped;
+  if (eventId) return '回应已发生事件';
+  if (event) return '选中后成立';
+  return '无事件';
 }
 
 function inferOpportunityType(rawType: string, payload: Record<string, string>): OpportunityType {
@@ -378,14 +433,24 @@ export function unwrapOpportunityPatchPayload(value: unknown): unknown {
 }
 
 const CompactOpportunitySchema = z.object({
+  标题: z.coerce.string().transform(normalizeOpportunityText).optional(),
   行动: z.coerce.string().transform(normalizeOpportunityText),
   类型: z.coerce.string().transform(normalizeOpportunityText).prefault('探索'),
+  叙事类型: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  事件性质: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  事件: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  关联事件ID: z.coerce.string().transform(normalizeOpportunityText).optional(),
   提示: z.coerce.string().transform(normalizeOpportunityText).optional(),
 });
 
 const EnglishOpportunitySchema = z.object({
+  title: z.coerce.string().transform(normalizeOpportunityText).optional(),
   action: z.coerce.string().transform(normalizeOpportunityText),
   type: z.coerce.string().transform(normalizeOpportunityText).prefault('探索'),
+  narrativeKind: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  eventNature: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  event: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  eventId: z.coerce.string().transform(normalizeOpportunityText).optional(),
   hint: z.coerce.string().transform(normalizeOpportunityText).optional(),
 });
 
@@ -402,8 +467,13 @@ const LegacyOpportunitySchema = z.object({
 });
 
 export type NormalizedOpportunity = {
+  标题?: string;
   行动: string;
   类型: OpportunityType;
+  叙事类型: NarrativeProposalKind;
+  事件性质: ProposalEventNature;
+  事件?: string;
+  关联事件ID?: string;
   提示?: string;
 };
 
@@ -411,26 +481,49 @@ export const OpportunitySchema = z
   .union([CompactOpportunitySchema, EnglishOpportunitySchema, LegacyOpportunitySchema])
   .transform((item): NormalizedOpportunity => {
     if ('行动' in item) {
+      const title = normalizeOpportunityText(item.标题);
       const hint = normalizeOpportunityText(item.提示);
+      const event = normalizeOpportunityText(item.事件);
+      const eventId = normalizeOpportunityText(item.关联事件ID);
+      const eventNature = normalizeProposalEventNature(item.事件性质, event, eventId);
       return {
+        ...(title ? { 标题: title } : {}),
         行动: item.行动,
         类型: inferOpportunityType(item.类型, { 行动: item.行动, 提示: hint }),
+        叙事类型: normalizeNarrativeKind(item.叙事类型, eventNature),
+        事件性质: eventNature,
+        ...(event ? { 事件: event } : {}),
+        ...(eventId ? { 关联事件ID: eventId } : {}),
         ...(hint ? { 提示: hint } : {}),
       };
     }
 
     if ('action' in item) {
+      const title = normalizeOpportunityText(item.title);
       const hint = normalizeOpportunityText(item.hint);
+      const event = normalizeOpportunityText(item.event);
+      const eventId = normalizeOpportunityText(item.eventId);
+      const eventNature = normalizeProposalEventNature(item.eventNature, event, eventId);
       return {
+        ...(title ? { 标题: title } : {}),
         行动: item.action,
         类型: inferOpportunityType(item.type, { action: item.action, hint }),
+        叙事类型: normalizeNarrativeKind(item.narrativeKind, eventNature),
+        事件性质: eventNature,
+        ...(event ? { 事件: event } : {}),
+        ...(eventId ? { 关联事件ID: eventId } : {}),
         ...(hint ? { 提示: hint } : {}),
       };
     }
 
     const action = item.描述 || item.名称;
     const hint = buildLegacyOpportunityHint(item.时限 ?? '', item.风险评估);
+    const title = normalizeOpportunityText(item.名称);
+    const event = normalizeOpportunityText(item.描述);
+    const eventId = normalizeOpportunityText(item.关联事件);
+    const eventNature = normalizeProposalEventNature('', event, eventId);
     return {
+      ...(title ? { 标题: title } : {}),
       行动: action,
       类型: inferOpportunityType(item.类型, {
         名称: item.名称,
@@ -441,9 +534,216 @@ export const OpportunitySchema = z
         时限: item.时限 ?? '',
         关联事件: item.关联事件 ?? '',
       }),
+      叙事类型: normalizeNarrativeKind('', eventNature),
+      事件性质: eventNature,
+      ...(event ? { 事件: event } : {}),
+      ...(eventId ? { 关联事件ID: eventId } : {}),
       ...(hint ? { 提示: hint } : {}),
     };
   });
+
+// 世界图志保存已经在正文中成立的持续事件；候选提案不进入这里。
+export type WorldEventStatus = '活跃' | '已平息' | '已错过';
+export type WorldEventStage = '征兆' | '发展' | '可介入' | '余波' | '落幕';
+export type WorldEventParticipation = '未介入' | '旁观' | '介入' | '主导';
+export type WorldEventImpact = '微澜' | '轻变' | '显著';
+
+export const WORLD_EVENT_ACTIVE_LIMIT = 3;
+export const WORLD_EVENT_HISTORY_LIMIT = 5;
+export const WORLD_EVENT_LEDGER_LIMIT = WORLD_EVENT_ACTIVE_LIMIT + WORLD_EVENT_HISTORY_LIMIT;
+
+const earthlyBranchRank = new Map(
+  ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'].map((branch, index) => [branch, index]),
+);
+
+const parseWorldEventTime = (value: string | undefined) => {
+  const normalized = String(value ?? '').trim();
+  const match = normalized.match(/^(.*?)(-?\d+)年(\d+)月(\d+)日(?:[·\s]*([子丑寅卯辰巳午未申酉戌亥])时)?/u);
+  if (!match) return null;
+
+  return {
+    era: match[1].trim(),
+    year: Number(match[2]),
+    month: Number(match[3]),
+    day: Number(match[4]),
+    hour: earthlyBranchRank.get(match[5] ?? '') ?? -1,
+  };
+};
+
+export const compareWorldEventTimeDescending = (left: string | undefined, right: string | undefined): number => {
+  const leftTime = parseWorldEventTime(left);
+  const rightTime = parseWorldEventTime(right);
+  if (leftTime && rightTime && leftTime.era === rightTime.era) {
+    for (const field of ['year', 'month', 'day', 'hour'] as const) {
+      const difference = rightTime[field] - leftTime[field];
+      if (difference !== 0) return difference;
+    }
+    return 0;
+  }
+
+  if (leftTime && !rightTime) return -1;
+  if (!leftTime && rightTime) return 1;
+  return String(right ?? '').localeCompare(String(left ?? ''), 'zh-CN');
+};
+
+const 世界事件状态映射: Record<string, WorldEventStatus> = {
+  活跃: '活跃',
+  进行中: '活跃',
+  正在发生: '活跃',
+  征兆: '活跃',
+  发展: '活跃',
+  可介入: '活跃',
+  余波: '活跃',
+  已平息: '已平息',
+  平息: '已平息',
+  已解决: '已平息',
+  解决: '已平息',
+  已完成: '已平息',
+  完成: '已平息',
+  结束: '已平息',
+  落幕: '已平息',
+  已错过: '已错过',
+  错过: '已错过',
+  失效: '已错过',
+  active: '活跃',
+  resolved: '已平息',
+  missed: '已错过',
+};
+
+const 世界事件阶段映射: Record<string, WorldEventStage> = {
+  征兆: '征兆',
+  潜伏: '征兆',
+  发展: '发展',
+  发酵: '发展',
+  介入: '可介入',
+  可介入: '可介入',
+  余波: '余波',
+  结果: '余波',
+  落幕: '落幕',
+  结束: '落幕',
+  omen: '征兆',
+  developing: '发展',
+  actionable: '可介入',
+  aftermath: '余波',
+  closed: '落幕',
+};
+
+const 世界事件参与映射: Record<string, WorldEventParticipation> = {
+  未介入: '未介入',
+  未参与: '未介入',
+  旁观: '旁观',
+  关注: '旁观',
+  介入: '介入',
+  参与: '介入',
+  主导: '主导',
+  none: '未介入',
+  observed: '旁观',
+  involved: '介入',
+  led: '主导',
+};
+
+const 世界事件影响映射: Record<string, WorldEventImpact> = {
+  微澜: '微澜',
+  轻微: '微澜',
+  平和: '微澜',
+  轻变: '轻变',
+  温和: '轻变',
+  中等: '轻变',
+  显著: '显著',
+  严重: '显著',
+  灾难: '显著',
+  minor: '微澜',
+  mild: '轻变',
+  notable: '显著',
+  severe: '显著',
+};
+
+const WorldEventInputSchema = z.object({
+  状态: z.coerce.string().transform(normalizeOpportunityText).prefault('活跃'),
+  阶段: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  事件: z.coerce.string().transform(normalizeOpportunityText).prefault(''),
+  地点: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  最近变化: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  可见影响: NormalizedStringListSchema,
+  参与情况: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  影响等级: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  更新时间: z.coerce.string().transform(normalizeOpportunityText).optional(),
+});
+
+export type NormalizedWorldEvent = {
+  状态: WorldEventStatus;
+  阶段: WorldEventStage;
+  事件: string;
+  地点?: string;
+  最近变化?: string;
+  可见影响: string[];
+  参与情况: WorldEventParticipation;
+  影响等级: WorldEventImpact;
+  更新时间?: string;
+};
+
+export const WorldEventSchema = WorldEventInputSchema.transform((item): NormalizedWorldEvent => {
+  const rawStatus = normalizeOpportunityText(item.状态);
+  const rawStage = normalizeOpportunityText(item.阶段) || rawStatus;
+  const status = 世界事件状态映射[rawStatus.toLowerCase()] ?? '活跃';
+  const stage = 世界事件阶段映射[rawStage.toLowerCase()] ?? (status === '活跃' ? '征兆' : '落幕');
+  const place = normalizeOpportunityText(item.地点);
+  const latestChange = normalizeOpportunityText(item.最近变化);
+  const participation = 世界事件参与映射[normalizeOpportunityText(item.参与情况).toLowerCase()] ?? '未介入';
+  const impact = 世界事件影响映射[normalizeOpportunityText(item.影响等级).toLowerCase()] ?? '微澜';
+  const updatedAt = normalizeOpportunityText(item.更新时间);
+
+  return {
+    状态: status,
+    阶段: stage,
+    事件: item.事件,
+    ...(place ? { 地点: place } : {}),
+    ...(latestChange ? { 最近变化: latestChange } : {}),
+    可见影响: item.可见影响,
+    参与情况: participation,
+    影响等级: impact,
+    ...(updatedAt ? { 更新时间: updatedAt } : {}),
+  };
+});
+
+export const compactWorldEventLedger = (
+  source: Record<string, NormalizedWorldEvent>,
+): Record<string, NormalizedWorldEvent> => {
+  const entries = Object.entries(source).map(([id, event], sourceIndex) => ({ id, event, sourceIndex }));
+
+  // 活跃事件保护既有事实：若模型误建第 4 条，优先拒绝后插入的新事件，避免新线索顶掉旧事件。
+  const retainedActiveIds = new Set(
+    entries
+      .filter(entry => entry.event.状态 === '活跃')
+      .slice(0, WORLD_EVENT_ACTIVE_LIMIT)
+      .map(entry => entry.id),
+  );
+
+  // 已结束事件按世界时间取最近五条；旧会话缺少时间时，以后插入者视作更新。
+  const retainedHistoryIds = new Set(
+    entries
+      .filter(entry => entry.event.状态 !== '活跃')
+      .sort(
+        (left, right) =>
+          compareWorldEventTimeDescending(left.event.更新时间, right.event.更新时间) ||
+          right.sourceIndex - left.sourceIndex,
+      )
+      .slice(0, WORLD_EVENT_HISTORY_LIMIT)
+      .map(entry => entry.id),
+  );
+
+  // 输出仍保持原有 key 顺序，使缺失时间的旧存档重复解析时保持幂等。
+  return Object.fromEntries(
+    entries
+      .filter(entry => retainedActiveIds.has(entry.id) || retainedHistoryIds.has(entry.id))
+      .map(entry => [entry.id, entry.event]),
+  );
+};
+
+export const WorldEventLedgerSchema = z
+  .record(z.string().describe('事件名或稳定事件ID'), WorldEventSchema)
+  .transform(compactWorldEventLedger)
+  .prefault({});
 
 // 系统设置 Schema
 export const SystemSettingsSchema = z
@@ -452,9 +752,9 @@ export const SystemSettingsSchema = z
     修炼系统版本: finiteNumber(3)
       .transform(value => Math.max(1, Math.floor(value)))
       .prefault(3),
-    变量结构版本: finiteNumber(4)
+    变量结构版本: finiteNumber(5)
       .transform(value => Math.max(1, Math.floor(value)))
-      .prefault(4),
+      .prefault(5),
     _临时状态手动覆盖签名: z.string().prefault(''),
   })
   .prefault({});

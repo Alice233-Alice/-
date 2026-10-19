@@ -63,8 +63,10 @@
         <div
           ref="scrollRef"
           class="story-scroll"
+          tabindex="0"
           @scroll="handleStreamScroll"
           @wheel.passive="handleStreamWheel"
+          @keydown="handleStreamKeydown"
           @touchstart.passive="handleStoryTouchStart"
           @touchmove.passive="handleStreamTouchMove"
           @touchend.passive="handleStreamTouchEnd"
@@ -128,9 +130,12 @@
 
             <!-- eslint-disable-next-line vue/no-v-html -->
             <article v-if="storyHtml" class="story-copy" v-html="storyHtml"></article>
-            <div v-else-if="!isStoryGenerating && !branchChoices.length" class="story-empty">
-              此回尚无可供阅读的正文。
-            </div>
+            <GenerationRecoveryPanel
+              v-if="!isStoryGenerating && (pseudo.storyFloorNotice || (!storyHtml && !branchChoices.length))"
+              :message-id="storyMessageId"
+              :raw-message="currentRawMessage"
+              :notice="pseudo.storyFloorNotice"
+            />
             <BranchChoicePanel v-if="branchChoices.length" :choices="branchChoices" />
             <InlineActionChoices v-if="!isStoryGenerating" :raw-message="currentRawMessage" />
 
@@ -209,6 +214,7 @@ import {
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import { useStreamFollow } from '../composables/use-stream-follow';
 import BranchChoicePanel from './BranchChoicePanel.vue';
+import GenerationRecoveryPanel from './GenerationRecoveryPanel.vue';
 import InlineActionChoices from './InlineActionChoices.vue';
 import InlineInputEditor from './InlineInputEditor.vue';
 import ReasoningDisplay from './ReasoningDisplay.vue';
@@ -225,6 +231,7 @@ const {
   isUserInteracting: isInteractingWithStory,
   handleScroll: handleStreamScroll,
   handleWheel: handleStreamWheel,
+  handleKeydown: handleStreamKeydown,
   handleTouchStart: handleStreamTouchStart,
   handleTouchMove: handleStreamTouchMove,
   handleTouchEnd: handleStreamTouchEnd,
@@ -334,8 +341,7 @@ const liveReasoningStreaming = computed(
 const reasoningText = computed(() => {
   if (!isStoryGenerating.value) return pseudo.storyFloorReasoning;
   const liveText = selectReasoningText(pseudo.liveReasoning, inlineStreamReasoning.value?.text ?? '');
-  if (liveText) return liveText;
-  return pseudo.streamText ? '' : pseudo.storyFloorReasoning;
+  return liveText;
 });
 const reasoningRawMessage = computed(() =>
   isStoryGenerating.value ? displayedStreamText.value : pseudo.storyFloorMessage,
@@ -346,9 +352,7 @@ const reasoningUsesOwnDisclosure = computed(
     hasInlineReasoningPresetDisclosure(reasoningRawMessage.value, storyMessageId.value),
 );
 const reasoningTime = computed(() => {
-  const duration = isStoryGenerating.value
-    ? (pseudo.reasoningDuration ?? pseudo.storyFloorReasoningDuration)
-    : pseudo.storyFloorReasoningDuration;
+  const duration = isStoryGenerating.value ? pseudo.reasoningDuration : pseudo.storyFloorReasoningDuration;
   if (!duration) return '';
   return `${Math.max(1, Math.round(duration / 1000))} 秒`;
 });
@@ -380,16 +384,7 @@ const closeContextOnEscape = (event: KeyboardEvent) => {
   if (event.key === 'Escape') contextPanel.value = null;
 };
 
-const generationLabel = computed(() => {
-  const labels = {
-    idle: '',
-    preparing: '正在整理前因',
-    generating: liveReasoningStreaming.value && !pseudo.streamText ? '灵台正在推演' : '正文正在落笔',
-    saving: '正在落定新回合',
-    stopping: '正在收束推演',
-  };
-  return labels[pseudo.generationState];
-});
+const generationLabel = computed(() => pseudo.generationLabel);
 
 watch(
   () => pseudo.liveReasoning,
@@ -422,7 +417,7 @@ watch(
       displayedStreamText.value = '';
       lastStreamRenderAt = 0;
       if (contextPanel.value === 'reasoning') contextPanel.value = null;
-      resumeStreamFollow(false);
+      if (next === 'preparing' || next === 'generating') resumeStreamFollow(false);
     }
     if (next === 'idle') {
       cancelStreamRender();

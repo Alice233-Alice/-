@@ -11,6 +11,7 @@ import { assets as character8Assets } from './characters/安迟迟';
 import { assets as character9Assets } from './characters/阮忘忧';
 import { assets as character10Assets } from './characters/朔望舒';
 import { assets as character11Assets } from './characters/羽岚';
+import { assets as character12Assets } from './characters/沈倩宁';
 
 import { imagePool as character0ImagePool } from './characters/白清弦';
 import { imagePool as character1ImagePool } from './characters/虞汐颜';
@@ -23,6 +24,7 @@ import { imagePool as character7ImagePool } from './characters/安迟迟';
 import { imagePool as character8ImagePool } from './characters/阮忘忧';
 import { imagePool as character9ImagePool } from './characters/朔望舒';
 import { imagePool as character10ImagePool } from './characters/羽岚';
+import { imagePool as character11ImagePool } from './characters/沈倩宁';
 
 export const CHARACTER_ASSETS: CharacterAssets = {
   白清弦: character1Assets,
@@ -36,6 +38,7 @@ export const CHARACTER_ASSETS: CharacterAssets = {
   阮忘忧: character9Assets,
   朔望舒: character10Assets,
   羽岚: character11Assets,
+  沈倩宁: character12Assets,
 };
 
 export const CHARACTER_IMAGE_POOLS: CharacterImagePools = {
@@ -50,4 +53,5 @@ export const CHARACTER_IMAGE_POOLS: CharacterImagePools = {
   阮忘忧: character8ImagePool,
   朔望舒: character9ImagePool,
   羽岚: character10ImagePool,
+  沈倩宁: character11ImagePool,
 };

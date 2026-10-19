@@ -60,13 +60,13 @@
           v-model="pseudo.draftPrompt"
           rows="1"
           :disabled="pseudo.isGenerating"
-          placeholder="写下此刻想做的事……"
+          :placeholder="pseudo.isGenerating ? pseudo.generationWaitingText : '写下此刻想做的事……'"
           @focus="isFocused = true"
           @blur="isFocused = false"
           @keydown.ctrl.enter.prevent="submitCurrent"
         ></textarea>
         <span v-if="pseudo.isGenerating" class="generation-label">
-          <i class="fa-solid fa-circle-notch fa-spin"></i>{{ generationLabel }}
+          <i class="fa-solid fa-circle-notch fa-spin"></i>{{ pseudo.generationLabel }}
         </span>
         <MobilePortraitButton v-if="showDockPortrait" />
         <button
@@ -82,10 +82,12 @@
           v-if="pseudo.isGenerating"
           type="button"
           class="primary-command stop"
-          title="停止生成"
+          :title="pseudo.canStop ? '停止生成，保留已收到的正文' : pseudo.generationLabel"
+          :disabled="!pseudo.canStop"
           @click="pseudo.stop"
         >
-          <i class="fa-solid fa-stop"></i><span>停止</span>
+          <i class="fa-solid" :class="pseudo.canStop ? 'fa-stop' : 'fa-circle-notch fa-spin'"></i>
+          <span>{{ pseudo.canStop ? '停止' : pseudo.generationState === 'saving' ? '保存中' : '停止中' }}</span>
         </button>
         <button
           v-else
@@ -144,35 +146,23 @@ const showDockPortrait = computed(
 );
 const isWorkspaceLatest = computed(
   () =>
+    pseudo.isGenerating ||
     props.readingMode === 'scroll' ||
     pseudo.view.histories.story.total === 0 ||
     pseudo.view.histories.story.isLatest,
 );
 const isExpanded = computed(
   () =>
-    isFocused.value ||
-    pseudo.dialogueDrawerOpen ||
-    Boolean(pseudo.draftPrompt.trim() || pseudo.selectedTitle || pseudo.generationError || pseudo.view.pendingInput),
+    !pseudo.isGenerating &&
+    (isFocused.value ||
+      pseudo.dialogueDrawerOpen ||
+      Boolean(pseudo.draftPrompt.trim() || pseudo.selectedTitle || pseudo.generationError || pseudo.view.pendingInput)),
 );
 const connectionLabel = computed(() =>
   pseudo.controllerReady ? pseudo.controllerConnectionDescription : '等待控制脚本',
 );
 const primaryLabel = '推演';
 const primaryTitle = '开始推演';
-const generationLabel = computed(() => {
-  if (pseudo.dialogueDrawerOpen && pseudo.activeDialogue) {
-    const dialogueLabels = {
-      idle: '',
-      preparing: pseudo.activeDialogue.channel === 'transmission' ? '送出传讯' : '静候回应',
-      generating: pseudo.activeDialogue.channel === 'transmission' ? '回信中' : '回应中',
-      saving: '记录交谈',
-      stopping: '收束回应',
-    };
-    return dialogueLabels[pseudo.generationState];
-  }
-  const labels = { idle: '', preparing: '整理前因', generating: '落笔中', saving: '保存中', stopping: '收束中' };
-  return labels[pseudo.generationState];
-});
 
 const primaryIcon = 'fa-paper-plane';
 const primaryDisabled = computed(() =>
@@ -190,6 +180,9 @@ const chooseDialogue = () => {
 };
 
 const submitCurrent = () => {
+  if (primaryDisabled.value) return;
+  textareaRef.value?.blur();
+  isFocused.value = false;
   pseudo.submit('story', props.readingMode === 'scroll');
 };
 

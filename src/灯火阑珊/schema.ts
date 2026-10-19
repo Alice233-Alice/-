@@ -29,6 +29,7 @@ import {
   ReputationSystemSchema,
   SystemSettingsSchema,
   unwrapOpportunityPatchPayload,
+  WorldEventLedgerSchema,
 } from './schema/systems';
 import {
   DEFAULT_LOCATIONS,
@@ -80,6 +81,8 @@ export {
 export { CONFIG, REALM_LIFESPANS, REALM_NAMES, REALM_STAGES, REALM_THRESHOLDS } from './schema/constants';
 export { ProtagonistSchema } from './schema/protagonist';
 export {
+  compactWorldEventLedger,
+  compareWorldEventTimeDescending,
   DifficultySystemSchema,
   OpportunitySchema,
   QuestSchema,
@@ -87,6 +90,22 @@ export {
   ReputationSystemSchema,
   SystemSettingsSchema,
   unwrapOpportunityPatchPayload,
+  WORLD_EVENT_ACTIVE_LIMIT,
+  WORLD_EVENT_HISTORY_LIMIT,
+  WORLD_EVENT_LEDGER_LIMIT,
+  WorldEventLedgerSchema,
+  WorldEventSchema,
+} from './schema/systems';
+export type {
+  NarrativeProposalKind,
+  NormalizedOpportunity,
+  NormalizedWorldEvent,
+  OpportunityType,
+  ProposalEventNature,
+  WorldEventImpact,
+  WorldEventParticipation,
+  WorldEventStage,
+  WorldEventStatus,
 } from './schema/systems';
 export {
   compareRealmStanding,
@@ -114,12 +133,15 @@ export {
 // ============================================================================
 
 const LATEST_CULTIVATION_SYSTEM_VERSION = 3;
-const LATEST_SCHEMA_VERSION = 4;
+const LATEST_SCHEMA_VERSION = 5;
 const DEFAULT_COMPANION = CompanionSchema.parse({});
 const CJK_TEXT_PATTERN = /[\u3400-\u4dbf\u4e00-\u9fff]/;
 const MAX_OPPORTUNITIES = 4;
-const ACTION_TEXT_LIMIT = 80;
+const ACTION_TITLE_LIMIT = 24;
+const ACTION_TEXT_LIMIT = 220;
 const ACTION_HINT_LIMIT = 28;
+const ACTION_EVENT_LIMIT = 72;
+const ACTION_EVENT_ID_LIMIT = 48;
 const SITUATION_TEXT_LIMIT = 64;
 
 function normalizePromptText(value: unknown, maxLength: number): string {
@@ -473,15 +495,7 @@ export const Schema = z.preprocess(
         )
         .prefault({}),
 
-      世界图志: z
-        .record(
-          z.string().describe('事件名'),
-          z.object({
-            状态: z.string().prefault(''),
-            事件: z.string().prefault(''),
-          }),
-        )
-        .prefault({}),
+      世界图志: WorldEventLedgerSchema,
 
       // 宗门势力库 - AI 自由创造，只需提供 { 地, 特, 力, 营, 模 }
       宗门势力库: z.record(z.string().describe('宗门名'), FactionSchema).prefault({}),
@@ -566,10 +580,18 @@ export const Schema = z.preprocess(
 
                 seen.add(action);
                 const hint = normalizePromptText(item.提示, ACTION_HINT_LIMIT);
+                const title = normalizePromptText(item.标题, ACTION_TITLE_LIMIT);
+                const event = normalizePromptText(item.事件, ACTION_EVENT_LIMIT);
+                const eventId = normalizePromptText(item.关联事件ID, ACTION_EVENT_ID_LIMIT);
                 return [
                   {
+                    ...(title ? { 标题: title } : {}),
                     行动: action,
                     类型: item.类型,
+                    叙事类型: item.叙事类型,
+                    事件性质: item.事件性质,
+                    ...(event ? { 事件: event } : {}),
+                    ...(eventId ? { 关联事件ID: eventId } : {}),
                     ...(hint ? { 提示: hint } : {}),
                   },
                 ];

@@ -21,7 +21,9 @@
       >
         <span class="choice-glyph" aria-hidden="true"><i :class="getActionIcon(action.类型)"></i></span>
         <span class="choice-copy">
-          <span class="choice-text">{{ action.行动 }}</span>
+          <span class="choice-title">{{ action.标题 || action.行动 }}</span>
+          <span v-if="action.标题" class="choice-text">{{ action.行动 }}</span>
+          <span v-if="action.事件" class="choice-event"><i class="fa-solid fa-sparkles"></i>{{ action.事件 }}</span>
           <span v-if="action.提示" class="choice-hint">{{ action.提示 }}</span>
         </span>
         <span class="choice-type">{{ action.类型 }}</span>
@@ -58,6 +60,8 @@ const actionState = computed(() =>
     storedActions: store.可参与机遇 as unknown[],
     tasks: store.任务列表,
     situation: store.当前处境,
+    worldEvents: store.世界图志,
+    companionNames: Object.keys(store.红颜),
     useStoredActionsWithoutPatch: containsInitVar(props.rawMessage),
   }),
 );
@@ -78,7 +82,7 @@ const selectAction = (action: OpportunityAction) => {
     return;
   }
 
-  pseudo.selectDraft(action.类型, action.行动);
+  pseudo.selectDraft(action.标题 || action.叙事类型, action.行动);
   if (submitMode.value !== 'direct') return;
 
   if (!pseudo.controllerReady) {
@@ -227,11 +231,31 @@ const selectAction = (action: OpportunityAction) => {
   gap: 2px;
 }
 
-.choice-text {
+.choice-title,
+.choice-text,
+.choice-event {
   overflow-wrap: anywhere;
+  line-height: 1.52;
+}
+
+.choice-title {
   font-size: 12px;
   font-weight: 590;
-  line-height: 1.52;
+}
+
+.choice-text,
+.choice-event {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.choice-event {
+  color: color-mix(in srgb, var(--choice-color) 60%, var(--text-secondary));
+
+  i {
+    margin-right: 4px;
+    font-size: 8px;
+  }
 }
 
 .choice-hint {

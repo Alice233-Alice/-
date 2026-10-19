@@ -21,9 +21,11 @@ import {
   isPseudoLayerRequest,
 } from '../灯火通明/pseudo-layer-protocol';
 import { Schema } from '../灯火通明/schema';
+import { readAdviceInput, readPlayerInput } from '../灯火通明/player-input';
 import {
   extractDialogueContent,
   extractInlineReasoning,
+  parseMessageContent,
   sanitizeReasoningText,
   selectReasoningText,
 } from '../灯火通明/message-content';
@@ -72,6 +74,8 @@ type NativeReasoningHandler = {
 
 type NativeStreamingProcessor = {
   messageId?: unknown;
+  isFinished?: boolean;
+  isStopped?: boolean;
   reasoningHandler?: NativeReasoningHandler;
 };
 
@@ -122,6 +126,7 @@ type ActiveGeneration = {
   rerollFailure?: Promise<void>;
   generationFailure?: Promise<void>;
   stopSettlementScheduled?: boolean;
+  inactiveSince?: number;
 };
 
 type StageEntry = {
@@ -137,6 +142,7 @@ type StageSnapshot = {
   messagesById: Map<number, ChatMessage>;
   previousMessages: Map<number, ChatMessage>;
   timelineEntries?: PseudoLayerTimelineEntry[];
+  timelineTurns?: Map<number, PseudoLayerTimelineTurn[]>;
 };
 
 type ControllerLease = {
@@ -155,6 +161,7 @@ const MOBILE_INPUT_DEFAULT_APPLIED_KEY = 'denghuolanshan:pseudo-layer:mobile-nat
 const MOBILE_VIEWPORT_QUERY = '(max-width: 760px)';
 const DIALOGUE_CARRYOVER_PROMPT_ID = 'denghuolanshan:dialogue-carryover';
 const INTERACTION_KEY = 'dhl_pseudo_interaction';
+const GENERATION_NOTICE_KEY = 'dhl_pseudo_generation_notice';
 const STAGE_CLASS = 'dhl-pseudo-stage';
 const SELECTED_CLASS = 'dhl-pseudo-selected';
 const PARKED_FRAME_CLASS = 'dhl-pseudo-frame-parked';
@@ -164,6 +171,7 @@ const STAGE_ROOT_ID = 'dhl-pseudo-stage-root';
 const ROOT_ACTIVE_CLASS = 'dhl-pseudo-stage-root-active';
 const STREAM_DISPATCH_INTERVAL_MS = window.matchMedia?.('(pointer: coarse)').matches ? 240 : 160;
 const FRAME_CANDIDATE_BATCH_MS = 32;
+const FRAME_LOAD_GRACE_MS = 30000;
 const STORY_INTERACTION = { mode: 'story' } as const;
 const tavernWindow = window.parent;
 const tavernDocument = tavernWindow.document;
@@ -177,6 +185,7 @@ let sourceProtocolVersions = new WeakMap<ReplyTarget, number>();
 let sourceFrameCache = new WeakMap<ReplyTarget, HTMLIFrameElement>();
 const frameMessageIdCache = new WeakMap<HTMLIFrameElement, number>();
 const pendingFrameCandidates = new Set<HTMLIFrameElement>();
+const frameLoadStartedAt = new WeakMap<HTMLIFrameElement, number>();
 
 // Heavy presets emit dense DOM and message-event bursts, so stage work stays cached and coalesced.
 let activeGeneration: ActiveGeneration | null = null;
@@ -205,6 +214,7 @@ if (shouldApplyMobileInputDefault) {
 }
 let viewRevision = 0;
 let frameObserver: MutationObserver | null = null;
+let observedChat: HTMLElement | null = null;
 let duplicateControllerObserver: MutationObserver | null = null;
 let frameCandidateTimer: number | null = null;
 let viewRefreshTimer: number | null = null;
@@ -221,6 +231,9 @@ let pendingStreamDispatch: {
   reasoning?: GenerationReasoning;
 } | null = null;
 let controllerDisposed = false;
+let generationHealthTimer: number | null = null;
+// A heartbeat can recover the final receipt after a frame reload or a dropped message.
+const generationReceipts = new Map<string, { chatId: string | undefined; payload: ResponsePayload }>();
 
 const rememberSourceProtocolVersion = (source: ReplyTarget, version: number) => {
   const previous = sourceProtocolVersions.get(source) ?? 0;
@@ -228,6 +241,14 @@ const rememberSourceProtocolVersion = (source: ReplyTarget, version: number) => 
 };
 
 const send = (source: ReplyTarget | undefined, message: ResponsePayload) => {
+  if (
+    activeGeneration &&
+    (message.type === 'complete' || message.type === 'error') &&
+    message.requestId === activeGeneration?.requestId
+  ) {
+    generationReceipts.set(message.requestId!, { chatId: activeGeneration.chatId, payload: message });
+    if (generationReceipts.size > 8) generationReceipts.delete(generationReceipts.keys().next().value!);
+  }
   source?.postMessage(
     {
       channel: PSEUDO_LAYER_CHANNEL,
@@ -291,6 +312,7 @@ const sendGenerationState = (
   state: Exclude<PseudoLayerGenerationState, 'idle'>,
   source = generation.source,
 ) => {
+  if (generation.cancelled && state !== 'stopping' && state !== 'saving') return;
   generation.state = state;
   send(source, {
     type: 'state',
@@ -442,6 +464,10 @@ const hasMountedPseudoApp = (frame: HTMLIFrameElement | null | undefined) => {
  * 的同源实例。原节点继续留给酒馆刷新，自有实例挂载完成后接管可见舞台。
  */
 const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
+  if (frame.dataset.dhlControllerOwned === 'true' && frame.closest(`#${STAGE_ROOT_ID}`)) return false;
+  // 宿主可能先插入空 iframe 再填入地址；不能把 about:blank 当成正在加载的完整前端。
+  const sourceUrl = frame.getAttribute('src')?.trim();
+  if (!frame.getAttribute('srcdoc')?.trim() && (!sourceUrl || sourceUrl === 'about:blank')) return false;
   const message = getMessageElement(messageId);
   if (!message || message.getAttribute('is_user') === 'true') return false;
   const keeper = getFrameKeeper(messageId);
@@ -454,6 +480,9 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
     const keptIsLive =
       hasMountedPseudoApp(keptFrame) || (keptSource !== null && registrations.get(messageId) === keptSource);
     if (keptIsLive) return false;
+    // 慢设备上模块导入可能持续数秒，重复 DOM/hello 通知不能不断销毁正在启动的实例。
+    const startedAt = frameLoadStartedAt.get(keptFrame);
+    if (startedAt !== undefined && Date.now() - startedAt < FRAME_LOAD_GRACE_MS) return false;
     keptFrame.remove();
   }
 
@@ -469,20 +498,24 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
   ownedFrame.removeAttribute('loading');
   ownedFrame.dataset.dhlControllerOwned = 'true';
   ownedFrame.dataset.dhlMessageId = String(messageId);
+  frameLoadStartedAt.set(ownedFrame, Date.now());
+  ownedFrame.addEventListener('load', () => scheduleViewRefresh(0), { once: true });
   keeper.append(ownedFrame);
   rememberFrame(ownedFrame);
   message.classList.add(PARKED_FRAME_CLASS);
   return true;
 };
 
-const parkSourceFrame = (messageId: number, source: ReplyTarget) => {
+const parkSourceFrame = (source: ReplyTarget) => {
   const frame = getFrameForSource(source);
-  return frame ? parkFrame(messageId, frame) : false;
+  const messageId = frame ? getFrameMessageId(frame) : undefined;
+  return frame && messageId !== undefined ? parkFrame(messageId, frame) : false;
 };
 
 const getParkedMessageId = () => {
   const keepers = [...(getStageRoot(false)?.querySelectorAll<HTMLElement>(`:scope > .${FRAME_KEEPER_CLASS}`) ?? [])];
   const isMounted = (keeper: HTMLElement) =>
+    // 自有舞台的身份与正文楼层分离：删除楼层或宿主虚拟化回收 DOM 后继续复用。
     hasMountedPseudoApp(keeper.querySelector<HTMLIFrameElement>(':scope > iframe'));
   const active = keepers.find(keeper => keeper.classList.contains(ACTIVE_KEEPER_CLASS) && isMounted(keeper));
   const keeper = active ?? keepers.filter(isMounted).at(-1);
@@ -501,6 +534,15 @@ const syncParkedStage = (hostMessageId: number | undefined) => {
     if (active) hasActiveFrame = true;
   });
   tavernDocument.body.classList.toggle(ROOT_ACTIVE_CLASS, hasActiveFrame);
+  if (hasActiveFrame) {
+    root?.querySelectorAll<HTMLElement>(`:scope > .${FRAME_KEEPER_CLASS}`).forEach(keeper => {
+      if (keeper.classList.contains(ACTIVE_KEEPER_CLASS)) return;
+      const frame = keeper.querySelector<HTMLIFrameElement>(':scope > iframe');
+      const id = Number(keeper.dataset.messageId);
+      if (frame?.contentWindow === registrations.get(id)) registrations.delete(id);
+      keeper.remove();
+    });
+  }
 };
 
 const releaseParkedFrames = () => {
@@ -725,10 +767,7 @@ const readTimelineReasoning = (message: ChatMessage | undefined) => {
       : ({} as Record<string, any>);
   const inlineReasoning = extractInlineReasoning(String(message?.message ?? ''));
   const nativeReasoning = String(direct.reasoning ?? nested.reasoning ?? '').trim();
-  const reasoning = selectReasoningText(
-    nativeReasoning,
-    inlineReasoning?.text ?? '',
-  );
+  const reasoning = selectReasoningText(nativeReasoning, inlineReasoning?.text ?? '');
   const rawDuration = Number(direct.reasoning_duration ?? nested.reasoning_duration);
   return {
     reasoning,
@@ -858,54 +897,66 @@ const readMessageTokenCount = (message: ChatMessage | undefined) => {
 };
 
 const readTimelineUserText = (message: ChatMessage | undefined, metadata: PseudoLayerInteractionMetadata | null) => {
-  if (!message) return '';
-  if (metadata?.rawUserText) return metadata.rawUserText.trim();
-  return String(message.message ?? '')
-    .replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, '')
-    .trim();
+  return readPlayerInput(message, metadata?.rawUserText);
 };
 
+const hydrateStageTurns = (
+  snapshot: StageSnapshot,
+  entry: { representativeMessageId: number; messageIds: number[] },
+) => {
+  const cache = (snapshot.timelineTurns ??= new Map());
+  const cached = cache.get(entry.representativeMessageId);
+  if (cached) return cached;
+  const turns = entry.messageIds.flatMap<PseudoLayerTimelineTurn>(assistantMessageId => {
+    const assistant = snapshot.messagesById.get(assistantMessageId);
+    if (!assistant) return [];
+    const previous = snapshot.previousMessages.get(assistantMessageId);
+    const inherited = previous?.role === 'user' ? readInteractionMetadata(previous) : null;
+    const metadata =
+      readInteractionMetadata(assistant) ?? (inherited ? { ...inherited, userMessageId: previous!.message_id } : null);
+    const linkedUser =
+      (metadata?.userMessageId !== undefined ? snapshot.messagesById.get(metadata.userMessageId) : undefined) ??
+      (previous?.role === 'user' ? previous : undefined);
+    const visibleDialogue = metadata ? extractDialogueContent(String(assistant.message ?? '')) : null;
+    const reasoning = readTimelineReasoning(assistant);
+    const responseDuration = readMessageResponseDuration(assistant);
+    const tokenCount = readMessageTokenCount(assistant);
+    return [
+      {
+        assistantMessageId,
+        ...(linkedUser ? { userMessageId: linkedUser.message_id } : {}),
+        userText: readTimelineUserText(linkedUser, metadata),
+        assistantText: String(assistant.message ?? ''),
+        generationNotice: String(
+          assistant.extra?.[GENERATION_NOTICE_KEY] ?? assistant.extra?.extra?.[GENERATION_NOTICE_KEY] ?? '',
+        ),
+        ...(metadata
+          ? {
+              reaction:
+                String(metadata.reaction ?? visibleDialogue?.reaction ?? '')
+                  .replace(/<\/?(?:反应|正文|会话状态)(?=[\s/>])[^>]*>/gi, '')
+                  .trim() || undefined,
+              ...(metadata.visualCard ? { visualCard: { ...metadata.visualCard } } : {}),
+              ...(metadata.variableEffects ? { variableEffects: { ...metadata.variableEffects } } : {}),
+            }
+          : {}),
+        ...reasoning,
+        ...(responseDuration !== undefined ? { responseDuration } : {}),
+        ...(tokenCount !== undefined ? { tokenCount } : {}),
+      },
+    ];
+  });
+  cache.set(entry.representativeMessageId, turns);
+  return turns;
+};
+
+// 索引只包含楼层关系；正文、思考和图卡在当前页被请求时才解析。
 const hydrateTimelineEntries = (snapshot: StageSnapshot): PseudoLayerTimelineEntry[] => {
   if (snapshot.timelineEntries) return snapshot.timelineEntries;
   const historyIndexes: Record<PseudoLayerHistoryKind, number> = { story: 0, dialogue: 0 };
-
   const hydratedEntries = snapshot.entries.map<PseudoLayerTimelineEntry>(entry => {
     const history = entry.stage.kind;
     historyIndexes[history] += 1;
-    const turns = entry.messageIds.flatMap<PseudoLayerTimelineTurn>(assistantMessageId => {
-      const assistant = snapshot.messagesById.get(assistantMessageId);
-      if (!assistant) return [];
-      const metadata = resolveAssistantInteractionMetadata(assistant, snapshot.messages);
-      const previous = snapshot.previousMessages.get(assistantMessageId);
-      const linkedUser =
-        (metadata?.userMessageId !== undefined ? snapshot.messagesById.get(metadata.userMessageId) : undefined) ??
-        (previous?.role === 'user' ? previous : undefined);
-      const visibleDialogue = metadata ? extractDialogueContent(String(assistant.message ?? '')) : null;
-      const reasoning = readTimelineReasoning(assistant);
-      const responseDuration = readMessageResponseDuration(assistant);
-      const tokenCount = readMessageTokenCount(assistant);
-      return [
-        {
-          assistantMessageId,
-          ...(linkedUser ? { userMessageId: linkedUser.message_id } : {}),
-          userText: readTimelineUserText(linkedUser, metadata),
-          assistantText: String(assistant.message ?? ''),
-          ...(metadata
-            ? {
-                reaction:
-                  String(metadata.reaction ?? visibleDialogue?.reaction ?? '')
-                    .replace(/<\/?(?:反应|正文|会话状态)(?=[\s/>])[^>]*>/gi, '')
-                    .trim() || undefined,
-                ...(metadata.visualCard ? { visualCard: { ...metadata.visualCard } } : {}),
-                ...(metadata.variableEffects ? { variableEffects: { ...metadata.variableEffects } } : {}),
-              }
-            : {}),
-          ...reasoning,
-          ...(responseDuration !== undefined ? { responseDuration } : {}),
-          ...(tokenCount !== undefined ? { tokenCount } : {}),
-        },
-      ];
-    });
 
     return {
       representativeMessageId: entry.representativeMessageId,
@@ -913,36 +964,35 @@ const hydrateTimelineEntries = (snapshot: StageSnapshot): PseudoLayerTimelineEnt
       index: historyIndexes[history],
       historyIndex: historyIndexes[history],
       stage: { ...entry.stage },
-      turns,
+      turns: [],
     };
   });
 
   const storyEntries = hydratedEntries.filter(entry => entry.stage.kind === 'story');
-  hydratedEntries
-    .filter(entry => entry.stage.kind === 'dialogue')
-    .forEach(dialogueEntry => {
-      if (dialogueEntry.stage.kind !== 'dialogue') return;
-      const requestedAnchor = dialogueEntry.stage.anchorStoryMessageId;
-      const anchor =
-        storyEntries.find(entry => entry.representativeMessageId === requestedAnchor) ??
-        [...storyEntries]
-          .reverse()
-          .find(entry => entry.representativeMessageId < dialogueEntry.representativeMessageId);
-      if (!anchor) return;
-      const thread: PseudoLayerDialogueThread = {
-        sessionId: dialogueEntry.stage.sessionId,
-        anchorStoryMessageId: anchor.representativeMessageId,
-        representativeMessageId: dialogueEntry.representativeMessageId,
-        messageIds: [...dialogueEntry.messageIds],
-        targetName: dialogueEntry.stage.targetName,
-        canonicalName: dialogueEntry.stage.canonicalName,
-        channel: dialogueEntry.stage.channel,
-        turnCount: dialogueEntry.stage.turnCount,
-        engine: dialogueEntry.stage.engine,
-        turns: dialogueEntry.turns,
-      };
-      (anchor.dialogueThreads ??= []).push(thread);
-    });
+  const storiesById = new Map(storyEntries.map(entry => [entry.representativeMessageId, entry]));
+  let previousStory: PseudoLayerTimelineEntry | undefined;
+  hydratedEntries.forEach(dialogueEntry => {
+    if (dialogueEntry.stage.kind !== 'dialogue') {
+      previousStory = dialogueEntry;
+      return;
+    }
+    const requestedAnchor = dialogueEntry.stage.anchorStoryMessageId;
+    const anchor = (requestedAnchor !== undefined ? storiesById.get(requestedAnchor) : undefined) ?? previousStory;
+    if (!anchor) return;
+    const thread: PseudoLayerDialogueThread = {
+      sessionId: dialogueEntry.stage.sessionId,
+      anchorStoryMessageId: anchor.representativeMessageId,
+      representativeMessageId: dialogueEntry.representativeMessageId,
+      messageIds: [...dialogueEntry.messageIds],
+      targetName: dialogueEntry.stage.targetName,
+      canonicalName: dialogueEntry.stage.canonicalName,
+      channel: dialogueEntry.stage.channel,
+      turnCount: dialogueEntry.stage.turnCount,
+      engine: dialogueEntry.stage.engine,
+      turns: dialogueEntry.turns,
+    };
+    (anchor.dialogueThreads ??= []).push(thread);
+  });
 
   storyEntries.forEach((entry, index) => {
     entry.index = index + 1;
@@ -951,6 +1001,22 @@ const hydrateTimelineEntries = (snapshot: StageSnapshot): PseudoLayerTimelineEnt
   snapshot.timelineEntries = storyEntries;
   return storyEntries;
 };
+
+const hydrateTimelinePageEntry = (
+  snapshot: StageSnapshot,
+  entry: PseudoLayerTimelineEntry,
+): PseudoLayerTimelineEntry => ({
+  ...entry,
+  turns: hydrateStageTurns(snapshot, entry),
+  ...(entry.dialogueThreads
+    ? {
+        dialogueThreads: entry.dialogueThreads.map(thread => ({
+          ...thread,
+          turns: hydrateStageTurns(snapshot, thread),
+        })),
+      }
+    : {}),
+});
 
 const findTimelineEntryIndex = (entries: PseudoLayerTimelineEntry[], messageId: number | undefined) => {
   if (!Number.isFinite(messageId)) return entries.length - 1;
@@ -989,7 +1055,7 @@ const sendTimelinePage = (source: ReplyTarget, request: Extract<PseudoLayerReque
     type: 'timeline_page',
     requestId: request.requestId,
     revision: viewRevision,
-    entries: entries.slice(start, end),
+    entries: entries.slice(start, end).map(entry => hydrateTimelinePageEntry(snapshot, entry)),
     hasOlder: start > 0,
     hasNewer: end < entries.length,
   });
@@ -1053,10 +1119,14 @@ const rememberStageSelection = (messageId: number, entries = getStageEntries()) 
   selectedHistoryMessageIds[entry.stage.kind] = entry.representativeMessageId;
 };
 
-const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestStageId()) => {
+const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestStoryStageId()) => {
   rememberFrame(frame);
+  if (frame.dataset.dhlControllerOwned === 'true') return;
   const messageId = getFrameMessageId(frame);
   if (messageId === undefined) return;
+  // MVU 额外解析会重新渲染最新楼层；已有阅读舞台时只更新数据，不另建舞台抢走阅读位置。
+  const parkedMessageId = getParkedMessageId();
+  if (parkedMessageId !== undefined && parkedMessageId !== messageId && getLiveRegistration(parkedMessageId)) return;
   const shouldPark =
     messageId === latestMessageId ||
     (activeGeneration?.operation === 'reroll' && messageId === activeGeneration.baseMessageId);
@@ -1069,7 +1139,7 @@ const flushFrameCandidates = () => {
   if (controllerDisposed || pendingFrameCandidates.size === 0) return;
   const frames = [...pendingFrameCandidates];
   pendingFrameCandidates.clear();
-  const latestMessageId = latestStageId();
+  const latestMessageId = latestStoryStageId();
   frames.forEach(frame => {
     if (frame.isConnected) parkCandidateFrame(frame, latestMessageId);
   });
@@ -1100,13 +1170,22 @@ const inspectAddedFrameNode = (node: Node) => {
 };
 
 const installFrameObserver = () => {
-  frameObserver?.disconnect();
   const chat = tavernDocument.querySelector<HTMLElement>('#chat');
+  if (chat === observedChat && frameObserver) return;
+  frameObserver?.disconnect();
+  observedChat = chat;
   if (!chat) return;
   frameObserver = new MutationObserver(records => {
-    records.forEach(record => record.addedNodes.forEach(inspectAddedFrameNode));
+    records.forEach(record => {
+      if (record.type === 'attributes') {
+        const frame = record.target as HTMLIFrameElement;
+        if (frame.tagName === 'IFRAME' && frame.closest('.TH-render')) queueFrameCandidate(frame);
+      } else {
+        record.addedNodes.forEach(inspectAddedFrameNode);
+      }
+    });
   });
-  frameObserver.observe(chat, { childList: true, subtree: true });
+  frameObserver.observe(chat, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcdoc'] });
 };
 
 const parkLatestStageFrame = () => {
@@ -1114,6 +1193,20 @@ const parkLatestStageFrame = () => {
   if (messageId === undefined) return;
   const frame = getMessageElement(messageId)?.querySelector<HTMLIFrameElement>('.TH-render iframe');
   if (frame) parkCandidateFrame(frame);
+};
+
+const reconcileStageFrame = () => {
+  if (controllerDisposed) return;
+  installFrameObserver();
+  const parkedId = getParkedMessageId();
+  if (parkedId !== undefined && getLiveRegistration(parkedId)) {
+    if (!tavernDocument.body.classList.contains(ROOT_ACTIVE_CLASS)) scheduleViewRefresh(0);
+    return;
+  }
+  // 分阶段进卡、iframe 延迟设置 src 或错过首个渲染事件时，无须手动重启控制器。
+  invalidateStageSnapshot();
+  parkLatestStageFrame();
+  scheduleViewRefresh(FRAME_CANDIDATE_BATCH_MS);
 };
 
 const getSourceMessageId = (source: ReplyTarget) => {
@@ -1137,10 +1230,17 @@ const getRegisteredAssistantIds = () =>
 const getRerollLock = () => (activeGeneration?.operation === 'reroll' ? activeGeneration.lockedView : undefined);
 
 const getHostStageId = () => {
+  // 宿主楼层与正在阅读/更新的楼层可以不同。优先沿用可见实例，保留滚动位置和展开状态。
+  const parkedMessageId = getParkedMessageId();
+  if (parkedMessageId !== undefined && getLiveRegistration(parkedMessageId)) return parkedMessageId;
   if (activeGeneration?.operation === 'reroll' && getMessageElement(activeGeneration.baseMessageId)) {
     return activeGeneration.baseMessageId;
   }
-  return getRegisteredAssistantIds().at(-1) ?? getParkedMessageId();
+  return (
+    getRegisteredAssistantIds()
+      .filter(messageId => getMessageElement(messageId))
+      .at(-1) ?? parkedMessageId
+  );
 };
 
 const makeView = (entries = getStageEntries()): PseudoLayerView => {
@@ -1151,7 +1251,8 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
       ...lockedView,
       hostMessageId: getHostStageId() ?? lockedView.hostMessageId,
       nativeInputCollapsed,
-      ...(pendingInput ? { pendingInput } : {}),
+      // The lock freezes navigation, not the pending-input status from before reroll.
+      pendingInput,
       activeInteraction: activeInteraction.mode === 'dialogue' ? { ...activeInteraction } : STORY_INTERACTION,
     };
   }
@@ -1181,8 +1282,9 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
     ...(tokenCount !== undefined ? { tokenCount } : {}),
     stage: selectedEntry?.stage ?? { kind: 'story' },
     dialogueThreads:
-      hydrateTimelineEntries(getStageSnapshot()).find(entry => entry.representativeMessageId === selected)
-        ?.dialogueThreads ?? [],
+      hydrateTimelineEntries(getStageSnapshot())
+        .find(entry => entry.representativeMessageId === selected)
+        ?.dialogueThreads?.map(thread => ({ ...thread, turns: hydrateStageTurns(getStageSnapshot(), thread) })) ?? [],
     histories: {
       story: makeHistoryState(entries, 'story'),
       dialogue: makeHistoryState(entries, 'dialogue'),
@@ -1192,10 +1294,11 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
 };
 
 const applyNativeInputState = () => {
-  tavernDocument.body.classList.toggle('dhl-native-input-collapsed', nativeInputCollapsed);
+  const active = tavernDocument.body.classList.contains('dhl-pseudo-layer-active');
+  tavernDocument.body.classList.toggle('dhl-native-input-collapsed', active && nativeInputCollapsed);
 
   const chat = tavernDocument.querySelector<HTMLElement>('#chat');
-  if (!chat) return;
+  if (!chat || !active || chat.scrollTop === 0) return;
   chat.scrollTop = 0;
   if (mobileStageAlignFrame !== null) tavernWindow.cancelAnimationFrame(mobileStageAlignFrame);
   mobileStageAlignFrame = tavernWindow.requestAnimationFrame(() => {
@@ -1247,7 +1350,7 @@ const applyStageVisibility = (snapshot = getStageSnapshot()) => {
       selectedMessageId = scopedIds.at(-1) ?? ids.at(-1) ?? null;
     }
   }
-  const hostMessageId = getHostStageId();
+  const hostMessageId = entries.length > 0 ? getHostStageId() : undefined;
   const assistantIds = snapshot.assistantIds;
 
   tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes').forEach(element => {
@@ -1464,9 +1567,10 @@ const setDialogueCarryoverPrompt = async (content = '') => {
 
 const buildDialogueCarryoverPrompt = (anchorStoryMessageId: number) => {
   const snapshot = getStageSnapshot();
-  const storyEntry = hydrateTimelineEntries(snapshot).find(
+  const storyIndexEntry = hydrateTimelineEntries(snapshot).find(
     entry => entry.representativeMessageId === anchorStoryMessageId,
   );
+  const storyEntry = storyIndexEntry ? hydrateTimelinePageEntry(snapshot, storyIndexEntry) : undefined;
   const threads = storyEntry?.dialogueThreads ?? [];
   if (threads.length === 0) return '';
 
@@ -1489,9 +1593,7 @@ const buildDialogueCarryoverPrompt = (anchorStoryMessageId: number) => {
       if (event.applied) significantLines.push(`${metadata.targetName}关系变化：${event.summary}`);
     });
     if (metadata?.sessionState?.unresolvedThreads?.length) {
-      significantLines.push(
-        `${metadata.targetName}未了话题：${metadata.sessionState.unresolvedThreads.join('；')}`,
-      );
+      significantLines.push(`${metadata.targetName}未了话题：${metadata.sessionState.unresolvedThreads.join('；')}`);
     }
   });
 
@@ -1571,6 +1673,8 @@ const isNativeSwipePlaceholder = (value: unknown) => stripNativeSwipeMarker(valu
 
 const isUsableNativeSwipeCandidate = (value: unknown) => {
   const visible = stripNativeSwipeMarker(value);
+  // Even a thought-only or provider-error reply is a real floor. Preserve it so
+  // the player can inspect, reroll or delete it without leaving the pseudo UI.
   return visible.length > 0 && !isNativeSwipePlaceholder(value);
 };
 
@@ -2417,9 +2521,9 @@ const runDedicatedDialogueGeneration = async (
     discardQueuedStream();
     if (generation.cancelled) {
       send(generation.source, {
-        type: 'complete',
+        type: 'error',
         requestId: generation.requestId,
-        messageId: generation.baseMessageId,
+        message: '交谈已停止，输入已保留，可以修改后重试。',
       });
     } else {
       send(generation.source, {
@@ -2539,7 +2643,7 @@ const beginGeneration = (request: Extract<PseudoLayerRequest, { type: 'generate'
       window.setTimeout(() => {
         if (!activeGeneration || activeGeneration.requestId !== request.requestId || activeGeneration.sent) return;
         void failNativeGeneration(activeGeneration, new Error('酒馆没有开始生成，请检查连接和发送按钮状态'));
-      }, 1800);
+      }, 10000);
     })
     .catch(error => {
       if (activeGeneration === generation) void failNativeGeneration(generation, error);
@@ -2583,9 +2687,12 @@ const beginReroll = async (request: Extract<PseudoLayerRequest, { type: 'reroll'
     if (dependentIds.length > 0) {
       deletingMessageId = Math.max(...dependentIds);
       try {
-        await deleteChatMessages([...new Set(dependentIds)].sort((left, right) => left - right), {
-          refresh: 'affected',
-        });
+        await deleteChatMessages(
+          [...new Set(dependentIds)].sort((left, right) => left - right),
+          {
+            refresh: 'affected',
+          },
+        );
       } catch (error) {
         send(source, {
           type: 'error',
@@ -2612,9 +2719,7 @@ const beginReroll = async (request: Extract<PseudoLayerRequest, { type: 'reroll'
           ? messages.find(item => item.role === 'user' && item.message_id === metadata.userMessageId)
           : undefined) ?? findPreviousUserMessage(messages, request.messageId);
       if (!linkedUser) throw new Error('没有找到这条角色回复对应的玩家发言。');
-      const rerollUserText = (
-        metadata.rawUserText ?? String(linkedUser.message ?? '').replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, '')
-      ).trim();
+      const rerollUserText = readTimelineUserText(linkedUser, metadata);
       if (!rerollUserText) throw new Error('这轮交谈没有可用于重答的玩家发言。');
 
       const mvuSnapshot = getDialogueMvuSnapshot(linkedUser.message_id);
@@ -2643,7 +2748,7 @@ const beginReroll = async (request: Extract<PseudoLayerRequest, { type: 'reroll'
         rerollOriginal: captureNativeRerollOriginal(message),
       };
       activeGeneration = generation;
-      parkSourceFrame(request.messageId, source);
+      parkSourceFrame(source);
       selectedHistoryKind = 'dialogue';
       browsingHistory = false;
       sendGenerationState(generation, 'preparing');
@@ -2669,9 +2774,7 @@ const beginReroll = async (request: Extract<PseudoLayerRequest, { type: 'reroll'
     send(source, { type: 'error', requestId: request.requestId, message: '没有找到这条正文对应的玩家发言。' });
     return;
   }
-  const rerollUserText = String(previousUser?.message ?? '')
-    .replace(/^（(?:对[^）]+说|向[^）]+传讯)）\s*/, '')
-    .trim();
+  const rerollUserText = readTimelineUserText(previousUser, null);
   if (!rerollUserText) {
     send(source, { type: 'error', requestId: request.requestId, message: '这轮正文没有可用于重答的玩家发言。' });
     return;
@@ -2715,7 +2818,7 @@ const beginReroll = async (request: Extract<PseudoLayerRequest, { type: 'reroll'
   };
   activeGeneration = generation;
   persistPendingNativeReroll(generation);
-  parkSourceFrame(request.messageId, source);
+  parkSourceFrame(source);
   selectedHistoryKind = 'story';
   browsingHistory = false;
   sendGenerationState(generation, 'preparing');
@@ -2821,6 +2924,21 @@ const finishMessageInternal = async (messageId: number) => {
       }
     }
     await ensurePseudoMarker(messageId, generation?.engine === 'native' ? 'none' : 'affected');
+    const processor = (tavernWindow as TavernRuntimeWindow).SillyTavern?.getContext?.().streamingProcessor;
+    const savedMessage = getChatMessages(messageId)[0];
+    const hasNarrative = Boolean(parseMessageContent(String(savedMessage?.message ?? '')).narrative.trim());
+    const notice =
+      generation?.cancelled || (generation?.engine === 'native' && processor?.isStopped)
+        ? '本回回复已中断，已保留输入和收到的内容。可以重新生成，或删除本回。'
+        : !hasNarrative
+          ? '本回没有形成可显示的正文。输入与回复原文已保留，可以重新生成或删除本回。'
+          : '';
+    if (savedMessage && (notice || savedMessage.extra?.[GENERATION_NOTICE_KEY])) {
+      await setChatMessages(
+        [{ message_id: messageId, extra: { ...savedMessage.extra, [GENERATION_NOTICE_KEY]: notice } }],
+        { refresh: 'none' },
+      );
+    }
     if (generation?.engine === 'native' && generation.operation === 'reroll') {
       clearPendingNativeReroll(generation.chatId, generation.rerollOriginal?.messageId);
     }
@@ -2832,7 +2950,7 @@ const finishMessageInternal = async (messageId: number) => {
     viewRevision += 1;
     if (generation) {
       flushQueuedStream(generation);
-      send(generation.source, { type: 'complete', requestId: generation.requestId, messageId });
+      send(generation.source, { type: 'complete', requestId: generation.requestId, messageId, notice });
     }
     activeGeneration = null;
     broadcastView();
@@ -2851,6 +2969,12 @@ const finishMessageInternal = async (messageId: number) => {
       });
     }
     activeGeneration = null;
+    invalidateStageSnapshot();
+    selectedMessageId = latestStoryStageId() ?? null;
+    selectedHistoryKind = 'story';
+    if (selectedMessageId !== null) rememberStageSelection(selectedMessageId);
+    browsingHistory = false;
+    viewRevision += 1;
     broadcastView();
     return false;
   }
@@ -2888,13 +3012,19 @@ const settleNativeGeneration = (
   failureMessage: string,
   delayMs: number,
 ) => {
-  if (isNativeGenerationAssistant(generation, candidateMessageId)) {
-    void finishMessage(candidateMessageId);
-    return;
-  }
-
   window.setTimeout(() => {
     if (activeGeneration !== generation || generation.received || generation.generationFailure) return;
+    const processor = (tavernWindow as TavernRuntimeWindow).SillyTavern?.getContext?.().streamingProcessor;
+    // ENDED is also emitted when native UI buttons are hidden. Background calls must
+    // not finalize this turn while its stream is still receiving tokens.
+    if (!generation.cancelled && processor?.isFinished === false && !processor.isStopped) {
+      settleNativeGeneration(generation, candidateMessageId, failureMessage, 1000);
+      return;
+    }
+    if (isNativeGenerationAssistant(generation, candidateMessageId)) {
+      void finishMessage(candidateMessageId);
+      return;
+    }
     const assistant = findNativeGenerationAssistant(generation);
     if (assistant) {
       void finishMessage(assistant.message_id);
@@ -2916,6 +3046,33 @@ const settleStoppedNativeGeneration = (generation: ActiveGeneration) => {
   // 部分浏览器/酒馆版本在主动 stopGeneration 后不会继续派发 STOPPED/ENDED。
   // 不再把解锁完全寄托于外部事件：给原生消息短暂落盘时间，再保留半截回复或回滚临时输入。
   settleNativeGeneration(generation, Number.NaN, '生成在有效回复写入前停止', 3000);
+};
+
+// Some providers abort without emitting STOPPED/MESSAGE_RECEIVED. Reconcile only
+// after the native UI and processor both report inactivity; never time out a live stream.
+const reconcileNativeGeneration = () => {
+  const generation = activeGeneration;
+  if (!generation || generation.engine !== 'native' || !generation.sent || generation.received) return;
+  if (generation.generationFailure || generation.rerollFailure) return;
+  const processor = (tavernWindow as TavernRuntimeWindow).SillyTavern?.getContext?.().streamingProcessor;
+  const stopButton = tavernDocument.querySelector<HTMLElement>('#mes_stop');
+  const nativeBusy = stopButton && tavernWindow.getComputedStyle(stopButton).display !== 'none';
+  if (nativeBusy || (processor?.isFinished === false && !processor.isStopped)) {
+    generation.inactiveSince = undefined;
+    return;
+  }
+  if (!stopButton && !processor) return;
+  generation.inactiveSince ??= Date.now();
+  if (Date.now() - generation.inactiveSince < 4000) return;
+  if (generation.operation === 'reroll') {
+    if (processor?.isStopped || generation.cancelled) {
+      void failNativeReroll(generation, new Error('本次重生成中断'));
+    } else {
+      void finishMessage(generation.baseMessageId);
+    }
+  } else {
+    settleNativeGeneration(generation, Number.NaN, '本次回复中断，模型未返回正文', 0);
+  }
 };
 
 const repairDialogueMetadata = async (messageId: number) => {
@@ -3025,8 +3182,7 @@ const deleteLatestTurn = async (
   if (target.stage.kind === 'story') {
     entries
       .filter(
-        entry =>
-          entry.stage.kind === 'dialogue' && entry.stage.anchorStoryMessageId === target.representativeMessageId,
+        entry => entry.stage.kind === 'dialogue' && entry.stage.anchorStoryMessageId === target.representativeMessageId,
       )
       .forEach(entry => {
         entry.messageIds.forEach(assistantMessageId => {
@@ -3352,6 +3508,13 @@ const updateUserMessageContent = async (
     await setChatMessages(updates, { refresh: 'affected' });
     if (getCurrentChatId() !== chatId) throw new Error('保存期间聊天已经切换，本次编辑未完成。');
 
+    // setChatMessages emits render events, not the native edit event. Let the
+    // preset update its own advice block, snapshot and replacement sentence.
+    if (readAdviceInput(linkedUser)) {
+      await eventEmit(tavern_events.MESSAGE_EDITED, userMessageId);
+      if (getCurrentChatId() !== chatId) throw new Error('保存期间聊天已经切换，本次编辑未完成。');
+    }
+
     invalidateStageSnapshot();
     viewRevision += 1;
     send(source, {
@@ -3397,10 +3560,19 @@ const handleMessage = (event: MessageEvent<unknown>) => {
       }
     }
     registrations.set(messageId, source);
+    const receipt = request.requestId ? generationReceipts.get(request.requestId) : undefined;
+    if (receipt && receipt.chatId === getCurrentChatId()) send(source, receipt.payload);
     if (selectedHistoryKind === null && !browsingHistory && !activeGeneration) {
       selectedMessageId = latestStageId() ?? messageId;
     }
-    if (activeGeneration?.operation === 'reroll' && messageId === activeGeneration.baseMessageId) {
+    if (
+      activeGeneration &&
+      (messageId === getHostStageId() ||
+        messageId ===
+          (getSourceMessageId(activeGeneration.source) ??
+            activeGeneration.lockedView?.hostMessageId ??
+            activeGeneration.baseMessageId))
+    ) {
       activeGeneration.source = source;
     }
     send(source, {
@@ -3410,12 +3582,13 @@ const handleMessage = (event: MessageEvent<unknown>) => {
       operation: activeGeneration?.operation,
     });
     if (activeGeneration?.source === source) replayGeneration(activeGeneration, source);
+    if (!activeGeneration && request.requestId) scheduleViewRefresh(0, true);
     if (isHeartbeat) return;
     window.setTimeout(() => {
       const frame = getFrameForSource(source);
       if (frame && getSourceMessageId(source) === messageId) parkCandidateFrame(frame);
     }, 0);
-    broadcastView();
+    scheduleViewRefresh(FRAME_CANDIDATE_BATCH_MS);
     return;
   }
 
@@ -3423,7 +3596,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
     const messageId = getSourceMessageId(source) ?? request.messageId;
     if (registrations.get(messageId) === source) registrations.delete(messageId);
     sourceProtocolVersions.delete(source);
-    broadcastView();
+    scheduleViewRefresh(FRAME_CANDIDATE_BATCH_MS);
     return;
   }
 
@@ -3465,6 +3638,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
   if (request.type === 'stop') {
     if (!activeGeneration || activeGeneration.requestId !== request.requestId) return;
     const generation = activeGeneration;
+    if (generation.cancelled || generation.state === 'saving') return;
     generation.cancelled = true;
     sendGenerationState(generation, 'stopping', source);
     if (generation.engine === 'dedicated') {
@@ -3473,9 +3647,9 @@ const handleMessage = (event: MessageEvent<unknown>) => {
         if (activeGeneration !== generation || !generation.cancelled) return;
         discardQueuedStream();
         send(generation.source, {
-          type: 'complete',
+          type: 'error',
           requestId: generation.requestId,
-          messageId: generation.baseMessageId,
+          message: '交谈已停止，输入已保留，可以修改后重试。',
         });
         activeGeneration = null;
         broadcastView();
@@ -3575,7 +3749,7 @@ const handleMessageSent = async (messageId: number) => {
       state: 'generating',
       baseMessageId: latestStageId() ?? messageId - 1,
       interaction,
-      rawUserText: String(message?.message ?? '').trim(),
+      rawUserText: readTimelineUserText(message, readInteractionMetadata(message)),
       engine: 'native',
       chatId: getCurrentChatId(),
       baselineLastMessageId: messageId - 1,
@@ -3686,6 +3860,8 @@ const disposeController = () => {
   if (controllerDisposed) return;
   const disposingGeneration = activeGeneration;
   controllerDisposed = true;
+  if (generationHealthTimer !== null) window.clearInterval(generationHealthTimer);
+  generationHealthTimer = null;
   clearDialogueCarryoverPrompt();
 
   if (disposingGeneration?.engine === 'dedicated') {
@@ -3711,6 +3887,7 @@ const disposeController = () => {
   duplicateControllerObserver = null;
   frameObserver?.disconnect();
   frameObserver = null;
+  observedChat = null;
   if (frameCandidateTimer !== null) window.clearTimeout(frameCandidateTimer);
   frameCandidateTimer = null;
   pendingFrameCandidates.clear();
@@ -3753,7 +3930,8 @@ controllerEventStops.push(
 );
 
 controllerEventStops.push(
-  eventOn(tavern_events.GENERATION_STARTED, () => {
+  eventOn(tavern_events.GENERATION_STARTED, (type, _options, dryRun) => {
+    if (dryRun || type === 'quiet' || type === 'impersonate') return;
     if (!activeGeneration || activeGeneration.engine !== 'native') return;
     activeGeneration.sent = true;
     sendGenerationState(activeGeneration, 'generating');
@@ -3825,6 +4003,11 @@ controllerEventStops.push(
 controllerEventStops.push(
   eventOn(tavern_events.MESSAGE_RECEIVED, messageId => {
     if (activeGeneration?.engine === 'dedicated') return;
+    if (activeGeneration?.engine === 'native') {
+      const targetId = Number(messageId);
+      if (activeGeneration.operation === 'reroll' && targetId !== activeGeneration.baseMessageId) return;
+      if (activeGeneration.operation === 'generate' && !isNativeGenerationAssistant(activeGeneration, targetId)) return;
+    }
     void finishMessage(Number(messageId));
   }),
 );
@@ -3832,20 +4015,20 @@ controllerEventStops.push(
 controllerEventStops.push(
   eventOn(tavern_events.GENERATION_ENDED, messageId => {
     if (activeGeneration?.engine === 'dedicated') return;
-    const targetMessageId = Number(messageId);
     const generation = activeGeneration;
-    if (
-      generation?.engine === 'native' &&
-      generation.operation === 'reroll' &&
-      (generation.cancelled || targetMessageId !== generation.baseMessageId)
-    ) {
-      void failNativeReroll(generation, new Error('重答没有形成完整回复'));
+    if (generation?.engine === 'native' && generation.operation === 'reroll') {
+      // hideStopButton 发出的是 chat.length，且早于正文最终写入/MVU 后处理完成。
+      // 重答目标以本次事务为准，再由 finishMessage 等待候选落盘；不能据此误判失败并回滚。
+      if (!generation.cancelled) void finishMessage(generation.baseMessageId);
       return;
     }
+    const reportedMessageId = Number(messageId);
     if (generation?.engine === 'native' && generation.operation === 'generate') {
-      settleNativeGeneration(generation, targetMessageId, '生成结束但模型没有返回有效回复', 800);
+      settleNativeGeneration(generation, reportedMessageId, '生成结束但模型没有返回有效回复', 800);
       return;
     }
+    const lastMessageId = getLastMessageId();
+    const targetMessageId = reportedMessageId === lastMessageId + 1 ? lastMessageId : reportedMessageId;
     const shouldRepairDialogueMetadata = activeGeneration?.interaction.mode === 'dialogue';
     void finishMessage(targetMessageId);
     if (shouldRepairDialogueMetadata) {
@@ -3961,10 +4144,15 @@ controllerEventStops.push(
 );
 
 installStyle();
+generationHealthTimer = window.setInterval(() => {
+  reconcileNativeGeneration();
+  reconcileStageFrame();
+}, 2000);
 applyNativeInputState();
 tavernWindow.addEventListener('message', handleMessage);
 nativeInputMedia.addEventListener('change', handleNativeInputViewportChange);
 installFrameObserver();
+window.setTimeout(reconcileStageFrame, 0);
 window.setTimeout(() => {
   void migrateLegacyDialogueMessages()
     .catch(error => console.warn('[灯火阑珊·幕间交谈] 旧交谈归档失败', error))
