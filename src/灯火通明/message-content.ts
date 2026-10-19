@@ -34,6 +34,10 @@ const STRUCTURAL_TAGS = [
   'afterword',
   'twin_aftertalk',
   'ooc',
+  'tucao',
+  'current_event',
+  'progress',
+  'advice',
   'metadata',
   'meta_info',
   'memory',
@@ -67,7 +71,7 @@ const DIALOGUE_STATE_TAGS = ['会话状态', 'dialogue_state', 'conversation_sta
 const DIALOGUE_TAGS = [...DIALOGUE_REACTION_TAGS, ...DIALOGUE_BODY_TAGS, ...DIALOGUE_STATE_TAGS] as const;
 
 const REASONING_TAG_NAME_SOURCE =
-  'think(?:ing)?|planning|reasoning|thought|reflection|inner[_-]?monologue|internal[_-]?monologue|chain[_-]?of[_-]?thought|scratchpad|cot|think_?fox~?|思考|思维链|推理';
+  'think(?:ing)?|planning|konatan_planning~?|reasoning|thought|reflection|inner[_-]?monologue|internal[_-]?monologue|chain[_-]?of[_-]?thought|scratchpad|cot|think_?fox~?|思考|思维链|推理';
 const REASONING_OPEN_PATTERN = new RegExp(`<(?:${REASONING_TAG_NAME_SOURCE})(?=[\\s>])[^>]*>`, 'gi');
 const REASONING_CLOSE_PATTERN = new RegExp(`<\\/(?:${REASONING_TAG_NAME_SOURCE})\\s*>`, 'gi');
 const REASONING_BLOCK_PATTERN = new RegExp(
