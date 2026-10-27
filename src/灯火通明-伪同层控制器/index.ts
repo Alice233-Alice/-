@@ -452,7 +452,7 @@ const getFrameForSource = (source: ReplyTarget) => {
 
 const hasMountedPseudoApp = (frame: HTMLIFrameElement | null | undefined) => {
   try {
-    return Boolean(frame?.contentDocument?.querySelector('#app')?.childElementCount);
+    return Boolean(frame?.contentDocument?.querySelector('#app > .cultivation-status'));
   } catch {
     return false;
   }
@@ -468,6 +468,8 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
   // 宿主可能先插入空 iframe 再填入地址；不能把 about:blank 当成正在加载的完整前端。
   const sourceUrl = frame.getAttribute('src')?.trim();
   if (!frame.getAttribute('srcdoc')?.trim() && (!sourceUrl || sourceUrl === 'about:blank')) return false;
+  // 预设思考卡片也会生成 iframe，只接管实际挂载了灯火界面的实例。
+  if (!hasMountedPseudoApp(frame)) return false;
   const message = getMessageElement(messageId);
   if (!message || message.getAttribute('is_user') === 'true') return false;
   const keeper = getFrameKeeper(messageId);
@@ -1191,7 +1193,8 @@ const installFrameObserver = () => {
 const parkLatestStageFrame = () => {
   const messageId = latestStoryStageId();
   if (messageId === undefined) return;
-  const frame = getMessageElement(messageId)?.querySelector<HTMLIFrameElement>('.TH-render iframe');
+  const frames = getMessageElement(messageId)?.querySelectorAll<HTMLIFrameElement>('.TH-render iframe');
+  const frame = [...(frames ?? [])].find(hasMountedPseudoApp);
   if (frame) parkCandidateFrame(frame);
 };
 

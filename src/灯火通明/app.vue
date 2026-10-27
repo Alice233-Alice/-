@@ -142,6 +142,7 @@ import lanternArt from './assets/lantern-water-town.svg?url';
 import shanhaiArt from './assets/shanhai-scroll.svg?url';
 import starAltarArt from './assets/star-altar-chart.svg?url';
 import { resolveMapAnchor } from '../灯火阑珊/map-system';
+import { createMovingPanelFit } from './moving-panel-fit';
 import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from './store';
@@ -197,6 +198,8 @@ const appViewportWidth = ref(window.parent.innerWidth);
 const isMobileViewport = computed(() => viewportMode.value === 'mobile');
 const isPseudoStage = ref(Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root')));
 const nativeStageHeight = ref<number | null>(null);
+const movingPanelFit = createMovingPanelFit();
+let parentPanelFitRequested = true;
 
 type StageTab = { id: StageView; label: string; icon: string; badge?: number };
 
@@ -234,6 +237,16 @@ const updateViewport = () => {
   // Older controllers keep the stage in the selected native message instead
   // of the owned stage root. Fit that host to the actual chat space as well.
   const nativeHost = frame?.closest('#chat > .mes.dhl-pseudo-selected');
+  if (parentChat && (isPseudoStage.value || nativeHost)) {
+    const parentWindow = window.parent;
+    const visualViewport = parentWindow.visualViewport;
+    movingPanelFit.sync(
+      parentWindow.document.body.classList.contains('movingUI') ? parentChat.closest<HTMLElement>('#sheld') : null,
+      (visualViewport?.offsetTop ?? 0) + (visualViewport?.height ?? parentWindow.innerHeight),
+      parentPanelFitRequested,
+    );
+    parentPanelFitRequested = false;
+  }
   // 缩放时酒馆可能临时滚动外层聊天区，先归零，避免把滚动偏移计入舞台高度。
   if (parentChat && (isPseudoStage.value || nativeHost)) parentChat.scrollTop = 0;
   const availableNativeHeight =
@@ -254,6 +267,10 @@ const scheduleViewportUpdate = () => {
     viewportUpdateFrame = null;
     updateViewport();
   });
+};
+const handleParentViewportResize = () => {
+  parentPanelFitRequested = true;
+  scheduleViewportUpdate();
 };
 const parentChatResizeObserver = new ResizeObserver(scheduleViewportUpdate);
 watch(
@@ -500,16 +517,17 @@ onMounted(() => {
   pseudoLayerStore.start();
   const parentChat = window.parent.document.querySelector('#chat');
   if (parentChat) parentChatResizeObserver.observe(parentChat);
-  window.parent.addEventListener('resize', scheduleViewportUpdate);
-  window.parent.visualViewport?.addEventListener('resize', scheduleViewportUpdate);
+  window.parent.addEventListener('resize', handleParentViewportResize);
+  window.parent.visualViewport?.addEventListener('resize', handleParentViewportResize);
   scheduleViewportUpdate();
 });
 onBeforeUnmount(() => {
   parentChatResizeObserver.disconnect();
+  movingPanelFit.dispose();
   pseudoLayerStore.dispose();
   store.dispose();
-  window.parent.removeEventListener('resize', scheduleViewportUpdate);
-  window.parent.visualViewport?.removeEventListener('resize', scheduleViewportUpdate);
+  window.parent.removeEventListener('resize', handleParentViewportResize);
+  window.parent.visualViewport?.removeEventListener('resize', handleParentViewportResize);
   if (viewportUpdateFrame !== null) window.parent.cancelAnimationFrame(viewportUpdateFrame);
 });
 </script>
