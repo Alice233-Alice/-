@@ -1,0 +1,7 @@
+node_modules/
+dist/
+engine/*
+!engine/.gitkeep
+*.vsix
+.npm-cache/
+test-output/
