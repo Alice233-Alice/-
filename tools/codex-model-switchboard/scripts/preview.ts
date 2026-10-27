@@ -1,0 +1,13 @@
+// Local visual QA only. Uses invented records and never opens any credential file.
+import http from 'node:http';
+import fs from 'node:fs';
+import {panelHtml} from '../src/panel-html.ts';
+const state={enabled:true,reloadRequired:false,providers:[{id:'fixture',label:'Vertex Gemini',type:'vertex',project:'my-google-project',location:'global',credentialsFile:'C:\\Keys\\vertex-service-account.json',models:['gemini-4-argon'],enabled:true,hasKey:false}],usage:{period:'month',prices:{'thirdparty/fixture/gemini-4-argon':{currency:'USD',input:2,output:10,cachedInput:.5,monthlyBudget:20}},rows:[{model:'thirdparty/fixture/gemini-4-argon',requests:18,failed:1,unknownUsage:1,input:1000000,output:100000,cached:200000,reasoning:30000,cost:2.7,currency:'USD',monthlyCost:2.7,budgetRemaining:null},{model:'gpt-fixture',requests:9,failed:0,unknownUsage:0,input:120000,output:18000,cached:60000,reasoning:7000,cost:null,monthlyCost:null,budgetRemaining:null}],quotas:[{name:'GPT 官方',at:new Date().toISOString(),windows:[{label:'主要额度',usedPercent:25,minutes:300,resetsAt:Date.now()/1000+7200},{label:'次要额度',usedPercent:18,minutes:10080,resetsAt:Date.now()/1000+86400}]}]}};
+const fixture=`let state=${JSON.stringify(state)};window.__previewActions=[];function push(type,body){window.dispatchEvent(new MessageEvent('message',{data:{type,...body}}));}window.acquireVsCodeApi=()=>({postMessage(message){window.__previewActions.push(message);setTimeout(()=>{let data,messageText='';if(message.action==='chooseJson')data={credentialsFile:'C:\\\\Keys\\\\new-account.json',project:'selected-json-project'};if(message.action==='saveProvider'){const f=message.form;state.providers.push({...f,id:'saved-fixture',models:f.models.split(/[,，\\n]/),hasKey:false});messageText='渠道已保存。';}if(message.action==='savePrice'){state.usage.prices[message.model]=message.price;messageText='计费设置已保存。';}push('result',{action:message.action,ok:true,data,message:messageText});push('state',{state});},10);}});`;
+const server=http.createServer((req,res)=>{
+  if(req.url==='/panel.css'){res.setHeader('content-type','text/css');res.end(fs.readFileSync('dist/panel.css'));return;}
+  if(req.url==='/panel.js'){res.setHeader('content-type','text/javascript');res.end(fs.readFileSync('dist/panel.js'));return;}
+  if(req.url==='/fixture.js'){res.setHeader('content-type','text/javascript');res.end(fixture);return;}
+  res.setHeader('content-type','text/html; charset=utf-8');res.end(panelHtml('/panel.css','/panel.js',`http://${req.headers.host}`,'preview').replace('<script nonce="preview"','<script nonce="preview" src="/fixture.js"></script><script nonce="preview"'));
+});
+server.listen(0,'127.0.0.1',()=>console.log('Preview: http://127.0.0.1:'+(server.address() as any).port));

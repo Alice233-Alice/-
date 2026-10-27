@@ -1,0 +1,99 @@
+{
+  "models": [
+    {
+      "slug": "fixture-gpt",
+      "prefer_websockets": true,
+      "support_verbosity": true,
+      "default_verbosity": "low",
+      "apply_patch_tool_type": "freeform",
+      "web_search_tool_type": "text_and_image",
+      "input_modalities": [
+        "text",
+        "image"
+      ],
+      "supports_image_detail_original": true,
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "supports_parallel_tool_calls": true,
+      "tool_mode": "direct",
+      "multi_agent_version": null,
+      "multi_agent_reasoning_effort": "xhigh",
+      "use_responses_lite": false,
+      "supports_reasoning_effort_updates": true,
+      "include_skills_usage_instructions": false,
+      "include_apps_usage_instructions": false,
+      "include_plugin_usage_instructions": false,
+      "guardian": null,
+      "node_repl_auto_review_required": true,
+      "node_repl_disabled": true,
+      "requires_sandboxed_review": false,
+      "auto_review_model_override": null,
+      "model_specialty": null,
+      "context_window": 272000,
+      "max_context_window": 872000,
+      "auto_compact_token_limit": null,
+      "comp_hash": "3000",
+      "default_reasoning_summary": "none",
+      "display_name": "Fixture GPT",
+      "description": "Frontier intelligence for the most demanding work.",
+      "default_reasoning_level": "medium",
+      "supported_reasoning_levels": [
+        {
+          "effort": "medium",
+          "description": "Default"
+        }
+      ],
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "minimal_client_version": "0.153.0",
+      "supported_in_api": true,
+      "availability_nux": null,
+      "upgrade": null,
+      "priority": 2,
+      "model_messages": null,
+      "experimental_supported_tools": [
+        "send_user_message_async",
+        "clock"
+      ],
+      "available_in_plans": [
+        "business",
+        "edu",
+        "edu_plus",
+        "edu_pro",
+        "education",
+        "ent26",
+        "enterprise",
+        "enterprise_cbp_automation",
+        "enterprise_cbp_trial",
+        "enterprise_cbp_usage_based",
+        "finserv",
+        "free",
+        "free_workspace",
+        "go",
+        "hc",
+        "k12",
+        "plus",
+        "pro",
+        "prolite",
+        "promax",
+        "quorum",
+        "sci",
+        "self_serve_business_prolite",
+        "self_serve_business_usage_based",
+        "team"
+      ],
+      "supports_search_tool": false,
+      "supports_experimental_context": false,
+      "default_service_tier": null,
+      "service_tiers": [],
+      "additional_speed_tiers": [
+        "fast"
+      ],
+      "supports_reasoning_summary_parameter": true,
+      "supports_reasoning_summaries": false,
+      "base_instructions": "You are a coding assistant. Use available tools when requested."
+    }
+  ]
+}

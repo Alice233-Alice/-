@@ -1,0 +1,38 @@
+{
+  "name": "codex-model-switchboard",
+  "displayName": "Codex 模型渠道",
+  "description": "在 Codex 原有模型菜单中使用官网 GPT、Vertex Gemini 和第三方模型，独立管理渠道凭证。",
+  "version": "0.5.0",
+  "publisher": "ayanami-local",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": { "vscode": "^1.95.0", "node": ">=22.18.0" },
+  "main": "./dist/extension.cjs",
+  "activationEvents": ["onStartupFinished"],
+  "categories": ["Other"],
+  "extensionDependencies": ["openai.chatgpt"],
+  "contributes": {
+    "commands": [
+      {"command":"codexModels.manage","title":"Codex 模型渠道：打开配置面板","icon":"$(settings-gear)"},
+      {"command":"codexModels.usage","title":"Codex 模型渠道：用量与费用","icon":"$(graph)"},
+      {"command":"codexModels.usageDetails","title":"Codex 模型渠道：详细用量与计费设置"},
+      {"command":"codexModels.addVertex","title":"Codex 模型渠道：添加 Vertex Gemini"},
+      {"command":"codexModels.addCompatible","title":"Codex 模型渠道：添加第三方模型"},
+      {"command":"codexModels.enable","title":"Codex 模型渠道：启用适配"},
+      {"command":"codexModels.disable","title":"Codex 模型渠道：恢复官方内核"},
+      {"command":"codexModels.diagnostics","title":"Codex 模型渠道：查看诊断"}
+    ],
+    "menus": {
+      "webview/context": [{"command":"codexModels.manage","when":"webviewId == chatgpt.sidebarView || webviewId == chatgpt.sidebarSecondaryView","group":"codexModels"}]
+    }
+  },
+  "scripts": {
+    "build":"node scripts/build.mjs",
+    "typecheck":"tsc --noEmit",
+    "test":"node --experimental-transform-types --test test/*.test.ts",
+    "package":"node scripts/package.mjs"
+  },
+  "dependencies": { "ws":"^8.18.3", "undici":"^7.16.0", "https-proxy-agent":"^7.0.6" },
+  "devDependencies": { "@types/node":"^22.18.0", "@types/ws":"^8.18.1", "@types/vscode":"^1.95.0", "typescript":"^6.0.3", "esbuild":"^0.25.0", "fflate":"^0.8.2" }
+}
