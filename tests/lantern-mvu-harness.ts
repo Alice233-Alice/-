@@ -299,7 +299,7 @@ export function collectInvariantErrors(data: any): string[] {
   if (new Set(actions).size !== actions.length) {
     errors.push('可参与机遇存在重复行动');
   }
-  if (data._系统设置?.变量结构版本 !== 4 || data._系统设置?.修炼系统版本 !== 3) {
+  if (data._系统设置?.变量结构版本 !== 5 || data._系统设置?.修炼系统版本 !== 3) {
     errors.push('变量结构版本或修炼系统版本不正确');
   }
   return errors;

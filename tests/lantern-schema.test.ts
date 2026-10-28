@@ -27,6 +27,12 @@ const BrightSchemaModule = require('../src/灯火通明/schema.ts');
 const { resolveMapAnchor } = require('../src/灯火阑珊/map-system');
 const { inferLayerFromTrack } = require('../src/灯火阑珊/region-utils');
 const { getBurdenTone } = require('../src/灯火通明/components/combat-utils');
+const { buildFallbackActions, resolveActionFeed } = require('../src/灯火通明/action-feed');
+const { copyQuestForPreset } = require('../src/灯火通明/quest-preset');
+const { executeUpdateVariable, makeUpdateVariable } = require('./lantern-mvu-harness');
+const { preservesRelationshipContinuity } = require('../src/灯火通明/narrative-continuity');
+const { getWorldEventEntries, selectWorldEventsForDisplay } = require('../src/灯火通明/world-events');
+const { parseWorldEventPatchOperation, restoreWorldEventLedger } = require('../src/灯火通明/world-event-patch-guard');
 const {
   applyRealmTransitionGuards,
   correctProtagonistRealmText,
@@ -66,10 +72,10 @@ function makeCultivator(level: number): any {
   });
 }
 
-test('默认值采用盛法时代与 v4 变量结构', () => {
+test('默认值采用盛法时代与 v5 变量结构', () => {
   const data = parse();
   assert.equal(data.世界时钟.纪元, '盛法时代');
-  assert.equal(data._系统设置.变量结构版本, 4);
+  assert.equal(data._系统设置.变量结构版本, 5);
   assert.equal(data._系统设置.修炼系统版本, 3);
   assert.deepEqual(data.本尊.战斗状态, {
     正在战斗: false,
@@ -178,7 +184,7 @@ test('旧存档缺失版本与境界变动时可迁移且保持幂等', () => {
     目标等级: 0,
     依据: '',
   });
-  assert.equal(migrated._系统设置.变量结构版本, 4);
+  assert.equal(migrated._系统设置.变量结构版本, 5);
 });
 
 test('旧红颜数据迁移后补齐空羁绊纪事并保持幂等', () => {
@@ -194,7 +200,7 @@ test('旧红颜数据迁移后补齐空羁绊纪事并保持幂等', () => {
   });
 
   assert.deepEqual(migrated.红颜.许听雨.羁绊纪事, {});
-  assert.equal(migrated._系统设置.变量结构版本, 4);
+  assert.equal(migrated._系统设置.变量结构版本, 5);
   assert.deepEqual(parse(migrated), migrated);
 });
 
@@ -303,6 +309,37 @@ test('羽岚进入默认角色库且旧名、昵称归一', () => {
   assert.deepEqual(parse(data), data);
 });
 
+test('沈倩宁进入共用角色库，昵称和称号统一为本名', () => {
+  const defaults = parse();
+  const entry = defaults.红颜角色库.沈倩宁;
+  assert.equal(entry.级, 8);
+  assert.equal(describeRealmByLevel(entry.级), '筑基大圆满');
+  assert.equal(entry.根, '赤雷血灵根');
+  assert.equal(entry.质, '赤雷真血神体');
+  assert.equal(entry.器, '赤血重刃');
+  assert.equal(entry.属, '雷暴海·赤霄阁嫡传');
+  assert.equal(defaults.红颜.沈倩宁, undefined);
+  assert.deepEqual(BrightSchemaModule.Schema.parse({}).红颜角色库.沈倩宁, entry);
+
+  const data = parse({
+    红颜角色库: { 倩宁: { ...entry, 属: '游历东苍' } },
+    红颜: {
+      倩宁: { 等级: 8, 好感度: 81, 关系: '初生情愫' },
+      赤血狂刃: { 等级: 8, 好感度: 81, 羁绊纪事: { 雷海同行: { 类型: '共患难', 摘要: '共渡雷海' } } },
+    },
+    _好感度快照: { 倩宁: 81 },
+  });
+  assert.deepEqual(Object.keys(data.红颜), ['沈倩宁']);
+  assert.deepEqual(Object.keys(data.红颜角色库), ['沈倩宁']);
+  assert.equal(data.红颜角色库.沈倩宁.属, '游历东苍');
+  assert.equal(data.红颜.沈倩宁.境界描述, '筑基大圆满');
+  assert.equal(data.红颜.沈倩宁.好感度, 81);
+  assert.equal(data.红颜.沈倩宁.关系, '初生情愫');
+  assert.equal(data.红颜.沈倩宁.羁绊纪事.雷海同行.摘要, '共渡雷海');
+  assert.deepEqual(data._好感度快照, { 沈倩宁: 81 });
+  assert.deepEqual(parse(data), data);
+});
+
 test('1～48 级境界、阈值及整数边界映射正确', () => {
   for (let level = 1; level <= 48; level += 1) {
     const major = REALM_NAMES[Math.floor((level - 1) / 4)];
@@ -358,9 +395,9 @@ test('旧式分级灵石账本迁移为标量且保持幂等', () => {
   assert.deepEqual(parse(itemLedger), itemLedger);
 });
 
-test('行动成稿在 80 字上限内完整保留并继续限制提示长度', () => {
+test('叙事提案在 220 字上限内完整保留并继续限制提示长度', () => {
   const targetLengthAction = '探'.repeat(70);
-  const overLimitAction = '行'.repeat(81);
+  const overLimitAction = '行'.repeat(221);
   const data = parse({
     $可参与机遇: [
       { 行动: targetLengthAction, 类型: '探索', 提示: '险'.repeat(29) },
@@ -371,8 +408,8 @@ test('行动成稿在 80 字上限内完整保留并继续限制提示长度', (
   assert.equal(data.$可参与机遇[0].行动, targetLengthAction);
   assert.equal(Array.from(data.$可参与机遇[0].行动).length, 70);
   assert.equal(Array.from(data.$可参与机遇[0].提示 ?? '').length, 28);
-  assert.equal(Array.from(data.$可参与机遇[1].行动).length, 80);
-  assert.equal(data.$可参与机遇[1].行动, '行'.repeat(80));
+  assert.equal(Array.from(data.$可参与机遇[1].行动).length, 220);
+  assert.equal(data.$可参与机遇[1].行动, '行'.repeat(220));
   assert.deepEqual(parse(data), data);
 });
 
@@ -392,11 +429,279 @@ test('英文键名与英文类型的行动 patch 可归一为界面结构', () =
   });
 
   assert.deepEqual(data.$可参与机遇, [
-    { 行动: '放下茶盏，握住她的手。', 类型: '亲密' },
-    { 行动: '起身探索冰蛟草生长之处。', 类型: '探索' },
-    { 行动: '借洞中灵气运转周天。', 类型: '修炼', 提示: '稳固当前境界' },
+    { 行动: '放下茶盏，握住她的手。', 类型: '亲密', 叙事类型: '当前行动', 事件性质: '无事件' },
+    { 行动: '起身探索冰蛟草生长之处。', 类型: '探索', 叙事类型: '当前行动', 事件性质: '无事件' },
+    {
+      行动: '借洞中灵气运转周天。',
+      类型: '修炼',
+      叙事类型: '当前行动',
+      事件性质: '无事件',
+      提示: '稳固当前境界',
+    },
   ]);
   assert.deepEqual(parse(data), data);
+});
+
+test('候选事件提案与已发生事件回应保持不同事实语义', () => {
+  const data = parse({
+    $可参与机遇: [
+      {
+        标题: '檐下陌生灵羽',
+        行动: '檐角忽然落下一枚带着淡金水汽的陌生灵羽；先以神识隔空查验，再询问掌柜今晨可曾见过异鸟。',
+        类型: '探索',
+        叙事类型: '事件行动',
+        事件性质: '选中后成立',
+        事件: '客栈檐角落下一枚来历不明的淡金灵羽',
+      },
+      {
+        标题: '再访潮生渡口',
+        行动: '前往潮生渡口查看潮痕与失踪渡船的新动向，先听取船工说法，不贸然下水。',
+        类型: '探索',
+        叙事类型: '回应事件',
+        事件性质: '回应已发生事件',
+        关联事件ID: '潮生渡口失舟',
+      },
+    ],
+  });
+
+  assert.equal(data.$可参与机遇[0].事件性质, '选中后成立');
+  assert.equal(data.$可参与机遇[0].事件, '客栈檐角落下一枚来历不明的淡金灵羽');
+  assert.equal(data.$可参与机遇[1].事件性质, '回应已发生事件');
+  assert.equal(data.$可参与机遇[1].关联事件ID, '潮生渡口失舟');
+  assert.deepEqual(parse(data), data);
+});
+
+test('世界图志迁移事件阶段并将过重影响收敛为可控档位', () => {
+  const data = parse({
+    世界图志: {
+      潮生渡口失舟: {
+        状态: '发展',
+        事件: '两艘渡船未按时返航，岸边留下逆潮水痕。',
+        地点: '潮生渡口',
+        最近变化: '船工在下游发现一段完好的系舟绳。',
+        可见影响: ['夜航暂缓', '茶棚里多了寻船传闻'],
+        参与情况: '关注',
+        影响等级: '灾难',
+        更新时间: '盛法1年1月2日·辰时',
+      },
+    },
+  });
+
+  assert.equal(data.世界图志.潮生渡口失舟.状态, '活跃');
+  assert.equal(data.世界图志.潮生渡口失舟.阶段, '发展');
+  assert.equal(data.世界图志.潮生渡口失舟.参与情况, '旁观');
+  assert.equal(data.世界图志.潮生渡口失舟.影响等级, '显著');
+  assert.deepEqual(parse(data), data);
+});
+
+test('世界事件守卫恢复被旧版 MVU 裁掉的完整事件字段', () => {
+  const insertOperation = parseWorldEventPatchOperation(
+    JSON.stringify({
+      op: 'insert',
+      path: '/世界图志/青石古井魂引',
+      value: {
+        状态: '已平息',
+        阶段: '落幕',
+        事件: '古井残魂已经归乡。',
+        地点: '青石镇古井巷',
+        可见影响: ['井中地煞余气暂熄'],
+        参与情况: '主导',
+        影响等级: '轻变',
+        更新时间: '盛法1年1月1日·卯时',
+      },
+    }),
+  );
+  assert.ok(insertOperation);
+
+  const restored = restoreWorldEventLedger(
+    {
+      敛骨荒坞大醮平息: {
+        状态: '已平息',
+        阶段: '落幕',
+        事件: '荒坞大醮已经平息。',
+        地点: '敛骨古庙',
+        可见影响: ['阴风减弱'],
+        参与情况: '主导',
+        影响等级: '显著',
+        更新时间: '盛法1年1月1日·寅时',
+      },
+    },
+    {
+      敛骨荒坞大醮平息: { 状态: '已平息', 事件: '荒坞大醮已经平息。' },
+      青石古井魂引: { 状态: '已平息', 事件: '古井残魂已经归乡。' },
+    },
+    [insertOperation],
+  );
+  const parsed = parse({ 世界图志: restored });
+
+  assert.equal(parsed.世界图志.敛骨荒坞大醮平息.地点, '敛骨古庙');
+  assert.equal(parsed.世界图志.敛骨荒坞大醮平息.参与情况, '主导');
+  assert.deepEqual(parsed.世界图志.青石古井魂引.可见影响, ['井中地煞余气暂熄']);
+  assert.equal(parsed.世界图志.青石古井魂引.更新时间, '盛法1年1月1日·卯时');
+});
+
+test('已落幕世闻在缺少更新时间时按后插入者优先并最多展示三条', () => {
+  const events = getWorldEventEntries({
+    敛骨荒坞大醮平息: { 状态: '已平息', 事件: '荒坞大醮已经平息。' },
+    青石古井魂引: { 状态: '已平息', 事件: '古井残魂已经归乡。' },
+  });
+  const displayed = selectWorldEventsForDisplay(events);
+
+  assert.deepEqual(
+    events.map((event: { id: string }) => event.id),
+    ['青石古井魂引', '敛骨荒坞大醮平息'],
+  );
+  assert.equal(displayed.length, 2);
+});
+
+test('中文时辰按实际先后排序而非按文字排序', () => {
+  const events = getWorldEventEntries({
+    敛骨荒坞大醮平息: {
+      状态: '已平息',
+      阶段: '落幕',
+      事件: '荒坞大醮已经平息。',
+      更新时间: '盛法1年1月1日·寅时',
+    },
+    青石古井魂引: {
+      状态: '已平息',
+      阶段: '落幕',
+      事件: '古井残魂已经归乡。',
+      更新时间: '盛法1年1月1日·卯时',
+    },
+  });
+
+  assert.deepEqual(
+    events.map((event: { id: string }) => event.id),
+    ['青石古井魂引', '敛骨荒坞大醮平息'],
+  );
+});
+
+test('世界图志滚动保留三条活跃事件与五条近期结果', () => {
+  const 世界图志: Record<string, unknown> = {
+    活跃甲: { 状态: '活跃', 阶段: '征兆', 事件: '甲事件。' },
+    活跃乙: { 状态: '活跃', 阶段: '发展', 事件: '乙事件。' },
+    活跃丙: { 状态: '活跃', 阶段: '可介入', 事件: '丙事件。' },
+    越限新事件: { 状态: '活跃', 阶段: '征兆', 事件: '不应顶掉既有活跃事件。' },
+  };
+  for (let day = 1; day <= 7; day += 1) {
+    世界图志[`结果${day}`] = {
+      状态: day % 2 === 0 ? '已错过' : '已平息',
+      阶段: '落幕',
+      事件: `第 ${day} 条结果。`,
+      更新时间: `盛法1年1月${day}日·卯时`,
+    };
+  }
+
+  const data = parse({ 世界图志 });
+  assert.deepEqual(Object.keys(data.世界图志), [
+    '活跃甲',
+    '活跃乙',
+    '活跃丙',
+    '结果3',
+    '结果4',
+    '结果5',
+    '结果6',
+    '结果7',
+  ]);
+  assert.equal(Object.keys(data.世界图志).length, 8);
+  assert.deepEqual(parse(data), data);
+});
+
+test('活跃世界事件可生成不抢夺玩家决定权的兜底提案', () => {
+  const actions = buildFallbackActions({}, '', {
+    潮生渡口失舟: {
+      状态: '活跃',
+      阶段: '可介入',
+      事件: '两艘渡船未按时返航，岸边留下逆潮水痕。',
+      地点: '潮生渡口',
+      可见影响: ['夜航暂缓'],
+      参与情况: '未介入',
+      影响等级: '轻变',
+    },
+  });
+
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0].事件性质, '回应已发生事件');
+  assert.equal(actions[0].关联事件ID, '潮生渡口失舟');
+  assert.match(actions[0].行动, /了解.*最新变化.*再决定是否介入/u);
+});
+
+test('不存在的事件引用会降级为当前行动，真实事件引用保持回应语义', () => {
+  const operations = [
+    {
+      op: 'replace',
+      path: '/$可参与机遇',
+      value: [
+        {
+          标题: '暗红血印之谜',
+          行动: '暂不出手，先辨认茧体表面残缺的符文，为同伴指出真正阵眼。',
+          类型: '探索',
+          叙事类型: '回应事件',
+          事件性质: '回应已发生事件',
+          关联事件ID: '地煞封喉·逆阴钟鸣',
+        },
+      ],
+    },
+  ];
+
+  const missingReference = resolveActionFeed({
+    operations,
+    storedActions: [],
+    tasks: {},
+    situation: '',
+    worldEvents: {},
+  });
+  assert.equal(missingReference.actions[0].叙事类型, '当前行动');
+  assert.equal(missingReference.actions[0].事件性质, '无事件');
+  assert.equal(missingReference.actions[0].关联事件ID, undefined);
+
+  const existingReference = resolveActionFeed({
+    operations,
+    storedActions: [],
+    tasks: {},
+    situation: '',
+    worldEvents: {
+      '地煞封喉·逆阴钟鸣': {
+        状态: '活跃',
+        阶段: '发展',
+        事件: '血茧与逆阴钟鸣仍在古庙内持续变化。',
+        可见影响: ['古庙地砖持续震颤'],
+        参与情况: '介入',
+        影响等级: '轻变',
+      },
+    },
+  });
+  assert.equal(existingReference.actions[0].叙事类型, '回应事件');
+  assert.equal(existingReference.actions[0].事件性质, '回应已发生事件');
+  assert.equal(existingReference.actions[0].关联事件ID, '地煞封喉·逆阴钟鸣');
+});
+
+test('情缘连续性守卫只剔除明确越界提案并保留正常交往', () => {
+  assert.equal(preservesRelationshipContinuity('晚棠与掌柜核对药材账目。', ['晚棠']), true);
+  assert.equal(preservesRelationshipContinuity('晚棠与其他男修结为道侣。', ['晚棠']), false);
+
+  const result = resolveActionFeed({
+    operations: [
+      {
+        op: 'replace',
+        path: '/$可参与机遇',
+        value: [
+          { 行动: '让晚棠与其他男修结为道侣，以此换取宗门支持。', 类型: '交涉' },
+          { 行动: '与晚棠一同拜访药庐，核对新得丹方的药性。', 类型: '交涉' },
+        ],
+      },
+    ],
+    storedActions: [],
+    tasks: {},
+    situation: '',
+    companionNames: ['晚棠'],
+  });
+
+  assert.equal(result.mode, 'full');
+  assert.deepEqual(
+    result.actions.map((action: { 行动: string }) => action.行动),
+    ['与晚棠一同拜访药庐，核对新得丹方的药性。'],
+  );
 });
 
 test('双重嵌套的行动 patch 可恢复为行动列表', () => {
@@ -471,7 +776,7 @@ test('旧神通威力被丢弃，标准声望称谓仍从事实字段派生', ()
   assert.equal(data.声望系统.自定义势力.关系, '座上宾');
 });
 
-test('旧战斗存档和敌人数组迁移为 v4 且重复解析幂等', () => {
+test('旧战斗存档和敌人数组迁移为 v5 且重复解析幂等', () => {
   const migrated = parse({
     本尊: {
       战斗状态: {
@@ -491,7 +796,7 @@ test('旧战斗存档和敌人数组迁移为 v4 且重复解析幂等', () => {
     _系统设置: { 变量结构版本: 3 },
   });
 
-  assert.equal(migrated._系统设置.变量结构版本, 4);
+  assert.equal(migrated._系统设置.变量结构版本, 5);
   assert.equal(migrated.本尊.战斗状态.阶段, '交锋');
   assert.equal(migrated.本尊.战斗状态.交锋轮次, 3);
   assert.equal(migrated.本尊.战斗状态.战局.态势, '相持');
@@ -743,6 +1048,68 @@ test('非法局部条目被移除，旧合法任务与库存不会丢失', () =>
   assert.equal(repaired.data.地点库.非法地点, undefined);
 });
 
+test('旧任务兼容新增进度与下一步且保留原有目标措辞', () => {
+  const task = {
+    名称: '大梦锁链·破晓之锚',
+    类型: '支线',
+    目标: '以太虚两仪真元护住晚棠神识，探寻净世幽莲的真源隐秘。',
+    状态: '进行中',
+    创建时间: 0,
+  };
+  const data = parse({ 任务列表: { 梦中之路: task } });
+  assert.deepEqual(data.任务列表.梦中之路, { ...task, 进度: '', 下一步: '' });
+  assert.deepEqual(data, parse(data));
+});
+
+test('任务进度与下一步经过命令守卫及 Schema 后能保存且不重写目标', () => {
+  const oldData = parse({
+    任务列表: {
+      石门寻踪: { 名称: '石门寻踪', 目标: '循灰白微光探寻石门深处的隐秘。', 创建时间: 0 },
+    },
+  });
+  const progress = '已渡暗河、越过石门，发现枯坐法相与暗红晶体；其与黄泉的联系尚待查明。';
+  const nextStep = '探查暗红晶体与岩壁刻痕，并问询晚棠梦中的记忆。';
+  const replay = executeUpdateVariable(
+    oldData,
+    makeUpdateVariable('石门线索与待查事项已记入任务。', [
+      { op: 'replace', path: '/任务列表/石门寻踪/进度', value: progress },
+      { op: 'replace', path: '/任务列表/石门寻踪/下一步', value: nextStep },
+    ]),
+  );
+  assert.deepEqual(replay.errors, []);
+  assert.equal(replay.fullRollback, false);
+  assert.deepEqual(replay.finalData.任务列表.石门寻踪, {
+    ...oldData.任务列表.石门寻踪,
+    进度: progress,
+    下一步: nextStep,
+  });
+  assert.deepEqual(replay.finalData.本尊, oldData.本尊);
+  assert.deepEqual(replay.finalData, parse(replay.finalData));
+});
+
+test('任务从变量读入预设并导出导入再保存后保留进度与下一步', () => {
+  const original = parse({
+    任务列表: {
+      石门寻踪: {
+        名称: '石门寻踪',
+        目标: '循灰白微光探寻石门深处的隐秘。',
+        进度: '已见枯坐法相，黄泉刻痕的含义尚未证实。',
+        下一步: '查验刻痕，辨明幽紫锁链的共鸣。',
+        创建时间: 0,
+      },
+    },
+  });
+  const form = copyQuestForPreset(original.任务列表.石门寻踪);
+  const exported = JSON.parse(JSON.stringify({ 任务列表: { 石门寻踪: copyQuestForPreset(form) } }));
+  const imported = copyQuestForPreset(exported.任务列表.石门寻踪);
+  const saved = parse({ 任务列表: { 石门寻踪: copyQuestForPreset(imported) } });
+  assert.deepEqual(saved.任务列表, original.任务列表);
+  const oldPreset = copyQuestForPreset({ 名称: '旧任务', 目标: '守住山门。', 创建时间: 0 });
+  assert.equal(oldPreset.进度, '');
+  assert.equal(oldPreset.下一步, '');
+  assert.equal(oldPreset.目标, '守住山门。');
+});
+
 test('现有语法有效的 initvar 均可迁移并幂等', () => {
   const firstMessageDirectory = path.join(process.cwd(), 'src', '灯火阑珊', '第一条消息');
   const files = fs
@@ -781,47 +1148,69 @@ test('变量规则与输出格式 YAML 可解析', () => {
   const outputFormatText = fs.readFileSync(path.join(protocolDirectory, '[mvu_update]变量输出格式.yaml'), 'utf8');
   assert.doesNotThrow(() => YAML.parse(updateRuleText));
   assert.doesNotThrow(() => YAML.parse(outputFormatText));
-  assert.doesNotMatch(updateRuleText, /_档案/u);
-  assert.match(updateRuleText, /每轮先做“任务审计”/u);
-  assert.match(updateRuleText, /任务列表为空时[\s\S]*必须当轮 insert/u);
-  assert.match(updateRuleText, /同一 JSONPatch 必须 insert 接续任务/u);
-  assert.match(updateRuleText, /旧空项\/冗文仅在本人出场/u);
-  assert.match(updateRuleText, /只写当前结论/u);
-  assert.match(updateRuleText, /不得因未直呼姓名或角色无法说话而漏更/u);
-  assert.match(updateRuleText, /无法唯一判断时不猜/u);
-  assert.match(updateRuleText, /金丹中\/后\/大圆满、元婴初固定为 10\/11\/12\/13/u);
-  assert.match(updateRuleText, /依据逐字摘录含原因与最终境界的正文/u);
-  assert.match(updateRuleText, /负荷可写贴合正文的简短描述，不限固定措辞/u);
-  assert.match(updateRuleText, /最近战果\.代价涉及真元、神识或肉身时，同轮同步对应负荷/u);
-  assert.match(updateRuleText, /准确名称是“好感度”[\s\S]*禁止使用不存在的 \/红颜\/\{角色名\}\/好感/u);
-  assert.match(updateRuleText, /关系上下文必须始终为对象/u);
-  assert.match(updateRuleText, /禁止用字符串 replace 整个 \/关系上下文/u);
-  assert.match(updateRuleText, /40~70 字/u);
-  assert.match(updateRuleText, /\$ 前缀使变量列表宏不向正文 AI 展示/u);
-  assert.match(updateRuleText, /其他候选不得在正文、变量结算或 NPC 反应中同步发生/u);
-  assert.match(outputFormatText, /字段何时变化、生命周期与事务联动由《变量更新规则》定义/u);
-  assert.match(outputFormatText, /只定义输出编码/u);
-  assert.match(outputFormatText, /只有玩家最终提交的 input 会送入正文 AI/u);
-  assert.match(outputFormatText, /等级仅用 replace 写绝对整数/u);
-  assert.doesNotMatch(outputFormatText, /金丹初|元婴初期|境界变动\.依据须逐字/u);
-  assert.match(outputFormatText, /\/红颜\/\{角色名\}\/好感度/u);
-  assert.match(outputFormatText, /\/红颜\/\{角色名\}\/关系上下文\/态度缘由/u);
-  assert.match(outputFormatText, /禁止用字符串 replace 整个/u);
-  assert.doesNotMatch(outputFormatText, /境界事务示例|任务生命周期示例|红颜示例/u);
-
+  const updateRule = YAML.parse(updateRuleText);
   const outputFormat = YAML.parse(outputFormatText) as { 变量输出格式: { format: string } };
+  const searchableUpdateRule = JSON.stringify(updateRule);
+  const searchableOutputFormat = JSON.stringify(outputFormat);
+  assert.doesNotMatch(searchableUpdateRule, /_档案/u);
+  assert.match(searchableUpdateRule, /每轮先做“任务审计”/u);
+  assert.match(searchableUpdateRule, /任务列表为空时[\s\S]*必须当轮 insert/u);
+  assert.match(searchableUpdateRule, /同一 JSONPatch 必须 insert 接续任务/u);
+  assert.match(searchableUpdateRule, /旧空项\/冗文仅在本人出场/u);
+  assert.match(searchableUpdateRule, /只写当前结论/u);
+  assert.match(searchableUpdateRule, /不得因未直呼姓名或角色无法说话而漏更/u);
+  assert.match(searchableUpdateRule, /无法唯一判断时不猜/u);
+  assert.match(searchableUpdateRule, /金丹中\/后\/大圆满、元婴初固定为 10\/11\/12\/13/u);
+  assert.match(searchableUpdateRule, /依据逐字摘录含原因与最终境界的正文/u);
+  assert.match(searchableUpdateRule, /负荷可写贴合正文的简短描述，不限固定措辞/u);
+  assert.match(searchableUpdateRule, /最近战果\.代价涉及真元、神识或肉身时，同轮同步对应负荷/u);
+  assert.match(searchableUpdateRule, /准确名称是“好感度”[\s\S]*禁止使用不存在的 \/红颜\/\{角色名\}\/好感/u);
+  assert.match(searchableUpdateRule, /关系上下文必须始终为对象/u);
+  assert.match(searchableUpdateRule, /禁止用字符串 replace 整个 \/关系上下文/u);
+  assert.match(searchableUpdateRule, /30~120 字，上限 220 字/u);
+  assert.match(searchableUpdateRule, /候选、可能发生或未选情节不得写入/u);
+  assert.match(searchableUpdateRule, /征兆→发展→可介入→余波→落幕/u);
+  assert.match(searchableUpdateRule, /活跃事件最多 3 条/u);
+  assert.match(searchableUpdateRule, /总量上限 8/u);
+  assert.match(searchableUpdateRule, /同一 JSONPatch[\s\S]*remove[\s\S]*超额结果/u);
+  assert.match(searchableUpdateRule, /至少一项低压力方向/u);
+  assert.match(searchableUpdateRule, /同一 JSONPatch insert \/世界图志\/\{稳定事件ID\}/u);
+  assert.match(searchableUpdateRule, /连续 3 个合适回合没有事件种子/u);
+  assert.match(searchableUpdateRule, /禁止引用不存在的事件ID/u);
+  assert.match(searchableUpdateRule, /\$ 前缀使变量列表宏不向正文 AI 展示/u);
+  assert.match(searchableUpdateRule, /其他候选不得在正文、变量结算或 NPC 反应中同步发生/u);
+  assert.match(searchableOutputFormat, /字段何时变化、生命周期与事务联动由《变量更新规则》定义/u);
+  assert.match(searchableOutputFormat, /只定义输出编码/u);
+  assert.match(searchableOutputFormat, /只有玩家最终提交的 input 会送入正文 AI/u);
+  assert.match(searchableOutputFormat, /3 条活跃事件 \+ 5 条近期结果/u);
+  assert.match(searchableOutputFormat, /等级仅用 replace 写绝对整数/u);
+  assert.doesNotMatch(searchableOutputFormat, /金丹初|元婴初期|境界变动\.依据须逐字/u);
+  assert.match(searchableOutputFormat, /\/红颜\/\{角色名\}\/好感度/u);
+  assert.match(searchableOutputFormat, /\/红颜\/\{角色名\}\/关系上下文\/态度缘由/u);
+  assert.match(searchableOutputFormat, /禁止用字符串 replace 整个/u);
+  assert.doesNotMatch(searchableOutputFormat, /境界事务示例|任务生命周期示例|红颜示例/u);
+
   const patchMatch = outputFormat.变量输出格式.format.match(/<JSONPatch>\s*([\s\S]*?)\s*<\/JSONPatch>/u);
   if (!patchMatch) throw new Error('变量输出示例缺少可解析的 JSONPatch');
   const examplePatch = JSON.parse(patchMatch[1]) as Array<{ path?: string; value?: unknown }>;
+  const worldEventPatch = examplePatch.find(operation => operation.path === '/世界图志/坊市丹香异变');
+  assert.equal((worldEventPatch?.value as { 状态?: string })?.状态, '活跃');
   const opportunityPatch = examplePatch.find(operation => operation.path === '/$可参与机遇');
   if (!opportunityPatch || !Array.isArray(opportunityPatch.value)) {
     throw new Error('变量输出示例缺少可参与机遇候选数组');
   }
-  const exampleActions = opportunityPatch.value as Array<{ 行动: string; 类型: string }>;
+  const exampleActions = opportunityPatch.value as Array<{
+    行动: string;
+    类型: string;
+    叙事类型: string;
+    事件性质: string;
+  }>;
   assert.equal(exampleActions.length, 3);
-  assert.equal(new Set(exampleActions.map(action => action.类型)).size, 3);
+  assert.ok(exampleActions.some(action => action.事件性质 === '选中后成立'));
+  assert.ok(exampleActions.some(action => action.事件性质 === '回应已发生事件'));
+  assert.ok(exampleActions.some(action => action.叙事类型 === '平淡延续'));
   assert.ok(
-    exampleActions.every(action => Array.from(action.行动).length >= 40 && Array.from(action.行动).length <= 70),
+    exampleActions.every(action => Array.from(action.行动).length >= 30 && Array.from(action.行动).length <= 120),
   );
 });
 

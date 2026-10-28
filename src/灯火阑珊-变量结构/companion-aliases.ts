@@ -6,6 +6,7 @@ export const COMPANION_ALIAS_GROUPS = [
   { canonical: '梦杳泠', aliases: ['泠泠', '乘黄少女', '乘黄幼崽', '末代乘黄'] },
   { canonical: '羽岚', aliases: ['羽岚烟', '岚烟'] },
   { canonical: '沈倩宁', aliases: ['倩宁', '赤血狂刃'] },
+  { canonical: '婵织烟', aliases: ['浮玉殿主'] },
 ] as const;
 
 export const COMPANION_CANONICAL_NAMES: Readonly<Record<string, string>> = Object.fromEntries(
