@@ -3449,163 +3449,6 @@ var __webpack_modules__ = {
       婵织烟: _characters___WEBPACK_IMPORTED_MODULE_12__.imagePool
     };
   },
-  "./src/灯火通明/components/UpdateVariableDisplayGuard.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-    __webpack_require__.r(__webpack_exports__);
-    __webpack_require__.d(__webpack_exports__, {
-      bootstrapUpdateVariableDisplayGuard: () => bootstrapUpdateVariableDisplayGuard
-    });
-    var _schema__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../schema */ "./src/灯火通明/schema.ts");
-    const DISPLAY_GUARD_INSTALLED_KEY = "__踏月寻仙_updatevariable_display_guard_installed__";
-    const READONLY_DERIVED_FIELDS = new Set([ "突破阈值", "寿元上限", "境界描述", "寿元状态", "状态", "进度" ]);
-    const UPDATE_VARIABLE_BLOCK_REGEX = /<update(?:variable)?>([\s\S]*?)<\/update(?:variable)?>/i;
-    const ANALYSIS_TAG_REGEX = /<analysis>([\s\S]*?)<\/analysis>/i;
-    const JSON_PATCH_TAG_REGEX = /<jsonpatch>([\s\S]*?)<\/jsonpatch>/i;
-    function normalizeJsonPointer(path) {
-      let normalized = String(path ?? "").trim();
-      if (!normalized) return normalized;
-      if (!normalized.startsWith("/")) {
-        normalized = `/${normalized.replace(/^\/+/, "")}`;
-      }
-      return normalized.replaceAll("／", "/").replace(/\/+/g, "/");
-    }
-    function isReadonlyDerivedPatchPath(path) {
-      const match = path.match(/^\/(?:本尊|红颜\/[^/]+|NPC图鉴\/[^/]+)\/([^/]+)$/);
-      return !!match && READONLY_DERIVED_FIELDS.has(match[1]);
-    }
-    function buildRealmCorrections(patchItems) {
-      const corrections = [];
-      const protagonistLevelPatch = patchItems.find(item => normalizeJsonPointer(item.path) === "/本尊/等级");
-      const protagonistRealmPatch = patchItems.find(item => normalizeJsonPointer(item.path) === "/本尊/境界描述");
-      const protagonistLevel = Number(protagonistLevelPatch?.value);
-      if (Number.isFinite(protagonistLevel) && typeof protagonistRealmPatch?.value === "string") {
-        const wrong = String(protagonistRealmPatch.value).trim();
-        const correct = (0, _schema__WEBPACK_IMPORTED_MODULE_0__.describeRealmByLevel)(protagonistLevel);
-        if (wrong && wrong !== correct) {
-          corrections.push({
-            wrong,
-            correct
-          });
-        }
-      }
-      const companionLevelMap = new Map;
-      for (const item of patchItems) {
-        const match = normalizeJsonPointer(item.path).match(/^\/红颜\/([^/]+)\/等级$/);
-        const level = Number(item.value);
-        if (!match || !Number.isFinite(level)) continue;
-        companionLevelMap.set(match[1], (0, _schema__WEBPACK_IMPORTED_MODULE_0__.describeRealmByLevel)(level));
-      }
-      for (const item of patchItems) {
-        const match = normalizeJsonPointer(item.path).match(/^\/红颜\/([^/]+)\/境界描述$/);
-        if (!match || typeof item.value !== "string") continue;
-        const wrong = String(item.value).trim();
-        const correct = companionLevelMap.get(match[1]);
-        if (correct && wrong && wrong !== correct) {
-          corrections.push({
-            wrong,
-            correct
-          });
-        }
-      }
-      return _.uniqBy(corrections, correction => `${correction.wrong}=>${correction.correct}`);
-    }
-    function sanitizeAnalysisText(analysis, corrections) {
-      let sanitized = analysis;
-      for (const {wrong, correct} of corrections) {
-        sanitized = sanitized.split(wrong).join(correct);
-      }
-      return sanitized;
-    }
-    function sanitizeUpdateVariableInnerContent(innerContent) {
-      const analysisMatch = innerContent.match(ANALYSIS_TAG_REGEX);
-      const patchMatch = innerContent.match(JSON_PATCH_TAG_REGEX);
-      if (!analysisMatch || !patchMatch) {
-        return innerContent;
-      }
-      try {
-        const parsedPatch = JSON.parse(patchMatch[1].trim());
-        if (!Array.isArray(parsedPatch)) {
-          return innerContent;
-        }
-        const patchItems = parsedPatch;
-        const filteredPatchItems = patchItems.filter(item => !isReadonlyDerivedPatchPath(normalizeJsonPointer(item.path)));
-        const originalAnalysis = analysisMatch[1].trim();
-        const sanitizedAnalysis = sanitizeAnalysisText(originalAnalysis, buildRealmCorrections(patchItems));
-        const changed = filteredPatchItems.length !== patchItems.length || sanitizedAnalysis !== originalAnalysis;
-        if (!changed) {
-          return innerContent;
-        }
-        return `<Analysis>${sanitizedAnalysis}</Analysis>\n<JSONPatch>${JSON.stringify(filteredPatchItems, null, 2)}</JSONPatch>`;
-      } catch {
-        return innerContent;
-      }
-    }
-    function applySanitizedUpdateVariableDisplay(messageId) {
-      const message = String(getChatMessages(messageId)?.[0]?.message || "");
-      const blockMatch = message.match(UPDATE_VARIABLE_BLOCK_REGEX);
-      if (!blockMatch) {
-        return true;
-      }
-      const sanitizedInnerContent = sanitizeUpdateVariableInnerContent(blockMatch[1].trim());
-      const $displayedMessage = retrieveDisplayedMessage(messageId);
-      const $details = $displayedMessage.find("details.cultivation-var-update");
-      if ($details.length === 0) {
-        return false;
-      }
-      $details.each((_index, element) => {
-        const $content = $(element).children("div").last();
-        if ($content.length === 0) return;
-        if ($content.text().trim() === sanitizedInnerContent) return;
-        $content.text(sanitizedInnerContent);
-      });
-      return true;
-    }
-    function scheduleDisplaySanitization(messageId, retries = 8, shouldContinue = () => true) {
-      window.setTimeout(() => {
-        if (!shouldContinue()) return;
-        if (applySanitizedUpdateVariableDisplay(messageId) || retries <= 1) {
-          return;
-        }
-        scheduleDisplaySanitization(messageId, retries - 1, shouldContinue);
-      }, 80);
-    }
-    function bootstrapUpdateVariableDisplayGuard() {
-      const globalRef = window;
-      if (globalRef[DISPLAY_GUARD_INSTALLED_KEY]) return () => undefined;
-      globalRef[DISPLAY_GUARD_INSTALLED_KEY] = true;
-      const eventStops = [];
-      let disposed = false;
-      const messageId = getCurrentMessageId();
-      if (typeof messageId !== "number") {
-        delete globalRef[DISPLAY_GUARD_INSTALLED_KEY];
-        return () => undefined;
-      }
-      const sanitizeCurrentMessage = () => {
-        if (disposed) return;
-        scheduleDisplaySanitization(messageId, 8, () => !disposed);
-      };
-      sanitizeCurrentMessage();
-      eventStops.push(eventOn(tavern_events.MESSAGE_UPDATED, id => {
-        if (id === messageId) {
-          sanitizeCurrentMessage();
-        }
-      }).stop);
-      eventStops.push(eventOn(tavern_events.MESSAGE_RECEIVED, id => {
-        if (id === messageId) {
-          sanitizeCurrentMessage();
-        }
-      }).stop);
-      return () => {
-        if (disposed) return;
-        disposed = true;
-        eventStops.splice(0).forEach(stop => {
-          try {
-            stop();
-          } catch {}
-        });
-        delete globalRef[DISPLAY_GUARD_INSTALLED_KEY];
-      };
-    }
-  },
   "./src/灯火通明/components/combat-utils.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
@@ -28447,7 +28290,6 @@ let __webpack_exports__ = {};
   var vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! vue */ "vue");
   var vue__WEBPACK_IMPORTED_MODULE_1___default = __webpack_require__.n(vue__WEBPACK_IMPORTED_MODULE_1__);
   var _app_vue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./app.vue */ "./src/灯火通明/app.vue");
-  var _components_UpdateVariableDisplayGuard__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/UpdateVariableDisplayGuard */ "./src/灯火通明/components/UpdateVariableDisplayGuard.ts");
   $(() => {
     let disposed = false;
     let unmount;
@@ -28462,7 +28304,6 @@ let __webpack_exports__ = {};
         return;
       }
       if (unmount) return;
-      const stopUpdateVariableDisplayGuard = (0, _components_UpdateVariableDisplayGuard__WEBPACK_IMPORTED_MODULE_3__.bootstrapUpdateVariableDisplayGuard)();
       const pinia = (0, pinia__WEBPACK_IMPORTED_MODULE_0__.createPinia)();
       const app = (0, vue__WEBPACK_IMPORTED_MODULE_1__.createApp)(_app_vue__WEBPACK_IMPORTED_MODULE_2__["default"]);
       app.use(pinia);
@@ -28470,7 +28311,6 @@ let __webpack_exports__ = {};
       unmount = () => {
         app.unmount();
         (0, pinia__WEBPACK_IMPORTED_MODULE_0__.disposePinia)(pinia);
-        stopUpdateVariableDisplayGuard();
       };
     };
     const observer = new MutationObserver(syncMount);

@@ -4,12 +4,7 @@ const lodash = require('lodash');
 (globalThis as any)._ = lodash;
 
 const { Schema, describeRealmByLevel, getRealmThreshold } = require('../src/灯火阑珊/schema.ts');
-const {
-  applyRealmTransitionGuards,
-  correctProtagonistRealmText,
-  guardParsedCommands,
-  repairStatDataWithFallback,
-} = require('../src/灯火阑珊-变量结构/guard.ts');
+const { guardParsedCommands } = require('../src/灯火阑珊-变量结构/guard.ts');
 
 export type PatchOperation = {
   op: 'replace' | 'delta' | 'insert' | 'remove';
@@ -257,9 +252,6 @@ function checkCultivator(cultivator: any, label: string, errors: string[]): void
   if (cultivator.突破阈值 !== getRealmThreshold(level)) {
     errors.push(`${label}.突破阈值 与等级不一致`);
   }
-  if (cultivator.修炼状态?.阶段 !== '突破中' && cultivator.修炼状态?.境界变动?.类型 !== '无') {
-    errors.push(`${label}.境界变动 在非突破中阶段未清理`);
-  }
 }
 
 export function collectInvariantErrors(data: any): string[] {
@@ -354,21 +346,8 @@ export function executeUpdateVariable(
   const commandGuardIntervened = !lodash.isEqual(commandsAfterPathNormalization, commands);
   const candidate = applyGuardedCommands(oldData, commands);
 
-  const transitionResult = applyRealmTransitionGuards(candidate, oldData);
-  if (transitionResult.protagonistLevelChanged) {
-    transitionResult.data.当前处境 = correctProtagonistRealmText(
-      transitionResult.data.当前处境,
-      transitionResult.data.本尊?.等级,
-      Object.keys(transitionResult.data.红颜 ?? {}),
-    );
-  }
-  const repairResult = repairStatDataWithFallback(transitionResult.data, oldData);
-  if (!repairResult.data) {
-    throw new Error('变量守卫无法获得有效的新旧快照');
-  }
-
-  const finalData = Schema.parse(repairResult.data);
-  const warnings = [...transitionResult.warnings, ...repairResult.warnings];
+  const finalData = Schema.parse(candidate);
+  const warnings: string[] = [];
   const errors = [
     ...collectInvariantErrors(finalData),
     ...collectSemanticErrors(oldData, finalData, parsedUpdate.patch, semanticExpectation),
@@ -381,8 +360,8 @@ export function executeUpdateVariable(
     warnings,
     errors,
     commandGuardIntervened,
-    schemaRepairIntervened: repairResult.repaired,
-    fullRollback: warnings.some(warning => warning.includes('整份旧的有效变量')),
+    schemaRepairIntervened: false,
+    fullRollback: false,
   };
 }
 

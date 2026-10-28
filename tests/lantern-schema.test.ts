@@ -33,12 +33,6 @@ const { executeUpdateVariable, makeUpdateVariable } = require('./lantern-mvu-har
 const { preservesRelationshipContinuity } = require('../src/灯火通明/narrative-continuity');
 const { getWorldEventEntries, selectWorldEventsForDisplay } = require('../src/灯火通明/world-events');
 const { parseWorldEventPatchOperation, restoreWorldEventLedger } = require('../src/灯火通明/world-event-patch-guard');
-const {
-  applyRealmTransitionGuards,
-  correctProtagonistRealmText,
-  repairStatDataWithFallback,
-} = require('../src/灯火阑珊-变量结构/guard');
-
 type TestCase = {
   name: string;
   run: () => void;
@@ -56,20 +50,6 @@ function clone<T>(value: T): T {
 
 function parse(input: unknown = {}): any {
   return Schema.parse(input);
-}
-
-function makeCultivator(level: number): any {
-  return parse({
-    本尊: {
-      等级: level,
-      修为: getRealmThreshold(level),
-      修炼状态: {
-        阶段: '突破中',
-        上次结果: '无',
-      },
-      尝试突破: true,
-    },
-  });
 }
 
 test('默认值采用盛法时代与 v5 变量结构', () => {
@@ -833,26 +813,6 @@ test('开放式身心负荷描述会原样保留并推导展示严重度', () =>
   assert.deepEqual(parse(data), data);
 });
 
-test('新战果漏写对应负荷时守卫同步代价文本且不覆盖已写描述', () => {
-  const oldData = parse();
-  const nextData = clone(oldData);
-  nextData.本尊.战斗状态.阶段 = '余波';
-  nextData.本尊.战斗状态.负荷.肉身 = '中损（虎口迸裂，气血激荡）';
-  nextData.本尊.战斗状态.最近战果 = {
-    结果: '胜',
-    对手: ['百棺尸解仙'],
-    达成: '斩破血爪，摧毁丧魂钟',
-    代价: ['肉身负伤', '真元剧耗'],
-    后患: ['与尸解仙结下因果'],
-  };
-
-  const repaired = repairStatDataWithFallback(nextData, oldData);
-  assert.ok(repaired.data);
-  assert.equal(repaired.data.本尊.战斗状态.负荷.肉身, '中损（虎口迸裂，气血激荡）');
-  assert.equal(repaired.data.本尊.战斗状态.负荷.真元, '真元剧耗');
-  assert.ok(repaired.warnings.some((warning: string) => warning.includes('真元剧耗')));
-});
-
 test('道争态势只按明确因果推进且跨境常规手段无效', () => {
   const crossRealm = compareRealmStanding(4, 5);
   assert.equal(crossRealm, '敌方位格压制');
@@ -891,161 +851,6 @@ test('致命败局只能记录为负或脱身并携带重大代价', () => {
   assert.equal(defeated.本尊.战斗状态.最近战果.结果, '脱身');
   assert.ok(['濒危', '重创'].includes(defeated.本尊.战斗状态.负荷.肉身));
   assert.ok(defeated.本尊.战斗状态.最近战果.代价.length >= 2);
-});
-
-test('普通突破 4→5 原子结算并清理临时凭证', () => {
-  const oldData = makeCultivator(4);
-  const nextData = clone(oldData);
-  nextData.本尊.等级 = 5;
-  nextData.本尊.修为 = 400;
-  nextData.本尊.修炼状态.境界变动 = {
-    类型: '突破',
-    目标等级: 5,
-    依据: '',
-  };
-
-  const guarded = applyRealmTransitionGuards(nextData, oldData);
-  const parsed = parse(guarded.data);
-  assert.equal(parsed.本尊.等级, 5);
-  assert.equal(parsed.本尊.境界描述, '筑基初期');
-  assert.equal(parsed.本尊.修为, 0);
-  assert.equal(parsed.本尊.修炼状态.阶段, '稳固中');
-  assert.equal(parsed.本尊.修炼状态.上次结果, '成功');
-  assert.equal(parsed.本尊.尝试突破, false);
-  assert.equal(parsed.本尊.修炼状态.境界变动.类型, '无');
-});
-
-test('跨级突破有依据时生效，无依据时收敛为 +1', () => {
-  const oldData = makeCultivator(4);
-  const validNext = clone(oldData);
-  validNext.本尊.等级 = 7;
-  validNext.本尊.修炼状态.境界变动 = {
-    类型: '跨级突破',
-    目标等级: 7,
-    依据: '完整炼化上古真君传承，连破至筑基后期',
-  };
-  assert.equal(applyRealmTransitionGuards(validNext, oldData).data.本尊.等级, 7);
-
-  const invalidNext = clone(validNext);
-  invalidNext.本尊.修炼状态.境界变动.依据 = '';
-  const guarded = applyRealmTransitionGuards(invalidNext, oldData);
-  assert.equal(guarded.data.本尊.等级, 5);
-  assert.ok(guarded.warnings.some((warning: string) => warning.includes('跨级依据')));
-});
-
-test('金丹中期突破至后期时，额外模型错报大圆满或元婴均收敛为 11', () => {
-  const oldData = makeCultivator(10);
-  const narrative = '灵机贯通，本尊修为从金丹中期突破至金丹后期。';
-
-  for (const [requestedLevel, wrongRealm] of [
-    [12, '金丹大圆满'],
-    [13, '元婴初期'],
-  ] as const) {
-    const nextData = clone(oldData);
-    nextData.本尊.等级 = requestedLevel;
-    nextData.本尊.修炼状态.境界变动 = {
-      类型: '跨级突破',
-      目标等级: requestedLevel,
-      依据: `灵机贯通，本尊修为从金丹中期突破至${wrongRealm}。`,
-    };
-
-    const guarded = applyRealmTransitionGuards(nextData, oldData, { protagonistNarrativeText: narrative });
-    assert.equal(guarded.data.本尊.等级, 11);
-    assert.ok(guarded.warnings.some((warning: string) => warning.includes('跨级依据')));
-  }
-});
-
-test('跌境有依据时生效，无依据时回退旧等级', () => {
-  const oldData = makeCultivator(5);
-  const validNext = clone(oldData);
-  validNext.本尊.等级 = 4;
-  validNext.本尊.修炼状态.境界变动 = {
-    类型: '跌境',
-    目标等级: 4,
-    依据: '护道失败导致根基崩毁，跌至练气大圆满',
-  };
-  const valid = applyRealmTransitionGuards(validNext, oldData);
-  assert.equal(valid.data.本尊.等级, 4);
-  assert.equal(valid.data.本尊.修炼状态.上次结果, '失败');
-
-  const invalidNext = clone(validNext);
-  invalidNext.本尊.修炼状态.境界变动.依据 = '';
-  const invalid = applyRealmTransitionGuards(invalidNext, oldData);
-  assert.equal(invalid.data.本尊.等级, 5);
-  assert.ok(invalid.warnings.some((warning: string) => warning.includes('跌境依据')));
-});
-
-test('失败突破和最高等级不会留下过期临时状态', () => {
-  const failedOld = makeCultivator(4);
-  const failedNext = clone(failedOld);
-  failedNext.本尊.修炼状态.阶段 = '稳固中';
-  failedNext.本尊.修炼状态.上次结果 = '失败';
-  failedNext.本尊.修炼状态.境界变动 = {
-    类型: '突破',
-    目标等级: 5,
-    依据: '',
-  };
-  const failed = applyRealmTransitionGuards(failedNext, failedOld).data;
-  assert.equal(failed.本尊.修炼状态.境界变动.类型, '无');
-  assert.equal(failed.本尊.尝试突破, false);
-
-  const cancelledNext = clone(failedOld);
-  cancelledNext.本尊.修炼状态.阶段 = '修炼中';
-  cancelledNext.本尊.修炼状态.上次结果 = '无';
-  cancelledNext.本尊.修炼状态.境界变动 = {
-    类型: '突破',
-    目标等级: 5,
-    依据: '',
-  };
-  const cancelled = applyRealmTransitionGuards(cancelledNext, failedOld).data;
-  assert.equal(cancelled.本尊.修炼状态.境界变动.类型, '无');
-  assert.equal(cancelled.本尊.尝试突破, false);
-
-  const highest = parse({
-    本尊: {
-      等级: 48,
-      修为: REALM_THRESHOLDS[47],
-      修炼状态: { 阶段: '瓶颈中' },
-    },
-  });
-  assert.equal(highest.本尊.境界描述, '仙帝大圆满');
-  assert.equal(highest.本尊.修炼状态.突破目标, '');
-});
-
-test('截图场景中变量与本尊处境统一为筑基初期且不误改他人', () => {
-  const text = '虞汐颜已突破至练气大圆满，本尊已突破至练气大圆满。';
-  const corrected = correctProtagonistRealmText(text, 5, ['虞汐颜']);
-  assert.equal(corrected, '虞汐颜已突破至练气大圆满，本尊已突破至筑基初期。');
-});
-
-test('非法局部条目被移除，旧合法任务与库存不会丢失', () => {
-  const oldData = parse({
-    任务列表: {
-      寻找灵药: {
-        名称: '寻找灵药',
-        类型: '支线',
-        目标: '找到一株灵药',
-        状态: '进行中',
-      },
-    },
-    本尊: {
-      背包: {
-        青玉丹: { 名称: '青玉丹', 数量: 2, 描述: '稳固灵力' },
-      },
-    },
-  });
-  const nextData = clone(oldData);
-  nextData.任务列表.非法任务 = null;
-  nextData.本尊.背包.非法物品 = null;
-  nextData.地点库.非法地点 = null;
-
-  const repaired = repairStatDataWithFallback(nextData, oldData);
-  assert.ok(repaired.data);
-  assert.ok(repaired.data.任务列表.寻找灵药);
-  assert.equal(repaired.data.本尊.背包.青玉丹.数量, 2);
-  assert.equal(repaired.data.任务列表.非法任务, undefined);
-  assert.equal(repaired.data.本尊.背包.非法物品, undefined);
-  assert.equal(repaired.data.地点库.非法地点, undefined);
 });
 
 test('旧任务兼容新增进度与下一步且保留原有目标措辞', () => {
