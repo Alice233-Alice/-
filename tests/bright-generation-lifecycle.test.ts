@@ -1104,12 +1104,41 @@ test('慢速启动期间重复候选通知不会反复销毁 iframe', () => {
   vm.runInNewContext(controllerDeclarations(['parkFrame']) + '\nglobalThis.park = parkFrame;', host);
   for (let i = 0; i < 20; i += 1) {
     assert.equal(
-      host.park(12, { dataset: {}, getAttribute: (name: string) => (name === 'src' ? 'blob:pending' : null) }),
+      host.park(12, { dataset: {}, closest: () => null, getAttribute: (name: string) => (name === 'src' ? 'blob:pending' : null) }),
       false,
     );
   }
   assert.equal(removed, 0);
   assert.equal(host.park(12, { dataset: {}, getAttribute: () => null }), false);
+});
+
+test('自有舞台保留加载源，释放原生渲染块的尺寸和定位约束', () => {
+  const originalAttributes = new Map([
+    ['id', 'native-stage'], ['src', 'blob:stage'], ['loading', 'lazy'],
+    ['style', 'width:2400px;height:1200px;position:absolute'], ['width', '2400'], ['height', '1200'],
+  ]);
+  const copiedAttributes = new Map(originalAttributes);
+  const marked = new Set<string>();
+  const copied = { dataset: {}, removeAttribute: (name: string) => copiedAttributes.delete(name), addEventListener: () => {} };
+  const frame = {
+    dataset: {}, getAttribute: (name: string) => originalAttributes.get(name),
+    closest: () => ({ classList: { add: (name: string) => marked.add(name) } }), cloneNode: () => copied,
+  };
+  let appended: any;
+  const host: any = {
+    NATIVE_STAGE_CLASS: 'native-stage', PARKED_FRAME_CLASS: 'parked',
+    hasMountedPseudoApp: () => true,
+    getMessageElement: () => ({ getAttribute: () => 'false', classList: { add: () => {} } }),
+    getFrameKeeper: () => ({ querySelector: () => null, append: (value: any) => { appended = value; } }),
+    frameLoadStartedAt: new WeakMap(), rememberFrame: () => {},
+  };
+  vm.runInNewContext(controllerDeclarations(['parkFrame']) + '\nglobalThis.park = parkFrame;', host);
+  assert.equal(host.park(12, frame), true);
+  assert.equal(appended, copied);
+  assert.equal(copiedAttributes.get('src'), 'blob:stage');
+  assert.equal(copiedAttributes.size, 1);
+  assert.equal(originalAttributes.size, 6);
+  assert.ok(marked.has('native-stage'));
 });
 
 test('舞台接管后卸载原生楼层应用，关闭控制器时恢复，重复通知不重复挂载', () => {
