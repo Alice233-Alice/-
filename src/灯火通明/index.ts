@@ -1,7 +1,6 @@
 import { createPinia, disposePinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './app.vue';
-import { bootstrapUpdateVariableDisplayGuard } from './components/UpdateVariableDisplayGuard';
 
 $(() => {
   let disposed = false;
@@ -19,7 +18,6 @@ $(() => {
       return;
     }
     if (unmount) return;
-    const stopUpdateVariableDisplayGuard = bootstrapUpdateVariableDisplayGuard();
     const pinia = createPinia();
     const app = createApp(App);
     app.use(pinia);
@@ -27,7 +25,6 @@ $(() => {
     unmount = () => {
       app.unmount();
       disposePinia(pinia);
-      stopUpdateVariableDisplayGuard();
     };
   };
 

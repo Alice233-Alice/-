@@ -2,7 +2,7 @@ import { useIntervalFn } from '@vueuse/core';
 import _ from 'lodash';
 import { extractGalleryCardsFromContent, preloadGalleryCardImages, preloadGalleryImage } from './gallery-cards';
 import { inferLayerFromTrack } from '../region-utils';
-import { DEFAULT_CHARACTER_LIB, Schema } from '../schema';
+import { CURRENT_CULTIVATION_VERSION, CURRENT_SCHEMA_VERSION, DEFAULT_CHARACTER_LIB, Schema } from '../schema';
 import { getActiveWorldEvents, getWorldEventEntries } from '../world-events';
 import type { CustomPortraitOverride, GalleryCard } from './gallery-cards';
 import type { SchemaType } from '../schema';
@@ -833,8 +833,8 @@ export const useDataStore = defineStore(
       () =>
         rawData.value?._系统设置 ?? {
           启用行动提示: true,
-          修炼系统版本: 3,
-          变量结构版本: 5,
+          修炼系统版本: CURRENT_CULTIVATION_VERSION,
+          变量结构版本: CURRENT_SCHEMA_VERSION,
           _临时状态手动覆盖签名: '',
         },
     );
@@ -849,14 +849,12 @@ export const useDataStore = defineStore(
           if (!rawData.value._系统设置) {
             rawData.value._系统设置 = {
               启用行动提示: newVal,
-              修炼系统版本: 3,
-              变量结构版本: 5,
+              修炼系统版本: CURRENT_CULTIVATION_VERSION,
+              变量结构版本: CURRENT_SCHEMA_VERSION,
               _临时状态手动覆盖签名: '',
             };
           } else {
             rawData.value._系统设置.启用行动提示 = newVal;
-            rawData.value._系统设置.修炼系统版本 = Number(rawData.value._系统设置.修炼系统版本 ?? 3) || 3;
-            rawData.value._系统设置.变量结构版本 = 5;
             rawData.value._系统设置._临时状态手动覆盖签名 = rawData.value._系统设置._临时状态手动覆盖签名 ?? '';
           }
         }
@@ -864,12 +862,6 @@ export const useDataStore = defineStore(
         await waitGlobalInitialized('Mvu');
         const variables = Mvu.getMvuData({ type: 'message', message_id });
         _.set(variables, 'stat_data._系统设置.启用行动提示', newVal);
-        _.set(
-          variables,
-          'stat_data._系统设置.修炼系统版本',
-          Number(_.get(variables, 'stat_data._系统设置.修炼系统版本', 3)) || 3,
-        );
-        _.set(variables, 'stat_data._系统设置.变量结构版本', 5);
         await Mvu.replaceMvuData(variables, { type: 'message', message_id });
         toastr.success(`已${newVal ? '开启' : '关闭'}行动提示生成`, '系统设置');
       } catch (e) {

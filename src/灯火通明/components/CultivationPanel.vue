@@ -45,7 +45,8 @@
             aria-label="当前修为进度"
             aria-valuemin="0"
             :aria-valuemax="store.本尊.突破阈值"
-            :aria-valuenow="store.本尊.修为"
+            :aria-valuenow="Math.min(store.本尊.修为, store.本尊.突破阈值)"
+            :aria-valuetext="`修为 ${store.本尊.修为}，所需积累 ${store.本尊.突破阈值}，盈余 ${store.本尊.盈余修为}`"
           >
             <div class="orbit-mark orbit-mark-top"></div>
             <div class="orbit-mark orbit-mark-bottom"></div>
@@ -90,6 +91,8 @@
         <div class="progress-foot">
           <span>灵机循行，周天不息</span>
           <span v-if="remainingCultivation > 0">距圆满尚需 {{ formatNumber(remainingCultivation) }}</span>
+          <span v-else-if="store.本尊.盈余修为 > 0">积累已足 · 盈余 {{ formatNumber(store.本尊.盈余修为) }}</span>
+          <span v-else-if="store.本尊.积累已足">积累已足，可择机破境</span>
           <span v-else>气机已臻圆满</span>
         </div>
       </section>
@@ -252,8 +255,18 @@ const pathNotes = computed<PathNote[]>(() => {
   const notes: PathNote[] = [];
 
   if (cultivation.突破目标) notes.push({ label: '破境所向', value: cultivation.突破目标 });
+  if (cultivation.方式) notes.push({ label: '行功之法', value: cultivation.方式 });
+  if (cultivation.地点) notes.push({ label: '修行所在', value: cultivation.地点 });
+  if (cultivation.计划年数 > 0 || cultivation.已修炼年数 > 0) {
+    notes.push({
+      label: '修行岁月',
+      value: `已修 ${formatNumber(cultivation.已修炼年数)} 年${cultivation.计划年数 > 0 ? `，计划 ${formatNumber(cultivation.计划年数)} 年` : ''}`,
+    });
+  }
   if (cultivation.瓶颈原因) notes.push({ label: '瓶颈所在', value: cultivation.瓶颈原因 });
+  if (cultivation.根基描述) notes.push({ label: '根基调养', value: cultivation.根基描述 });
   if (cultivation.上次结果 !== '无') notes.push({ label: '上次问道', value: cultivation.上次结果 });
+  if (cultivation.最近突破.依据) notes.push({ label: '破境纪要', value: cultivation.最近突破.依据 });
 
   return notes;
 });

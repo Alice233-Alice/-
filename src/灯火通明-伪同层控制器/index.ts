@@ -165,6 +165,7 @@ const GENERATION_NOTICE_KEY = 'dhl_pseudo_generation_notice';
 const STAGE_CLASS = 'dhl-pseudo-stage';
 const SELECTED_CLASS = 'dhl-pseudo-selected';
 const PARKED_FRAME_CLASS = 'dhl-pseudo-frame-parked';
+const NATIVE_STAGE_CLASS = 'dhl-pseudo-native-stage';
 const FRAME_KEEPER_CLASS = 'dhl-pseudo-frame-keeper';
 const ACTIVE_KEEPER_CLASS = 'dhl-pseudo-frame-active';
 const STAGE_ROOT_ID = 'dhl-pseudo-stage-root';
@@ -472,6 +473,7 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
   if (!hasMountedPseudoApp(frame)) return false;
   const message = getMessageElement(messageId);
   if (!message || message.getAttribute('is_user') === 'true') return false;
+  frame.closest('.TH-render')?.classList.add(NATIVE_STAGE_CLASS);
   const keeper = getFrameKeeper(messageId);
   if (!keeper) return false;
 
@@ -496,8 +498,7 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
   }
 
   const ownedFrame = frame.cloneNode(false) as HTMLIFrameElement;
-  ownedFrame.removeAttribute('id');
-  ownedFrame.removeAttribute('loading');
+  for (const name of ['id', 'loading', 'style', 'width', 'height']) ownedFrame.removeAttribute(name);
   ownedFrame.dataset.dhlControllerOwned = 'true';
   ownedFrame.dataset.dhlMessageId = String(messageId);
   frameLoadStartedAt.set(ownedFrame, Date.now());
@@ -1410,12 +1411,15 @@ const installStyle = () => {
       margin: 0 !important;
     }
     #${STAGE_ROOT_ID} { display: none !important; }
-    body.${ROOT_ACTIVE_CLASS} #chat > .mes.${SELECTED_CLASS} { display: none !important; }
+    body.${ROOT_ACTIVE_CLASS} #chat > :not(#${STAGE_ROOT_ID}) { display: none !important; }
     body.${ROOT_ACTIVE_CLASS} #${STAGE_ROOT_ID} {
       display: block !important;
+      flex: 1 1 0% !important;
       width: 100% !important;
-      max-width: none !important;
+      max-width: 100% !important;
       min-width: 0 !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
       padding: 0 !important;
       margin: 0 !important;
     }
@@ -1428,6 +1432,8 @@ const installStyle = () => {
     #${STAGE_ROOT_ID} > .${FRAME_KEEPER_CLASS} > iframe {
       display: block !important;
       width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
       border: 0 !important;
     }
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} > .for_checkbox,
@@ -1444,6 +1450,7 @@ const installStyle = () => {
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .mes_text { width: 100% !important; max-width: none !important; }
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .mes_text { padding: 0 !important; }
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .mes_text > :not(.TH-render) { display: none !important; }
+    body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .TH-render:not(.${NATIVE_STAGE_CLASS}) { display: none !important; }
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .TH-render,
     body.dhl-pseudo-layer-active #chat > .mes.${SELECTED_CLASS} .TH-render > iframe { width: 100% !important; }
     body.dhl-native-input-collapsed #form_sheld { display: none !important; }
@@ -3909,6 +3916,9 @@ const disposeController = () => {
   tavernDocument.body.classList.remove('dhl-pseudo-layer-active', 'dhl-native-input-collapsed', ROOT_ACTIVE_CLASS);
   tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes').forEach(element => {
     element.classList.remove(STAGE_CLASS, SELECTED_CLASS, PARKED_FRAME_CLASS);
+  });
+  tavernDocument.querySelectorAll<HTMLElement>(`#chat > .mes .${NATIVE_STAGE_CLASS}`).forEach(element => {
+    element.classList.remove(NATIVE_STAGE_CLASS);
   });
   if (controllerHost.__dhlPseudoLayerControllerLease__?.instanceId === controllerInstanceId) {
     delete controllerHost.__dhlPseudoLayerControllerLease__;

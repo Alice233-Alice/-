@@ -253,6 +253,12 @@
                 <span :style="{ width: `${getCultivationProgress(selectedCompanion)}%` }"></span>
               </div>
               <p v-if="selectedCompanion.修炼状态?.瓶颈原因">{{ selectedCompanion.修炼状态.瓶颈原因 }}</p>
+              <p v-if="selectedCompanion.修炼状态?.根基描述">{{ selectedCompanion.修炼状态.根基描述 }}</p>
+              <p v-if="selectedCompanion.积累已足">
+                积累已足，可按自身意愿择机破境<span v-if="selectedCompanion.盈余修为 > 0"
+                  >；盈余 {{ selectedCompanion.盈余修为 }}</span
+                >。
+              </p>
             </div>
 
             <dl class="cultivation-grid">

@@ -595,7 +595,15 @@
 
 <script setup lang="ts">
 import { copyQuestForPreset, type QuestPresetData as QuestData } from '../quest-preset';
-import { extractSpiritStoneFromInventory, REALM_NAMES, REALM_STAGES, Schema } from '../schema';
+import {
+  CompanionSchema,
+  ProtagonistSchema,
+  extractSpiritStoneFromInventory,
+  REALM_NAMES,
+  REALM_STAGES,
+  Schema,
+  type SchemaType,
+} from '../schema';
 import { useDataStore } from '../store';
 
 const store = useDataStore();
@@ -665,6 +673,7 @@ interface CompanionData {
   灵石: number;
   已活岁月: number;
   尝试突破: boolean;
+  修炼状态: SchemaType['本尊']['修炼状态'];
 }
 
 interface CharacterLibraryData {
@@ -708,6 +717,7 @@ const 红颜角色库 = computed<Record<string, CharacterLibraryData>>(() => 默
 const formData = ref({
   等级: 1,
   修为: 0,
+  修炼状态: ProtagonistSchema.parse({}).修炼状态,
   灵根: '',
   体质: '',
   功法: '',
@@ -786,6 +796,7 @@ const createCompanionDataFromLibraryEntry = (charData: CharacterLibraryData): Co
     灵石: 0,
     已活岁月: 0,
     尝试突破: false,
+    修炼状态: CompanionSchema.parse({ 等级: charData.级 }).修炼状态,
   };
 };
 
@@ -1007,6 +1018,7 @@ const loadCurrentData = () => {
         灵石: companion.灵石 ?? 0,
         已活岁月: companion.已活岁月 ?? 0,
         尝试突破: companion.尝试突破 ?? false,
+        修炼状态: CompanionSchema.parse(companion).修炼状态,
       };
     }
   }
@@ -1014,6 +1026,7 @@ const loadCurrentData = () => {
   formData.value = {
     等级: store.本尊.等级 ?? 1,
     修为: store.本尊.修为 ?? 0,
+    修炼状态: _.cloneDeep(store.本尊.修炼状态),
     灵根: store.本尊.灵根 ?? '',
     体质: store.本尊.体质 ?? '',
     功法: store.本尊.功法 ?? '',
@@ -1091,10 +1104,9 @@ const applyCustomOpeningContent = async (content: string): Promise<boolean> => {
 
     const swipes = _.cloneDeep(greetingMessage.swipes);
     swipes[CUSTOM_OPENING_SWIPE_ID] = content;
-    await setChatMessages(
-      [{ message_id: greetingMessage.message_id, swipes, swipe_id: CUSTOM_OPENING_SWIPE_ID }],
-      { refresh: 'affected' },
-    );
+    await setChatMessages([{ message_id: greetingMessage.message_id, swipes, swipe_id: CUSTOM_OPENING_SWIPE_ID }], {
+      refresh: 'affected',
+    });
     customOpeningText.value = content;
     return true;
   } catch (error) {
@@ -1184,13 +1196,12 @@ const applyPreset = async () => {
   const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
   const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
   const normalizedSpiritStone =
-    Math.max(0, Number(formData.value.灵石) || 0) +
-    normalizedBackpack.spiritStone +
-    normalizedMiscBag.spiritStone;
+    Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone;
   const patchData = {
     本尊: {
       等级: formData.value.等级,
       修为: formData.value.修为,
+      修炼状态: _.cloneDeep(formData.value.修炼状态),
       灵根: formData.value.灵根,
       体质: formData.value.体质,
       功法: formData.value.功法,
@@ -1278,6 +1289,7 @@ const applyPreset = async () => {
       vars => {
         _.set(vars, 'stat_data.本尊.等级', formData.value.等级);
         _.set(vars, 'stat_data.本尊.修为', formData.value.修为);
+        _.set(vars, 'stat_data.本尊.修炼状态', _.cloneDeep(formData.value.修炼状态));
         _.set(vars, 'stat_data.本尊.灵根', formData.value.灵根);
         _.set(vars, 'stat_data.本尊.体质', formData.value.体质);
         _.set(vars, 'stat_data.本尊.功法', formData.value.功法);
@@ -1322,6 +1334,7 @@ const resetToDefault = () => {
   formData.value = {
     等级: defaultData.本尊.等级 ?? 1,
     修为: defaultData.本尊.修为 ?? 0,
+    修炼状态: _.cloneDeep(defaultData.本尊.修炼状态),
     灵根: defaultData.本尊.灵根 ?? '',
     体质: defaultData.本尊.体质 ?? '',
     功法: defaultData.本尊.功法 ?? '',
@@ -1362,16 +1375,15 @@ const exportPreset = () => {
   const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
   const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
   const normalizedSpiritStone =
-    Math.max(0, Number(formData.value.灵石) || 0) +
-    normalizedBackpack.spiritStone +
-    normalizedMiscBag.spiritStone;
+    Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone;
   const exportData = {
-    version: '1.5',
+    version: '1.6',
     exportTime: new Date().toISOString(),
     preset: {
       基础属性: {
         等级: formData.value.等级,
         修为: formData.value.修为,
+        修炼状态: _.cloneDeep(formData.value.修炼状态),
         灵根: formData.value.灵根,
         体质: formData.value.体质,
         功法: formData.value.功法,
@@ -1439,6 +1451,9 @@ const importPreset = (event: Event) => {
       if (preset.基础属性) {
         formData.value.等级 = preset.基础属性.等级 ?? formData.value.等级;
         formData.value.修为 = preset.基础属性.修为 ?? formData.value.修为;
+        if (preset.基础属性.修炼状态 != null) {
+          formData.value.修炼状态 = ProtagonistSchema.parse(preset.基础属性).修炼状态;
+        }
         formData.value.灵根 = preset.基础属性.灵根 ?? formData.value.灵根;
         formData.value.体质 = preset.基础属性.体质 ?? formData.value.体质;
         formData.value.功法 = preset.基础属性.功法 ?? formData.value.功法;
@@ -1592,6 +1607,7 @@ const importPreset = (event: Event) => {
             灵石: companion.灵石 ?? 0,
             已活岁月: companion.已活岁月 ?? 0,
             尝试突破: companion.尝试突破 ?? false,
+            修炼状态: CompanionSchema.parse(companion).修炼状态,
           };
         }
       }
