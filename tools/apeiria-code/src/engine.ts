@@ -58,7 +58,7 @@ function toml(value:any):string {
 export function engineEnvironment(source:NodeJS.ProcessEnv,home:string,token:string):NodeJS.ProcessEnv {
   const env={...source};
   for(const key of Object.keys(env)) {
-    if(/^(CODEX|OPENAI|CHATGPT|APEIRIA)_/i.test(key) || /^(ACCESS_TOKEN|ID_TOKEN|REFRESH_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|GEMINI_API_KEY|VERTEX_API_KEY|NODE_OPTIONS|NODE_PATH)$/i.test(key))delete env[key];
+    if(/^(CODEX|OPENAI|CHATGPT|APEIRIA)_/i.test(key) || /^(ACCESS_TOKEN|ID_TOKEN|REFRESH_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|GEMINI_API_KEY|VERTEX_API_KEY|NODE_OPTIONS|NODE_PATH|ELECTRON_RUN_AS_NODE)$/i.test(key))delete env[key];
   }
   Object.assign(env,{
     CODEX_HOME:home,CODEX_SQLITE_HOME:path.join(home,'sqlite'),

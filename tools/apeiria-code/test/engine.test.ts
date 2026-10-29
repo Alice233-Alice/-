@@ -7,7 +7,7 @@ import {test} from 'node:test';
 import {Engine,engineEnvironment,isolatedSkillOverrides,verifyEngine} from '../src/engine.ts';
 
 test('engine environment isolates official auth and storage without changing the parent',()=>{
-  const source={PATH:'bin',CODEX_HOME:'official',CODEX_SQLITE_HOME:'official-db',CODEX_CLI_PATH:'official.exe',OPENAI_API_KEY:'official-secret',CHATGPT_ACCESS_TOKEN:'official-token',ACCESS_TOKEN:'token',NODE_OPTIONS:'--require injected',GOOGLE_APPLICATION_CREDENTIALS:'vertex.json',PROJECT_VARIABLE:'preserved'};
+  const source={PATH:'bin',CODEX_HOME:'official',CODEX_SQLITE_HOME:'official-db',CODEX_CLI_PATH:'official.exe',OPENAI_API_KEY:'official-secret',CHATGPT_ACCESS_TOKEN:'official-token',ACCESS_TOKEN:'token',NODE_OPTIONS:'--require injected',ELECTRON_RUN_AS_NODE:'1',GOOGLE_APPLICATION_CREDENTIALS:'vertex.json',PROJECT_VARIABLE:'preserved'};
   const env=engineEnvironment(source,path.resolve('private-home'),'local-only');
   assert.equal(source.CODEX_HOME,'official');
   assert.equal(source.OPENAI_API_KEY,'official-secret');
@@ -16,6 +16,7 @@ test('engine environment isolates official auth and storage without changing the
   assert.equal(env.ACCESS_TOKEN,undefined);
   assert.equal(env.CODEX_CLI_PATH,undefined);
   assert.equal(env.NODE_OPTIONS,undefined);
+  assert.equal(env.ELECTRON_RUN_AS_NODE,undefined);
   assert.equal(env.GOOGLE_APPLICATION_CREDENTIALS,undefined);
   assert.equal(env.CODEX_HOME,path.resolve('private-home'));
   assert.equal(env.CODEX_SQLITE_HOME,path.resolve('private-home','sqlite'));

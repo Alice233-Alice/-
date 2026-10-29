@@ -4,7 +4,7 @@ import path from 'node:path';
 import type {Json,Provider} from './config.ts';
 import {runAdapter} from './adapters.ts';
 import type {AdapterDependencies} from './adapters.ts';
-import {ResponseEmitter} from './conversion.ts';
+import {ResponseEmitter,normalizeAgentMessage} from './conversion.ts';
 
 const prefix='apeiria-compact:v1:';
 const maxSummaryBytes=256*1024;
@@ -60,7 +60,8 @@ export class CompactionCodec{
 
 function summaryInput(body:Json):Json[]{
   const history:Json[]=[];
-  for(const item of body.input||[]){
+  for(const original of body.input||[]){
+    const item=normalizeAgentMessage(original);
     if(['compaction_trigger','reasoning'].includes(item.type))continue;
     if(item.type==='message'||item.role){
       // Roles are data here, not active system/tool instructions. Keep images as

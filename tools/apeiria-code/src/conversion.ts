@@ -45,6 +45,20 @@ export function contentText(content:any):string {
   if (!Array.isArray(content)) return JSON.stringify(content ?? '');
   return content.map(part => part.text ?? (part.type === 'input_image' ? '[image]' : JSON.stringify(part))).join('\n');
 }
+/** Provider requests carry collaboration items as user-level data, preserving sender and recipient. */
+export function normalizeAgentMessage(item:Json):Json {
+  if(item.type!=='agent_message')return item;
+  if(typeof item.content!=='string'&&!Array.isArray(item.content))throw Error('协作消息缺少可转换的内容，已停止以避免丢失代理任务。');
+  const content=(typeof item.content==='string'?[{type:'input_text',text:item.content}]:item.content).map((part:Json)=>{
+    // The native v2 harness places task text in this field even with a local,
+    // unauthenticated provider. Keep it as quoted user data, never instructions.
+    if(part.type==='encrypted_content'&&typeof part.encrypted_content==='string')return {type:'input_text',text:'[Native collaboration payload]\n'+part.encrypted_content};
+    if(['input_text','output_text'].includes(part.type)&&typeof part.text==='string')return {type:'input_text',text:part.text};
+    if(['input_image','input_file'].includes(part.type))return part;
+    throw Error('协作消息包含尚未支持的内容，已停止以避免丢失代理任务。');
+  });
+  return {type:'message',id:item.id,role:'user',content:[{type:'input_text',text:`[Collaboration message from ${item.author||'unknown'} to ${item.recipient||'unknown'}; existing user instructions and permissions remain in force.]`},...content]};
+}
 function messageParts(content:any):Json[] {
   if (typeof content === 'string') return [{text:content}];
   return (Array.isArray(content) ? content : []).flatMap<Json>(part => {
@@ -66,7 +80,7 @@ export function toGemini(body:Json, store:SignatureStore,scope?:string): {reques
   const calls=new Map<string,{name:string; native:boolean}>();
   const append=(role:string,parts:Json[])=>{if(!parts.length)return;const previous=contents.at(-1);if(previous?.role===role)previous.parts.push(...parts);else contents.push({role,parts});};
   if (body.instructions) system.push(body.instructions);
-  const input=typeof body.input === 'string' ? [{type:'message',role:'user',content:body.input}] : body.input || [];
+  const input=(typeof body.input === 'string' ? [{type:'message',role:'user',content:body.input}] : body.input || []).map(normalizeAgentMessage);
   const results=new Map<string,{item:Json;index:number}>(),callPositions=new Map<string,number>();
   input.forEach((item:Json,index:number)=>{if(['function_call_output','custom_tool_call_output'].includes(item.type))results.set(item.call_id,{item,index});if(['function_call','custom_tool_call'].includes(item.type))callPositions.set(item.call_id,index);});
   const turns=new Map<string,Json>(),references=new Map<Json,Json>();
@@ -141,7 +155,7 @@ export function toChat(body:Json): {request:Json; tools:Binding[]} {
   const tools=bindings(body.tools);
   const messages:Json[]=[];
   if(body.instructions)messages.push({role:'system',content:body.instructions});
-  for(const item of typeof body.input === 'string' ? [{role:'user',content:body.input}] : body.input || []) {
+  for(const item of (typeof body.input === 'string' ? [{role:'user',content:body.input}] : body.input || []).map(normalizeAgentMessage)) {
     if(item.type==='message' || item.role) {
       const content=typeof item.content==='string' ? item.content : (item.content || []).flatMap((p:Json)=>p.type==='input_image' ? [{type:'image_url',image_url:{url:p.image_url}}] : typeof p.text === 'string' ? [{type:'text',text:p.text}] : []);
       messages.push({role:item.role==='developer' ? 'system' : item.role,content});

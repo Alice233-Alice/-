@@ -5,3 +5,5 @@ engine/*
 *.vsix
 .npm-cache/
 test-output/
+native/*
+!native/NativeLauncher.cs

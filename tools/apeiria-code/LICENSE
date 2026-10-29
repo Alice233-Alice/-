@@ -19,3 +19,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+This MIT license applies only to Apeiria Code's original integration code.
+The locally retained Codex client under native/ keeps its original license
+in native/LICENSE.md and is not relicensed under MIT. The bundled open-source
+Codex CLI license and notices are in engine/CODEX_LICENSE.txt and
+engine/CODEX_NOTICE.txt. Dependency licenses are in dist/THIRD_PARTY_NOTICES.txt.

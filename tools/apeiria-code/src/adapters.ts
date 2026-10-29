@@ -2,7 +2,7 @@ import type {Json,Provider} from './config.ts';
 
 import {request} from './network.ts';
 import {sseEvents} from './sse.ts';
-import {ResponseEmitter,toChat} from './conversion.ts';
+import {ResponseEmitter,toChat,normalizeAgentMessage} from './conversion.ts';
 import {runVertex} from './vertex.ts';
 import type {VertexDependencies} from './vertex.ts';
 export {vertexUrl} from './vertex.ts';
@@ -24,6 +24,7 @@ export async function runAdapter(provider:Provider,model:string,body:Json,send:(
       const url=provider.baseUrl!.replace(/\/$/,'')+(provider.type==='responses'?'/responses':'/chat/completions');
       const converted=provider.type==='chat-completions'?toChat({...body,model}):null;
       const upstream=converted?.request || {...body,model,stream:true,store:false};
+      if(provider.type==='responses'&&Array.isArray(upstream.input))upstream.input=upstream.input.map(normalizeAgentMessage);
       const limit=provider.modelMetadata?.[model]?.maxOutputTokens;
       if(limit)upstream[provider.type==='responses'?'max_output_tokens':'max_tokens']=Math.min(body.max_output_tokens||limit,limit);
       applyReasoning(provider,model,body,upstream);

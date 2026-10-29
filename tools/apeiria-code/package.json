@@ -1,14 +1,322 @@
 {
-  "name":"apeiria-code","displayName":"Apeiria Code","description":"独立的第三方模型编码助手，支持 OpenAI 兼容 API 与 Google Vertex Gemini。","version":"0.1.0","publisher":"ayanami-local","private":true,"license":"MIT","type":"module",
-  "engines":{"vscode":"^1.95.0","node":">=22.18.0"},"main":"./dist/extension.cjs","activationEvents":["onView:apeiriaCode.chat"],"categories":["AI","Other"],
-  "contributes":{
-    "viewsContainers":{"activitybar":[{"id":"apeiriaCode","title":"Apeiria Code","icon":"media/icon.svg"}]},
-    "views":{"apeiriaCode":[{"type":"webview","id":"apeiriaCode.chat","name":"Apeiria Code","contextualTitle":"Apeiria Code"}]},
-    "commands":[{"command":"apeiriaCode.open","title":"Apeiria Code：打开聊天"},{"command":"apeiriaCode.settings","title":"Apeiria Code：模型提供商","icon":"$(settings-gear)"},{"command":"apeiriaCode.newThread","title":"Apeiria Code：新建聊天","icon":"$(add)"},{"command":"apeiriaCode.attachSelection","title":"Apeiria Code：引用当前选区"},{"command":"apeiriaCode.openMcp","title":"Apeiria Code：管理 MCP"},{"command":"apeiriaCode.openSkills","title":"Apeiria Code：管理技能"},{"command":"apeiriaCode.restart","title":"Apeiria Code：重新连接内核"}],
-    "menus":{"view/title":[{"command":"apeiriaCode.settings","when":"view == apeiriaCode.chat","group":"navigation"},{"command":"apeiriaCode.newThread","when":"view == apeiriaCode.chat","group":"navigation"}],"editor/context":[{"command":"apeiriaCode.attachSelection","when":"editorHasSelection","group":"apeiriaCode"}]},
-    "configuration":{"title":"Apeiria Code","properties":{"apeiriaCode.permissions":{"type":"string","enum":["workspace-write","read-only"],"default":"workspace-write","description":"本扩展内核权限，工作区写入与按需审批。"}}}
+  "name": "apeiria-code",
+  "displayName": "Apeiria Code",
+  "description": "同一 VS Code 中的独立 Codex 原生客户端，使用第三方模型与独立数据。",
+  "version": "0.2.0",
+  "publisher": "ayanami-local",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.96.2",
+    "node": ">=22.18.0"
   },
-  "scripts":{"build":"node scripts/build.mjs","typecheck":"tsc --noEmit","test":"node --experimental-transform-types --test test/*.test.ts","package":"node --max-old-space-size=6144 scripts/package.mjs","bundle-engine":"node scripts/bundle-engine.mjs","preview":"node scripts/preview.mjs"},
-  "dependencies":{"undici":"^7.16.0","https-proxy-agent":"^7.0.6","ws":"^8.18.3","vue":"^3.5.39"},
-  "devDependencies":{"@types/node":"^22.18.0","@types/ws":"^8.18.1","@types/vscode":"^1.95.0","typescript":"^6.0.3","esbuild":"^0.25.0","fflate":"^0.8.2"}
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "apeiriaCode.native.implementTodo",
+        "title": "Implement with Codex",
+        "category": "Apeiria Code",
+        "enablement": "false"
+      },
+      {
+        "command": "apeiriaCode.native.openSidebar",
+        "title": "Open Codex Sidebar",
+        "category": "Apeiria Code",
+        "icon": {
+          "light": "native/resources/blossom-black.svg",
+          "dark": "native/resources/blossom-white.svg"
+        }
+      },
+      {
+        "command": "apeiriaCode.native.openCommandMenu",
+        "title": "Open Codex Command Menu",
+        "category": "Apeiria Code"
+      },
+      {
+        "command": "apeiriaCode.native.newCodexPanel",
+        "title": "New Codex Agent",
+        "category": "Apeiria Code",
+        "icon": "$(plus)"
+      },
+      {
+        "command": "apeiriaCode.native.addToThread",
+        "title": "Add to Codex Chat",
+        "category": "Apeiria Code"
+      },
+      {
+        "command": "apeiriaCode.native.addFileToThread",
+        "title": "Add File to Codex Chat",
+        "category": "Apeiria Code"
+      },
+      {
+        "command": "apeiriaCode.native.newChat",
+        "title": "New Chat in ChatGPT Sidebar",
+        "category": "Apeiria Code"
+      },
+      {
+        "command": "apeiriaCode.native.showLspMcpCliArgs",
+        "title": "Copy Codex CLI args for LSP MCP",
+        "category": "Apeiria Code"
+      },
+      {
+        "command": "apeiriaCode.native.dumpNuxState",
+        "title": "Debug: print NUX state to console",
+        "category": "Apeiria Code",
+        "enablement": "apeiriaCode.native.sidebarView.visible"
+      },
+      {
+        "command": "apeiriaCode.native.resetNuxState",
+        "title": "Debug: reset NUX state",
+        "category": "Apeiria Code",
+        "enablement": "apeiriaCode.native.sidebarView.visible"
+      },
+      {
+        "command": "apeiriaCode.open",
+        "title": "Apeiria Code：打开原生聊天"
+      },
+      {
+        "command": "apeiriaCode.settings",
+        "title": "Apeiria Code：模型提供商",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "apeiriaCode.newThread",
+        "title": "Apeiria Code：新建聊天",
+        "icon": "$(add)"
+      },
+      {
+        "command": "apeiriaCode.attachSelection",
+        "title": "Apeiria Code：引用当前选区"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "apeiriaCode.native.newChat",
+        "key": "ctrl+n",
+        "mac": "cmd+n",
+        "when": "apeiriaCode.native.supportsNewChatKeyShortcut"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Apeiria Code 原生设置",
+      "properties": {
+        "apeiriaCode.native.commentCodeLensEnabled": {
+          "description": "Enable CodeLens above TODO comments to implement with Codex.",
+          "type": "boolean",
+          "default": true
+        },
+        "apeiriaCode.native.cliExecutable": {
+          "description": "DEVELOPMENT ONLY: Path to the Codex CLI executable. You do NOT need to set this unless you are actively developing the Codex CLI. If set this manually, parts of the extension may not work as expected.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "scope": "application",
+          "restricted": true
+        },
+        "apeiriaCode.native.openOnStartup": {
+          "description": "Focus the Codex sidebar when the extension finishes starting up.",
+          "type": "boolean",
+          "default": false
+        },
+        "apeiriaCode.native.followUpQueueMode": {
+          "description": "Control whether follow-up messages are queued or steer the current run. Press Cmd/Ctrl+Shift+Enter to do the opposite for a single in-progress follow-up.",
+          "type": "string",
+          "enum": [
+            "queue",
+            "steer",
+            "interrupt"
+          ],
+          "default": "queue"
+        },
+        "apeiriaCode.native.composerEnterBehavior": {
+          "description": "Enter behavior for the Codex composer.",
+          "type": "string",
+          "enum": [
+            "enter",
+            "cmdIfMultiline",
+            "cmdAlways"
+          ],
+          "default": "enter"
+        },
+        "apeiriaCode.native.reviewDelivery": {
+          "description": "Start /review inline in the current chat when possible or launch a separate review chat",
+          "type": "string",
+          "enum": [
+            "inline",
+            "detached"
+          ],
+          "default": "inline"
+        },
+        "apeiriaCode.native.localeOverride": {
+          "description": "Preferred language for the Codex UI. Leave empty to auto detect.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "scope": "application"
+        },
+        "apeiriaCode.native.runCodexInWindowsSubsystemForLinux": {
+          "description": "Windows only: when Windows Subsystem for Linux (WSL) is installed, automatically run Codex inside WSL. Recommended for improved sandbox security and better performance - Agent mode on Windows currently requires WSL. Changing this setting reloads VS Code to take effect.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "apeiriaCode",
+          "title": "Apeiria Code",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "apeiriaCode": [
+        {
+          "id": "apeiriaCode.native.sidebarView",
+          "type": "webview",
+          "name": "Apeiria Code",
+          "when": "apeiriaCode.native.doesNotSupportSecondarySidebar"
+        },
+        {
+          "id": "apeiriaCode.native.sidebarSecondaryView",
+          "type": "webview",
+          "name": "Apeiria Code",
+          "when": "!apeiriaCode.native.doesNotSupportSecondarySidebar"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "apeiriaCode.native.conversationEditor",
+        "displayName": "Apeiria Code Chat",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "apeiria-code-native:/**/*"
+          }
+        ]
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "apeiriaCode.native.openSidebar",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "apeiriaCode.native.addToThread",
+          "group": "codex",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "apeiriaCode.native.addFileToThread",
+          "group": "2_chat",
+          "order": 2,
+          "when": "resourceScheme == file"
+        }
+      ],
+      "webview/context": [
+        {
+          "command": "apeiriaCode.native.newChat",
+          "when": "(webviewId == 'apeiriaCode.native.sidebarView' || webviewId == 'apeiriaCode.native.sidebarSecondaryView') && apeiriaCode.native.supportsNewChatMenu"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "apeiriaCode.native.showLspMcpCliArgs",
+          "when": "apeiriaCode.native.lspMcpEnabled"
+        }
+      ],
+      "chatSessions/newSession": [
+        {
+          "command": "apeiriaCode.native.newCodexPanel",
+          "when": "chatSessionType == apeiria-code-native"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "apeiriaCode.settings",
+          "when": "view == apeiriaCode.native.sidebarView || view == apeiriaCode.native.sidebarSecondaryView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "chatSessions": [
+      {
+        "type": "apeiria-code-native",
+        "name": "Apeiria Code",
+        "displayName": "Apeiria Code",
+        "description": "OpenAI Codex integration for VS Code"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "apeiria-code-rules",
+        "scopeName": "source.apeiria-code-rules",
+        "path": "native/syntaxes/starlark.tmLanguage.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "apeiria-code-rules",
+        "aliases": [
+          "Codex Rules"
+        ],
+        "extensions": [
+          ".rules"
+        ],
+        "configuration": "native/syntaxes/starlark.configuration.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-transform-types --test test/*.test.ts",
+    "package": "node --max-old-space-size=6144 scripts/package.mjs",
+    "bundle-engine": "node scripts/bundle-engine.mjs",
+    "preview": "node scripts/preview.mjs",
+    "prepare-native": "node scripts/prepare-native.mjs",
+    "prepare-native-models": "node scripts/prepare-native-models.mjs",
+    "configure-native": "node scripts/configure-native-package.mjs"
+  },
+  "dependencies": {
+    "https-proxy-agent": "^7.0.6",
+    "undici": "^7.16.0",
+    "vue": "^3.5.39",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "@types/vscode": "^1.95.0",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.25.0",
+    "fflate": "^0.8.2",
+    "jsonc-parser": "^3.3.1",
+    "typescript": "^6.0.3"
+  },
+  "enabledApiProposals": [
+    "chatSessionsProvider",
+    "languageModelProxy"
+  ]
 }

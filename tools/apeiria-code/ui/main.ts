@@ -19,6 +19,7 @@ declare function acquireVsCodeApi(): {
   setState(state: unknown): void;
 };
 const vscode = acquireVsCodeApi();
+const managementOnly = document.documentElement.dataset.apeiriaMode === 'providers';
 type ModelRow = ModelMetadata & { id: string; reasoningPreset?: string };
 type HeaderRow = { name: string; value: string; existing?: boolean; remove?: boolean };
 type EditorDraft = {
@@ -193,7 +194,7 @@ createApp({
     const state = reactive<UiState>({ ...initialState });
     const persisted = vscode.getState() as { text?: string } | null;
     const text = ref(persisted?.text || '');
-    const page = ref<'chat' | 'settings' | 'history'>('chat');
+    const page = ref<'chat' | 'settings' | 'history'>(managementOnly ? 'settings' : 'chat');
     const settingsTab = ref<'providers' | 'tools' | 'about'>('providers');
     const editing = ref(false);
     const draft = reactive<EditorDraft>(emptyDraft());
@@ -1535,14 +1536,15 @@ createApp({
           button(
             '返回聊天',
             () => {
-              page.value = 'chat';
+              if (managementOnly) post('openNative');
+              else page.value = 'chat';
               draft.apiKey = '';
               draft.serviceAccountJson = '';
             },
             { class: 'icon-button', icon: 'close' },
           ),
         ]),
-        h(
+        managementOnly ? null : h(
           'nav',
           { class: 'settings-tabs', 'aria-label': '设置分类' },
           [
@@ -1578,9 +1580,9 @@ createApp({
       ]);
     return () =>
       h('div', { class: 'app-shell' }, [
-        renderHeader(),
+        managementOnly ? null : renderHeader(),
         renderNotice(),
-        page.value === 'chat' ? renderChat() : page.value === 'history' ? renderHistory() : renderSettings(),
+        managementOnly ? renderSettings() : page.value === 'chat' ? renderChat() : page.value === 'history' ? renderHistory() : renderSettings(),
       ]);
   },
 }).mount('#app');
