@@ -1,12 +1,7 @@
 <template>
   <div class="panel skills-panel">
     <div v-if="allSkills.length > 0" class="skills-list">
-      <div
-        v-for="item in allSkills"
-        :key="item.key"
-        class="skill-strip"
-        :class="`rank-tier-${item.rankTier}`"
-      >
+      <div v-for="item in allSkills" :key="item.key" class="skill-strip" :class="`rank-tier-${item.rankTier}`">
         <div class="skill-header">
           <div class="skill-title-group">
             <span class="skill-name">{{ item.name }}</span>
@@ -20,12 +15,7 @@
         <div class="skill-meta">
           <span class="skill-proficiency">熟练度：{{ item.proficiency }}</span>
           <span class="proficiency-pips" aria-hidden="true">
-            <i
-              v-for="step in 5"
-              :key="step"
-              class="pip"
-              :class="{ filled: step <= item.proficiencyLevel }"
-            ></i>
+            <i v-for="step in 5" :key="step" class="pip" :class="{ filled: step <= item.proficiencyLevel }"></i>
           </span>
         </div>
       </div>
@@ -95,8 +85,7 @@ const allSkills = computed<ParsedSkillItem[]>(() => {
       const name = String(skill?.名称 || key).trim();
       const rankLabel = String(skill?.品阶 || '凡').trim() || '凡';
       const rawType = String(skill?.类型 || '神通').trim();
-      const typeLabel: '功法' | '神通' | '秘术' =
-        rawType === '功法' || rawType === '秘术' ? rawType : '神通';
+      const typeLabel: '功法' | '神通' | '秘术' = rawType === '功法' || rawType === '秘术' ? rawType : '神通';
       const proficiency = String(skill?.熟练度 || '入门').trim() || '入门';
       return {
         key: String(key),
@@ -128,23 +117,23 @@ const allSkills = computed<ParsedSkillItem[]>(() => {
 
   position: relative;
   overflow: hidden;
-  padding: 14px 18px;
-  border: 1px solid var(--line-subtle);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--line-subtle) 55%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--rank-color) 48%, transparent);
+  border-radius: 5px;
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--rank-color) 4%, transparent), transparent 44%),
+    linear-gradient(90deg, color-mix(in srgb, var(--surface-inset) 24%, transparent), transparent);
 
   &::before {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
+    top: 17px;
+    right: 0;
     width: 3px;
-    background: linear-gradient(
-      180deg,
-      var(--rank-color),
-      color-mix(in srgb, var(--rank-color) 32%, transparent)
-    );
+    height: 3px;
+    border-radius: 50%;
+    background: var(--rank-color);
   }
 
   &.rank-tier-heaven {
@@ -249,7 +238,7 @@ const allSkills = computed<ParsedSkillItem[]>(() => {
   }
 
   .skill-strip {
-    padding: 12px 14px;
+    padding: 10px 12px;
   }
 
   .skill-name {

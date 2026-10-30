@@ -15,6 +15,7 @@
         >
         <span class="location-domain">{{ location.domain || '地域待明' }}</span>
       </button>
+      <div v-if="focusVisible" class="focus-preview"><small>正在查看</small><strong>{{ focusPlace }}</strong><span>{{ requestedLocation.precise ? '图中地标' : requestedLocation.estimated ? '约位 · 地形推定' : requestedLocation.anchor ? '所属地域' : '暂无图上落点' }}</span></div>
       <div class="location-meta">
         <span class="location-accuracy">{{
           location.precise
@@ -96,6 +97,10 @@ const props = withDefaults(
     locationDescription?: string;
     currentDanger?: number;
     availableConnections?: string[];
+    focusPlace?: string;
+    focusNonce?: number;
+    focusDomain?: string;
+    focusDescription?: string;
   }>(),
   {
     active: true,
@@ -104,9 +109,16 @@ const props = withDefaults(
     locationDescription: '',
     currentDanger: 10,
     availableConnections: () => [],
+    focusPlace: '',
+    focusNonce: 0,
+    focusDomain: '',
+    focusDescription: '',
   },
 );
 const location = computed(() => resolveAtlasLocation(props));
+const requestedLocation = computed(() => resolveAtlasLocation({ currentLocation: props.focusPlace, currentDomain: props.focusDomain, locationDescription: props.focusDescription }));
+const focusVisible = ref(false);
+let appliedFocusNonce = -1;
 const realm = ref<AtlasRealm>(location.value.realm);
 const regionIndex = computed(() => catalog.filter(place => place.realm === realm.value && place.kind === 'region'));
 const sectIndex = computed(() => catalog.filter(place => place.realm === realm.value && place.kind === 'sect'));
@@ -155,9 +167,30 @@ async function openRealm(target: AtlasTarget, focus = false) {
   }
 }
 function focusLocation() {
+  focusVisible.value = false;
   if (realm.value === location.value.realm && controller) controller.locate(location.value, true);
   else void openRealm({ realm: location.value.realm }, true);
 }
+async function showRequestedPlace() {
+  if (!props.focusPlace || !props.active || appliedFocusNonce === props.focusNonce) return;
+  const nonce = props.focusNonce;
+  const target = requestedLocation.value;
+  focusVisible.value = true;
+  if (!target.anchor) return;
+  if (!controller || realm.value !== target.realm) await openRealm({ realm: target.realm });
+  if (nonce !== props.focusNonce || !props.active) return;
+  appliedFocusNonce = nonce;
+  controller?.locate(target, true);
+  // 聚焦目的地只移动镜头，当前位置标记仍对应玩家的真实落点。
+  controller?.locate(location.value);
+}
+watch(
+  [() => props.focusPlace, () => props.focusNonce, () => props.active],
+  () => {
+    void showRequestedPlace();
+  },
+  { flush: 'post' },
+);
 watch(
   [location, () => props.active],
   ([next, active], [previous]) => {
@@ -176,7 +209,7 @@ watch(
 );
 onMounted(() => {
   root = host.value!.attachShadow({ mode: 'open' });
-  void openRealm({ realm: location.value.realm });
+  void openRealm({ realm: location.value.realm }).then(showRequestedPlace);
 });
 onBeforeUnmount(() => {
   ++revision;
@@ -188,6 +221,8 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .world-atlas {
+  .focus-preview { display: grid; gap: 4px; padding: 6px 10px; border-left: 1px solid var(--gold); font-size: 11px; color: var(--text-secondary); }
+  .focus-preview strong { color: var(--gold); font-size: 13px; }
   width: 100%;
   height: 100%;
   min-width: 0;

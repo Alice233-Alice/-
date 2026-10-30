@@ -36,6 +36,7 @@ const MVU_ROOT_KEYS = [
   '当前处境',
   '_系统设置',
   '_好感度快照',
+  '_近期任务结果',
 ] as const;
 const TRADITIONAL_PATH_ALIASES: Record<string, string> = {
   世界時鐘: '世界时钟',
@@ -142,6 +143,7 @@ function isReadonlyDerivedStatPath(path: string): boolean {
   if (entityFieldMatch && READONLY_ENTITY_FIELDS.has(entityFieldMatch[1])) return true;
 
   return (
+    /^stat_data\._近期任务结果(?:\.|$)/u.test(path) ||
     /^stat_data\.(?:本尊|红颜\.[^./]+)\.修炼状态\.突破目标$/u.test(path) ||
     /^stat_data\.(?:本尊|红颜\.[^./]+)\.神通列表\.[^./]+\.威力等级$/u.test(path) ||
     /^stat_data\.法宝库\.[^./]+\.特$/u.test(path) ||
@@ -161,6 +163,18 @@ function getReadonlyDerivedPathValue(path: string, variables: Mvu.MvuData): unkn
 
 function rewriteReadonlyDerivedCommand(command: GuardMutableCommand, path: string, variables: Mvu.MvuData): boolean {
   if (!isReadonlyDerivedStatPath(path)) return false;
+  if (/^stat_data\._近期任务结果(?:\.|$)/u.test(path)) {
+    command.type = 'set';
+    command.args = ['stat_data._近期任务结果', JSON.stringify(_.get(variables, 'stat_data._近期任务结果', {}))];
+    command.reason = '近期任务结果由结构归档维护';
+    return true;
+  }
+  if (/^stat_data\._近期任务结果(?:\.|$)/u.test(path)) {
+    command.type = 'set';
+    command.args = ['stat_data._近期任务结果', JSON.stringify(_.get(variables, 'stat_data._近期任务结果', {}))];
+    command.reason = '近期任务结果由结构归档维护';
+    return true;
+  }
 
   const currentValue = getReadonlyDerivedPathValue(path, variables);
   if (typeof currentValue === 'undefined') return false;

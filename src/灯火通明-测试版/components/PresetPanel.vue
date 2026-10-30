@@ -231,7 +231,7 @@
             <i class="fa-solid fa-plus"></i>
           </button>
         </div>
-        <div class="inline-hint">这里只维护行踪页显示的进行中任务；应用时会覆盖当前任务列表。</div>
+        <div class="inline-hint">这里维护行事页的进行中任务及关联线索；应用时会覆盖当前任务列表。</div>
         <div v-if="Object.keys(formData.任务列表).length === 0" class="empty-hint">暂无任务，点击右上角添加</div>
         <div v-for="(task, taskId) in formData.任务列表" :key="taskId" class="item-card">
           <div class="item-header">
@@ -268,6 +268,27 @@
             <div class="item-field full">
               <label>下一步</label>
               <textarea v-model="task.下一步" placeholder="尚待完成的事项，未明确时可留空" rows="2"></textarea>
+            </div>
+          </div>
+          <div v-for="field in ['关联人物', '关联地点', '关联物品'] as const" :key="field" class="item-row full">
+            <div class="item-field full">
+              <label>{{ field }}</label
+              ><input
+                :value="task[field]?.join('、') || ''"
+                placeholder="多个名称用顿号分隔，沿用资料中的名称"
+                @change="
+                  task[field] = ($event.target as HTMLInputElement).value
+                    .split(/[、，,\n]/u)
+                    .map(name => name.trim())
+                    .filter(Boolean)
+                "
+              />
+            </div>
+          </div>
+          <div class="item-row full">
+            <div class="item-field full">
+              <label>关联事件ID</label
+              ><input v-model="task.关联事件ID" placeholder="对应世界图志中的现有事件名称，可留空" />
             </div>
           </div>
         </div>

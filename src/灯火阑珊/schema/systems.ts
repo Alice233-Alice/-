@@ -7,8 +7,8 @@ import { LOCATION_DOMAIN_VALUES } from '../map-system';
 import { finiteNumber, NormalizedStringListSchema } from './common';
 import { CURRENT_CULTIVATION_VERSION, CURRENT_SCHEMA_VERSION } from './constants';
 
-// 任务状态容错映射：兼容 AI 常见近义词，统一到三态
-const 任务状态映射: Record<string, '进行中' | '已完成' | '已失败'> = {
+// 任务状态容错映射：兼容既有存档和明确的放弃结果。
+const 任务状态映射: Record<string, '进行中' | '已完成' | '已失败' | '已放弃'> = {
   进行中: '进行中',
   进行: '进行中',
   处理中: '进行中',
@@ -36,7 +36,9 @@ const 任务状态映射: Record<string, '进行中' | '已完成' | '已失败'
   失败了: '已失败',
   中止: '已失败',
   终止: '已失败',
-  放弃: '已失败',
+  放弃: '已放弃',
+  已放弃: '已放弃',
+  abandoned: '已放弃',
   超时失败: '已失败',
   failed: '已失败',
   fail: '已失败',
@@ -85,6 +87,14 @@ export const QuestSchema = z.object({
   目标: z.string().prefault(''),
   进度: z.string().prefault(''),
   下一步: z.string().prefault(''),
+  关联人物: NormalizedStringListSchema.optional(),
+  关联地点: NormalizedStringListSchema.optional(),
+  关联物品: NormalizedStringListSchema.optional(),
+  关联事件ID: z
+    .string()
+    .transform(value => value.trim())
+    .optional(),
+  结果: z.string().optional(),
   状态: z
     .string()
     .transform(v => 任务状态映射[String(v).trim()] || '进行中')
@@ -111,6 +121,43 @@ export const QuestSchema = z.object({
     ])
     .prefault(() => Date.now()),
 });
+
+export const QuestResultSchema = z.object({
+  名称: z.string(),
+  类型: z.string(),
+  状态: z.enum(['已完成', '已失败', '已放弃']),
+  结果: z.string().prefault(''),
+  时地: z.string().prefault(''),
+  关联事件ID: z.string().optional(),
+});
+
+export const RecentQuestResultsSchema = z.record(z.string(), QuestResultSchema).prefault({});
+
+/** 先归档再清理，归档本身只记录事实，不触发任何资产结算。 */
+export function settleQuestLedger(
+  tasks: Record<string, z.output<typeof QuestSchema>>,
+  history: z.output<typeof RecentQuestResultsSchema>,
+  timePlace: string,
+) {
+  const active: typeof tasks = {};
+  const results = { ...history };
+  for (const [id, task] of Object.entries(tasks)) {
+    if (task.状态 === '进行中') {
+      active[id] = task;
+      continue;
+    }
+    delete results[id];
+    results[id] = {
+      名称: task.名称,
+      类型: task.类型,
+      状态: task.状态,
+      结果: task.结果?.trim() || task.进度 || task.目标,
+      时地: timePlace,
+      ...(task.关联事件ID ? { 关联事件ID: task.关联事件ID } : {}),
+    };
+  }
+  return { tasks: active, results: Object.fromEntries(Object.entries(results).slice(-5)) };
+}
 
 // 声望条目 Schema
 export const ReputationEntrySchema = z.object({
@@ -441,6 +488,7 @@ const CompactOpportunitySchema = z.object({
   事件性质: z.coerce.string().transform(normalizeOpportunityText).optional(),
   事件: z.coerce.string().transform(normalizeOpportunityText).optional(),
   关联事件ID: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  关联任务ID: z.coerce.string().transform(normalizeOpportunityText).optional(),
   提示: z.coerce.string().transform(normalizeOpportunityText).optional(),
 });
 
@@ -452,6 +500,7 @@ const EnglishOpportunitySchema = z.object({
   eventNature: z.coerce.string().transform(normalizeOpportunityText).optional(),
   event: z.coerce.string().transform(normalizeOpportunityText).optional(),
   eventId: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  taskId: z.coerce.string().transform(normalizeOpportunityText).optional(),
   hint: z.coerce.string().transform(normalizeOpportunityText).optional(),
 });
 
@@ -475,6 +524,7 @@ export type NormalizedOpportunity = {
   事件性质: ProposalEventNature;
   事件?: string;
   关联事件ID?: string;
+  关联任务ID?: string;
   提示?: string;
 };
 
@@ -486,6 +536,7 @@ export const OpportunitySchema = z
       const hint = normalizeOpportunityText(item.提示);
       const event = normalizeOpportunityText(item.事件);
       const eventId = normalizeOpportunityText(item.关联事件ID);
+      const taskId = normalizeOpportunityText(item.关联任务ID);
       const eventNature = normalizeProposalEventNature(item.事件性质, event, eventId);
       return {
         ...(title ? { 标题: title } : {}),
@@ -495,6 +546,7 @@ export const OpportunitySchema = z
         事件性质: eventNature,
         ...(event ? { 事件: event } : {}),
         ...(eventId ? { 关联事件ID: eventId } : {}),
+        ...(taskId ? { 关联任务ID: taskId } : {}),
         ...(hint ? { 提示: hint } : {}),
       };
     }
@@ -504,6 +556,7 @@ export const OpportunitySchema = z
       const hint = normalizeOpportunityText(item.hint);
       const event = normalizeOpportunityText(item.event);
       const eventId = normalizeOpportunityText(item.eventId);
+      const taskId = normalizeOpportunityText(item.taskId);
       const eventNature = normalizeProposalEventNature(item.eventNature, event, eventId);
       return {
         ...(title ? { 标题: title } : {}),
@@ -513,6 +566,7 @@ export const OpportunitySchema = z
         事件性质: eventNature,
         ...(event ? { 事件: event } : {}),
         ...(eventId ? { 关联事件ID: eventId } : {}),
+        ...(taskId ? { 关联任务ID: taskId } : {}),
         ...(hint ? { 提示: hint } : {}),
       };
     }
@@ -669,6 +723,9 @@ const WorldEventInputSchema = z.object({
   参与情况: z.coerce.string().transform(normalizeOpportunityText).optional(),
   影响等级: z.coerce.string().transform(normalizeOpportunityText).optional(),
   更新时间: z.coerce.string().transform(normalizeOpportunityText).optional(),
+  来源: z.string().optional(),
+  关联人物: NormalizedStringListSchema.optional(),
+  下一步: z.string().optional(),
 });
 
 export type NormalizedWorldEvent = {
@@ -681,6 +738,9 @@ export type NormalizedWorldEvent = {
   参与情况: WorldEventParticipation;
   影响等级: WorldEventImpact;
   更新时间?: string;
+  来源?: string;
+  关联人物?: string[];
+  下一步?: string;
 };
 
 export const WorldEventSchema = WorldEventInputSchema.transform((item): NormalizedWorldEvent => {
@@ -704,6 +764,9 @@ export const WorldEventSchema = WorldEventInputSchema.transform((item): Normaliz
     参与情况: participation,
     影响等级: impact,
     ...(updatedAt ? { 更新时间: updatedAt } : {}),
+    ...(item.来源?.trim() ? { 来源: item.来源.trim() } : {}),
+    ...(item.关联人物?.length ? { 关联人物: item.关联人物 } : {}),
+    ...(item.下一步?.trim() ? { 下一步: item.下一步.trim() } : {}),
   };
 });
 

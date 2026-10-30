@@ -105,6 +105,15 @@
           },
           "更新时间": {
             "type": "string"
+          },
+          "来源": {
+            "type": "string"
+          },
+          "关联人物": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "下一步": {
+            "type": "string"
           }
         }
       }
@@ -1462,6 +1471,21 @@
             "default": "",
             "type": "string"
           },
+          "关联人物": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "关联地点": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "关联物品": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "关联事件ID": {
+            "type": "string"
+          },
+          "结果": {
+            "type": "string"
+          },
           "状态": {
             "default": "进行中",
             "type": "string"
@@ -1521,10 +1545,10 @@
             }
           },
           "创建时间": {
-            "default": 1793334490650,
+            "default": 1793368086126,
             "anyOf": [
               {
-                "default": 1793334490615,
+                "default": 1793368086083,
                 "type": "number"
               },
               {
@@ -1533,6 +1557,48 @@
             ]
           }
         }
+      }
+    },
+    "_近期任务结果": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "名称": {
+            "type": "string"
+          },
+          "类型": {
+            "type": "string"
+          },
+          "状态": {
+            "type": "string",
+            "enum": [
+              "已完成",
+              "已失败",
+              "已放弃"
+            ]
+          },
+          "结果": {
+            "default": "",
+            "type": "string"
+          },
+          "时地": {
+            "default": "",
+            "type": "string"
+          },
+          "关联事件ID": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "名称",
+          "类型",
+          "状态"
+        ]
       }
     },
     "声望系统": {
@@ -1554,7 +1620,7 @@
             "type": "string"
           },
           "更新时间": {
-            "default": 1793334490650,
+            "default": 1793368086126,
             "type": "number"
           }
         }
@@ -1686,6 +1752,9 @@
               "关联事件ID": {
                 "type": "string"
               },
+              "关联任务ID": {
+                "type": "string"
+              },
               "提示": {
                 "type": "string"
               }
@@ -1717,6 +1786,9 @@
                 "type": "string"
               },
               "eventId": {
+                "type": "string"
+              },
+              "taskId": {
                 "type": "string"
               },
               "hint": {
@@ -1859,7 +1931,7 @@
             "type": "string"
           },
           "领悟时间": {
-            "default": 1793334490648,
+            "default": 1793368086125,
             "type": "number"
           }
         }

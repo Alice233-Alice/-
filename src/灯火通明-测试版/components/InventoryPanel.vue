@@ -1,5 +1,5 @@
 <template>
-  <div class="panel inventory-panel">
+  <div ref="inventoryRoot" class="panel inventory-panel">
     <section class="inventory-section">
       <div class="section-header">
         <div class="section-title"><i class="fa-solid fa-gem"></i> 法宝</div>
@@ -12,6 +12,8 @@
           v-for="item in treasureItems"
           :key="item.uid"
           class="item-strip"
+          :data-item-name="item.name"
+          tabindex="-1"
           :class="`tier-${item.tier}`"
         >
           <div class="item-topline">
@@ -36,6 +38,8 @@
           v-for="item in ringItems"
           :key="item.uid"
           class="item-strip"
+          :data-item-name="item.name"
+          tabindex="-1"
           :class="`tier-${item.tier}`"
         >
           <div class="item-topline">
@@ -60,6 +64,8 @@
           v-for="item in miscItems"
           :key="item.uid"
           class="item-strip"
+          :data-item-name="item.name"
+          tabindex="-1"
           :class="`tier-${item.tier}`"
         >
           <div class="item-topline">
@@ -78,8 +84,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useDataStore } from '../store';
+import { focusStageElement } from '../affairs';
+
+const props = defineProps<{ focusName?: string; focusNonce?: number }>();
+const inventoryRoot = ref<HTMLElement>();
 
 type ItemTier = 'heaven' | 'earth' | 'mystic' | 'yellow' | 'mortal';
 
@@ -129,6 +139,19 @@ function extractSectionItems(
 const treasureItems = computed(() => extractSectionItems(store.本尊.法宝, 'treasure'));
 const ringItems = computed(() => extractSectionItems(store.本尊.背包, 'ring'));
 const miscItems = computed(() => extractSectionItems(store.本尊.杂物袋, 'misc'));
+watch(
+  [() => props.focusName, () => props.focusNonce],
+  async () => {
+    if (!props.focusName) return;
+    await nextTick();
+    focusStageElement(
+      Array.from(inventoryRoot.value?.querySelectorAll<HTMLElement>('[data-item-name]') ?? []).find(
+        element => element.dataset.itemName === props.focusName,
+      ),
+    );
+  },
+  { immediate: true, flush: 'post' },
+);
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
@@ -194,11 +217,17 @@ function formatNumber(value: number): string {
 .item-strip {
   --tier-color: var(--text-secondary);
 
-  padding: 11px 16px;
-  border: 1px solid var(--line-subtle);
-  border-left: 2px solid var(--tier-color);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--bg-secondary) 86%, transparent);
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--line-subtle) 55%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--tier-color) 48%, transparent);
+  border-radius: 5px;
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--tier-color) 4%, transparent), transparent 44%),
+    linear-gradient(90deg, color-mix(in srgb, var(--surface-inset) 24%, transparent), transparent);
+  &:focus {
+    outline: 1px solid var(--gold);
+    outline-offset: 3px;
+  }
 
   &.tier-heaven {
     --tier-color: var(--gold);

@@ -1,5 +1,5 @@
 <template>
-  <div class="panel companions-panel">
+  <div ref="companionsRoot" class="panel companions-panel">
     <template v-if="companionNames.length || npcEntries.length">
       <header class="companions-topbar">
         <div v-if="companionNames.length" class="roster-strip" role="group" aria-label="红颜名册">
@@ -48,7 +48,14 @@
 
       <section v-if="activeLedger === 'npcs' && npcEntries.length" class="npc-ledger" aria-label="尘缘客录">
         <div class="npc-ledger-list" role="list">
-          <article v-for="npc in npcEntries" :key="npc.name" class="npc-entry" role="listitem">
+          <article
+            v-for="npc in npcEntries"
+            :key="npc.name"
+            class="npc-entry"
+            role="listitem"
+            :data-npc-name="npc.name"
+            tabindex="-1"
+          >
             <header>
               <h3>{{ npc.name }}</h3>
               <span class="realm-text" :style="{ '--realm-color': getRealmColor(npc.level) }">{{
@@ -330,13 +337,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import { focusStageElement } from '../affairs';
 import { getCharacterImageCandidates } from '../character-assets';
 import { REALM_NAMES, REALM_STAGES, getRealmColor } from '../schema';
 import { useDataStore, usePseudoLayerStore } from '../store';
 import type { DialogueTarget } from '../store';
 
 type CompanionRecord = Record<string, any>;
+const props = defineProps<{ focusName?: string; focusNonce?: number }>();
+const companionsRoot = ref<HTMLElement>();
 type NpcRecord = { 等级?: unknown; 所在宗门?: unknown; 备注?: unknown };
 
 const store = useDataStore();
@@ -484,6 +494,24 @@ function selectCompanion(name: string): void {
   selectedName.value = name;
   activeLedger.value = 'companions';
 }
+watch(
+  [() => props.focusName, () => props.focusNonce],
+  async () => {
+    const name = props.focusName;
+    if (!name) return;
+    if (companionNames.value.includes(name)) selectCompanion(name);
+    else if (npcEntries.value.some(npc => npc.name === name)) {
+      activeLedger.value = 'npcs';
+      await nextTick();
+      focusStageElement(
+        Array.from(companionsRoot.value?.querySelectorAll<HTMLElement>('[data-npc-name]') ?? []).find(
+          element => element.dataset.npcName === name,
+        ),
+      );
+    }
+  },
+  { immediate: true, flush: 'post' },
+);
 
 function onSubTabKeydown(event: KeyboardEvent, index: number): void {
   let next: number;

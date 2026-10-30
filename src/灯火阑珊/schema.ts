@@ -27,6 +27,8 @@ import {
   DifficultySystemSchema,
   OpportunitySchema,
   QuestSchema,
+  RecentQuestResultsSchema,
+  settleQuestLedger,
   ReputationSystemSchema,
   SystemSettingsSchema,
   unwrapOpportunityPatchPayload,
@@ -99,6 +101,9 @@ export {
   DifficultySystemSchema,
   OpportunitySchema,
   QuestSchema,
+  QuestResultSchema,
+  RecentQuestResultsSchema,
+  settleQuestLedger,
   ReputationEntrySchema,
   ReputationSystemSchema,
   SystemSettingsSchema,
@@ -556,9 +561,9 @@ export const Schema = z.preprocess(
                 extractChineseQuestLabel(taskId) ||
                 getQuestFallbackLabel(task.类型),
             }))
-            .pickBy(task => task.状态 === '进行中')
             .value(),
         ),
+      _近期任务结果: RecentQuestResultsSchema,
 
       // 声望系统 - 健壮性与智能管理优化
       声望系统: ReputationSystemSchema,
@@ -587,6 +592,7 @@ export const Schema = z.preprocess(
                 const title = normalizePromptText(item.标题, ACTION_TITLE_LIMIT);
                 const event = normalizePromptText(item.事件, ACTION_EVENT_LIMIT);
                 const eventId = normalizePromptText(item.关联事件ID, ACTION_EVENT_ID_LIMIT);
+                const taskId = normalizePromptText(item.关联任务ID, ACTION_EVENT_ID_LIMIT);
                 return [
                   {
                     ...(title ? { 标题: title } : {}),
@@ -596,6 +602,7 @@ export const Schema = z.preprocess(
                     事件性质: item.事件性质,
                     ...(event ? { 事件: event } : {}),
                     ...(eventId ? { 关联事件ID: eventId } : {}),
+                    ...(taskId ? { 关联任务ID: taskId } : {}),
                     ...(hint ? { 提示: hint } : {}),
                   },
                 ];
@@ -621,6 +628,11 @@ export const Schema = z.preprocess(
         .prefault({}),
     })
     .transform(data => {
+      const clock = data.世界时钟;
+      const timePlace = `${clock.纪元}${clock.年份}年${clock.月份}月${clock.日期}日·${clock.时辰} · ${data.本尊.行踪.当前区域}`;
+      const questLedger = settleQuestLedger(data.任务列表, data._近期任务结果, timePlace);
+      data.任务列表 = questLedger.tasks;
+      data._近期任务结果 = questLedger.results;
       data.红颜角色库 = normalizeCharacterLibraryAliases(data.红颜角色库 ?? {});
       const normalizedCompanionData = normalizeCompanionAliases(data.红颜 ?? {}, data._好感度快照 ?? {});
       data.红颜 = normalizedCompanionData.companions;

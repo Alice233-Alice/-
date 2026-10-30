@@ -60,9 +60,17 @@
         <PresetPanel v-else-if="activeView === 'preset'" />
         <CultivationPanel v-else-if="activeView === 'cultivation'" />
         <SkillsPanel v-else-if="activeView === 'skills'" />
-        <InventoryPanel v-else-if="activeView === 'inventory'" />
-        <CompanionsPanel v-else-if="activeView === 'companions'" />
-        <MapPanel v-else-if="activeView === 'trace'" />
+        <InventoryPanel
+          v-else-if="activeView === 'inventory'"
+          :focus-name="itemFocus.name"
+          :focus-nonce="itemFocus.nonce"
+        />
+        <CompanionsPanel
+          v-else-if="activeView === 'companions'"
+          :focus-name="personFocus.name"
+          :focus-nonce="personFocus.nonce"
+        />
+        <AffairsPanel v-else-if="activeView === 'affairs'" :focus="affairsFocus" />
         <div v-else-if="activeView === 'tribulation'" class="panel tribulation-panel">
           <CombatPanel
             :combat-state="store.本尊.战斗状态"
@@ -72,7 +80,6 @@
           />
         </div>
         <GalleryPanel v-else-if="activeView === 'gallery'" />
-        <ActionMenuPanel v-else-if="activeView === 'actions'" />
         <div v-if="mapOpened" v-show="activeView === 'map'" class="panel full-map-panel">
           <WorldMapCanvas
             :active="activeView === 'map'"
@@ -82,6 +89,10 @@
             :location-description="atlasLocationDescription"
             :current-danger="store.本尊.行踪.危险度 ?? 10"
             :available-connections="store.本尊.行踪.可用通道 || []"
+            :focus-place="placeFocus.name"
+            :focus-nonce="placeFocus.nonce"
+            :focus-domain="focusedPlaceDomain"
+            :focus-description="store.地点库[placeFocus.name]?.描述 || ''"
           />
         </div>
       </div>
@@ -118,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import ActionMenuPanel from './components/ActionMenuPanel.vue';
+import AffairsPanel from './components/AffairsPanel.vue';
 import CombatPanel from './components/CombatPanel.vue';
 import CompanionsPanel from './components/CompanionsPanel.vue';
 import CultivationPanel from './components/CultivationPanel.vue';
@@ -127,7 +138,6 @@ import GalleryPanel from './components/GalleryPanel.vue';
 import GalleryPreviewDialog from './components/GalleryPreviewDialog.vue';
 import GreetingIndexDialog from './components/GreetingIndexDialog.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
-import MapPanel from './components/MapPanel.vue';
 import PresetPanel from './components/PresetPanel.vue';
 import PseudoCommandDock from './components/PseudoCommandDock.vue';
 import PseudoStoryReader from './components/PseudoStoryReader.vue';
@@ -148,6 +158,8 @@ import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from './store';
 import type { ReadingMode } from './stores/theme-store';
+import { readingViewForMode, type AffairsFocus } from './affairs';
+import { useAffairsStore } from './stores/affairs-store';
 
 export type StageView =
   | 'timeline'
@@ -161,11 +173,18 @@ export type StageView =
   | 'map'
   | 'tribulation'
   | 'gallery'
-  | 'actions';
+  | 'actions'
+  | 'affairs';
 
 const store = useDataStore();
 const pseudoLayerStore = usePseudoLayerStore();
 const themeStore = useThemeStore();
+const affairs = useAffairsStore();
+const affairsFocus = ref<AffairsFocus | null>(null);
+const personFocus = ref({ name: '', nonce: 0 });
+const itemFocus = ref({ name: '', nonce: 0 });
+const placeFocus = ref({ name: '', nonce: 0 });
+const focusedPlaceDomain = computed(() => store.地点库[placeFocus.value.name]?.域 || parentRegion.value);
 const MOBILE_BREAKPOINT = 760;
 const IMMERSIVE_STORAGE_KEYS = {
   mobile: 'denghuolanshan:pseudo-layer:mobile-immersive',
@@ -238,19 +257,11 @@ let parentPanelFitRequested = true;
 
 type StageTab = { id: StageView; label: string; icon: string; badge?: number };
 
-const activeTaskCount = computed(() => Object.values(store.任务列表).filter(task => task.状态 === '进行中').length);
-const actionBadgeCount = computed(() => {
-  if (store.世闻数 > 0) return store.世闻数;
-  if (store.启用行动提示 && store.可选行动数 > 0) return store.可选行动数;
-  return undefined;
-});
-
 const utilityTabs: Array<StageTab> = [
   { id: 'gallery', label: '图鉴', icon: 'fa-solid fa-images' },
-  { id: 'actions', label: '世闻', icon: 'fa-solid fa-compass' },
+  { id: 'affairs', label: '行事', icon: 'fa-solid fa-compass' },
   { id: 'cultivation', label: '修炼', icon: 'fa-solid fa-yin-yang' },
   { id: 'skills', label: '神通', icon: 'fa-solid fa-hand-sparkles' },
-  { id: 'trace', label: '任务', icon: 'fa-solid fa-list-check' },
   { id: 'companions', label: '红尘', icon: 'fa-solid fa-feather-pointed' },
   { id: 'inventory', label: '储物', icon: 'fa-solid fa-box-open' },
   { id: 'map', label: '地图', icon: 'fa-solid fa-map-location-dot' },
@@ -262,15 +273,7 @@ const tabs = computed<Array<StageTab>>(() => [
     : readingMode.value === 'scroll'
       ? [{ id: 'timeline' as const, label: '历程', icon: 'fa-solid fa-scroll' }]
       : [{ id: 'story' as const, label: '正文', icon: 'fa-solid fa-book-open' }]),
-  ...utilityTabs.map(tab => {
-    if (tab.id === 'actions' && actionBadgeCount.value) {
-      return { ...tab, badge: actionBadgeCount.value };
-    }
-    if (tab.id === 'trace' && activeTaskCount.value > 0) {
-      return { ...tab, badge: activeTaskCount.value };
-    }
-    return tab;
-  }),
+  ...utilityTabs,
 ]);
 
 const themeArtMap = {
@@ -456,11 +459,46 @@ const setReadingMode = (mode: ReadingMode) => {
 };
 const openView = (view: StageView) => {
   if (isDetachedMode.value && isReadingView(view)) return;
+  if (view === 'trace' || view === 'actions') {
+    affairsFocus.value = { section: view === 'trace' ? 'tasks' : 'events', nonce: Date.now() };
+    view = 'affairs';
+  }
   const target = readingMode.value === 'scroll' && view === 'story' ? ('timeline' as const) : view;
   if (isReadingView(target)) restoreReadingPreference();
   else isImmersive.value = false;
   activeView.value = target;
 };
+watch(
+  () => affairs.navigation,
+  target => {
+    if (!target) return;
+    if (target.kind === 'task' || target.kind === 'event') {
+      affairsFocus.value = {
+        section: target.kind === 'event' ? 'events' : store.任务列表[target.id] ? 'tasks' : 'results',
+        id: target.id,
+        nonce: target.nonce,
+      };
+      openView('affairs');
+    } else if (target.kind === 'person') {
+      personFocus.value = { name: target.id, nonce: target.nonce };
+      openView('companions');
+    } else if (target.kind === 'item') {
+      itemFocus.value = { name: target.id, nonce: target.nonce };
+      openView('inventory');
+    } else {
+      placeFocus.value = { name: target.id, nonce: target.nonce };
+      openView('map');
+    }
+  },
+);
+watch(
+  isDetachedMode,
+  detached => {
+    activeView.value = detached ? 'gallery' : readingViewForMode(readingMode.value);
+    if (!detached) restoreReadingPreference();
+  },
+  { immediate: true },
+);
 const toggleImmersive = () => {
   if (!isImmersive.value && !isReadingView(activeView.value)) {
     activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'story';
@@ -526,13 +564,18 @@ watch(
   (next, previous) => {
     if (isDetachedMode.value) return;
     if (previous === 'idle' && next !== 'idle') {
-      hasEnteredStreaming.value = true;
-      if (isReadingView(activeView.value)) restoreReadingPreference();
+      hasEnteredStreaming.value = pseudoLayerStore.generationInteractionMode !== 'dialogue';
+      if (hasEnteredStreaming.value) {
+        activeView.value = readingViewForMode(readingMode.value);
+        restoreReadingPreference();
+      }
     }
-    if (previous !== 'idle' && next === 'idle' && hasEnteredStreaming.value && pseudoLayerStore.isLatest) {
+    if (previous !== 'idle' && next === 'idle' && hasEnteredStreaming.value) {
       hasEnteredStreaming.value = false;
-      activeView.value = 'gallery';
-      isImmersive.value = false;
+      if (pseudoLayerStore.isStoryHistoryLatest) {
+        activeView.value = readingViewForMode(readingMode.value);
+        restoreReadingPreference();
+      }
     }
   },
 );
@@ -830,6 +873,7 @@ onBeforeUnmount(() => {
   --view-accent: var(--semantic-danger);
 }
 .cultivation-status[data-view='trace'],
+.cultivation-status[data-view='affairs'],
 .cultivation-status[data-view='actions'] {
   --view-accent: var(--semantic-info);
 }
