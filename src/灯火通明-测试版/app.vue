@@ -92,7 +92,7 @@
             :focus-place="placeFocus.name"
             :focus-nonce="placeFocus.nonce"
             :focus-domain="focusedPlaceDomain"
-            :focus-description="store.地点库[placeFocus.name]?.描述 || ''"
+            :focus-description="store.地点库[placeFocus.name]?.特 || ''"
           />
         </div>
       </div>
