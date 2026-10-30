@@ -345,7 +345,7 @@ const themeStyles = computed(() => {
   const colors = theme.colors;
   return {
     '--stage-height': `${stageHeight.value}px`,
-    '--status-panel-height': `${Math.round(Math.min(parentViewportHeight.value * 0.68, 560))}px`,
+    '--status-panel-height': `${Math.round(Math.min(parentViewportHeight.value * 0.68, 560) + (isMobileViewport.value ? 0 : 24))}px`,
     '--bg-primary': colors.bgPrimary,
     '--bg-secondary': colors.bgSecondary,
     '--border-color': colors.border,
