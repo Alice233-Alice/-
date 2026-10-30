@@ -988,18 +988,18 @@ test('变量规则与输出格式 YAML 可解析', () => {
   assert.match(searchableUpdateRule, /至少一项低压力方向/u);
   assert.match(searchableUpdateRule, /同一 JSONPatch insert \/世界图志\/\{稳定事件ID\}/u);
   assert.match(searchableUpdateRule, /连续 3 个合适回合没有事件种子/u);
-  assert.match(searchableUpdateRule, /禁止引用不存在的事件ID/u);
+  assert.match(searchableUpdateRule, /只引用本组结算后存在的进行中任务或世界图志key/u);
   assert.match(searchableUpdateRule, /\$ 前缀使变量列表宏不向正文 AI 展示/u);
   assert.match(searchableUpdateRule, /其他候选不得在正文、变量结算或 NPC 反应中同步发生/u);
   assert.match(searchableOutputFormat, /字段何时变化、生命周期与事务联动由《变量更新规则》定义/u);
   assert.match(searchableOutputFormat, /只定义输出编码/u);
-  assert.match(searchableOutputFormat, /只有玩家最终提交的 input 会送入正文 AI/u);
-  assert.match(searchableOutputFormat, /3 条活跃事件 \+ 5 条近期结果/u);
+  assert.match(searchableUpdateRule, /只有玩家最终提交的 input 会送入正文 AI/u);
+  assert.match(searchableUpdateRule, /活跃事件最多 3 条.*近期结果.*5条.*总量上限 8/u);
   assert.match(searchableOutputFormat, /等级仅用 replace 写绝对整数/u);
   assert.doesNotMatch(searchableOutputFormat, /金丹初|元婴初期|境界变动\.依据须逐字/u);
-  assert.match(searchableOutputFormat, /\/红颜\/\{角色名\}\/好感度/u);
-  assert.match(searchableOutputFormat, /\/红颜\/\{角色名\}\/关系上下文\/态度缘由/u);
-  assert.match(searchableOutputFormat, /禁止用字符串 replace 整个/u);
+  assert.match(searchableUpdateRule, /\/红颜\/\{角色名\}\/好感度/u);
+  assert.match(searchableUpdateRule, /\/红颜\/\{角色名\}\/关系上下文\/态度缘由/u);
+  assert.match(searchableUpdateRule, /禁止用字符串 replace 整个/u);
   assert.doesNotMatch(searchableOutputFormat, /境界事务示例|任务生命周期示例|红颜示例/u);
 
   const patchMatch = outputFormat.变量输出格式.format.match(/<JSONPatch>\s*([\s\S]*?)\s*<\/JSONPatch>/u);
