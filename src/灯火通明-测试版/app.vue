@@ -10,6 +10,8 @@
       'reduce-motion': themeStore.preferences.reduceMotion,
       'light-theme': themeStore.currentTheme.mode === 'light',
       'pseudo-stage-fit': isPseudoStage,
+      'detached-status': isDetachedMode,
+      'status-collapsed': isDetachedMode && isStatusCollapsed,
       'scroll-reading': readingMode === 'scroll',
     }"
     :style="themeStyles"
@@ -25,16 +27,19 @@
       :parent-region="parentRegion"
       :danger-color="dangerColor"
       :reading-mode="readingMode"
+      :detached="isDetachedMode"
+      :status-collapsed="isStatusCollapsed"
+      @toggle-status="toggleStatusCollapsed"
       @open-map="openView('map')"
       @open-greeting-index="showGreetingIndex = true"
       @open-preset="openView('preset')"
-      @open-settings="showReadingSettings = true"
+      @open-settings="openReadingSettings"
       @open-editor="openCurrentEditor"
       @toggle-immersive="toggleImmersive"
       @set-reading-mode="setReadingMode"
     />
 
-    <main class="stage-main">
+    <main v-if="!isDetachedMode || !isStatusCollapsed" class="stage-main">
       <div
         ref="modeViewport"
         class="stage-viewport"
@@ -42,7 +47,7 @@
         @scroll="rememberScroll"
       >
         <TimelineReader
-          v-if="readingMode === 'scroll'"
+          v-if="!isDetachedMode && readingMode === 'scroll'"
           v-show="activeView === 'timeline'"
           :active="activeView === 'timeline'"
           :anchor-message-id="timelineAnchorMessageId"
@@ -82,31 +87,33 @@
       </div>
     </main>
 
-    <div v-if="!isImmersive" class="stage-navigation">
+    <div v-if="!isImmersive && (!isDetachedMode || !isStatusCollapsed)" class="stage-navigation">
       <TabNav v-model:active-tab="activeView" :tabs="tabs" />
     </div>
     <PseudoCommandDock
+      v-if="!isDetachedMode"
       :active-view="activeView"
       :mobile-layout="isMobileViewport"
       :immersive="isImmersive"
       :reading-mode="readingMode"
       @open-view="openView"
     />
-    <DialogueDrawer />
+    <DialogueDrawer v-if="!isDetachedMode" />
 
     <ReadingSettingsPanel
       :visible="showReadingSettings"
       :viewport-mode="viewportMode"
       @close="showReadingSettings = false"
     />
-    <GreetingIndexDialog :visible="showGreetingIndex" @close="showGreetingIndex = false" />
+    <GreetingIndexDialog v-if="!isDetachedMode" :visible="showGreetingIndex" @close="showGreetingIndex = false" />
     <RawMessageEditor
+      v-if="!isDetachedMode"
       :visible="showRawMessageEditor"
       :target-message-id="editorTarget?.messageId"
       :target-label="editorTarget?.label"
       @close="closeRawEditor"
     />
-    <GalleryPreviewDialog />
+    <GalleryPreviewDialog v-if="!isDetachedMode || !isStatusCollapsed" />
   </div>
 </template>
 
@@ -173,7 +180,7 @@ const readImmersivePreference = (mode: ViewportMode) => {
 };
 const viewportMode = ref<ViewportMode>(getViewportMode());
 const readingMode = computed<ReadingMode>(() => themeStore.readingModes[viewportMode.value]);
-const activeView = ref<StageView>(readingMode.value === 'scroll' ? 'timeline' : 'story');
+const activeView = ref<StageView>('gallery');
 // Prepare the atlas only on first entry; tab changes retain its textures and camera.
 const mapOpened = ref(false);
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
@@ -190,7 +197,37 @@ const readParentViewportHeight = () => Math.round(window.parent.visualViewport?.
 const parentViewportHeight = ref(readParentViewportHeight());
 const appViewportWidth = ref(window.parent.innerWidth);
 const isMobileViewport = computed(() => viewportMode.value === 'mobile');
-const isPseudoStage = ref(Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root')));
+const isPseudoStage = computed(() => pseudoLayerStore.isPseudoStage);
+const isDetachedMode = computed(() => pseudoLayerStore.isDetachedMode);
+const statusPreferencePrefix = `denghuolanshan:status:${SillyTavern.getCurrentChatId()}:${pseudoLayerStore.messageId}`;
+const readStatusCollapsedPreference = () => {
+  const stored = localStorage.getItem(`${statusPreferencePrefix}:${viewportMode.value}`);
+  if (stored !== null) return stored === 'true';
+  if (!pseudoLayerStore.isNativeLatest) return true;
+  return localStorage.getItem(`denghuolanshan:status:${viewportMode.value}:collapsed`) === 'true';
+};
+const isStatusCollapsed = ref(readStatusCollapsedPreference());
+const toggleStatusCollapsed = () => {
+  isStatusCollapsed.value = !isStatusCollapsed.value;
+  localStorage.setItem(`${statusPreferencePrefix}:${viewportMode.value}`, String(isStatusCollapsed.value));
+  if (pseudoLayerStore.isNativeLatest) {
+    localStorage.setItem(`denghuolanshan:status:${viewportMode.value}:collapsed`, String(isStatusCollapsed.value));
+  }
+};
+const openReadingSettings = () => {
+  if (isDetachedMode.value && isStatusCollapsed.value) toggleStatusCollapsed();
+  showReadingSettings.value = true;
+};
+watch([viewportMode, () => pseudoLayerStore.isNativeLatest], () => {
+  isStatusCollapsed.value = readStatusCollapsedPreference();
+});
+watch(
+  [isDetachedMode, isStatusCollapsed],
+  ([detached, collapsed]) => {
+    store.setGalleryPreloadEnabled(!detached || !collapsed);
+  },
+  { immediate: true },
+);
 const nativeStageHeight = ref<number | null>(null);
 const movingPanelFit = createMovingPanelFit();
 let parentPanelFitRequested = true;
@@ -205,20 +242,22 @@ const actionBadgeCount = computed(() => {
 });
 
 const utilityTabs: Array<StageTab> = [
-  { id: 'actions', label: '世闻', icon: 'fa-solid fa-compass' },
   { id: 'gallery', label: '图鉴', icon: 'fa-solid fa-images' },
+  { id: 'actions', label: '世闻', icon: 'fa-solid fa-compass' },
   { id: 'cultivation', label: '修炼', icon: 'fa-solid fa-yin-yang' },
   { id: 'skills', label: '神通', icon: 'fa-solid fa-hand-sparkles' },
-  { id: 'inventory', label: '储物', icon: 'fa-solid fa-box-open' },
-  { id: 'companions', label: '红尘', icon: 'fa-solid fa-feather-pointed' },
   { id: 'trace', label: '任务', icon: 'fa-solid fa-list-check' },
+  { id: 'companions', label: '红尘', icon: 'fa-solid fa-feather-pointed' },
+  { id: 'inventory', label: '储物', icon: 'fa-solid fa-box-open' },
   { id: 'map', label: '地图', icon: 'fa-solid fa-map-location-dot' },
   { id: 'tribulation', label: '历劫', icon: 'fa-solid fa-bolt' },
 ];
 const tabs = computed<Array<StageTab>>(() => [
-  ...(readingMode.value === 'scroll'
-    ? [{ id: 'timeline' as const, label: '历程', icon: 'fa-solid fa-scroll' }]
-    : [{ id: 'story' as const, label: '正文', icon: 'fa-solid fa-book-open' }]),
+  ...(isDetachedMode.value
+    ? []
+    : readingMode.value === 'scroll'
+      ? [{ id: 'timeline' as const, label: '历程', icon: 'fa-solid fa-scroll' }]
+      : [{ id: 'story' as const, label: '正文', icon: 'fa-solid fa-book-open' }]),
   ...utilityTabs.map(tab => {
     if (tab.id === 'actions' && actionBadgeCount.value) {
       return { ...tab, badge: actionBadgeCount.value };
@@ -239,11 +278,10 @@ const themeArtMap = {
 const updateViewport = () => {
   const parentChat = window.parent.document.querySelector<HTMLElement>('#chat');
   const frame = window.frameElement;
-  isPseudoStage.value = Boolean(frame?.closest('#dhl-pseudo-stage-root'));
   // Older controllers keep the stage in the selected native message instead
   // of the owned stage root. Fit that host to the actual chat space as well.
   const nativeHost = frame?.closest('#chat > .mes.dhl-pseudo-selected');
-  if (parentChat && (isPseudoStage.value || nativeHost)) {
+  if (parentChat && !isDetachedMode.value && (isPseudoStage.value || nativeHost)) {
     const parentWindow = window.parent;
     const visualViewport = parentWindow.visualViewport;
     movingPanelFit.sync(
@@ -252,9 +290,9 @@ const updateViewport = () => {
       parentPanelFitRequested,
     );
     parentPanelFitRequested = false;
-  }
+  } else movingPanelFit.dispose();
   // 缩放时酒馆可能临时滚动外层聊天区，先归零，避免把滚动偏移计入舞台高度。
-  if (parentChat && (isPseudoStage.value || nativeHost)) parentChat.scrollTop = 0;
+  if (parentChat && !isDetachedMode.value && (isPseudoStage.value || nativeHost)) parentChat.scrollTop = 0;
   const availableNativeHeight =
     nativeHost && parentChat ? parentChat.getBoundingClientRect().bottom - frame!.getBoundingClientRect().top : 0;
   nativeStageHeight.value = availableNativeHeight > 0 ? Math.floor(availableNativeHeight) : null;
@@ -263,7 +301,8 @@ const updateViewport = () => {
   const nextMode = getViewportMode();
   if (nextMode !== viewportMode.value) {
     viewportMode.value = nextMode;
-    isImmersive.value = readImmersivePreference(nextMode);
+    isImmersive.value =
+      !isDetachedMode.value && isReadingView(activeView.value) ? readImmersivePreference(nextMode) : false;
   }
 };
 let viewportUpdateFrame: number | null = null;
@@ -284,6 +323,7 @@ watch(
     () => pseudoLayerStore.controllerReady,
     () => pseudoLayerStore.view.hostMessageId,
     () => pseudoLayerStore.view.nativeInputCollapsed,
+    isDetachedMode,
   ],
   scheduleViewportUpdate,
 );
@@ -305,6 +345,7 @@ const themeStyles = computed(() => {
   const colors = theme.colors;
   return {
     '--stage-height': `${stageHeight.value}px`,
+    '--status-panel-height': `${Math.round(Math.min(parentViewportHeight.value * 0.68, 560))}px`,
     '--bg-primary': colors.bgPrimary,
     '--bg-secondary': colors.bgSecondary,
     '--border-color': colors.border,
@@ -383,6 +424,21 @@ const atlasLocationDescription = computed(() => {
 const isReadingView = (view: StageView) => view === 'timeline' || view === 'story';
 const dangerColor = computed(() => getDangerColor(store.本尊.行踪.危险度 ?? 10));
 const readingViewActive = computed(() => isReadingView(activeView.value));
+watch(
+  isDetachedMode,
+  detached => {
+    if (detached) {
+      isImmersive.value = false;
+      if (isReadingView(activeView.value)) activeView.value = 'gallery';
+      showRawMessageEditor.value = false;
+      showGreetingIndex.value = false;
+    } else {
+      activeView.value = 'gallery';
+      isImmersive.value = false;
+    }
+  },
+  { immediate: true },
+);
 
 const setImmersivePreference = (value: boolean) => {
   isImmersive.value = value;
@@ -395,6 +451,7 @@ const setReadingMode = (mode: ReadingMode) => {
   themeStore.setReadingMode(viewportMode.value, mode);
 };
 const openView = (view: StageView) => {
+  if (isDetachedMode.value && isReadingView(view)) return;
   const target = readingMode.value === 'scroll' && view === 'story' ? ('timeline' as const) : view;
   if (isReadingView(target)) restoreReadingPreference();
   else isImmersive.value = false;
@@ -434,12 +491,13 @@ watch(activeView, (next, previous) => {
       modeViewport.value.scrollTop = isReadingView(next) ? 0 : (scrollPositions.get(next) ?? 0);
     }
   });
-  if (readingMode.value === 'paged' && next === 'story' && next !== previous) {
+  if (!isDetachedMode.value && readingMode.value === 'paged' && next === 'story' && next !== previous) {
     pseudoLayerStore.selectHistory('story');
   }
 });
 
 watch(readingMode, (next, previous) => {
+  if (isDetachedMode.value) return;
   if (next === previous) return;
   if (next === 'scroll') {
     const anchor =
@@ -462,15 +520,15 @@ watch(readingMode, (next, previous) => {
 watch(
   () => pseudoLayerStore.generationState,
   (next, previous) => {
+    if (isDetachedMode.value) return;
     if (previous === 'idle' && next !== 'idle') {
       hasEnteredStreaming.value = true;
-      activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'story';
-      restoreReadingPreference();
+      if (isReadingView(activeView.value)) restoreReadingPreference();
     }
     if (previous !== 'idle' && next === 'idle' && hasEnteredStreaming.value && pseudoLayerStore.isLatest) {
       hasEnteredStreaming.value = false;
-      activeView.value = readingMode.value === 'scroll' ? 'timeline' : 'story';
-      restoreReadingPreference();
+      activeView.value = 'gallery';
+      isImmersive.value = false;
     }
   },
 );
@@ -478,6 +536,7 @@ watch(
 watch(
   () => pseudoLayerStore.view.selectedMessageId,
   (messageId, previousMessageId) => {
+    if (isDetachedMode.value) return;
     if (messageId < 0 || messageId === previousMessageId) return;
     if (readingMode.value === 'scroll') {
       if (timelineAnchorMessageId.value < 0) {
@@ -487,8 +546,10 @@ watch(
       if (isReadingView(activeView.value)) activeView.value = 'timeline';
       return;
     }
-    activeView.value = 'story';
-    restoreReadingPreference();
+    if (isReadingView(activeView.value)) {
+      activeView.value = 'story';
+      restoreReadingPreference();
+    }
   },
   { immediate: true },
 );
@@ -501,8 +562,13 @@ watch(
     () => pseudoLayerStore.view.latestStateMessageId,
     () => pseudoLayerStore.view.revision,
     readingMode,
+    isDetachedMode,
   ],
-  ([hostMessageId, selectedMessageId, latestMessageId, latestStateMessageId, , mode]) => {
+  ([hostMessageId, selectedMessageId, latestMessageId, latestStateMessageId, , mode, detached]) => {
+    if (detached) {
+      store.viewMessage(pseudoLayerStore.messageId);
+      return;
+    }
     const targetMessageId = mode === 'scroll' ? latestMessageId : selectedMessageId;
     if (hostMessageId !== pseudoLayerStore.messageId || targetMessageId < 0) return;
     const stateMessageId =
@@ -564,6 +630,18 @@ onBeforeUnmount(() => {
 
 .cultivation-status.pseudo-stage-fit {
   height: 100dvh;
+}
+
+.cultivation-status.detached-status {
+  height: auto;
+  max-width: 100%;
+  box-shadow: 0 6px 22px var(--stage-shadow);
+
+  .stage-main {
+    flex: none;
+    height: var(--status-panel-height);
+    max-height: var(--status-panel-height);
+  }
 }
 
 .cultivation-status.map-expanded {
@@ -631,6 +709,9 @@ onBeforeUnmount(() => {
 .cultivation-status > :where(.stage-header, .stage-main, .stage-navigation, .command-dock) {
   position: relative;
   z-index: 1;
+}
+.cultivation-status > :deep(.stage-header) {
+  z-index: 40;
 }
 .stage-navigation {
   display: contents;

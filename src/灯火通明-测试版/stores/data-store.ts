@@ -586,6 +586,12 @@ export const useDataStore = defineStore(
         return null;
       }
     };
+    let galleryPreloadEnabled = true;
+    const setGalleryPreloadEnabled = (enabled: boolean) => {
+      if (enabled === galleryPreloadEnabled) return;
+      galleryPreloadEnabled = enabled;
+      if (enabled && galleryCards.value.length > 0) preloadGalleryCardImages(galleryCards.value);
+    };
     // 解析当前楼层消息中的 visual_cards
     const parseCurrentMessageCards = (targetMessageId: number | 'latest' = message_id) => {
       try {
@@ -604,7 +610,7 @@ export const useDataStore = defineStore(
             // 缓存结果
             cardCache.set(cacheKey, cards);
             // 预加载图片
-            preloadGalleryCardImages(cards);
+            if (galleryPreloadEnabled) preloadGalleryCardImages(cards);
             debugLog('[图鉴] 解析到角色卡片', cards.length, '张');
           } else {
             galleryCards.value = [];
@@ -620,7 +626,7 @@ export const useDataStore = defineStore(
     // 幕间对话使用隐藏楼层，不切换正文阅读锚点；抽屉打开时临时让图鉴与该轮图卡保持一致。
     const showTransientGalleryCards = (cards: GalleryCard[]) => {
       galleryCards.value = cards;
-      if (cards.length > 0) preloadGalleryCardImages(cards);
+      if (galleryPreloadEnabled && cards.length > 0) preloadGalleryCardImages(cards);
     };
     // 翻转卡片
     const toggleCardFlip = (index: number) => {
@@ -1035,6 +1041,7 @@ export const useDataStore = defineStore(
       toggleCardFlip,
       changeGalleryCardImage,
       parseCurrentMessageCards,
+      setGalleryPreloadEnabled,
       showTransientGalleryCards,
       // 行动提示系统
       可参与机遇,

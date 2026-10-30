@@ -443,9 +443,12 @@ const companionStats = computed(() =>
   ].map(([label, fallback]) => ({ label, ...splitParenText(selectedCompanion.value?.[label], fallback) })),
 );
 
-const interactionDisabled = computed(() => pseudo.isGenerating || !pseudo.isStoryHistoryLatest);
+const interactionDisabled = computed(
+  () => pseudo.isGenerating || (!pseudo.isDetachedMode && !pseudo.isStoryHistoryLatest),
+);
 const interactionStatus = computed(() => {
   if (pseudo.isGenerating) return '推演尚未结束';
+  if (pseudo.isDetachedMode) return '交谈起念将填入酒馆输入框';
   if (!pseudo.isStoryHistoryLatest) return '阅览旧章时不可交谈';
   return '';
 });

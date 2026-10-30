@@ -14,6 +14,31 @@
 
         <div class="theme-setting">
           <div class="setting-heading">
+            <span>界面模式</span>
+            <small>{{ pseudo.isDetachedMode ? '状态随楼层，正文随酒馆' : '正文与状态同在一席' }}</small>
+          </div>
+          <div class="segmented-control" role="group" aria-label="界面模式">
+            <button
+              type="button"
+              :class="{ active: !pseudo.isDetachedMode }"
+              :disabled="pseudo.isGenerating || pseudo.isDeleting || pseudo.isUpdatingMessage"
+              @click="pseudo.setDetached(false)"
+            >
+              <i class="fa-solid fa-layer-group"></i>伪同层舞台
+            </button>
+            <button
+              type="button"
+              :class="{ active: pseudo.isDetachedMode }"
+              :disabled="pseudo.isGenerating || pseudo.isDeleting || pseudo.isUpdatingMessage"
+              @click="pseudo.setDetached(true)"
+            >
+              <i class="fa-solid fa-list"></i>原生楼层
+            </button>
+          </div>
+        </div>
+
+        <div class="theme-setting">
+          <div class="setting-heading">
             <span>界面主题</span>
             <small>四境随心，一念换景</small>
           </div>
@@ -45,7 +70,7 @@
           </div>
         </div>
 
-        <div class="reading-settings">
+        <div v-if="!pseudo.isDetachedMode" class="reading-settings">
           <div class="setting-heading">
             <span>阅读排版</span>
             <small>只影响正文阅读席</small>

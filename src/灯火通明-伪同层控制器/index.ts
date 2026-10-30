@@ -2,6 +2,7 @@ import {
   DialogueContext,
   DialogueEngineKind,
   PSEUDO_LAYER_CHANNEL,
+  PSEUDO_LAYER_DETACHED_STORAGE_KEY,
   PSEUDO_LAYER_VERSION,
   PseudoLayerGenerationOperation,
   PseudoLayerGenerationState,
@@ -19,7 +20,7 @@ import {
   PseudoLayerTimelineTurn,
   PseudoLayerView,
   isPseudoLayerRequest,
-} from '../灯火通明/pseudo-layer-protocol';
+} from '../灯火通明-测试版/pseudo-layer-protocol';
 import { Schema } from '../灯火通明/schema';
 import { readAdviceInput, readPlayerInput } from '../灯火通明/player-input';
 import {
@@ -198,6 +199,7 @@ const selectedHistoryMessageIds: Record<PseudoLayerHistoryKind, number | null> =
 };
 let selectedHistoryKind: PseudoLayerHistoryKind | null = null;
 let browsingHistory = false;
+let detachedMode = localStorage.getItem(PSEUDO_LAYER_DETACHED_STORAGE_KEY) === 'true';
 let deletingMessageId: number | null = null;
 let updatingMessageId: number | null = null;
 const nativeInputMedia = tavernWindow.matchMedia(MOBILE_VIEWPORT_QUERY);
@@ -465,6 +467,7 @@ const hasMountedPseudoApp = (frame: HTMLIFrameElement | null | undefined) => {
  * 的同源实例。原节点继续留给酒馆刷新，自有实例挂载完成后接管可见舞台。
  */
 const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
+  if (detachedMode || controllerDisposed) return false;
   if (frame.dataset.dhlControllerOwned === 'true' && frame.closest(`#${STAGE_ROOT_ID}`)) return false;
   // 宿主可能先插入空 iframe 再填入地址；不能把 about:blank 当成正在加载的完整前端。
   const sourceUrl = frame.getAttribute('src')?.trim();
@@ -1123,6 +1126,7 @@ const rememberStageSelection = (messageId: number, entries = getStageEntries()) 
 };
 
 const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestStoryStageId()) => {
+  if (detachedMode || controllerDisposed) return;
   rememberFrame(frame);
   if (frame.dataset.dhlControllerOwned === 'true') return;
   const messageId = getFrameMessageId(frame);
@@ -1139,7 +1143,7 @@ const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestSt
 
 const flushFrameCandidates = () => {
   frameCandidateTimer = null;
-  if (controllerDisposed || pendingFrameCandidates.size === 0) return;
+  if (controllerDisposed || detachedMode || pendingFrameCandidates.size === 0) return;
   const frames = [...pendingFrameCandidates];
   pendingFrameCandidates.clear();
   const latestMessageId = latestStoryStageId();
@@ -1149,6 +1153,7 @@ const flushFrameCandidates = () => {
 };
 
 const queueFrameCandidate = (frame: HTMLIFrameElement) => {
+  if (detachedMode || controllerDisposed) return;
   rememberFrame(frame);
   pendingFrameCandidates.add(frame);
   if (frameCandidateTimer !== null) return;
@@ -1173,6 +1178,7 @@ const inspectAddedFrameNode = (node: Node) => {
 };
 
 const installFrameObserver = () => {
+  if (detachedMode || controllerDisposed) return;
   const chat = tavernDocument.querySelector<HTMLElement>('#chat');
   if (chat === observedChat && frameObserver) return;
   frameObserver?.disconnect();
@@ -1192,6 +1198,7 @@ const installFrameObserver = () => {
 };
 
 const parkLatestStageFrame = () => {
+  if (detachedMode || controllerDisposed) return;
   const messageId = latestStoryStageId();
   if (messageId === undefined) return;
   const frames = getMessageElement(messageId)?.querySelectorAll<HTMLIFrameElement>('.TH-render iframe');
@@ -1200,7 +1207,7 @@ const parkLatestStageFrame = () => {
 };
 
 const reconcileStageFrame = () => {
-  if (controllerDisposed) return;
+  if (controllerDisposed || detachedMode) return;
   installFrameObserver();
   const parkedId = getParkedMessageId();
   if (parkedId !== undefined && getLiveRegistration(parkedId)) {
@@ -1234,6 +1241,7 @@ const getRegisteredAssistantIds = () =>
 const getRerollLock = () => (activeGeneration?.operation === 'reroll' ? activeGeneration.lockedView : undefined);
 
 const getHostStageId = () => {
+  if (detachedMode) return undefined;
   // 宿主楼层与正在阅读/更新的楼层可以不同。优先沿用可见实例，保留滚动位置和展开状态。
   const parkedMessageId = getParkedMessageId();
   if (parkedMessageId !== undefined && getLiveRegistration(parkedMessageId)) return parkedMessageId;
@@ -1255,6 +1263,7 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
       ...lockedView,
       hostMessageId: getHostStageId() ?? lockedView.hostMessageId,
       nativeInputCollapsed,
+      detached: detachedMode,
       // The lock freezes navigation, not the pending-input status from before reroll.
       pendingInput,
       activeInteraction: activeInteraction.mode === 'dialogue' ? { ...activeInteraction } : STORY_INTERACTION,
@@ -1282,13 +1291,16 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
     nextMessageId: position >= 0 && position < ids.length - 1 ? ids[position + 1] : undefined,
     isLatest: selected === latestMessageId,
     nativeInputCollapsed,
+    detached: detachedMode,
     ...(pendingInput ? { pendingInput } : {}),
     ...(tokenCount !== undefined ? { tokenCount } : {}),
     stage: selectedEntry?.stage ?? { kind: 'story' },
-    dialogueThreads:
-      hydrateTimelineEntries(getStageSnapshot())
-        .find(entry => entry.representativeMessageId === selected)
-        ?.dialogueThreads?.map(thread => ({ ...thread, turns: hydrateStageTurns(getStageSnapshot(), thread) })) ?? [],
+    dialogueThreads: detachedMode
+      ? []
+      : (hydrateTimelineEntries(getStageSnapshot())
+          .find(entry => entry.representativeMessageId === selected)
+          ?.dialogueThreads?.map(thread => ({ ...thread, turns: hydrateStageTurns(getStageSnapshot(), thread) })) ??
+        []),
     histories: {
       story: makeHistoryState(entries, 'story'),
       dialogue: makeHistoryState(entries, 'dialogue'),
@@ -1298,7 +1310,7 @@ const makeView = (entries = getStageEntries()): PseudoLayerView => {
 };
 
 const applyNativeInputState = () => {
-  const active = tavernDocument.body.classList.contains('dhl-pseudo-layer-active');
+  const active = !detachedMode && tavernDocument.body.classList.contains('dhl-pseudo-layer-active');
   tavernDocument.body.classList.toggle('dhl-native-input-collapsed', active && nativeInputCollapsed);
 
   const chat = tavernDocument.querySelector<HTMLElement>('#chat');
@@ -1307,7 +1319,7 @@ const applyNativeInputState = () => {
   if (mobileStageAlignFrame !== null) tavernWindow.cancelAnimationFrame(mobileStageAlignFrame);
   mobileStageAlignFrame = tavernWindow.requestAnimationFrame(() => {
     mobileStageAlignFrame = null;
-    if (!controllerDisposed && chat.isConnected) chat.scrollTop = 0;
+    if (!controllerDisposed && !detachedMode && chat.isConnected) chat.scrollTop = 0;
   });
 };
 
@@ -1335,6 +1347,13 @@ const handleNativeInputViewportChange = (event: MediaQueryListEvent) => {
 };
 
 const applyStageVisibility = (snapshot = getStageSnapshot()) => {
+  if (detachedMode) {
+    tavernDocument.body.classList.remove('dhl-pseudo-layer-active', ROOT_ACTIVE_CLASS, 'dhl-native-input-collapsed');
+    tavernDocument.querySelectorAll<HTMLElement>('#chat > .mes').forEach(element => {
+      element.classList.remove(STAGE_CLASS, SELECTED_CLASS, PARKED_FRAME_CLASS);
+    });
+    return;
+  }
   const entries = snapshot.entries;
   const ids = entries.map(entry => entry.representativeMessageId);
   if (!getRerollLock()) {
@@ -1394,6 +1413,53 @@ const scheduleViewRefresh = (delay = 0, invalidateSnapshot = false) => {
     },
     Math.max(0, deadline - Date.now()),
   );
+};
+
+const setDetachedMode = (detached: boolean, source?: ReplyTarget) => {
+  if (controllerDisposed) return;
+  if (
+    activeGeneration ||
+    deletingMessageId !== null ||
+    updatingMessageId !== null ||
+    tavernDocument.querySelector<HTMLElement>('#mes_stop')?.getClientRects().length
+  ) {
+    const message = '请等待当前生成或楼层操作结束后再切换模式。';
+    if (source) send(source, { type: 'error', message });
+    else toastr.info(message);
+    return;
+  }
+  if (detachedMode === detached) {
+    broadcastView();
+    return;
+  }
+  detachedMode = detached;
+  localStorage.setItem(PSEUDO_LAYER_DETACHED_STORAGE_KEY, String(detached));
+  activeInteraction = STORY_INTERACTION;
+  selectedMessageId = null;
+  selectedHistoryKind = null;
+  browsingHistory = false;
+  clearDialogueCarryoverPrompt();
+  viewRevision += 1;
+  if (detached) {
+    frameObserver?.disconnect();
+    frameObserver = null;
+    observedChat = null;
+    if (frameCandidateTimer !== null) window.clearTimeout(frameCandidateTimer);
+    frameCandidateTimer = null;
+    pendingFrameCandidates.clear();
+    if (mobileStageAlignFrame !== null) tavernWindow.cancelAnimationFrame(mobileStageAlignFrame);
+    mobileStageAlignFrame = null;
+    releaseParkedFrames();
+    registrations.clear();
+    applyStageVisibility();
+    restoreNativeChatPosition();
+  } else {
+    invalidateStageSnapshot();
+    installFrameObserver();
+    parkLatestStageFrame();
+  }
+  broadcastView();
+  console.info(`[灯火阑珊·伪同层] 已切换至${detached ? '原生楼层状态栏' : '伪同层舞台'}模式`);
 };
 
 const installStyle = () => {
@@ -3562,6 +3628,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
       if (previousFrame?.closest(`#${STAGE_ROOT_ID}`) && hasMountedPseudoApp(previousFrame)) {
         send(source, {
           type: 'ready',
+          detached: detachedMode,
           busy: activeGeneration !== null || deletingMessageId !== null || updatingMessageId !== null,
           requestId: activeGeneration?.requestId,
           operation: activeGeneration?.operation,
@@ -3587,6 +3654,7 @@ const handleMessage = (event: MessageEvent<unknown>) => {
     }
     send(source, {
       type: 'ready',
+      detached: detachedMode,
       busy: activeGeneration !== null || deletingMessageId !== null || updatingMessageId !== null,
       requestId: activeGeneration?.requestId,
       operation: activeGeneration?.operation,
@@ -3609,6 +3677,14 @@ const handleMessage = (event: MessageEvent<unknown>) => {
     scheduleViewRefresh(FRAME_CANDIDATE_BATCH_MS);
     return;
   }
+
+  if (request.type === 'set_detached') {
+    if (getSourceMessageId(source) === undefined || typeof request.detached !== 'boolean') return;
+    setDetachedMode(request.detached, source);
+    return;
+  }
+
+  if (detachedMode) return;
 
   if (request.type === 'generate') {
     beginGeneration(request, source);
@@ -3746,6 +3822,10 @@ const handleMessage = (event: MessageEvent<unknown>) => {
 const getActiveSource = () => activeGeneration?.source ?? registrations.get(getHostStageId() ?? -1);
 
 const handleMessageSent = async (messageId: number) => {
+  if (detachedMode) {
+    scheduleViewRefresh(100, true);
+    return;
+  }
   if (activeGeneration?.engine === 'dedicated') return;
   const source = getActiveSource();
   if (!source) return;
@@ -3944,6 +4024,7 @@ controllerEventStops.push(
 
 controllerEventStops.push(
   eventOn(tavern_events.GENERATION_STARTED, (type, _options, dryRun) => {
+    if (detachedMode) return;
     if (dryRun || type === 'quiet' || type === 'impersonate') return;
     if (!activeGeneration || activeGeneration.engine !== 'native') return;
     activeGeneration.sent = true;
@@ -3953,6 +4034,7 @@ controllerEventStops.push(
 
 controllerEventStops.push(
   eventOn(tavern_events.STREAM_TOKEN_RECEIVED, text => {
+    if (detachedMode) return;
     const generation = activeGeneration;
     if (!generation || generation.engine !== 'native' || generation.cancelled) return;
     generation.streamText = text;
@@ -3986,6 +4068,7 @@ controllerEventStops.push(
 
 controllerEventStops.push(
   eventOn(tavern_events.STREAM_REASONING_DONE, (reasoning, duration, messageId, state) => {
+    if (detachedMode) return;
     const generation = activeGeneration;
     if (!generation || generation.engine !== 'native' || generation.cancelled) return;
     const targetMessageId = Number(messageId);
@@ -4015,6 +4098,11 @@ controllerEventStops.push(
 
 controllerEventStops.push(
   eventOn(tavern_events.MESSAGE_RECEIVED, messageId => {
+    if (detachedMode) {
+      viewRevision += 1;
+      scheduleViewRefresh(120, true);
+      return;
+    }
     if (activeGeneration?.engine === 'dedicated') return;
     if (activeGeneration?.engine === 'native') {
       const targetId = Number(messageId);
@@ -4027,6 +4115,10 @@ controllerEventStops.push(
 
 controllerEventStops.push(
   eventOn(tavern_events.GENERATION_ENDED, messageId => {
+    if (detachedMode) {
+      scheduleViewRefresh(200, true);
+      return;
+    }
     if (activeGeneration?.engine === 'dedicated') return;
     const generation = activeGeneration;
     if (generation?.engine === 'native' && generation.operation === 'reroll') {
@@ -4157,7 +4249,11 @@ controllerEventStops.push(
 );
 
 installStyle();
+const modeButtonName = '切换伪同层 / 原生楼层';
+appendInexistentScriptButtons([{ name: modeButtonName, visible: true }]);
+controllerEventStops.push(eventOn(getButtonEvent(modeButtonName), () => setDetachedMode(!detachedMode)));
 generationHealthTimer = window.setInterval(() => {
+  if (detachedMode) return;
   reconcileNativeGeneration();
   reconcileStageFrame();
 }, 2000);

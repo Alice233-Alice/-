@@ -9,11 +9,11 @@
       <div class="masthead-controls" role="toolbar" aria-label="推演偏好设置">
         <span
           class="capsule-pill status-pill"
-          :class="{ connected: pseudo.controllerReady }"
-          :title="pseudo.controllerConnectionDescription"
+          :class="{ connected: pseudo.isDetachedMode || pseudo.controllerReady }"
+          :title="pseudo.isDetachedMode ? '行动可直接填入酒馆输入框' : pseudo.controllerConnectionDescription"
         >
           <i class="fa-solid fa-circle"></i>
-          <span>{{ pseudo.controllerReady ? '伪同层就绪' : '待连控制器' }}</span>
+          <span>{{ pseudo.isDetachedMode ? '原生楼层' : pseudo.controllerReady ? '伪同层就绪' : '待连控制器' }}</span>
         </span>
 
         <div class="segmented-capsule" role="group" aria-label="提案显示设置">
@@ -27,6 +27,7 @@
             <span>{{ store.启用行动提示 ? '提案开' : '提案关' }}</span>
           </button>
           <button
+            v-if="!pseudo.isDetachedMode"
             type="button"
             :class="{ active: inlineActionsEnabled }"
             role="switch"
@@ -123,7 +124,9 @@
               <div class="event-footer">
                 <span>{{ eventParticipationLabelMap[event.参与情况] }}</span>
                 <span>{{ eventImpactLabelMap[event.影响等级] }}</span>
-                <span v-for="effect in event.可见影响.slice(0, 2)" :key="effect" class="event-effect">{{ effect }}</span>
+                <span v-for="effect in event.可见影响.slice(0, 2)" :key="effect" class="event-effect">{{
+                  effect
+                }}</span>
                 <button
                   type="button"
                   class="event-inquire-btn"
@@ -472,25 +475,7 @@ const actionSummaryLabel = computed(() => {
 });
 
 const prepareAction = (title: string, prompt: string, allowDirect = true) => {
-  if (pseudo.isGenerating) return;
-  if (!pseudo.isStoryHistoryLatest) {
-    toastr.warning('请先返回最新正文再选择行动', '行动提示');
-    return;
-  }
-
-  pseudo.selectDraft(title, prompt);
-  if (!allowDirect || submitMode.value !== 'direct') return;
-
-  if (!pseudo.controllerReady) {
-    toastr.warning('伪同层控制器尚未连接，行动已保留为草稿', '行动提示');
-    return;
-  }
-  if (!pseudo.canSubmitStory) {
-    toastr.warning('当前无法直接推演，行动已保留为草稿', '行动提示');
-    return;
-  }
-
-  pseudo.submit('story');
+  pseudo.performAction(title, prompt, allowDirect && submitMode.value === 'direct');
 };
 
 const selectAction = (action: OpportunityAction) => {

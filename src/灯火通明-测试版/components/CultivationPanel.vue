@@ -94,8 +94,8 @@
               v-if="canBreakthrough"
               type="button"
               class="cultivation-action-btn is-breakthrough"
-              :disabled="pseudo.isGenerating || !pseudo.isStoryHistoryLatest"
-              title="将破境意图填入底部行动栏"
+              :disabled="pseudo.isGenerating || (!pseudo.isDetachedMode && !pseudo.isStoryHistoryLatest)"
+              :title="pseudo.isDetachedMode ? '将破境意图填入酒馆输入框' : '将破境意图填入底部行动栏'"
               @click="draftBreakthrough"
             >
               <i class="fa-solid fa-bolt"></i>
@@ -104,8 +104,8 @@
             <button
               type="button"
               class="cultivation-action-btn"
-              :disabled="pseudo.isGenerating || !pseudo.isStoryHistoryLatest"
-              title="将吐纳修持意图填入底部行动栏"
+              :disabled="pseudo.isGenerating || (!pseudo.isDetachedMode && !pseudo.isStoryHistoryLatest)"
+              :title="pseudo.isDetachedMode ? '将吐纳修持意图填入酒馆输入框' : '将吐纳修持意图填入底部行动栏'"
               @click="draftMeditate"
             >
               <i class="fa-solid fa-yin-yang"></i>
@@ -310,13 +310,16 @@ const rightFoundation = computed<FoundationItem[]>(() => {
 });
 
 function draftMeditate(): void {
-  const method = String(store.本尊.功法 || '').split(/[（(]/)[0]?.trim() || '本门心法';
-  pseudo.selectDraft('吐纳修持', `静坐运转《${method}》，引周遭灵机入体，搬运周天以精进修为。`);
+  const method =
+    String(store.本尊.功法 || '')
+      .split(/[（(]/)[0]
+      ?.trim() || '本门心法';
+  pseudo.performAction('吐纳修持', `静坐运转《${method}》，引周遭灵机入体，搬运周天以精进修为。`);
 }
 
 function draftBreakthrough(): void {
   const target = store.本尊.修炼状态.突破目标 || '下一境界';
-  pseudo.selectDraft('尝试破境', `气机积累已臻圆满，凝神收敛心念，运转周天全力冲击「${target}」瓶颈。`);
+  pseudo.performAction('尝试破境', `气机积累已臻圆满，凝神收敛心念，运转周天全力冲击「${target}」瓶颈。`);
 }
 
 const pathNotes = computed<PathNote[]>(() => {

@@ -1,15 +1,33 @@
 <template>
-  <header class="stage-header" :class="`reading-${readingMode}`">
+  <header v-if="detached && statusCollapsed" class="stage-header status-summary-bar">
+    <button class="status-summary" type="button" :title="summaryTitle" @click="$emit('toggle-status')">
+      <strong>{{ pseudo.messageId }}层</strong>
+      <span class="summary-realm">{{ data.本尊.境界描述 }}</span>
+      <span class="summary-location"><i class="fa-solid fa-location-dot"></i>{{ compactLocation }}</span>
+      <span :title="worldTimeTooltip"><i :class="timeIconClass"></i>{{ dayNightLabel }}</span>
+      <span :style="{ color: dangerColor }">险{{ data.本尊.行踪.危险度 ?? 10 }}</span>
+    </button>
+    <div class="stage-utilities">
+      <button type="button" title="外观设置" @click="$emit('open-settings')"><i class="fa-solid fa-font"></i></button>
+      <button type="button" title="开启伪同层模式" @click="pseudo.setDetached(false)">
+        <i class="fa-solid fa-layer-group"></i>
+      </button>
+      <button type="button" title="展开状态栏" aria-expanded="false" @click="$emit('toggle-status')">
+        <i class="fa-solid fa-chevron-down"></i>
+      </button>
+    </div>
+  </header>
+  <header v-else class="stage-header" :class="[`reading-${readingMode}`, { 'native-status-header': detached }]">
     <div class="turn-cluster">
       <img class="crane-mark" src="https://pub-4d14ab94aa29488b977bc5be9f2a06ef.r2.dev/picgo/仙鹤.png" alt="" />
       <div class="turn-copy">
         <span>灯火阑珊</span>
         <strong :title="stageTitle">{{ stageTitle }}</strong>
-        <small v-if="pseudo.view.tokenCount !== undefined" class="turn-token-count" title="本层回复 Token">
+        <small v-if="!detached && pseudo.view.tokenCount !== undefined" class="turn-token-count" title="本层回复 Token">
           {{ pseudo.view.tokenCount }}t
         </small>
       </div>
-      <div v-if="readingMode === 'paged'" class="turn-navigation">
+      <div v-if="!detached && readingMode === 'paged'" class="turn-navigation">
         <button
           type="button"
           :disabled="history.previousMessageId === undefined || pseudo.isGenerating"
@@ -36,7 +54,7 @@
           <i class="fa-solid fa-forward-step"></i>
         </button>
       </div>
-      <div class="reading-mode-switch" role="group" aria-label="阅读模式">
+      <div v-if="!detached" class="reading-mode-switch" role="group" aria-label="阅读模式">
         <button
           type="button"
           :class="{ active: readingMode === 'paged' }"
@@ -85,11 +103,15 @@
 
     <div class="stage-utilities">
       <div class="hud-badges">
-        <span class="danger-badge" :style="{ '--danger-color': dangerColor }">险 {{ data.本尊.行踪.危险度 ?? 10 }}</span>
+        <span class="danger-badge" :style="{ '--danger-color': dangerColor }"
+          >险 {{ data.本尊.行踪.危险度 ?? 10 }}</span
+        >
         <span
           class="heaven-posture-badge"
           :class="[`sense-${data.难度感应}`, `tier-${data.难度档位}`]"
-          :title="`${data.难度感应} · ${data.难度档位}：${data.难度警告}`"
+          tabindex="0"
+          :aria-label="`天道态势：${data.难度感应} · ${data.难度档位}`"
+          :aria-describedby="postureTooltipId"
         >
           <span class="posture-sense">{{ data.难度感应 }}</span>
           <b aria-hidden="true">·</b>
@@ -104,13 +126,13 @@
             class="fa-solid fa-arrow-trend-down posture-trend is-down"
             aria-hidden="true"
           ></i>
-          <span class="posture-tooltip" role="tooltip">
+          <span :id="postureTooltipId" class="posture-tooltip" role="tooltip">
             <strong>天道态势 · {{ data.难度感应 }}（{{ data.难度档位 }}）</strong>
             <span>{{ data.难度警告 }}</span>
           </span>
         </span>
       </div>
-      <template v-if="readingMode === 'paged'">
+      <template v-if="!detached && readingMode === 'paged'">
         <button
           class="edit-button"
           type="button"
@@ -140,6 +162,7 @@
         </button>
       </template>
       <button
+        v-if="!detached"
         class="greeting-index-button"
         type="button"
         title="开场白索引"
@@ -156,6 +179,17 @@
       <button class="appearance-button" type="button" title="外观设置" @click="$emit('open-settings')">
         <i class="fa-solid fa-font"></i>
       </button>
+      <button
+        type="button"
+        :title="detached ? '开启伪同层模式' : '切换为原生楼层模式'"
+        :disabled="pseudo.isGenerating || pseudo.isDeleting || pseudo.isUpdatingMessage"
+        @click="pseudo.setDetached(!detached)"
+      >
+        <i class="fa-solid" :class="detached ? 'fa-layer-group' : 'fa-list'"></i>
+      </button>
+      <button v-if="detached" type="button" title="收起状态栏" aria-expanded="true" @click="$emit('toggle-status')">
+        <i class="fa-solid fa-chevron-up"></i>
+      </button>
       <div ref="mobileToolGroup" class="mobile-tool-group">
         <button
           class="mobile-tool-trigger"
@@ -170,6 +204,7 @@
         <Transition name="mobile-tool-menu">
           <div v-if="mobileToolsOpen" class="mobile-tool-menu" role="menu" aria-label="阅读、预设与外观">
             <button
+              v-if="!detached"
               type="button"
               role="menuitemradio"
               class="mobile-reading-mode"
@@ -181,6 +216,7 @@
               <span>翻页阅读</span>
             </button>
             <button
+              v-if="!detached"
               type="button"
               role="menuitemradio"
               class="mobile-reading-mode"
@@ -191,8 +227,8 @@
               <i class="fa-solid fa-scroll"></i>
               <span>翻滚长卷</span>
             </button>
-            <span class="mobile-tool-divider" role="separator"></span>
-            <button type="button" role="menuitem" @click="openGreetingIndex">
+            <span v-if="!detached" class="mobile-tool-divider" role="separator"></span>
+            <button v-if="!detached" type="button" role="menuitem" @click="openGreetingIndex">
               <i class="fa-solid fa-list-ol"></i>
               <span>开场白索引</span>
             </button>
@@ -207,7 +243,12 @@
           </div>
         </Transition>
       </div>
-      <button type="button" :title="immersive ? '退出沉浸阅读' : '进入沉浸阅读'" @click="$emit('toggle-immersive')">
+      <button
+        v-if="!detached"
+        type="button"
+        :title="immersive ? '退出沉浸阅读' : '进入沉浸阅读'"
+        @click="$emit('toggle-immersive')"
+      >
         <i class="fa-solid" :class="immersive ? 'fa-compress' : 'fa-expand'"></i>
       </button>
     </div>
@@ -249,6 +290,8 @@ const props = defineProps<{
   parentRegion: string;
   dangerColor: string;
   readingMode: ReadingMode;
+  detached: boolean;
+  statusCollapsed: boolean;
 }>();
 const emit = defineEmits<{
   (event: 'open-map'): void;
@@ -257,11 +300,13 @@ const emit = defineEmits<{
   (event: 'open-settings'): void;
   (event: 'open-editor'): void;
   (event: 'toggle-immersive'): void;
+  (event: 'toggle-status'): void;
   (event: 'set-reading-mode', mode: ReadingMode): void;
 }>();
 
 const data = useDataStore();
 const pseudo = usePseudoLayerStore();
+const postureTooltipId = `heaven-posture-${pseudo.messageId}`;
 const deleteDialogOpen = ref(false);
 const mobileToolsOpen = ref(false);
 const mobileToolGroup = ref<HTMLElement | null>(null);
@@ -284,6 +329,7 @@ const history = computed(
     },
 );
 const stageTitle = computed(() => {
+  if (props.detached) return `第 ${pseudo.messageId} 层 · ${data.本尊.境界描述}`;
   if (props.readingMode === 'scroll' && props.activeView === 'timeline') {
     return `历程 · ${pseudo.view.total || 1} 段`;
   }
@@ -337,6 +383,10 @@ const worldTimeTooltip = computed(() => {
   const clock = data.世界时钟;
   return `${eraLabel.value} · 第${clock.年份}年${clock.月份 ? `${clock.月份}月` : ''}${clock.日期 ? `${clock.日期}日` : ''} · ${clock.时辰 || dayNightLabel.value}`;
 });
+const summaryTitle = computed(
+  () =>
+    `第 ${pseudo.messageId} 层 · ${data.本尊.境界描述} · ${currentLocation.value} · ${worldTimeTooltip.value} · 险${data.本尊.行踪.危险度 ?? 10}（展开状态栏）`,
+);
 const confirmDelete = () => {
   if (!pseudo.canDelete) return;
   pseudo.deleteCurrent();
@@ -709,6 +759,7 @@ const showParent = computed(() => {
     font-size: 10px;
     line-height: 1.5;
     white-space: normal;
+    overflow-wrap: anywhere;
     opacity: 0;
     pointer-events: none;
     transform: translateY(-3px);
@@ -1016,6 +1067,59 @@ const showParent = computed(() => {
   .scene-location-compact {
     gap: 3px;
     font-size: 10px;
+  }
+}
+.stage-header.status-summary-bar {
+  display: flex;
+  min-height: 42px;
+  gap: 6px;
+  padding: 4px 8px;
+
+  .stage-utilities {
+    flex: none;
+    gap: 3px;
+  }
+  .stage-utilities button {
+    width: 28px;
+    height: 28px;
+  }
+}
+.status-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 0;
+  border: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+
+  strong {
+    color: var(--gold);
+  }
+  > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  i {
+    margin-right: 3px;
+  }
+  .summary-realm {
+    max-width: 85px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--jade);
+  }
+  .summary-location {
+    flex: 1 1 50px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 </style>
