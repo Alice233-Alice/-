@@ -637,6 +637,10 @@ onBeforeUnmount(() => {
   max-width: 100%;
   box-shadow: 0 6px 22px var(--stage-shadow);
 
+  @media screen and (min-width: 761px) {
+    width: 94%;
+  }
+
   .stage-main {
     flex: none;
     height: var(--status-panel-height);
