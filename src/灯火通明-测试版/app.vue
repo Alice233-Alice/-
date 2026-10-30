@@ -31,7 +31,7 @@
       :status-collapsed="isStatusCollapsed"
       @toggle-status="toggleStatusCollapsed"
       @open-map="openView('map')"
-      @open-greeting-index="showGreetingIndex = true"
+      @open-greeting-index="openGreetingIndex"
       @open-preset="openView('preset')"
       @open-settings="openReadingSettings"
       @open-editor="openCurrentEditor"
@@ -105,7 +105,7 @@
       :viewport-mode="viewportMode"
       @close="showReadingSettings = false"
     />
-    <GreetingIndexDialog v-if="!isDetachedMode" :visible="showGreetingIndex" @close="showGreetingIndex = false" />
+    <GreetingIndexDialog :visible="showGreetingIndex" @close="showGreetingIndex = false" />
     <RawMessageEditor
       v-if="!isDetachedMode"
       :visible="showRawMessageEditor"
@@ -217,6 +217,10 @@ const toggleStatusCollapsed = () => {
 const openReadingSettings = () => {
   if (isDetachedMode.value && isStatusCollapsed.value) toggleStatusCollapsed();
   showReadingSettings.value = true;
+};
+const openGreetingIndex = () => {
+  if (isDetachedMode.value && isStatusCollapsed.value) toggleStatusCollapsed();
+  showGreetingIndex.value = true;
 };
 watch([viewportMode, () => pseudoLayerStore.isNativeLatest], () => {
   isStatusCollapsed.value = readStatusCollapsedPreference();

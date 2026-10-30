@@ -8,6 +8,9 @@
       <span :style="{ color: dangerColor }">险{{ data.本尊.行踪.危险度 ?? 10 }}</span>
     </button>
     <div class="stage-utilities">
+      <button type="button" title="开场白索引" @click="$emit('open-greeting-index')">
+        <i class="fa-solid fa-list-ol"></i>
+      </button>
       <button type="button" title="外观设置" @click="$emit('open-settings')"><i class="fa-solid fa-font"></i></button>
       <button type="button" title="开启伪同层模式" @click="pseudo.setDetached(false)">
         <i class="fa-solid fa-layer-group"></i>
@@ -161,13 +164,7 @@
           <i class="fa-solid fa-rotate-right"></i>
         </button>
       </template>
-      <button
-        v-if="!detached"
-        class="greeting-index-button"
-        type="button"
-        title="开场白索引"
-        @click="$emit('open-greeting-index')"
-      >
+      <button class="greeting-index-button" type="button" title="开场白索引" @click="$emit('open-greeting-index')">
         <i class="fa-solid fa-list-ol"></i>
       </button>
       <button class="preset-button" type="button" title="开局预设" @click="$emit('open-preset')">
@@ -228,7 +225,7 @@
               <span>翻滚长卷</span>
             </button>
             <span v-if="!detached" class="mobile-tool-divider" role="separator"></span>
-            <button v-if="!detached" type="button" role="menuitem" @click="openGreetingIndex">
+            <button type="button" role="menuitem" @click="openGreetingIndex">
               <i class="fa-solid fa-list-ol"></i>
               <span>开场白索引</span>
             </button>
