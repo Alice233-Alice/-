@@ -1186,8 +1186,6 @@ test('舞台接管后卸载原生楼层应用，关闭控制器时恢复，重�
           }),
         };
       if (id === './app.vue') return {};
-      if (id === './components/UpdateVariableDisplayGuard')
-        return { bootstrapUpdateVariableDisplayGuard: () => () => {} };
       throw Error(`Unexpected dependency: ${id}`);
     },
   };
