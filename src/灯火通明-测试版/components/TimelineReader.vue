@@ -1244,7 +1244,7 @@ onBeforeUnmount(() => {
 
 .timeline-reader.with-portrait {
   grid-template-areas: 'copy portrait';
-  grid-template-columns: minmax(0, 1fr) clamp(260px, 23vw, 336px);
+  grid-template-columns: minmax(0, 1fr) clamp(260px, 28vw, 432px);
 }
 
 .timeline-reader::before {

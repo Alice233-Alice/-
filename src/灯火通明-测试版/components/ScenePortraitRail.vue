@@ -12,14 +12,20 @@
       </button>
     </nav>
 
-    <button class="portrait-stage" type="button" title="翻转角色立绘" @click="toggleFlip">
+    <button
+      class="portrait-stage"
+      type="button"
+      title="翻转角色立绘"
+      :style="{ aspectRatio: portraitAspectRatio }"
+      @click="toggleFlip"
+    >
       <div
         class="portrait-backdrop-echo"
         :style="{ backgroundImage: visibleImage ? `url('${visibleImage}')` : 'none' }"
         aria-hidden="true"
       ></div>
       <Transition name="portrait-shift" mode="out-in">
-        <img :key="visibleImage" :src="visibleImage" :alt="displayName" />
+        <img :key="visibleImage" :src="visibleImage" :alt="displayName" @load="updatePortraitAspectRatio" />
       </Transition>
       <span class="portrait-side-tag">
         <i class="fa-solid" :class="card.isFlipped ? 'fa-heart-pulse' : 'fa-eye'"></i>
@@ -87,6 +93,13 @@ const data = useDataStore();
 const galleryUi = useGalleryUiStore();
 const pseudo = usePseudoLayerStore();
 const selectedIndex = ref(0);
+const portraitAspectRatio = ref('7 / 9');
+const updatePortraitAspectRatio = (event: Event) => {
+  const image = event.target as HTMLImageElement;
+  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+    portraitAspectRatio.value = `${image.naturalWidth} / ${image.naturalHeight}`;
+  }
+};
 const card = computed(() => data.galleryCards[selectedIndex.value] ?? data.galleryCards[0] ?? null);
 const visibleImage = computed(() => {
   const value = card.value;
@@ -157,7 +170,8 @@ watch(
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, auto) auto auto;
+  align-content: start;
   gap: 10px;
   padding: 14px 16px;
   border-left: 1px solid color-mix(in srgb, var(--line-subtle) 65%, transparent);
@@ -166,7 +180,7 @@ watch(
 }
 
 .portrait-rail:not(:has(.portrait-tabs)) {
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, auto) auto auto;
 }
 
 .portrait-rail::before {
@@ -216,6 +230,8 @@ watch(
   position: relative;
   min-width: 0;
   min-height: 0;
+  max-height: 100%;
+  align-self: start;
   padding: 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--gold) 28%, var(--line-subtle));
@@ -232,8 +248,8 @@ watch(
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: cover;
-    object-position: center 14%;
+    object-fit: contain;
+    object-position: center;
   }
 }
 
