@@ -3,7 +3,13 @@ declare const require: (id: string) => any;
 const lodash = require('lodash');
 (globalThis as any)._ = lodash;
 
-const { Schema, describeRealmByLevel, getRealmThreshold } = require('../src/灯火阑珊/schema.ts');
+const {
+  Schema,
+  CURRENT_CULTIVATION_VERSION,
+  CURRENT_SCHEMA_VERSION,
+  describeRealmByLevel,
+  getRealmThreshold,
+} = require('../src/灯火阑珊/schema.ts');
 const { guardParsedCommands } = require('../src/灯火阑珊-变量结构/guard.ts');
 
 export type PatchOperation = {
@@ -291,7 +297,10 @@ export function collectInvariantErrors(data: any): string[] {
   if (new Set(actions).size !== actions.length) {
     errors.push('可参与机遇存在重复行动');
   }
-  if (data._系统设置?.变量结构版本 !== 5 || data._系统设置?.修炼系统版本 !== 3) {
+  if (
+    data._系统设置?.变量结构版本 !== CURRENT_SCHEMA_VERSION ||
+    data._系统设置?.修炼系统版本 !== CURRENT_CULTIVATION_VERSION
+  ) {
     errors.push('变量结构版本或修炼系统版本不正确');
   }
   return errors;

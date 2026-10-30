@@ -1,9 +1,11 @@
 // ============================================================================
-// 踏月寻仙 - 常量定义
+// 灯火阑珊 - 常量定义
 // ============================================================================
 
 // 小境界
 export const REALM_STAGES = ['初期', '中期', '后期', '大圆满'] as const;
+export const CURRENT_CULTIVATION_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 6;
 // 大境界（1-48，共12个大境界）
 export const REALM_NAMES = [
   '练气',
@@ -53,6 +55,7 @@ export const CULTIVATION_THRESHOLDS_BY_VERSION = {
   1: LEGACY_REALM_THRESHOLDS,
   2: REALM_THRESHOLDS_V2,
   3: REALM_THRESHOLDS,
+  4: REALM_THRESHOLDS,
 } as const;
 
 // 修炼境界等级与寿元上限映射

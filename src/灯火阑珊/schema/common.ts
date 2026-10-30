@@ -1,10 +1,11 @@
 // ============================================================================
-// 踏月寻仙 - 共享 Schema（物品、神通、品阶映射）
+// 灯火阑珊 - 共享 Schema（物品、神通、品阶映射）
 // ============================================================================
 
 import { z } from 'zod';
 import {
   CULTIVATION_THRESHOLDS_BY_VERSION,
+  CURRENT_CULTIVATION_VERSION,
   REALM_LIFESPANS,
   REALM_NAMES,
   REALM_STAGES,
@@ -209,7 +210,7 @@ const 修炼阶段映射: Record<string, '修炼中' | '瓶颈中' | '突破中'
   藏锋养境: '压境中',
 };
 
-const 突破结果映射: Record<string, '无' | '成功' | '失败'> = {
+const 突破结果映射: Record<string, '无' | '成功' | '失败' | '中断'> = {
   无: '无',
   '': '无',
   未突破: '无',
@@ -219,6 +220,9 @@ const 突破结果映射: Record<string, '无' | '成功' | '失败'> = {
   失败: '失败',
   破境失败: '失败',
   冲关失败: '失败',
+  中断: '中断',
+  取消: '中断',
+  放弃: '中断',
 };
 
 const 境界变动类型映射: Record<string, '无' | '突破' | '跨级突破' | '跌境'> = {
@@ -241,57 +245,83 @@ export function normalizeRealmLevel(value: unknown): number {
   return _.clamp(Math.floor(level), 1, REALM_THRESHOLDS.length);
 }
 
-export const RealmTransitionSchema = z
+export const BreakthroughRecordSchema = z
   .object({
     类型: z
       .string()
       .transform(value => 境界变动类型映射[String(value).trim()] || '无')
       .prefault('无'),
+    原等级: finiteNumber(0)
+      .transform(value => _.clamp(Math.floor(value), 0, REALM_THRESHOLDS.length))
+      .prefault(0),
     目标等级: finiteNumber(0)
       .transform(value => (Number.isFinite(value) ? _.clamp(Math.floor(value), 0, REALM_THRESHOLDS.length) : 0))
+      .prefault(0),
+    消耗修为: finiteNumber(0)
+      .transform(value => Math.max(0, value))
       .prefault(0),
     依据: z.coerce
       .string()
       .transform(value => String(value).replace(/\s+/gu, ' ').trim())
       .prefault(''),
+    时地: z.string().prefault(''),
   })
-  .prefault({
-    类型: '无',
-    目标等级: 0,
-    依据: '',
-  });
+  .prefault({});
 
-export const CultivationStateSchema = z
-  .object({
-    阶段: z
-      .string()
-      .transform(v => 修炼阶段映射[String(v).trim()] || '修炼中')
-      .prefault('修炼中'),
-    瓶颈原因: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault(''),
-    突破目标: z.coerce
-      .string()
-      .transform(v => String(v).trim())
-      .prefault(''),
-    上次结果: z
-      .string()
-      .transform(v => 突破结果映射[String(v).trim()] || '无')
-      .prefault('无'),
-    境界变动: RealmTransitionSchema,
-  })
-  .prefault({
-    阶段: '修炼中',
-    瓶颈原因: '',
-    突破目标: '',
-    上次结果: '无',
-    境界变动: {
-      类型: '无',
-      目标等级: 0,
-      依据: '',
-    },
-  });
+// 旧脚本仍可导入该名称；记录只承载事实，不参与等级裁决或修为扣除。
+export const RealmTransitionSchema = BreakthroughRecordSchema;
+
+function migrateCultivationStateInput(value: unknown): unknown {
+  if (typeof value === 'string') return { 阶段: value };
+  if (!_.isPlainObject(value)) return value;
+  const state = { ...(value as Record<string, unknown>) };
+  if (state.最近突破 == null && state.境界变动 != null) state.最近突破 = state.境界变动;
+  delete state.境界变动;
+  return state;
+}
+
+/** 仅在旧存档缺少阶段时读取尝试突破；已有阶段始终优先。 */
+export function migrateCultivatorInput(value: unknown): unknown {
+  if (!_.isPlainObject(value)) return value;
+  const cultivator = { ...(value as Record<string, unknown>) };
+  const originalState = migrateCultivationStateInput(cultivator.修炼状态);
+  const state = _.isPlainObject(originalState) ? { ...(originalState as Record<string, unknown>) } : {};
+  if ((state.阶段 == null || String(state.阶段).trim() === '') && cultivator.尝试突破 === true) {
+    state.阶段 = '突破中';
+  }
+  cultivator.修炼状态 = state;
+  return cultivator;
+}
+
+export const CultivationStateSchema = z.preprocess(
+  migrateCultivationStateInput,
+  z
+    .object({
+      阶段: z
+        .string()
+        .transform(v => 修炼阶段映射[String(v).trim()] || '修炼中')
+        .prefault('修炼中'),
+      方式: z.string().prefault(''),
+      地点: z.string().prefault(''),
+      根基描述: z.string().prefault(''),
+      计划年数: finiteNumber(0)
+        .transform(value => Math.max(0, value))
+        .prefault(0),
+      已修炼年数: finiteNumber(0)
+        .transform(value => Math.max(0, value))
+        .prefault(0),
+      瓶颈原因: z.coerce
+        .string()
+        .transform(v => String(v).trim())
+        .prefault(''),
+      上次结果: z
+        .string()
+        .transform(v => 突破结果映射[String(v).trim()] || '无')
+        .prefault('无'),
+      最近突破: BreakthroughRecordSchema,
+    })
+    .prefault({}),
+);
 
 export function describeRealmByLevel(level: number): string {
   const normalizedLevel = normalizeRealmLevel(level);
@@ -300,7 +330,9 @@ export function describeRealmByLevel(level: number): string {
   return `${REALM_NAMES[majorIdx] ?? '练气'}${REALM_STAGES[minorIdx] ?? '初期'}`;
 }
 
-function resolveRealmThresholds(versionOrLegacyFlag: number | boolean = 3): readonly number[] {
+function resolveRealmThresholds(
+  versionOrLegacyFlag: number | boolean = CURRENT_CULTIVATION_VERSION,
+): readonly number[] {
   if (versionOrLegacyFlag === true) {
     return CULTIVATION_THRESHOLDS_BY_VERSION[1];
   }
@@ -316,17 +348,44 @@ function resolveRealmThresholds(versionOrLegacyFlag: number | boolean = 3): read
   );
 }
 
-export function getRealmThreshold(level: number, versionOrLegacyFlag: number | boolean = 3): number {
+export function getRealmThreshold(
+  level: number,
+  versionOrLegacyFlag: number | boolean = CURRENT_CULTIVATION_VERSION,
+): number {
   const thresholds = resolveRealmThresholds(versionOrLegacyFlag);
   const normalizedLevel = _.clamp(Math.floor(Number(level) || 1), 1, thresholds.length);
   return thresholds[normalizedLevel - 1] ?? thresholds[0] ?? 100;
+}
+
+/** 逐阶累计突破消耗，覆盖同一轮中明确发生的连续突破。 */
+export function getBreakthroughCost(fromLevel: number, targetLevel: number): number {
+  const from = normalizeRealmLevel(fromLevel);
+  const target = normalizeRealmLevel(targetLevel);
+  let cost = 0;
+  for (let level = from; level < target; level += 1) cost += getRealmThreshold(level);
+  return cost;
+}
+
+/** 只提供结算数值预览；调用本函数不会修改角色等级或修为。 */
+export function previewCultivationBreakthrough(level: number, cultivation: number, targetLevel = level + 1) {
+  const from = normalizeRealmLevel(level);
+  const target = normalizeRealmLevel(targetLevel);
+  const amount = Number.isFinite(cultivation) ? Math.max(0, cultivation) : 0;
+  const hasTarget = target > from;
+  const cost = hasTarget ? getBreakthroughCost(from, target) : 0;
+  return {
+    目标等级: hasTarget ? target : 0,
+    所需修为: cost,
+    剩余修为: hasTarget ? Math.max(0, amount - cost) : amount,
+    积累已足: hasTarget && amount >= cost,
+  };
 }
 
 export function migrateCultivationProgress(
   level: number,
   cultivation: unknown,
   fromVersion: number | boolean = 1,
-  toVersion: number | boolean = 3,
+  toVersion: number | boolean = CURRENT_CULTIVATION_VERSION,
 ): number {
   const normalizedCultivation = Number(cultivation);
   if (!Number.isFinite(normalizedCultivation) || normalizedCultivation <= 0) {
@@ -335,9 +394,7 @@ export function migrateCultivationProgress(
 
   const previousThreshold = getRealmThreshold(level, fromVersion);
   const nextThreshold = getRealmThreshold(level, toVersion);
-  if (previousThreshold <= 0 || previousThreshold === nextThreshold) {
-    return Math.round(normalizedCultivation);
-  }
+  if (previousThreshold <= 0 || previousThreshold === nextThreshold) return normalizedCultivation;
 
   const progressRatio = normalizedCultivation / previousThreshold;
   const migrated = Math.round(progressRatio * nextThreshold);
@@ -351,54 +408,30 @@ export function migrateLegacyCultivationProgress(level: number, cultivation: unk
 export function normalizeCultivationState(
   rawState: unknown,
   options: {
-    legacyAttemptBreakthrough?: boolean;
     level: number;
-    cultivation: number;
   },
-): z.output<typeof CultivationStateSchema> {
+) {
   const parsedState = CultivationStateSchema.parse(rawState ?? {});
   const level = normalizeRealmLevel(options.level);
-  const threshold = getRealmThreshold(level);
-  let phase = parsedState.阶段;
-
-  if (options.legacyAttemptBreakthrough || phase === '突破中') {
-    phase = '突破中';
-  } else if (phase === '修炼中' && options.cultivation >= threshold) {
-    phase = '瓶颈中';
-  }
-
-  const transition = _.cloneDeep(parsedState.境界变动);
-  if (transition.类型 === '无') {
-    transition.目标等级 = 0;
-    transition.依据 = '';
-  }
-
-  const configuredTarget =
-    transition.类型 !== '无' && transition.类型 !== '跌境' && transition.目标等级 > level
-      ? transition.目标等级
-      : Math.min(level + 1, REALM_THRESHOLDS.length);
-  const nextRealmTarget = level < REALM_THRESHOLDS.length ? describeRealmByLevel(configuredTarget) : '';
-  const shouldHaveBreakthroughTarget = ['瓶颈中', '突破中', '压境中'].includes(phase);
+  const nextRealmTarget = level < REALM_THRESHOLDS.length ? describeRealmByLevel(level + 1) : '';
+  const shouldHaveBreakthroughTarget = ['瓶颈中', '突破中', '压境中'].includes(parsedState.阶段);
 
   return {
-    阶段: phase,
-    瓶颈原因: shouldHaveBreakthroughTarget ? parsedState.瓶颈原因 : '',
+    ...parsedState,
     突破目标: shouldHaveBreakthroughTarget ? nextRealmTarget : '',
-    上次结果: parsedState.上次结果,
-    境界变动: transition,
   };
 }
 
 export function getCultivationStatusLabel(
   state: Pick<z.output<typeof CultivationStateSchema>, '阶段'> | undefined,
-  cultivation: number,
-  threshold: number,
+  _cultivation?: number,
+  _threshold?: number,
 ): string {
   const phase = state?.阶段 || '修炼中';
   if (phase === '突破中') return '突破中';
   if (phase === '稳固中') return '稳固中';
   if (phase === '压境中') return '压境中';
-  if (phase === '瓶颈中' || cultivation >= threshold) return '瓶颈期';
+  if (phase === '瓶颈中') return '瓶颈期';
   return '修炼中';
 }
 
@@ -491,8 +524,12 @@ export function computeRealmInfo(data: {
   const 境界描述 = describeRealmByLevel(level);
   const 寿元状态 = `${data.已活岁月}/${寿元上限}`;
   const 状态 = getCultivationStatusLabel(data.修炼状态, data.修为, 突破阈值);
+  const preview = previewCultivationBreakthrough(level, data.修为);
+  const 积累已足 = preview.积累已足;
+  const 盈余修为 = preview.目标等级 ? preview.剩余修为 : 0;
+  const 尝试突破 = data.修炼状态?.阶段 === '突破中';
   const progressRatio = 突破阈值 > 0 ? _.clamp(data.修为 / 突破阈值, 0, 1) : 0;
   const 进度 = `${(progressRatio * 100).toFixed(1)}%`;
 
-  return { 突破阈值, 寿元上限, 境界描述, 寿元状态, 状态, 进度 };
+  return { 突破阈值, 寿元上限, 境界描述, 寿元状态, 状态, 进度, 积累已足, 盈余修为, 尝试突破 };
 }

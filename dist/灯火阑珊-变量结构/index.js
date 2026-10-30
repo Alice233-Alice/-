@@ -169,7 +169,7 @@ var __webpack_modules__ = {
     var _schema__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../灯火阑珊/schema */ "./src/灯火阑珊/schema.ts");
     var _companion_aliases__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./companion-aliases */ "./src/灯火阑珊-变量结构/companion-aliases.ts");
     const COMPATIBILITY_INSTALLED_KEY = "__灯火阑珊_mvu_command_compatibility_installed__";
-    const READONLY_ENTITY_FIELDS = new Set([ "突破阈值", "寿元上限", "境界描述", "寿元状态", "状态", "进度", "战力值" ]);
+    const READONLY_ENTITY_FIELDS = new Set([ "突破阈值", "寿元上限", "境界描述", "寿元状态", "状态", "进度", "战力值", "积累已足", "盈余修为", "尝试突破" ]);
     const MVU_ROOT_KEYS = [ "世界时钟", "世界地图", "世界图志", "宗门势力库", "功法库", "法宝库", "地点库", "$宗门推断", "灵根库", "体质库", "本尊", "红颜角色库", "红颜", "NPC图鉴", "任务列表", "声望系统", "难度系统", "$可参与机遇", "当前处境", "_系统设置", "_好感度快照" ];
     const TRADITIONAL_PATH_ALIASES = {
       世界時鐘: "世界时钟",
@@ -208,6 +208,7 @@ var __webpack_modules__ = {
         path = `stat_data.${path}`;
       }
       path = path.replace(/^stat_data\.本尊\.灵石\.(?:下品灵石|灵石)$/u, "stat_data.本尊.灵石");
+      path = path.replace(/^(stat_data\.(?:本尊|红颜\.[^./]+)\.修炼状态)\.境界变动(?=\.|$)/u, "$1.最近突破");
       return path;
     }
     function normalizeCompanionAliasPath(path) {
@@ -461,8 +462,11 @@ var __webpack_modules__ = {
   "./src/灯火阑珊/schema.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
+      BreakthroughRecordSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.BreakthroughRecordSchema,
       COMPANION_BOND_EVENT_TYPES: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.COMPANION_BOND_EVENT_TYPES,
-      CONFIG: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.CONFIG,
+      CONFIG: () => _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CONFIG,
+      CURRENT_CULTIVATION_VERSION: () => _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_CULTIVATION_VERSION,
+      CURRENT_SCHEMA_VERSION: () => _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_SCHEMA_VERSION,
       CharacterLibEntrySchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CharacterLibEntrySchema,
       CompanionBondChronicleEntrySchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionBondChronicleEntrySchema,
       CompanionBondChronicleSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionBondChronicleSchema,
@@ -471,46 +475,47 @@ var __webpack_modules__ = {
       CultivationStateSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.CultivationStateSchema,
       CustomPortraitSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CustomPortraitSchema,
       DEFAULT_CHARACTER_LIB: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_CHARACTER_LIB,
-      DEFAULT_FACTIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_FACTIONS,
-      DEFAULT_LOCATIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_LOCATIONS,
-      DEFAULT_TREASURES: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_TREASURES,
-      DifficultySystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.DifficultySystemSchema,
-      FactionSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.FactionSchema,
+      DEFAULT_FACTIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.DEFAULT_FACTIONS,
+      DEFAULT_LOCATIONS: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.DEFAULT_LOCATIONS,
+      DEFAULT_TREASURES: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.DEFAULT_TREASURES,
+      DifficultySystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.DifficultySystemSchema,
+      FactionSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.FactionSchema,
       InventorySchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.InventorySchema,
       ItemSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.ItemSchema,
-      LocationSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.LocationSchema,
+      LocationSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.LocationSchema,
       NormalizedStringListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.NormalizedStringListSchema,
       NpcSchema: () => _schema_characters__WEBPACK_IMPORTED_MODULE_2__.NpcSchema,
-      OpportunitySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.OpportunitySchema,
-      PhysiqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.PhysiqueSchema,
+      OpportunitySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.OpportunitySchema,
+      PhysiqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.PhysiqueSchema,
       ProtagonistSchema: () => _schema_protagonist__WEBPACK_IMPORTED_MODULE_4__.ProtagonistSchema,
-      QuestSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.QuestSchema,
-      REALM_LIFESPANS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_LIFESPANS,
-      REALM_NAMES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_NAMES,
-      REALM_STAGES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_STAGES,
-      REALM_THRESHOLDS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_7__.REALM_THRESHOLDS,
+      QuestSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.QuestSchema,
+      REALM_LIFESPANS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_5__.REALM_LIFESPANS,
+      REALM_NAMES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_5__.REALM_NAMES,
+      REALM_STAGES: () => _schema_constants__WEBPACK_IMPORTED_MODULE_5__.REALM_STAGES,
+      REALM_THRESHOLDS: () => _schema_constants__WEBPACK_IMPORTED_MODULE_5__.REALM_THRESHOLDS,
       RealmTransitionSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.RealmTransitionSchema,
-      ReputationEntrySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.ReputationEntrySchema,
-      ReputationSystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.ReputationSystemSchema,
+      ReputationEntrySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.ReputationEntrySchema,
+      ReputationSystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.ReputationSystemSchema,
       Schema: () => Schema,
       SkillListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillListSchema,
       SkillSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillSchema,
-      SpiritRootSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.SpiritRootSchema,
-      SystemSettingsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.SystemSettingsSchema,
-      TechniqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.TechniqueSchema,
-      TreasureSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_6__.TreasureSchema,
-      WORLD_EVENT_ACTIVE_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.WORLD_EVENT_ACTIVE_LIMIT,
-      WORLD_EVENT_HISTORY_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.WORLD_EVENT_HISTORY_LIMIT,
-      WORLD_EVENT_LEDGER_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.WORLD_EVENT_LEDGER_LIMIT,
-      WorldEventLedgerSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.WorldEventLedgerSchema,
-      WorldEventSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.WorldEventSchema,
-      compactWorldEventLedger: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.compactWorldEventLedger,
+      SpiritRootSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.SpiritRootSchema,
+      SystemSettingsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.SystemSettingsSchema,
+      TechniqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.TechniqueSchema,
+      TreasureSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_7__.TreasureSchema,
+      WORLD_EVENT_ACTIVE_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.WORLD_EVENT_ACTIVE_LIMIT,
+      WORLD_EVENT_HISTORY_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.WORLD_EVENT_HISTORY_LIMIT,
+      WORLD_EVENT_LEDGER_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.WORLD_EVENT_LEDGER_LIMIT,
+      WorldEventLedgerSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.WorldEventLedgerSchema,
+      WorldEventSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.WorldEventSchema,
+      compactWorldEventLedger: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.compactWorldEventLedger,
       compareRealmStanding: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.compareRealmStanding,
-      compareWorldEventTimeDescending: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.compareWorldEventTimeDescending,
+      compareWorldEventTimeDescending: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.compareWorldEventTimeDescending,
       computeRealmInfo: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.computeRealmInfo,
       describeRealmByLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.describeRealmByLevel,
       extractSpiritStoneFromInventory: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.extractSpiritStoneFromInventory,
       finiteNumber: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber,
+      getBreakthroughCost: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getBreakthroughCost,
       getCultivationStatusLabel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getCultivationStatusLabel,
       getDangerColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.getDangerColor,
       getRealmColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.getRealmColor,
@@ -518,14 +523,16 @@ var __webpack_modules__ = {
       getRootColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.getRootColor,
       isSpiritStoneCurrencyItem: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress,
+      migrateCultivatorInput: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivatorInput,
       migrateLegacyCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateLegacyCultivationProgress,
       normalizeCultivationState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState,
       normalizeRealmLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneAmount,
       normalizeSpiritStoneState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneState,
       parseRealmToLevel: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.parseRealmToLevel,
+      previewCultivationBreakthrough: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.previewCultivationBreakthrough,
       resolveBattleMomentum: () => _schema_utils__WEBPACK_IMPORTED_MODULE_8__.resolveBattleMomentum,
-      unwrapOpportunityPatchPayload: () => _schema_systems__WEBPACK_IMPORTED_MODULE_5__.unwrapOpportunityPatchPayload,
+      unwrapOpportunityPatchPayload: () => _schema_systems__WEBPACK_IMPORTED_MODULE_6__.unwrapOpportunityPatchPayload,
       品阶映射: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__["品阶映射"],
       熟练度映射: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__["熟练度映射"]
     });
@@ -535,12 +542,10 @@ var __webpack_modules__ = {
     var _schema_characters__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./schema/characters */ "./src/灯火阑珊/schema/characters.ts");
     var _schema_common__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./schema/common */ "./src/灯火阑珊/schema/common.ts");
     var _schema_protagonist__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./schema/protagonist */ "./src/灯火阑珊/schema/protagonist.ts");
-    var _schema_systems__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./schema/systems */ "./src/灯火阑珊/schema/systems.ts");
-    var _schema_world__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./schema/world */ "./src/灯火阑珊/schema/world.ts");
-    var _schema_constants__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./schema/constants */ "./src/灯火阑珊/schema/constants.ts");
+    var _schema_constants__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./schema/constants */ "./src/灯火阑珊/schema/constants.ts");
+    var _schema_systems__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./schema/systems */ "./src/灯火阑珊/schema/systems.ts");
+    var _schema_world__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./schema/world */ "./src/灯火阑珊/schema/world.ts");
     var _schema_utils__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./schema/utils */ "./src/灯火阑珊/schema/utils.ts");
-    const LATEST_CULTIVATION_SYSTEM_VERSION = 3;
-    const LATEST_SCHEMA_VERSION = 5;
     const DEFAULT_COMPANION = _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema.parse({});
     const CJK_TEXT_PATTERN = /[\u3400-\u4dbf\u4e00-\u9fff]/;
     const MAX_OPPORTUNITIES = 4;
@@ -605,18 +610,19 @@ var __webpack_modules__ = {
       merged.修为 = Math.max(Number(base.修为 ?? DEFAULT_COMPANION.修为), Number(incoming.修为 ?? DEFAULT_COMPANION.修为));
       merged.灵石 = Math.max(Number(base.灵石 ?? DEFAULT_COMPANION.灵石), Number(incoming.灵石 ?? DEFAULT_COMPANION.灵石));
       merged.已活岁月 = Math.max(Number(base.已活岁月 ?? DEFAULT_COMPANION.已活岁月), Number(incoming.已活岁月 ?? DEFAULT_COMPANION.已活岁月));
-      merged.尝试突破 = Boolean(base.尝试突破 || incoming.尝试突破);
       const fallbackCultivationState = _.cloneDeep(DEFAULT_COMPANION.修炼状态);
       merged.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)({
         阶段: preferNonDefaultString(incoming.修炼状态?.阶段, String(base.修炼状态?.阶段 ?? fallbackCultivationState.阶段), fallbackCultivationState.阶段),
         瓶颈原因: preferNonDefaultString(incoming.修炼状态?.瓶颈原因, String(base.修炼状态?.瓶颈原因 ?? fallbackCultivationState.瓶颈原因), fallbackCultivationState.瓶颈原因),
-        突破目标: preferNonDefaultString(incoming.修炼状态?.突破目标, String(base.修炼状态?.突破目标 ?? fallbackCultivationState.突破目标), fallbackCultivationState.突破目标),
+        方式: preferNonDefaultString(incoming.修炼状态?.方式, base.修炼状态.方式, ""),
+        地点: preferNonDefaultString(incoming.修炼状态?.地点, base.修炼状态.地点, ""),
+        根基描述: preferNonDefaultString(incoming.修炼状态?.根基描述, base.修炼状态.根基描述, ""),
+        计划年数: incoming.修炼状态.计划年数 || base.修炼状态.计划年数,
+        已修炼年数: Math.max(incoming.修炼状态.已修炼年数, base.修炼状态.已修炼年数),
         上次结果: preferNonDefaultString(incoming.修炼状态?.上次结果, String(base.修炼状态?.上次结果 ?? fallbackCultivationState.上次结果), fallbackCultivationState.上次结果),
-        境界变动: incoming.修炼状态?.境界变动?.类型 !== "无" ? incoming.修炼状态.境界变动 : base.修炼状态?.境界变动
+        最近突破: incoming.修炼状态.最近突破.类型 !== "无" ? incoming.修炼状态.最近突破 : base.修炼状态.最近突破
       }, {
-        legacyAttemptBreakthrough: merged.尝试突破,
-        level: merged.等级,
-        cultivation: merged.修为
+        level: merged.等级
       });
       merged.好感度 = Number.isFinite(Number(incoming.好感度)) ? Number(incoming.好感度) : Number(base.好感度 ?? DEFAULT_COMPANION.好感度);
       merged.关系 = preferNonDefaultString(incoming.关系, String(base.关系 ?? DEFAULT_COMPANION.关系), DEFAULT_COMPANION.关系);
@@ -719,25 +725,21 @@ var __webpack_modules__ = {
       return 2;
     }
     function normalizeProtagonistCultivation(protagonist, currentCultivationVersion) {
-      if (currentCultivationVersion < LATEST_CULTIVATION_SYSTEM_VERSION) {
-        protagonist.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress)(protagonist.等级, protagonist.修为, currentCultivationVersion, LATEST_CULTIVATION_SYSTEM_VERSION);
+      if (currentCultivationVersion < _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_CULTIVATION_VERSION) {
+        protagonist.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress)(protagonist.等级, protagonist.修为, currentCultivationVersion, _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_CULTIVATION_VERSION);
       }
       protagonist.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)(protagonist.修炼状态, {
-        legacyAttemptBreakthrough: protagonist.尝试突破,
-        level: protagonist.等级,
-        cultivation: protagonist.修为
+        level: protagonist.等级
       });
       protagonist.尝试突破 = protagonist.修炼状态.阶段 === "突破中";
       Object.assign(protagonist, (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.computeRealmInfo)(protagonist));
     }
     function normalizeCompanionCultivation(companion, currentCultivationVersion) {
-      if (currentCultivationVersion < LATEST_CULTIVATION_SYSTEM_VERSION) {
-        companion.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress)(companion.等级, companion.修为, currentCultivationVersion, LATEST_CULTIVATION_SYSTEM_VERSION);
+      if (currentCultivationVersion < _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_CULTIVATION_VERSION) {
+        companion.修为 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress)(companion.等级, companion.修为, currentCultivationVersion, _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_CULTIVATION_VERSION);
       }
       companion.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)(companion.修炼状态, {
-        legacyAttemptBreakthrough: companion.尝试突破,
-        level: companion.等级,
-        cultivation: companion.修为
+        level: companion.等级
       });
       companion.尝试突破 = companion.修炼状态.阶段 === "突破中";
       Object.assign(companion, (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.computeRealmInfo)(companion));
@@ -762,11 +764,11 @@ var __webpack_modules__ = {
         desc: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
         connections: _schema_common__WEBPACK_IMPORTED_MODULE_3__.NormalizedStringListSchema
       })).prefault({}),
-      世界图志: _schema_systems__WEBPACK_IMPORTED_MODULE_5__.WorldEventLedgerSchema,
-      宗门势力库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("宗门名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.FactionSchema).prefault({}),
-      功法库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("功法名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.TechniqueSchema).prefault({}),
-      法宝库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("法宝名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.TreasureSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_TREASURES),
-      地点库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("地点名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.LocationSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_LOCATIONS),
+      世界图志: _schema_systems__WEBPACK_IMPORTED_MODULE_6__.WorldEventLedgerSchema,
+      宗门势力库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("宗门名"), _schema_world__WEBPACK_IMPORTED_MODULE_7__.FactionSchema).prefault({}),
+      功法库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("功法名"), _schema_world__WEBPACK_IMPORTED_MODULE_7__.TechniqueSchema).prefault({}),
+      法宝库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("法宝名"), _schema_world__WEBPACK_IMPORTED_MODULE_7__.TreasureSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_7__.DEFAULT_TREASURES),
+      地点库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("地点名"), _schema_world__WEBPACK_IMPORTED_MODULE_7__.LocationSchema).prefault(_schema_world__WEBPACK_IMPORTED_MODULE_7__.DEFAULT_LOCATIONS),
       $地图锚点: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("地点名"), zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("地图地域名")).prefault({}),
       $宗门推断: zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
         当前域: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
@@ -775,19 +777,19 @@ var __webpack_modules__ = {
         当前域: "",
         当前主势力: ""
       }),
-      灵根库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("灵根名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.SpiritRootSchema).prefault({}),
-      体质库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("体质名"), _schema_world__WEBPACK_IMPORTED_MODULE_6__.PhysiqueSchema).prefault({}),
+      灵根库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("灵根名"), _schema_world__WEBPACK_IMPORTED_MODULE_7__.SpiritRootSchema).prefault({}),
+      体质库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("体质名"), _schema_world__WEBPACK_IMPORTED_MODULE_7__.PhysiqueSchema).prefault({}),
       本尊: _schema_protagonist__WEBPACK_IMPORTED_MODULE_4__.ProtagonistSchema,
       红颜角色库: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("角色名"), _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CharacterLibEntrySchema).prefault(_schema_characters__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_CHARACTER_LIB),
       红颜: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("红颜名"), _schema_characters__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema).prefault({}),
       NPC图鉴: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("NPC名"), _schema_characters__WEBPACK_IMPORTED_MODULE_2__.NpcSchema).prefault({}),
-      任务列表: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("任务ID"), _schema_systems__WEBPACK_IMPORTED_MODULE_5__.QuestSchema).prefault({}).transform(v => _(v).pickBy((task, taskId) => !!task && !!String(taskId).trim()).mapValues((task, taskId) => ({
+      任务列表: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("任务ID"), _schema_systems__WEBPACK_IMPORTED_MODULE_6__.QuestSchema).prefault({}).transform(v => _(v).pickBy((task, taskId) => !!task && !!String(taskId).trim()).mapValues((task, taskId) => ({
         ...task,
         名称: extractChineseQuestLabel(task.名称) || extractChineseQuestLabel(taskId) || getQuestFallbackLabel(task.类型)
       })).pickBy(task => task.状态 === "进行中").value()),
-      声望系统: _schema_systems__WEBPACK_IMPORTED_MODULE_5__.ReputationSystemSchema,
-      难度系统: _schema_systems__WEBPACK_IMPORTED_MODULE_5__.DifficultySystemSchema,
-      $可参与机遇: zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_schema_systems__WEBPACK_IMPORTED_MODULE_5__.unwrapOpportunityPatchPayload, zod__WEBPACK_IMPORTED_MODULE_0__.z.array(_schema_systems__WEBPACK_IMPORTED_MODULE_5__.OpportunitySchema).prefault([]).transform(list => {
+      声望系统: _schema_systems__WEBPACK_IMPORTED_MODULE_6__.ReputationSystemSchema,
+      难度系统: _schema_systems__WEBPACK_IMPORTED_MODULE_6__.DifficultySystemSchema,
+      $可参与机遇: zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_schema_systems__WEBPACK_IMPORTED_MODULE_6__.unwrapOpportunityPatchPayload, zod__WEBPACK_IMPORTED_MODULE_0__.z.array(_schema_systems__WEBPACK_IMPORTED_MODULE_6__.OpportunitySchema).prefault([]).transform(list => {
         const seen = new Set;
         return list.flatMap(item => {
           const action = normalizePromptText(item.行动, ACTION_TEXT_LIMIT);
@@ -820,7 +822,7 @@ var __webpack_modules__ = {
         }).slice(0, MAX_OPPORTUNITIES);
       })),
       当前处境: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("").transform(value => normalizePromptText(value, SITUATION_TEXT_LIMIT)),
-      _系统设置: _schema_systems__WEBPACK_IMPORTED_MODULE_5__.SystemSettingsSchema,
+      _系统设置: _schema_systems__WEBPACK_IMPORTED_MODULE_6__.SystemSettingsSchema,
       _好感度快照: zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("红颜名"), (0, 
       _schema_common__WEBPACK_IMPORTED_MODULE_3__.finiteNumber)(0).transform(v => _.clamp(v, -200, 200))).prefault({})
     }).transform(data => {
@@ -835,8 +837,8 @@ var __webpack_modules__ = {
       }
       data._系统设置 = {
         ...data._系统设置 ?? {},
-        修炼系统版本: LATEST_CULTIVATION_SYSTEM_VERSION,
-        变量结构版本: LATEST_SCHEMA_VERSION,
+        修炼系统版本: _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_CULTIVATION_VERSION,
+        变量结构版本: _schema_constants__WEBPACK_IMPORTED_MODULE_5__.CURRENT_SCHEMA_VERSION,
         _临时状态手动覆盖签名: String(data._系统设置?._临时状态手动覆盖签名 ?? "")
       };
       const snapshot = _.cloneDeep(data._好感度快照 ?? {});
@@ -1036,7 +1038,7 @@ var __webpack_modules__ = {
       时地: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
     }).prefault({});
     const CompanionBondChronicleSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("纪事名"), CompanionBondChronicleEntrySchema).prefault({}).transform(entries => Object.fromEntries(_(entries).entries().takeRight(8).value()));
-    const CompanionSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+    const CompanionSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_common__WEBPACK_IMPORTED_MODULE_1__.migrateCultivatorInput, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       等级: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(1).transform(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeRealmLevel).prefault(1),
       修为: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
       灵根: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("五行杂灵根"),
@@ -1046,7 +1048,6 @@ var __webpack_modules__ = {
       神通列表: _common__WEBPACK_IMPORTED_MODULE_1__.SkillListSchema,
       灵石: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
       已活岁月: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
-      尝试突破: zod__WEBPACK_IMPORTED_MODULE_0__.z.boolean().prefault(false),
       修炼状态: _common__WEBPACK_IMPORTED_MODULE_1__.CultivationStateSchema,
       好感度: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => _.clamp(v, -200, 200)).prefault(0),
       关系: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("陌生人"),
@@ -1062,35 +1063,23 @@ var __webpack_modules__ = {
       神通列表: {},
       灵石: 0,
       已活岁月: 0,
-      尝试突破: false,
-      修炼状态: {
-        阶段: "修炼中",
-        瓶颈原因: "",
-        突破目标: "",
-        上次结果: "无",
-        境界变动: {
-          类型: "无",
-          目标等级: 0,
-          依据: ""
-        }
-      },
+      修炼状态: {},
       好感度: 0,
       关系: "陌生人",
       关系上下文: {},
       羁绊纪事: {}
     }).transform(data => {
-      data.修炼状态 = (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeCultivationState)(data.修炼状态, {
-        legacyAttemptBreakthrough: data.尝试突破,
-        level: data.等级,
-        cultivation: data.修为
-      });
-      data.尝试突破 = data.修炼状态.阶段 === "突破中";
-      const realmInfo = (0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(data);
-      return {
+      const cultivator = {
         ...data,
-        ...realmInfo
+        修炼状态: (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeCultivationState)(data.修炼状态, {
+          level: data.等级
+        })
       };
-    });
+      return {
+        ...cultivator,
+        ...(0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(cultivator)
+      };
+    }));
     const NpcSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       等级: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(1).transform(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeRealmLevel).prefault(1),
       所在宗门: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("散修"),
@@ -1100,6 +1089,7 @@ var __webpack_modules__ = {
   "./src/灯火阑珊/schema/common.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
     __webpack_require__.d(__webpack_exports__, {
+      BreakthroughRecordSchema: () => BreakthroughRecordSchema,
       CultivationStateSchema: () => CultivationStateSchema,
       InventorySchema: () => InventorySchema,
       ItemSchema: () => ItemSchema,
@@ -1111,15 +1101,18 @@ var __webpack_modules__ = {
       describeRealmByLevel: () => describeRealmByLevel,
       extractSpiritStoneFromInventory: () => extractSpiritStoneFromInventory,
       finiteNumber: () => finiteNumber,
+      getBreakthroughCost: () => getBreakthroughCost,
       getCultivationStatusLabel: () => getCultivationStatusLabel,
       getRealmThreshold: () => getRealmThreshold,
       isSpiritStoneCurrencyItem: () => isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => migrateCultivationProgress,
+      migrateCultivatorInput: () => migrateCultivatorInput,
       migrateLegacyCultivationProgress: () => migrateLegacyCultivationProgress,
       normalizeCultivationState: () => normalizeCultivationState,
       normalizeRealmLevel: () => normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => normalizeSpiritStoneAmount,
       normalizeSpiritStoneState: () => normalizeSpiritStoneState,
+      previewCultivationBreakthrough: () => previewCultivationBreakthrough,
       品阶映射: () => 品阶映射,
       熟练度映射: () => 熟练度映射
     });
@@ -1282,7 +1275,10 @@ var __webpack_modules__ = {
       渡过: "成功",
       失败: "失败",
       破境失败: "失败",
-      冲关失败: "失败"
+      冲关失败: "失败",
+      中断: "中断",
+      取消: "中断",
+      放弃: "中断"
     };
     const 境界变动类型映射 = {
       无: "无",
@@ -1302,39 +1298,60 @@ var __webpack_modules__ = {
       if (!Number.isFinite(level)) return 1;
       return _.clamp(Math.floor(level), 1, _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_THRESHOLDS.length);
     }
-    const RealmTransitionSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+    const BreakthroughRecordSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       类型: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(value => 境界变动类型映射[String(value).trim()] || "无").prefault("无"),
+      原等级: finiteNumber(0).transform(value => _.clamp(Math.floor(value), 0, _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_THRESHOLDS.length)).prefault(0),
       目标等级: finiteNumber(0).transform(value => Number.isFinite(value) ? _.clamp(Math.floor(value), 0, _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_THRESHOLDS.length) : 0).prefault(0),
-      依据: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.string().transform(value => String(value).replace(/\s+/gu, " ").trim()).prefault("")
-    }).prefault({
-      类型: "无",
-      目标等级: 0,
-      依据: ""
-    });
-    const CultivationStateSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
-      阶段: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 修炼阶段映射[String(v).trim()] || "修炼中").prefault("修炼中"),
-      瓶颈原因: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.string().transform(v => String(v).trim()).prefault(""),
-      突破目标: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.string().transform(v => String(v).trim()).prefault(""),
-      上次结果: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 突破结果映射[String(v).trim()] || "无").prefault("无"),
-      境界变动: RealmTransitionSchema
-    }).prefault({
-      阶段: "修炼中",
-      瓶颈原因: "",
-      突破目标: "",
-      上次结果: "无",
-      境界变动: {
-        类型: "无",
-        目标等级: 0,
-        依据: ""
+      消耗修为: finiteNumber(0).transform(value => Math.max(0, value)).prefault(0),
+      依据: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.string().transform(value => String(value).replace(/\s+/gu, " ").trim()).prefault(""),
+      时地: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
+    }).prefault({});
+    const RealmTransitionSchema = BreakthroughRecordSchema;
+    function migrateCultivationStateInput(value) {
+      if (typeof value === "string") return {
+        阶段: value
+      };
+      if (!_.isPlainObject(value)) return value;
+      const state = {
+        ...value
+      };
+      if (state.最近突破 == null && state.境界变动 != null) state.最近突破 = state.境界变动;
+      delete state.境界变动;
+      return state;
+    }
+    function migrateCultivatorInput(value) {
+      if (!_.isPlainObject(value)) return value;
+      const cultivator = {
+        ...value
+      };
+      const originalState = migrateCultivationStateInput(cultivator.修炼状态);
+      const state = _.isPlainObject(originalState) ? {
+        ...originalState
+      } : {};
+      if ((state.阶段 == null || String(state.阶段).trim() === "") && cultivator.尝试突破 === true) {
+        state.阶段 = "突破中";
       }
-    });
+      cultivator.修炼状态 = state;
+      return cultivator;
+    }
+    const CultivationStateSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(migrateCultivationStateInput, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      阶段: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 修炼阶段映射[String(v).trim()] || "修炼中").prefault("修炼中"),
+      方式: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
+      地点: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
+      根基描述: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault(""),
+      计划年数: finiteNumber(0).transform(value => Math.max(0, value)).prefault(0),
+      已修炼年数: finiteNumber(0).transform(value => Math.max(0, value)).prefault(0),
+      瓶颈原因: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.string().transform(v => String(v).trim()).prefault(""),
+      上次结果: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(v => 突破结果映射[String(v).trim()] || "无").prefault("无"),
+      最近突破: BreakthroughRecordSchema
+    }).prefault({}));
     function describeRealmByLevel(level) {
       const normalizedLevel = normalizeRealmLevel(level);
       const majorIdx = Math.floor((normalizedLevel - 1) / 4);
       const minorIdx = (normalizedLevel - 1) % 4;
       return `${_constants__WEBPACK_IMPORTED_MODULE_1__.REALM_NAMES[majorIdx] ?? "练气"}${_constants__WEBPACK_IMPORTED_MODULE_1__.REALM_STAGES[minorIdx] ?? "初期"}`;
     }
-    function resolveRealmThresholds(versionOrLegacyFlag = 3) {
+    function resolveRealmThresholds(versionOrLegacyFlag = _constants__WEBPACK_IMPORTED_MODULE_1__.CURRENT_CULTIVATION_VERSION) {
       if (versionOrLegacyFlag === true) {
         return _constants__WEBPACK_IMPORTED_MODULE_1__.CULTIVATION_THRESHOLDS_BY_VERSION[1];
       }
@@ -1344,21 +1361,39 @@ var __webpack_modules__ = {
       const normalizedVersion = Math.max(1, Math.floor(Number(versionOrLegacyFlag) || 3));
       return _constants__WEBPACK_IMPORTED_MODULE_1__.CULTIVATION_THRESHOLDS_BY_VERSION[normalizedVersion] ?? _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_THRESHOLDS;
     }
-    function getRealmThreshold(level, versionOrLegacyFlag = 3) {
+    function getRealmThreshold(level, versionOrLegacyFlag = _constants__WEBPACK_IMPORTED_MODULE_1__.CURRENT_CULTIVATION_VERSION) {
       const thresholds = resolveRealmThresholds(versionOrLegacyFlag);
       const normalizedLevel = _.clamp(Math.floor(Number(level) || 1), 1, thresholds.length);
       return thresholds[normalizedLevel - 1] ?? thresholds[0] ?? 100;
     }
-    function migrateCultivationProgress(level, cultivation, fromVersion = 1, toVersion = 3) {
+    function getBreakthroughCost(fromLevel, targetLevel) {
+      const from = normalizeRealmLevel(fromLevel);
+      const target = normalizeRealmLevel(targetLevel);
+      let cost = 0;
+      for (let level = from; level < target; level += 1) cost += getRealmThreshold(level);
+      return cost;
+    }
+    function previewCultivationBreakthrough(level, cultivation, targetLevel = level + 1) {
+      const from = normalizeRealmLevel(level);
+      const target = normalizeRealmLevel(targetLevel);
+      const amount = Number.isFinite(cultivation) ? Math.max(0, cultivation) : 0;
+      const hasTarget = target > from;
+      const cost = hasTarget ? getBreakthroughCost(from, target) : 0;
+      return {
+        目标等级: hasTarget ? target : 0,
+        所需修为: cost,
+        剩余修为: hasTarget ? Math.max(0, amount - cost) : amount,
+        积累已足: hasTarget && amount >= cost
+      };
+    }
+    function migrateCultivationProgress(level, cultivation, fromVersion = 1, toVersion = _constants__WEBPACK_IMPORTED_MODULE_1__.CURRENT_CULTIVATION_VERSION) {
       const normalizedCultivation = Number(cultivation);
       if (!Number.isFinite(normalizedCultivation) || normalizedCultivation <= 0) {
         return 0;
       }
       const previousThreshold = getRealmThreshold(level, fromVersion);
       const nextThreshold = getRealmThreshold(level, toVersion);
-      if (previousThreshold <= 0 || previousThreshold === nextThreshold) {
-        return Math.round(normalizedCultivation);
-      }
+      if (previousThreshold <= 0 || previousThreshold === nextThreshold) return normalizedCultivation;
       const progressRatio = normalizedCultivation / previousThreshold;
       const migrated = Math.round(progressRatio * nextThreshold);
       return Math.max(0, migrated);
@@ -1369,35 +1404,19 @@ var __webpack_modules__ = {
     function normalizeCultivationState(rawState, options) {
       const parsedState = CultivationStateSchema.parse(rawState ?? {});
       const level = normalizeRealmLevel(options.level);
-      const threshold = getRealmThreshold(level);
-      let phase = parsedState.阶段;
-      if (options.legacyAttemptBreakthrough || phase === "突破中") {
-        phase = "突破中";
-      } else if (phase === "修炼中" && options.cultivation >= threshold) {
-        phase = "瓶颈中";
-      }
-      const transition = _.cloneDeep(parsedState.境界变动);
-      if (transition.类型 === "无") {
-        transition.目标等级 = 0;
-        transition.依据 = "";
-      }
-      const configuredTarget = transition.类型 !== "无" && transition.类型 !== "跌境" && transition.目标等级 > level ? transition.目标等级 : Math.min(level + 1, _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_THRESHOLDS.length);
-      const nextRealmTarget = level < _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_THRESHOLDS.length ? describeRealmByLevel(configuredTarget) : "";
-      const shouldHaveBreakthroughTarget = [ "瓶颈中", "突破中", "压境中" ].includes(phase);
+      const nextRealmTarget = level < _constants__WEBPACK_IMPORTED_MODULE_1__.REALM_THRESHOLDS.length ? describeRealmByLevel(level + 1) : "";
+      const shouldHaveBreakthroughTarget = [ "瓶颈中", "突破中", "压境中" ].includes(parsedState.阶段);
       return {
-        阶段: phase,
-        瓶颈原因: shouldHaveBreakthroughTarget ? parsedState.瓶颈原因 : "",
-        突破目标: shouldHaveBreakthroughTarget ? nextRealmTarget : "",
-        上次结果: parsedState.上次结果,
-        境界变动: transition
+        ...parsedState,
+        突破目标: shouldHaveBreakthroughTarget ? nextRealmTarget : ""
       };
     }
-    function getCultivationStatusLabel(state, cultivation, threshold) {
+    function getCultivationStatusLabel(state, _cultivation, _threshold) {
       const phase = state?.阶段 || "修炼中";
       if (phase === "突破中") return "突破中";
       if (phase === "稳固中") return "稳固中";
       if (phase === "压境中") return "压境中";
-      if (phase === "瓶颈中" || cultivation >= threshold) return "瓶颈期";
+      if (phase === "瓶颈中") return "瓶颈期";
       return "修炼中";
     }
     const SkillSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(value => typeof value === "string" ? {
@@ -1431,6 +1450,10 @@ var __webpack_modules__ = {
       const 境界描述 = describeRealmByLevel(level);
       const 寿元状态 = `${data.已活岁月}/${寿元上限}`;
       const 状态 = getCultivationStatusLabel(data.修炼状态, data.修为, 突破阈值);
+      const preview = previewCultivationBreakthrough(level, data.修为);
+      const 积累已足 = preview.积累已足;
+      const 盈余修为 = preview.目标等级 ? preview.剩余修为 : 0;
+      const 尝试突破 = data.修炼状态?.阶段 === "突破中";
       const progressRatio = 突破阈值 > 0 ? _.clamp(data.修为 / 突破阈值, 0, 1) : 0;
       const 进度 = `${(progressRatio * 100).toFixed(1)}%`;
       return {
@@ -1439,7 +1462,10 @@ var __webpack_modules__ = {
         境界描述,
         寿元状态,
         状态,
-        进度
+        进度,
+        积累已足,
+        盈余修为,
+        尝试突破
       };
     }
   },
@@ -1448,6 +1474,8 @@ var __webpack_modules__ = {
     __webpack_require__.d(__webpack_exports__, {
       CONFIG: () => CONFIG,
       CULTIVATION_THRESHOLDS_BY_VERSION: () => CULTIVATION_THRESHOLDS_BY_VERSION,
+      CURRENT_CULTIVATION_VERSION: () => CURRENT_CULTIVATION_VERSION,
+      CURRENT_SCHEMA_VERSION: () => CURRENT_SCHEMA_VERSION,
       LEGACY_REALM_THRESHOLDS: () => LEGACY_REALM_THRESHOLDS,
       REALM_LIFESPANS: () => REALM_LIFESPANS,
       REALM_NAMES: () => REALM_NAMES,
@@ -1456,6 +1484,8 @@ var __webpack_modules__ = {
       REALM_THRESHOLDS_V2: () => REALM_THRESHOLDS_V2
     });
     const REALM_STAGES = [ "初期", "中期", "后期", "大圆满" ];
+    const CURRENT_CULTIVATION_VERSION = 4;
+    const CURRENT_SCHEMA_VERSION = 6;
     const REALM_NAMES = [ "练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "真仙", "仙王", "仙帝" ];
     const LEGACY_REALM_THRESHOLDS = [ 100, 200, 300, 400, 500, 600, 700, 800, 900, 1e3, 1100, 1200, 2400, 2400, 2400, 2400, 4800, 4800, 4800, 4800, 9600, 9600, 9600, 9600, 19200, 19200, 19200, 19200, 38400, 38400, 38400, 38400, 76800, 76800, 76800, 76800, 153600, 153600, 153600, 153600, 307200, 307200, 307200, 307200, 614400, 614400, 614400, 614400 ];
     const V2_REALM_MAJOR_BASES = [ 100, 160, 260, 420, 680, 1100, 1780, 2880, 4660, 7540, 12200, 19740 ];
@@ -1465,7 +1495,8 @@ var __webpack_modules__ = {
     const CULTIVATION_THRESHOLDS_BY_VERSION = {
       1: LEGACY_REALM_THRESHOLDS,
       2: REALM_THRESHOLDS_V2,
-      3: REALM_THRESHOLDS
+      3: REALM_THRESHOLDS,
+      4: REALM_THRESHOLDS
     };
     const REALM_LIFESPANS = [ 100, 100, 100, 100, 200, 200, 200, 200, 500, 500, 500, 500, 1e3, 1e3, 1e3, 1e3, 2e3, 2e3, 2e3, 2e3, 5e3, 5e3, 5e3, 5e3, 1e4, 1e4, 1e4, 1e4, 5e4, 5e4, 5e4, 5e4, 1e5, 1e5, 1e5, 1e5, 5e5, 5e5, 5e5, 5e5, 2e6, 2e6, 2e6, 2e6, 1e7, 1e7, 1e7, 1e7 ];
     const CONFIG = {
@@ -1878,7 +1909,7 @@ var __webpack_modules__ = {
       宗门: "散修",
       出身: "凡人"
     });
-    const ProtagonistSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+    const ProtagonistSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_common__WEBPACK_IMPORTED_MODULE_1__.migrateCultivatorInput, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       等级: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(1).transform(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeRealmLevel).prefault(1),
       修为: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
       灵根: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("五行杂灵根"),
@@ -1889,7 +1920,6 @@ var __webpack_modules__ = {
       灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeSpiritStoneAmount, (0, 
       _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v))).prefault(0),
       已活岁月: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
-      尝试突破: zod__WEBPACK_IMPORTED_MODULE_0__.z.boolean().prefault(false),
       修炼状态: _common__WEBPACK_IMPORTED_MODULE_1__.CultivationStateSchema,
       行踪: LocationTrackSchema,
       身份: IdentitySchema,
@@ -1910,18 +1940,7 @@ var __webpack_modules__ = {
       神通列表: {},
       灵石: 0,
       已活岁月: 0,
-      尝试突破: false,
-      修炼状态: {
-        阶段: "修炼中",
-        瓶颈原因: "",
-        突破目标: "",
-        上次结果: "无",
-        境界变动: {
-          类型: "无",
-          目标等级: 0,
-          依据: ""
-        }
-      },
+      修炼状态: {},
       行踪: {
         当前区域: "未知之地",
         所属层级: "地层",
@@ -1991,18 +2010,17 @@ var __webpack_modules__ = {
       data.灵石 = spiritStoneNormalization.spiritStone;
       data.背包 = normalizedBackpack ?? {};
       data.杂物袋 = normalizedMiscBag ?? {};
-      data.修炼状态 = (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeCultivationState)(data.修炼状态, {
-        legacyAttemptBreakthrough: data.尝试突破,
-        level: data.等级,
-        cultivation: data.修为
-      });
-      data.尝试突破 = data.修炼状态.阶段 === "突破中";
-      const realmInfo = (0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(data);
-      return {
+      const cultivator = {
         ...data,
-        ...realmInfo
+        修炼状态: (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeCultivationState)(data.修炼状态, {
+          level: data.等级
+        })
       };
-    });
+      return {
+        ...cultivator,
+        ...(0, _common__WEBPACK_IMPORTED_MODULE_1__.computeRealmInfo)(cultivator)
+      };
+    }));
   },
   "./src/灯火阑珊/schema/systems.ts"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
     __webpack_require__.r(__webpack_exports__);
@@ -2027,6 +2045,7 @@ var __webpack_modules__ = {
     var zod__WEBPACK_IMPORTED_MODULE_0___default = __webpack_require__.n(zod__WEBPACK_IMPORTED_MODULE_0__);
     var _map_system__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../map-system */ "./src/灯火阑珊/map-system.ts");
     var _common__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./common */ "./src/灯火阑珊/schema/common.ts");
+    var _constants__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./constants */ "./src/灯火阑珊/schema/constants.ts");
     const 任务状态映射 = {
       进行中: "进行中",
       进行: "进行中",
@@ -2618,8 +2637,8 @@ var __webpack_modules__ = {
     const WorldEventLedgerSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.record(zod__WEBPACK_IMPORTED_MODULE_0__.z.string().describe("事件名或稳定事件ID"), WorldEventSchema).transform(compactWorldEventLedger).prefault({});
     const SystemSettingsSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
       启用行动提示: zod__WEBPACK_IMPORTED_MODULE_0__.z.boolean().prefault(true),
-      修炼系统版本: (0, _common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(3).transform(value => Math.max(1, Math.floor(value))).prefault(3),
-      变量结构版本: (0, _common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(5).transform(value => Math.max(1, Math.floor(value))).prefault(5),
+      修炼系统版本: (0, _common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(_constants__WEBPACK_IMPORTED_MODULE_3__.CURRENT_CULTIVATION_VERSION).transform(value => Math.max(1, Math.floor(value))).prefault(_constants__WEBPACK_IMPORTED_MODULE_3__.CURRENT_CULTIVATION_VERSION),
+      变量结构版本: (0, _common__WEBPACK_IMPORTED_MODULE_2__.finiteNumber)(_constants__WEBPACK_IMPORTED_MODULE_3__.CURRENT_SCHEMA_VERSION).transform(value => Math.max(1, Math.floor(value))).prefault(_constants__WEBPACK_IMPORTED_MODULE_3__.CURRENT_SCHEMA_VERSION),
       _临时状态手动覆盖签名: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("")
     }).prefault({});
     const ActionSystemSettingsSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.object({

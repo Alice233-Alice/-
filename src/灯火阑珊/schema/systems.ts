@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { LOCATION_DOMAIN_VALUES } from '../map-system';
 import { finiteNumber, NormalizedStringListSchema } from './common';
+import { CURRENT_CULTIVATION_VERSION, CURRENT_SCHEMA_VERSION } from './constants';
 
 // 任务状态容错映射：兼容 AI 常见近义词，统一到三态
 const 任务状态映射: Record<string, '进行中' | '已完成' | '已失败'> = {
@@ -749,12 +750,12 @@ export const WorldEventLedgerSchema = z
 export const SystemSettingsSchema = z
   .object({
     启用行动提示: z.boolean().prefault(true),
-    修炼系统版本: finiteNumber(3)
+    修炼系统版本: finiteNumber(CURRENT_CULTIVATION_VERSION)
       .transform(value => Math.max(1, Math.floor(value)))
-      .prefault(3),
-    变量结构版本: finiteNumber(5)
+      .prefault(CURRENT_CULTIVATION_VERSION),
+    变量结构版本: finiteNumber(CURRENT_SCHEMA_VERSION)
       .transform(value => Math.max(1, Math.floor(value)))
-      .prefault(5),
+      .prefault(CURRENT_SCHEMA_VERSION),
     _临时状态手动覆盖签名: z.string().prefault(''),
   })
   .prefault({});

@@ -1,5 +1,5 @@
 // ============================================================================
-// 踏月寻仙 - 本尊 Schema
+// 灯火阑珊 - 本尊 Schema
 // ============================================================================
 
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import {
   computeRealmInfo,
   describeRealmByLevel,
   finiteNumber,
+  migrateCultivatorInput,
   normalizeCultivationState,
   normalizeRealmLevel,
   normalizeSpiritStoneAmount,
@@ -452,128 +453,112 @@ const IdentitySchema = z
   });
 
 // 本尊 Schema
-export const ProtagonistSchema = z
-  .object({
-    等级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
-    修为: finiteNumber(0)
-      .transform(v => Math.max(0, v))
-      .prefault(0),
-    灵根: z.string().prefault('五行杂灵根'),
-    体质: z.string().prefault('凡体'),
-    功法: z.string().prefault('无'),
-    本命兵器: z.string().prefault('无'),
-    神通列表: SkillListSchema,
-    灵石: z
-      .preprocess(
-        normalizeSpiritStoneAmount,
-        finiteNumber(0).transform(v => Math.max(0, v)),
-      )
-      .prefault(0),
-    已活岁月: finiteNumber(0)
-      .transform(v => Math.max(0, v))
-      .prefault(0),
-    尝试突破: z.boolean().prefault(false),
-    修炼状态: CultivationStateSchema,
-    行踪: LocationTrackSchema,
-    身份: IdentitySchema,
-    // 下划线前缀：正文 AI 可读取，但 MVU 不接受 AI 对它的更新命令；仅由玩家界面写入。
-    _档案: z
-      .string()
-      .transform(value => value.replace(/\r\n?/gu, '\n').trim())
-      .prefault(''),
-    背包: InventorySchema,
-    法宝: InventorySchema,
-    杂物袋: InventorySchema,
-    战斗状态: CombatStatusSchema,
-    当前敌人: CurrentEnemiesSchema,
-    渡劫状态: TribulationSchema,
-  })
-  .prefault({
-    等级: 1,
-    修为: 0,
-    灵根: '五行杂灵根',
-    体质: '凡体',
-    功法: '无',
-    本命兵器: '无',
-    神通列表: {},
-    灵石: 0,
-    已活岁月: 0,
-    尝试突破: false,
-    修炼状态: {
-      阶段: '修炼中',
-      瓶颈原因: '',
-      突破目标: '',
-      上次结果: '无',
-      境界变动: {
-        类型: '无',
-        目标等级: 0,
-        依据: '',
+export const ProtagonistSchema = z.preprocess(
+  migrateCultivatorInput,
+  z
+    .object({
+      等级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
+      修为: finiteNumber(0)
+        .transform(v => Math.max(0, v))
+        .prefault(0),
+      灵根: z.string().prefault('五行杂灵根'),
+      体质: z.string().prefault('凡体'),
+      功法: z.string().prefault('无'),
+      本命兵器: z.string().prefault('无'),
+      神通列表: SkillListSchema,
+      灵石: z
+        .preprocess(
+          normalizeSpiritStoneAmount,
+          finiteNumber(0).transform(v => Math.max(0, v)),
+        )
+        .prefault(0),
+      已活岁月: finiteNumber(0)
+        .transform(v => Math.max(0, v))
+        .prefault(0),
+      修炼状态: CultivationStateSchema,
+      行踪: LocationTrackSchema,
+      身份: IdentitySchema,
+      // 下划线前缀：正文 AI 可读取，但 MVU 不接受 AI 对它的更新命令；仅由玩家界面写入。
+      _档案: z
+        .string()
+        .transform(value => value.replace(/\r\n?/gu, '\n').trim())
+        .prefault(''),
+      背包: InventorySchema,
+      法宝: InventorySchema,
+      杂物袋: InventorySchema,
+      战斗状态: CombatStatusSchema,
+      当前敌人: CurrentEnemiesSchema,
+      渡劫状态: TribulationSchema,
+    })
+    .prefault({
+      等级: 1,
+      修为: 0,
+      灵根: '五行杂灵根',
+      体质: '凡体',
+      功法: '无',
+      本命兵器: '无',
+      神通列表: {},
+      灵石: 0,
+      已活岁月: 0,
+      修炼状态: {},
+      行踪: {
+        当前区域: '未知之地',
+        所属层级: '地层',
+        环境描述: '',
+        危险度: 10,
+        可用通道: [],
+        导航信息: '',
       },
-    },
-    行踪: {
-      当前区域: '未知之地',
-      所属层级: '地层',
-      环境描述: '',
-      危险度: 10,
-      可用通道: [],
-      导航信息: '',
-    },
-    身份: {
-      姓名: '无名氏',
-      宗门: '散修',
-      出身: '凡人',
-    },
-    _档案: '',
-    背包: {},
-    法宝: {},
-    杂物袋: {},
-    战斗状态: {
-      正在战斗: false,
-      阶段: '平静',
-      交锋轮次: 0,
-      战局: {
-        态势: '相持',
-        我方目的: '',
-        敌方目的: '',
-        战场要素: [],
-        态势依据: [],
-        战机: [],
-        危机: [],
-        已显手段: { 我方: [], 敌方: [] },
-        最近转折: '',
+      身份: {
+        姓名: '无名氏',
+        宗门: '散修',
+        出身: '凡人',
       },
-      负荷: { 真元: '充盈', 神识: '澄明', 肉身: '无恙' },
-      最近战果: { 结果: '无', 对手: [], 达成: '', 代价: [], 后患: [] },
-    },
-    当前敌人: {},
-    渡劫状态: {
-      正在渡劫: false,
-      劫种: '无',
-      劫难等级: '无',
-      当前阶段: 0,
-      总阶段数: 0,
-      劫力承受: 100,
-      已用护道: [],
-      劫难描述: '',
-      触发原因: '',
-      上次渡劫结果: '无',
-      渡劫冷却: 0,
-      失败惩罚记录: '',
-    },
-  })
-  .transform(data => {
-    const spiritStoneNormalization = normalizeSpiritStoneState(data.灵石, data.背包, data.杂物袋);
-    const [normalizedBackpack, normalizedMiscBag] = spiritStoneNormalization.inventories;
-    data.灵石 = spiritStoneNormalization.spiritStone;
-    data.背包 = normalizedBackpack ?? {};
-    data.杂物袋 = normalizedMiscBag ?? {};
-    data.修炼状态 = normalizeCultivationState(data.修炼状态, {
-      legacyAttemptBreakthrough: data.尝试突破,
-      level: data.等级,
-      cultivation: data.修为,
-    });
-    data.尝试突破 = data.修炼状态.阶段 === '突破中';
-
-    const realmInfo = computeRealmInfo(data);
-    return { ...data, ...realmInfo };
-  });
+      _档案: '',
+      背包: {},
+      法宝: {},
+      杂物袋: {},
+      战斗状态: {
+        正在战斗: false,
+        阶段: '平静',
+        交锋轮次: 0,
+        战局: {
+          态势: '相持',
+          我方目的: '',
+          敌方目的: '',
+          战场要素: [],
+          态势依据: [],
+          战机: [],
+          危机: [],
+          已显手段: { 我方: [], 敌方: [] },
+          最近转折: '',
+        },
+        负荷: { 真元: '充盈', 神识: '澄明', 肉身: '无恙' },
+        最近战果: { 结果: '无', 对手: [], 达成: '', 代价: [], 后患: [] },
+      },
+      当前敌人: {},
+      渡劫状态: {
+        正在渡劫: false,
+        劫种: '无',
+        劫难等级: '无',
+        当前阶段: 0,
+        总阶段数: 0,
+        劫力承受: 100,
+        已用护道: [],
+        劫难描述: '',
+        触发原因: '',
+        上次渡劫结果: '无',
+        渡劫冷却: 0,
+        失败惩罚记录: '',
+      },
+    })
+    .transform(data => {
+      const spiritStoneNormalization = normalizeSpiritStoneState(data.灵石, data.背包, data.杂物袋);
+      const [normalizedBackpack, normalizedMiscBag] = spiritStoneNormalization.inventories;
+      data.灵石 = spiritStoneNormalization.spiritStone;
+      data.背包 = normalizedBackpack ?? {};
+      data.杂物袋 = normalizedMiscBag ?? {};
+      const cultivator = { ...data, 修炼状态: normalizeCultivationState(data.修炼状态, { level: data.等级 }) };
+      return { ...cultivator, ...computeRealmInfo(cultivator) };
+    }),
+);

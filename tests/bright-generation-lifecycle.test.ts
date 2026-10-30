@@ -466,9 +466,12 @@ function controllerDeclarations(names: string[]) {
       (ts.isFunctionDeclaration(node) && names.includes(node.name?.text)),
   );
   assert.equal(statements.length, names.length);
-  return ts.transpileModule(statements.map((s: any) => s.getText(source)).join('\n'), {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
-  }).outputText;
+  return (
+    'globalThis.detachedMode ??= false; globalThis.controllerDisposed ??= false;\n' +
+    ts.transpileModule(statements.map((s: any) => s.getText(source)).join('\n'), {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+    }).outputText
+  );
 }
 
 test('控制器保留思考、错误原文和半截正文供恢复，仅清理真正的空占位', () => {

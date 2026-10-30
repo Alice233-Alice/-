@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// 踏月寻仙 - MVU 变量结构定义 (入口文件)
+// 灯火阑珊 - MVU 变量结构定义 (入口文件)
 // ============================================================================
 // 从子模块导入并组合最终 Schema
 
@@ -22,6 +22,7 @@ import {
   normalizeCultivationState,
 } from './schema/common';
 import { ProtagonistSchema } from './schema/protagonist';
+import { CURRENT_CULTIVATION_VERSION, CURRENT_SCHEMA_VERSION } from './schema/constants';
 import {
   DifficultySystemSchema,
   OpportunitySchema,
@@ -55,30 +56,42 @@ export {
   NpcSchema,
 } from './schema/characters';
 export {
+  BreakthroughRecordSchema,
   CultivationStateSchema,
   computeRealmInfo,
   describeRealmByLevel,
   extractSpiritStoneFromInventory,
   finiteNumber,
   getCultivationStatusLabel,
+  getBreakthroughCost,
   getRealmThreshold,
   InventorySchema,
   isSpiritStoneCurrencyItem,
   ItemSchema,
   migrateCultivationProgress,
   migrateLegacyCultivationProgress,
+  migrateCultivatorInput,
   NormalizedStringListSchema,
   normalizeSpiritStoneAmount,
   normalizeSpiritStoneState,
   normalizeCultivationState,
   normalizeRealmLevel,
+  previewCultivationBreakthrough,
   RealmTransitionSchema,
   SkillListSchema,
   SkillSchema,
   品阶映射,
   熟练度映射,
 } from './schema/common';
-export { CONFIG, REALM_LIFESPANS, REALM_NAMES, REALM_STAGES, REALM_THRESHOLDS } from './schema/constants';
+export {
+  CONFIG,
+  CURRENT_CULTIVATION_VERSION,
+  CURRENT_SCHEMA_VERSION,
+  REALM_LIFESPANS,
+  REALM_NAMES,
+  REALM_STAGES,
+  REALM_THRESHOLDS,
+} from './schema/constants';
 export { ProtagonistSchema } from './schema/protagonist';
 export {
   compactWorldEventLedger,
@@ -132,8 +145,6 @@ export {
 // 完整的 MVU 变量结构
 // ============================================================================
 
-const LATEST_CULTIVATION_SYSTEM_VERSION = 3;
-const LATEST_SCHEMA_VERSION = 5;
 const DEFAULT_COMPANION = CompanionSchema.parse({});
 const CJK_TEXT_PATTERN = /[\u3400-\u4dbf\u4e00-\u9fff]/;
 const MAX_OPPORTUNITIES = 4;
@@ -220,7 +231,6 @@ function mergeCompanionData(
     Number(base.已活岁月 ?? DEFAULT_COMPANION.已活岁月),
     Number(incoming.已活岁月 ?? DEFAULT_COMPANION.已活岁月),
   );
-  merged.尝试突破 = Boolean(base.尝试突破 || incoming.尝试突破);
   const fallbackCultivationState = _.cloneDeep(DEFAULT_COMPANION.修炼状态);
   merged.修炼状态 = normalizeCultivationState(
     {
@@ -234,22 +244,20 @@ function mergeCompanionData(
         String(base.修炼状态?.瓶颈原因 ?? fallbackCultivationState.瓶颈原因),
         fallbackCultivationState.瓶颈原因,
       ),
-      突破目标: preferNonDefaultString(
-        incoming.修炼状态?.突破目标,
-        String(base.修炼状态?.突破目标 ?? fallbackCultivationState.突破目标),
-        fallbackCultivationState.突破目标,
-      ),
+      方式: preferNonDefaultString(incoming.修炼状态?.方式, base.修炼状态.方式, ''),
+      地点: preferNonDefaultString(incoming.修炼状态?.地点, base.修炼状态.地点, ''),
+      根基描述: preferNonDefaultString(incoming.修炼状态?.根基描述, base.修炼状态.根基描述, ''),
+      计划年数: incoming.修炼状态.计划年数 || base.修炼状态.计划年数,
+      已修炼年数: Math.max(incoming.修炼状态.已修炼年数, base.修炼状态.已修炼年数),
       上次结果: preferNonDefaultString(
         incoming.修炼状态?.上次结果,
         String(base.修炼状态?.上次结果 ?? fallbackCultivationState.上次结果),
         fallbackCultivationState.上次结果,
       ),
-      境界变动: incoming.修炼状态?.境界变动?.类型 !== '无' ? incoming.修炼状态.境界变动 : base.修炼状态?.境界变动,
+      最近突破: incoming.修炼状态.最近突破.类型 !== '无' ? incoming.修炼状态.最近突破 : base.修炼状态.最近突破,
     },
     {
-      legacyAttemptBreakthrough: merged.尝试突破,
       level: merged.等级,
-      cultivation: merged.修为,
     },
   );
   merged.好感度 = Number.isFinite(Number(incoming.好感度))
@@ -417,19 +425,17 @@ function normalizeProtagonistCultivation(
   protagonist: z.infer<typeof ProtagonistSchema>,
   currentCultivationVersion: number,
 ): void {
-  if (currentCultivationVersion < LATEST_CULTIVATION_SYSTEM_VERSION) {
+  if (currentCultivationVersion < CURRENT_CULTIVATION_VERSION) {
     protagonist.修为 = migrateCultivationProgress(
       protagonist.等级,
       protagonist.修为,
       currentCultivationVersion,
-      LATEST_CULTIVATION_SYSTEM_VERSION,
+      CURRENT_CULTIVATION_VERSION,
     );
   }
 
   protagonist.修炼状态 = normalizeCultivationState(protagonist.修炼状态, {
-    legacyAttemptBreakthrough: protagonist.尝试突破,
     level: protagonist.等级,
-    cultivation: protagonist.修为,
   });
   protagonist.尝试突破 = protagonist.修炼状态.阶段 === '突破中';
   Object.assign(protagonist, computeRealmInfo(protagonist));
@@ -439,19 +445,17 @@ function normalizeCompanionCultivation(
   companion: z.infer<typeof CompanionSchema>,
   currentCultivationVersion: number,
 ): void {
-  if (currentCultivationVersion < LATEST_CULTIVATION_SYSTEM_VERSION) {
+  if (currentCultivationVersion < CURRENT_CULTIVATION_VERSION) {
     companion.修为 = migrateCultivationProgress(
       companion.等级,
       companion.修为,
       currentCultivationVersion,
-      LATEST_CULTIVATION_SYSTEM_VERSION,
+      CURRENT_CULTIVATION_VERSION,
     );
   }
 
   companion.修炼状态 = normalizeCultivationState(companion.修炼状态, {
-    legacyAttemptBreakthrough: companion.尝试突破,
     level: companion.等级,
-    cultivation: companion.修为,
   });
   companion.尝试突破 = companion.修炼状态.阶段 === '突破中';
   Object.assign(companion, computeRealmInfo(companion));
@@ -629,8 +633,8 @@ export const Schema = z.preprocess(
       }
       data._系统设置 = {
         ...(data._系统设置 ?? {}),
-        修炼系统版本: LATEST_CULTIVATION_SYSTEM_VERSION,
-        变量结构版本: LATEST_SCHEMA_VERSION,
+        修炼系统版本: CURRENT_CULTIVATION_VERSION,
+        变量结构版本: CURRENT_SCHEMA_VERSION,
         _临时状态手动覆盖签名: String(data._系统设置?._临时状态手动覆盖签名 ?? ''),
       };
 

@@ -17,6 +17,8 @@ const {
   REALM_NAMES,
   REALM_STAGES,
   REALM_THRESHOLDS,
+  CURRENT_CULTIVATION_VERSION,
+  CURRENT_SCHEMA_VERSION,
   Schema,
   compareRealmStanding,
   describeRealmByLevel,
@@ -52,11 +54,11 @@ function parse(input: unknown = {}): any {
   return Schema.parse(input);
 }
 
-test('默认值采用盛法时代与 v5 变量结构', () => {
+test('默认值采用盛法时代与 v6 变量结构', () => {
   const data = parse();
   assert.equal(data.世界时钟.纪元, '盛法时代');
-  assert.equal(data._系统设置.变量结构版本, 5);
-  assert.equal(data._系统设置.修炼系统版本, 3);
+  assert.equal(data._系统设置.变量结构版本, CURRENT_SCHEMA_VERSION);
+  assert.equal(data._系统设置.修炼系统版本, CURRENT_CULTIVATION_VERSION);
   assert.deepEqual(data.本尊.战斗状态, {
     正在战斗: false,
     阶段: '平静',
@@ -159,12 +161,15 @@ test('旧存档缺失版本与境界变动时可迁移且保持幂等', () => {
     _系统设置: { 修炼系统版本: 1 },
   });
   assert.deepEqual(migrated, parse(migrated));
-  assert.deepEqual(migrated.本尊.修炼状态.境界变动, {
+  assert.deepEqual(migrated.本尊.修炼状态.最近突破, {
     类型: '无',
+    原等级: 0,
     目标等级: 0,
+    消耗修为: 0,
     依据: '',
+    时地: '',
   });
-  assert.equal(migrated._系统设置.变量结构版本, 5);
+  assert.equal(migrated._系统设置.变量结构版本, CURRENT_SCHEMA_VERSION);
 });
 
 test('旧红颜数据迁移后补齐空羁绊纪事并保持幂等', () => {
@@ -180,7 +185,7 @@ test('旧红颜数据迁移后补齐空羁绊纪事并保持幂等', () => {
   });
 
   assert.deepEqual(migrated.红颜.许听雨.羁绊纪事, {});
-  assert.equal(migrated._系统设置.变量结构版本, 5);
+  assert.equal(migrated._系统设置.变量结构版本, CURRENT_SCHEMA_VERSION);
   assert.deepEqual(parse(migrated), migrated);
 });
 
@@ -776,7 +781,7 @@ test('旧战斗存档和敌人数组迁移为 v5 且重复解析幂等', () => {
     _系统设置: { 变量结构版本: 3 },
   });
 
-  assert.equal(migrated._系统设置.变量结构版本, 5);
+  assert.equal(migrated._系统设置.变量结构版本, CURRENT_SCHEMA_VERSION);
   assert.equal(migrated.本尊.战斗状态.阶段, '交锋');
   assert.equal(migrated.本尊.战斗状态.交锋轮次, 3);
   assert.equal(migrated.本尊.战斗状态.战局.态势, '相持');
@@ -966,7 +971,9 @@ test('变量规则与输出格式 YAML 可解析', () => {
   assert.match(searchableUpdateRule, /不得因未直呼姓名或角色无法说话而漏更/u);
   assert.match(searchableUpdateRule, /无法唯一判断时不猜/u);
   assert.match(searchableUpdateRule, /金丹中\/后\/大圆满、元婴初固定为 10\/11\/12\/13/u);
-  assert.match(searchableUpdateRule, /依据逐字摘录含原因与最终境界的正文/u);
+  assert.match(searchableUpdateRule, /本尊是否冲关遵从玩家明确选择/u);
+  assert.match(searchableUpdateRule, /余额=旧修为\+当轮实际新增-实际消耗/u);
+  assert.doesNotMatch(searchableUpdateRule, /升级后归零|修为=0|100 后停增|依据逐字摘录/u);
   assert.match(searchableUpdateRule, /负荷可写贴合正文的简短描述，不限固定措辞/u);
   assert.match(searchableUpdateRule, /最近战果\.代价涉及真元、神识或肉身时，同轮同步对应负荷/u);
   assert.match(searchableUpdateRule, /准确名称是“好感度”[\s\S]*禁止使用不存在的 \/红颜\/\{角色名\}\/好感/u);

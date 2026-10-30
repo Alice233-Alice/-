@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// 踏月寻仙 - 角色 Schema（红颜角色库、红颜、NPC图鉴）
+// 灯火阑珊 - 角色 Schema（红颜角色库、红颜、NPC图鉴）
 // ============================================================================
 
 import { z } from 'zod';
@@ -8,6 +8,7 @@ import {
   SkillListSchema,
   computeRealmInfo,
   finiteNumber,
+  migrateCultivatorInput,
   normalizeCultivationState,
   normalizeRealmLevel,
 } from './common';
@@ -232,69 +233,54 @@ export const CompanionBondChronicleSchema = z
   .transform(entries => Object.fromEntries(_(entries).entries().takeRight(8).value()));
 
 // 红颜（动态角色数据）Schema
-export const CompanionSchema = z
-  .object({
-    等级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
-    修为: finiteNumber(0)
-      .transform(v => Math.max(0, v))
-      .prefault(0),
-    灵根: z.string().prefault('五行杂灵根'),
-    体质: z.string().prefault('凡体'),
-    功法: z.string().prefault('无'),
-    本命兵器: z.string().prefault('无'),
-    神通列表: SkillListSchema,
-    灵石: finiteNumber(0)
-      .transform(v => Math.max(0, v))
-      .prefault(0),
-    已活岁月: finiteNumber(0)
-      .transform(v => Math.max(0, v))
-      .prefault(0),
-    尝试突破: z.boolean().prefault(false),
-    修炼状态: CultivationStateSchema,
-    好感度: finiteNumber(0)
-      .transform(v => _.clamp(v, -200, 200))
-      .prefault(0),
-    关系: z.string().prefault('陌生人'),
-    关系上下文: CompanionRelationContextSchema,
-    羁绊纪事: CompanionBondChronicleSchema,
-  })
-  .prefault({
-    等级: 1,
-    修为: 0,
-    灵根: '五行杂灵根',
-    体质: '凡体',
-    功法: '无',
-    本命兵器: '无',
-    神通列表: {},
-    灵石: 0,
-    已活岁月: 0,
-    尝试突破: false,
-    修炼状态: {
-      阶段: '修炼中',
-      瓶颈原因: '',
-      突破目标: '',
-      上次结果: '无',
-      境界变动: {
-        类型: '无',
-        目标等级: 0,
-        依据: '',
-      },
-    },
-    好感度: 0,
-    关系: '陌生人',
-    关系上下文: {},
-    羁绊纪事: {},
-  })
-  .transform(data => {
-    data.修炼状态 = normalizeCultivationState(data.修炼状态, {
-      legacyAttemptBreakthrough: data.尝试突破,
-      level: data.等级,
-      cultivation: data.修为,
-    });
-    data.尝试突破 = data.修炼状态.阶段 === '突破中';
-    const realmInfo = computeRealmInfo(data);
-    return { ...data, ...realmInfo };
-  });
+export const CompanionSchema = z.preprocess(
+  migrateCultivatorInput,
+  z
+    .object({
+      等级: finiteNumber(1).transform(normalizeRealmLevel).prefault(1),
+      修为: finiteNumber(0)
+        .transform(v => Math.max(0, v))
+        .prefault(0),
+      灵根: z.string().prefault('五行杂灵根'),
+      体质: z.string().prefault('凡体'),
+      功法: z.string().prefault('无'),
+      本命兵器: z.string().prefault('无'),
+      神通列表: SkillListSchema,
+      灵石: finiteNumber(0)
+        .transform(v => Math.max(0, v))
+        .prefault(0),
+      已活岁月: finiteNumber(0)
+        .transform(v => Math.max(0, v))
+        .prefault(0),
+      修炼状态: CultivationStateSchema,
+      好感度: finiteNumber(0)
+        .transform(v => _.clamp(v, -200, 200))
+        .prefault(0),
+      关系: z.string().prefault('陌生人'),
+      关系上下文: CompanionRelationContextSchema,
+      羁绊纪事: CompanionBondChronicleSchema,
+    })
+    .prefault({
+      等级: 1,
+      修为: 0,
+      灵根: '五行杂灵根',
+      体质: '凡体',
+      功法: '无',
+      本命兵器: '无',
+      神通列表: {},
+      灵石: 0,
+      已活岁月: 0,
+      修炼状态: {},
+      好感度: 0,
+      关系: '陌生人',
+      关系上下文: {},
+      羁绊纪事: {},
+    })
+    .transform(data => {
+      const cultivator = { ...data, 修炼状态: normalizeCultivationState(data.修炼状态, { level: data.等级 }) };
+      return { ...cultivator, ...computeRealmInfo(cultivator) };
+    }),
+);
 
 // NPC图鉴 Schema - 极简版
 export const NpcSchema = z.object({

@@ -2,7 +2,18 @@ import { Schema, unwrapOpportunityPatchPayload } from '../灯火阑珊/schema';
 import { COMPANION_CANONICAL_NAMES } from './companion-aliases';
 
 const COMPATIBILITY_INSTALLED_KEY = '__灯火阑珊_mvu_command_compatibility_installed__';
-const READONLY_ENTITY_FIELDS = new Set(['突破阈值', '寿元上限', '境界描述', '寿元状态', '状态', '进度', '战力值']);
+const READONLY_ENTITY_FIELDS = new Set([
+  '突破阈值',
+  '寿元上限',
+  '境界描述',
+  '寿元状态',
+  '状态',
+  '进度',
+  '战力值',
+  '积累已足',
+  '盈余修为',
+  '尝试突破',
+]);
 const MVU_ROOT_KEYS = [
   '世界时钟',
   '世界地图',
@@ -81,6 +92,7 @@ function normalizeCommandPath(rawPath: string): string {
   // 兼容旧版把灵石建模成分级对象的更新路径。当前权威 Schema 中本尊.灵石是标量，
   // 因而旧式 delta /本尊/灵石/下品灵石 必须在 MVU 执行加减前落到标量字段。
   path = path.replace(/^stat_data\.本尊\.灵石\.(?:下品灵石|灵石)$/u, 'stat_data.本尊.灵石');
+  path = path.replace(/^(stat_data\.(?:本尊|红颜\.[^./]+)\.修炼状态)\.境界变动(?=\.|$)/u, '$1.最近突破');
 
   return path;
 }
