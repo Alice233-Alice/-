@@ -418,7 +418,16 @@ function normalizeCompanionAliases(
   };
 }
 
-function getFavorDeltaLimitByValue(favor: number): number {
+function getFavorGainLimitByValue(favor: number): number {
+  const normalizedFavor = Math.max(0, Number.isFinite(favor) ? favor : 0);
+  if (normalizedFavor <= 40) return 8;
+  if (normalizedFavor <= 80) return 7;
+  if (normalizedFavor <= 120) return 6;
+  if (normalizedFavor <= 160) return 5;
+  return 4;
+}
+
+function getFavorLossLimitByValue(favor: number): number {
   const normalizedFavor = Math.max(0, Number.isFinite(favor) ? favor : 0);
   if (normalizedFavor <= 20) return 6;
   if (normalizedFavor <= 60) return 4;
@@ -660,8 +669,9 @@ export const Schema = z.preprocess(
 
         const prevFavor = Number(snapshot[name]);
         if (Number.isFinite(prevFavor)) {
-          const favorDeltaLimit = getFavorDeltaLimitByValue(prevFavor);
-          companion.好感度 = _.clamp(currentFavor, prevFavor - favorDeltaLimit, prevFavor + favorDeltaLimit);
+          const gainLimit = getFavorGainLimitByValue(prevFavor);
+          const lossLimit = getFavorLossLimitByValue(prevFavor);
+          companion.好感度 = _.clamp(currentFavor, prevFavor - lossLimit, prevFavor + gainLimit);
         } else {
           companion.好感度 = _.clamp(currentFavor, -200, 200);
         }
