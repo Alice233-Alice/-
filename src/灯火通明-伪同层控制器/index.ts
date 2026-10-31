@@ -1125,12 +1125,43 @@ const rememberStageSelection = (messageId: number, entries = getStageEntries()) 
   selectedHistoryMessageIds[entry.stage.kind] = entry.representativeMessageId;
 };
 
+const refreshParkedFrontend = (frame: HTMLIFrameElement) => {
+  const revision = frame.dataset.dhlFrontendRevision;
+  const hostMessageId = getParkedMessageId();
+  if (!revision || hostMessageId === undefined) return false;
+  const keptFrame = getFrameKeeper(hostMessageId, false)?.querySelector<HTMLIFrameElement>(':scope > iframe');
+  if (!keptFrame || keptFrame === frame || keptFrame.dataset.dhlFrontendRevision === revision) return false;
+  const sourceDocument = frame.getAttribute('srcdoc')?.trim();
+  const sourceUrl = frame.getAttribute('src')?.trim();
+  if (!sourceDocument && (!sourceUrl || sourceUrl === 'about:blank')) return false;
+
+  // 生成及编辑结算完成后再应用新模板，保留当前操作的接收窗口。
+  if (activeGeneration || deletingMessageId !== null || updatingMessageId !== null) {
+    queueFrameCandidate(frame, 500);
+    return true;
+  }
+  const currentView = keptFrame.contentDocument?.querySelector('.cultivation-status')?.getAttribute('data-view');
+  if (currentView) keptFrame.dataset.dhlReloadView = currentView;
+  keptFrame.dataset.dhlFrontendRevision = revision;
+  frameLoadStartedAt.set(keptFrame, Date.now());
+  keptFrame.addEventListener('load', () => scheduleViewRefresh(0), { once: true });
+  if (sourceDocument) {
+    keptFrame.srcdoc = sourceDocument;
+  } else {
+    keptFrame.removeAttribute('srcdoc');
+    keptFrame.src = sourceUrl!;
+  }
+  console.info('[灯火阑珊·伪同层] 前端编译已更新，自动同步阅读舞台');
+  return true;
+};
+
 const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestStoryStageId()) => {
   if (detachedMode || controllerDisposed) return;
   rememberFrame(frame);
   if (frame.dataset.dhlControllerOwned === 'true') return;
   const messageId = getFrameMessageId(frame);
   if (messageId === undefined) return;
+  if (refreshParkedFrontend(frame)) return;
   // MVU 额外解析会重新渲染最新楼层；已有阅读舞台时只更新数据，不另建舞台抢走阅读位置。
   const parkedMessageId = getParkedMessageId();
   if (parkedMessageId !== undefined && parkedMessageId !== messageId && getLiveRegistration(parkedMessageId)) return;
@@ -1152,12 +1183,12 @@ const flushFrameCandidates = () => {
   });
 };
 
-const queueFrameCandidate = (frame: HTMLIFrameElement) => {
+const queueFrameCandidate = (frame: HTMLIFrameElement, delay = FRAME_CANDIDATE_BATCH_MS) => {
   if (detachedMode || controllerDisposed) return;
   rememberFrame(frame);
   pendingFrameCandidates.add(frame);
   if (frameCandidateTimer !== null) return;
-  frameCandidateTimer = window.setTimeout(flushFrameCandidates, FRAME_CANDIDATE_BATCH_MS);
+  frameCandidateTimer = window.setTimeout(flushFrameCandidates, delay);
 };
 
 const inspectAddedFrameNode = (node: Node) => {
@@ -1194,7 +1225,12 @@ const installFrameObserver = () => {
       }
     });
   });
-  frameObserver.observe(chat, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcdoc'] });
+  frameObserver.observe(chat, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['src', 'srcdoc', 'data-dhl-frontend-revision'],
+  });
 };
 
 const parkLatestStageFrame = () => {

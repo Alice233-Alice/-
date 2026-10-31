@@ -1,6 +1,7 @@
 import { createPinia, disposePinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './app.vue';
+import { getFrontendRevision } from './frontend-revision';
 
 $(() => {
   let disposed = false;
@@ -31,6 +32,9 @@ $(() => {
   const observer = new MutationObserver(syncMount);
   observer.observe(parentBody, { attributes: true, attributeFilter: ['class'] });
   syncMount();
+  // 原生楼层在舞台启用时只运行加载器，也要把新编译版本交给控制器。
+  const revision = getFrontendRevision(document);
+  if (frame && revision) frame.dataset.dhlFrontendRevision = revision;
 
   const dispose = () => {
     if (disposed) return;

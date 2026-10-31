@@ -850,7 +850,9 @@ export const summarizeVariableDiagnostics = (
   const scored: Array<{ score: number; label: string }> = [];
 
   for (const operation of diagnostics.operations) {
-    const op = String(operation.op ?? '').trim().toLowerCase();
+    const op = String(operation.op ?? '')
+      .trim()
+      .toLowerCase();
     const segments = String(operation.path ?? '')
       .replaceAll('／', '/')
       .split('/')
@@ -1033,6 +1035,7 @@ export const formatMessageHtml = (text: string, messageId: number) => {
 };
 
 const STORY_DIALOGUE_CLASS = 'dhl-story-dialogue';
+const STORY_NOTICE_CLASS = 'dhl-story-notice';
 const STORY_DIALOGUE_SKIP_SELECTOR = [
   'code',
   'pre',
@@ -1045,6 +1048,7 @@ const STORY_DIALOGUE_SKIP_SELECTOR = [
   'select',
   'option',
   `.${STORY_DIALOGUE_CLASS}`,
+  `.${STORY_NOTICE_CLASS}`,
 ].join(', ');
 
 const decorateNarrativeDialogueHtml = (html: string) => {
@@ -1087,8 +1091,61 @@ const decorateNarrativeDialogueHtml = (html: string) => {
   return template.innerHTML;
 };
 
+const decorateNarrativeNoticesHtml = (html: string) => {
+  if (!html || typeof document === 'undefined') return html;
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  let changed = false;
+
+  template.content.querySelectorAll('p').forEach(paragraph => {
+    // 只接管独立的纯文本提示，引用、代码及富内容继续由原有阅读器呈现。
+    if (
+      paragraph.closest(`blockquote, q, pre, code, .${STORY_NOTICE_CLASS}`) ||
+      paragraph.querySelector('code, pre, br, a, button, input, select, textarea, img, iframe, script, style')
+    ) {
+      return;
+    }
+
+    const match = paragraph.textContent?.trim().match(/^【(新线索|任务进展)[：:]\s*([^【】\r\n]+?)\s*】$/u);
+    if (!match || !match[2].trim()) return;
+
+    // 对话着色已保留跨段引语状态，首个文字所在的位置可判定本段是否仍在人物发言中。
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT, {
+      acceptNode: node => (node.textContent?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP),
+    });
+    const firstText = walker.nextNode();
+    if (firstText?.parentElement?.closest(`.${STORY_DIALOGUE_CLASS}, q`)) return;
+
+    const notice = document.createElement('aside');
+    notice.className = STORY_NOTICE_CLASS;
+    notice.dataset.kind = match[1] === '新线索' ? 'clue' : 'progress';
+    notice.setAttribute('role', 'note');
+    notice.setAttribute('aria-label', match[1]);
+
+    const heading = document.createElement('div');
+    heading.className = `${STORY_NOTICE_CLASS}__heading`;
+    const mark = document.createElement('span');
+    mark.className = `${STORY_NOTICE_CLASS}__mark`;
+    mark.setAttribute('aria-hidden', 'true');
+    mark.textContent = match[1] === '新线索' ? '✦' : '◇';
+    const label = document.createElement('span');
+    label.textContent = match[1];
+    heading.append(mark, label);
+
+    const body = document.createElement('div');
+    body.className = `${STORY_NOTICE_CLASS}__body`;
+    body.textContent = match[2].trim();
+    notice.append(heading, body);
+    paragraph.replaceWith(notice);
+    changed = true;
+  });
+
+  return changed ? template.innerHTML : html;
+};
+
 export const formatNarrativeHtml = (text: string, messageId: number) =>
-  decorateNarrativeDialogueHtml(formatMessageHtml(text, messageId));
+  decorateNarrativeNoticesHtml(decorateNarrativeDialogueHtml(formatMessageHtml(text, messageId)));
 
 const BASIC_FORMAT_CLASS_PATTERN =
   /^(?:custom-html|custom-language-html|language-\S+|hljs(?:-\S+)?|markdown|md|code|prettyprint|spoiler)$/i;

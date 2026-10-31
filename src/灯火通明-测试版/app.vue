@@ -199,7 +199,9 @@ const readImmersivePreference = (mode: ViewportMode) => {
 };
 const viewportMode = ref<ViewportMode>(getViewportMode());
 const readingMode = computed<ReadingMode>(() => themeStore.readingModes[viewportMode.value]);
-const activeView = ref<StageView>('gallery');
+const reloadedView = window.frameElement?.getAttribute('data-dhl-reload-view') as StageView | null;
+const activeView = ref<StageView>(reloadedView || 'gallery');
+window.frameElement?.removeAttribute('data-dhl-reload-view');
 // Prepare the atlas only on first entry; tab changes retain its textures and camera.
 const mapOpened = ref(false);
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
@@ -1353,6 +1355,51 @@ onBeforeUnmount(() => {
   font-family: inherit;
   font-weight: 600;
   letter-spacing: 0.015em;
+}
+
+.cultivation-status :deep(:is(.story-copy, .story-prose) .dhl-story-notice) {
+  box-sizing: border-box;
+  display: block;
+  margin: 1.35em 0;
+  padding: 0.8em 1em;
+  border-block: 1px solid var(--line-subtle);
+  border-inline-start: 2px solid color-mix(in srgb, var(--gold) 60%, var(--line-subtle));
+  border-radius: 0 6px 6px 0;
+  background: linear-gradient(105deg, color-mix(in srgb, var(--gold) 6%, var(--surface-inset)), var(--surface-inset));
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: start;
+  text-indent: 0;
+  text-shadow: none;
+  overflow-wrap: anywhere;
+}
+
+.cultivation-status :deep(.dhl-story-notice__heading) {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin-bottom: 0.3em;
+  color: var(--gold);
+  font-family: inherit;
+  font-size: 0.86em;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+}
+
+.cultivation-status :deep(.dhl-story-notice__mark) {
+  flex: 0 0 auto;
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+.cultivation-status :deep(.dhl-story-notice__body) {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
 }
 
 :deep(button:focus-visible),
