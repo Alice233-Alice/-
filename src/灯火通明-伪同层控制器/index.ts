@@ -20,7 +20,7 @@ import {
   PseudoLayerTimelineTurn,
   PseudoLayerView,
   isPseudoLayerRequest,
-} from '../灯火通明-测试版/pseudo-layer-protocol';
+} from '../灯火通明/pseudo-layer-protocol';
 import { Schema } from '../灯火通明/schema';
 import { readAdviceInput, readPlayerInput } from '../灯火通明/player-input';
 import {
