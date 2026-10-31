@@ -300,7 +300,7 @@
           <i class="fa-solid fa-heart"></i>
           <span>红颜初始关系</span>
         </div>
-        <p class="section-hint">选择开局时已结识的红颜，设置初始好感、关系称谓和相处上下文</p>
+        <p class="section-hint">选择开局已结识的红颜，自定境界、修为、资质与初始关系</p>
 
         <!-- 可选红颜列表 -->
         <div class="companion-grid">
@@ -317,7 +317,7 @@
             <div class="companion-info">
               <div class="companion-name">{{ charName }}</div>
               <div class="companion-meta">
-                <span class="companion-realm">{{ getRealmDescription(char.级) }}</span>
+                <span class="companion-realm">{{ getRealmDescription(formData.红颜[charName]?.等级 ?? char.级) }}</span>
               </div>
               <div class="companion-attr">{{ char.根 }} · {{ char.质 }}</div>
             </div>
@@ -338,6 +338,61 @@
               </button>
             </div>
             <div class="companion-card-body">
+              <div class="form-row">
+                <label>境界</label>
+                <select v-model.number="companion.等级" :aria-label="name + '境界'">
+                  <option v-for="level in maxRealmLevel" :key="level" :value="level">
+                    {{ getRealmDescription(level) }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>当前修为</label>
+                <input v-model.number="companion.修为" type="number" min="0" step="any" :aria-label="name + '修为'" />
+              </div>
+              <details class="companion-customization">
+                <summary>资质、功法与修炼详情</summary>
+                <div v-for="field in ['灵根', '体质', '功法', '本命兵器'] as const" :key="field" class="form-row">
+                  <label>{{ field }}</label>
+                  <input v-model="companion[field]" type="text" :aria-label="name + field" />
+                </div>
+                <div v-for="field in ['灵石', '已活岁月'] as const" :key="field" class="form-row">
+                  <label>{{ field }}</label>
+                  <input
+                    v-model.number="companion[field]"
+                    type="number"
+                    min="0"
+                    step="any"
+                    :aria-label="name + field"
+                  />
+                </div>
+                <div class="form-row">
+                  <label>修炼阶段</label>
+                  <select v-model="companion.修炼状态.阶段" :aria-label="name + '修炼阶段'">
+                    <option
+                      v-for="phase in ['修炼中', '瓶颈中', '突破中', '稳固中', '压境中']"
+                      :key="phase"
+                      :value="phase"
+                    >
+                      {{ phase }}
+                    </option>
+                  </select>
+                </div>
+                <div v-for="field in ['方式', '地点', '根基描述', '瓶颈原因'] as const" :key="field" class="form-row">
+                  <label>{{ field === '方式' ? '修炼方式' : field === '地点' ? '修炼地点' : field }}</label>
+                  <input v-model="companion.修炼状态[field]" type="text" :aria-label="name + field" />
+                </div>
+                <div v-for="field in ['计划年数', '已修炼年数'] as const" :key="field" class="form-row">
+                  <label>{{ field }}</label>
+                  <input
+                    v-model.number="companion.修炼状态[field]"
+                    type="number"
+                    min="0"
+                    step="any"
+                    :aria-label="name + field"
+                  />
+                </div>
+              </details>
               <div class="form-row">
                 <label>好感度</label>
                 <div class="favor-input-group">
@@ -695,6 +750,7 @@ interface CompanionData {
   已活岁月: number;
   尝试突破: boolean;
   修炼状态: SchemaType['本尊']['修炼状态'];
+  羁绊纪事: SchemaType['红颜'][string]['羁绊纪事'];
 }
 
 interface CharacterLibraryData {
@@ -732,7 +788,10 @@ interface TribulationStatusData {
 }
 
 const 默认红颜角色库 = (Schema.parse({}).红颜角色库 || {}) as Record<string, CharacterLibraryData>;
-const 红颜角色库 = computed<Record<string, CharacterLibraryData>>(() => 默认红颜角色库);
+const 红颜角色库 = computed<Record<string, CharacterLibraryData>>(() => ({
+  ...默认红颜角色库,
+  ...store.红颜角色库,
+}));
 
 // 表单数据
 const formData = ref({
@@ -815,9 +874,10 @@ const createCompanionDataFromLibraryEntry = (charData: CharacterLibraryData): Co
     本命兵器: charData.器,
     神通列表,
     灵石: 0,
-    已活岁月: 0,
+    已活岁月: Number(charData.龄.match(/实(?:历)?\s*(\d+)/u)?.[1] ?? 0),
     尝试突破: false,
     修炼状态: CompanionSchema.parse({ 等级: charData.级 }).修炼状态,
+    羁绊纪事: {},
   };
 };
 
@@ -1040,6 +1100,7 @@ const loadCurrentData = () => {
         已活岁月: companion.已活岁月 ?? 0,
         尝试突破: companion.尝试突破 ?? false,
         修炼状态: CompanionSchema.parse(companion).修炼状态,
+        羁绊纪事: _.cloneDeep(companion.羁绊纪事 ?? {}),
       };
     }
   }
@@ -1629,6 +1690,7 @@ const importPreset = (event: Event) => {
             已活岁月: companion.已活岁月 ?? 0,
             尝试突破: companion.尝试突破 ?? false,
             修炼状态: CompanionSchema.parse(companion).修炼状态,
+            羁绊纪事: _.cloneDeep(companion.羁绊纪事 ?? {}),
           };
         }
       }
@@ -2173,6 +2235,19 @@ onMounted(() => {
     font-weight: 600;
     color: var(--text-accent);
     margin-bottom: 12px;
+  }
+}
+
+.companion-customization {
+  margin: 0 0 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+
+  summary {
+    margin-bottom: 12px;
+    color: var(--text-accent);
+    font-size: 13px;
+    cursor: pointer;
   }
 }
 

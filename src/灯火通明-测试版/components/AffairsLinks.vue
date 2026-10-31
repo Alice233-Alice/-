@@ -13,6 +13,7 @@ import { computed } from 'vue';
 import catalog from '../atlas/generated/catalog';
 import { useDataStore } from '../store';
 import { useAffairsStore } from '../stores/affairs-store';
+const atlasPlaceNames = new Set(catalog.map(place => place.id));
 const props = defineProps<{ people?: string[]; places?: string[]; items?: string[] }>();
 const data = useDataStore();
 const affairs = useAffairsStore();
@@ -24,20 +25,18 @@ const links = computed(() => [
     icon: 'fa-solid fa-user',
     known: !!data.红颜[name] || !!data.NPC图鉴[name],
   })),
-  ...(props.places ?? [])
-    .filter(Boolean)
-    .map(name => ({
-      kind: 'place' as const,
-      id: name,
-      label: name,
-      icon: 'fa-solid fa-location-dot',
-      known:
-        name === data.本尊.行踪.当前区域 ||
-        !!data.地点库[name] ||
-        !!data.世界地图[name] ||
-        data.本尊.行踪.可用通道.includes(name) ||
-        catalog.some(place => place.id === name),
-    })),
+  ...(props.places ?? []).filter(Boolean).map(name => ({
+    kind: 'place' as const,
+    id: name,
+    label: name,
+    icon: 'fa-solid fa-location-dot',
+    known:
+      name === data.本尊.行踪.当前区域 ||
+      !!data.地点库[name] ||
+      !!data.世界地图[name] ||
+      data.本尊.行踪.可用通道.includes(name) ||
+      atlasPlaceNames.has(name),
+  })),
   ...(props.items ?? []).map(name => {
     const found = [data.本尊.法宝, data.本尊.背包, data.本尊.杂物袋]
       .flatMap(record => Object.entries(record ?? {}))

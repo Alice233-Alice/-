@@ -1,15 +1,15 @@
 <template>
   <div ref="inventoryRoot" class="panel inventory-panel">
-    <section class="inventory-section">
+    <section v-for="section in sections" :key="section.key" class="inventory-section">
       <div class="section-header">
-        <div class="section-title"><i class="fa-solid fa-gem"></i> 法宝</div>
-        <span class="spirit-stone-tag" title="当前随身灵石">
+        <div class="section-title"><i :class="section.icon"></i> {{ section.title }}</div>
+        <span v-if="section.key === 'treasure'" class="spirit-stone-tag" title="当前随身灵石">
           <i class="fa-solid fa-gem"></i> 灵石 {{ formatNumber(store.本尊.灵石) }}
         </span>
       </div>
-      <div v-if="treasureItems.length > 0" class="items-list">
+      <div v-if="section.items.length" class="items-list">
         <div
-          v-for="item in treasureItems"
+          v-for="item in section.items"
           :key="item.uid"
           class="item-strip"
           :data-item-name="item.name"
@@ -18,62 +18,10 @@
         >
           <div class="item-topline">
             <div class="item-title-group">
-              <span class="item-name">{{ item.name }}</span>
-              <span class="item-rank">{{ item.rankLabel }}</span>
+              <span class="item-name">{{ item.name }}</span
+              ><span class="item-rank">{{ item.rankLabel }}</span>
             </div>
-            <span v-if="item.count > 1" class="item-count">×{{ item.count }}</span>
-          </div>
-          <div class="item-desc">{{ item.description }}</div>
-        </div>
-      </div>
-      <div v-else class="empty-hint">空空如也</div>
-    </section>
-
-    <section class="inventory-section">
-      <div class="section-header">
-        <div class="section-title"><i class="fa-solid fa-ring"></i> 储物戒</div>
-      </div>
-      <div v-if="ringItems.length > 0" class="items-list">
-        <div
-          v-for="item in ringItems"
-          :key="item.uid"
-          class="item-strip"
-          :data-item-name="item.name"
-          tabindex="-1"
-          :class="`tier-${item.tier}`"
-        >
-          <div class="item-topline">
-            <div class="item-title-group">
-              <span class="item-name">{{ item.name }}</span>
-              <span class="item-rank">{{ item.rankLabel }}</span>
-            </div>
-            <span class="item-count">×{{ item.count }}</span>
-          </div>
-          <div class="item-desc">{{ item.description }}</div>
-        </div>
-      </div>
-      <div v-else class="empty-hint">空空如也</div>
-    </section>
-
-    <section class="inventory-section">
-      <div class="section-header">
-        <div class="section-title"><i class="fa-solid fa-bag-shopping"></i> 杂物袋</div>
-      </div>
-      <div v-if="miscItems.length > 0" class="items-list">
-        <div
-          v-for="item in miscItems"
-          :key="item.uid"
-          class="item-strip"
-          :data-item-name="item.name"
-          tabindex="-1"
-          :class="`tier-${item.tier}`"
-        >
-          <div class="item-topline">
-            <div class="item-title-group">
-              <span class="item-name">{{ item.name }}</span>
-              <span class="item-rank">{{ item.rankLabel }}</span>
-            </div>
-            <span class="item-count">×{{ item.count }}</span>
+            <span v-if="section.key !== 'treasure' || item.count > 1" class="item-count">×{{ item.count }}</span>
           </div>
           <div class="item-desc">{{ item.description }}</div>
         </div>
@@ -136,9 +84,16 @@ function extractSectionItems(
     });
 }
 
-const treasureItems = computed(() => extractSectionItems(store.本尊.法宝, 'treasure'));
-const ringItems = computed(() => extractSectionItems(store.本尊.背包, 'ring'));
-const miscItems = computed(() => extractSectionItems(store.本尊.杂物袋, 'misc'));
+const sections = computed(() => [
+  { key: 'treasure', title: '法宝', icon: 'fa-solid fa-gem', items: extractSectionItems(store.本尊.法宝, 'treasure') },
+  { key: 'ring', title: '储物戒', icon: 'fa-solid fa-ring', items: extractSectionItems(store.本尊.背包, 'ring') },
+  {
+    key: 'misc',
+    title: '杂物袋',
+    icon: 'fa-solid fa-bag-shopping',
+    items: extractSectionItems(store.本尊.杂物袋, 'misc'),
+  },
+]);
 watch(
   [() => props.focusName, () => props.focusNonce],
   async () => {

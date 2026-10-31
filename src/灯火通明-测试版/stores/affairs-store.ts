@@ -13,6 +13,8 @@ import { Schema } from '../schema';
 import { useDataStore } from './data-store';
 import { usePseudoLayerStore } from './pseudo-layer-store';
 
+const HISTORY_PAGE_SIZE = 32;
+
 export const useAffairsStore = defineStore('bright-test-affairs', () => {
   const data = useDataStore();
   const pseudo = usePseudoLayerStore();
@@ -48,16 +50,18 @@ export const useAffairsStore = defineStore('bright-test-affairs', () => {
         lastContent = raw;
         before.value = null;
         if (id === 0) return;
-        const previous = getChatMessages(`0-${id - 1}`)
-          .filter(message => message.role === 'assistant')
-          .reverse();
-        for (const message of previous) {
-          const variables = Mvu.getMvuData({ type: 'message', message_id: message.message_id });
-          if (!variables?.stat_data) continue;
-          const result = Schema.safeParse(variables.stat_data);
-          if (result.success) {
-            before.value = result.data;
-            break;
+        for (let end = id - 1; end >= 0; end -= HISTORY_PAGE_SIZE) {
+          const previous = getChatMessages(`${Math.max(0, end - HISTORY_PAGE_SIZE + 1)}-${end}`)
+            .filter(message => message.role === 'assistant')
+            .reverse();
+          for (const message of previous) {
+            const variables = Mvu.getMvuData({ type: 'message', message_id: message.message_id });
+            if (!variables?.stat_data) continue;
+            const result = Schema.safeParse(variables.stat_data);
+            if (result.success) {
+              before.value = result.data;
+              return;
+            }
           }
         }
       } catch (error) {

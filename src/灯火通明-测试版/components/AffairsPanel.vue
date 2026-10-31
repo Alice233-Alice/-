@@ -56,7 +56,7 @@
         <p v-if="task.进度" class="task-progress"><span>进展</span>{{ task.进度 }}</p>
         <p class="task-next"><span>下一步</span>{{ task.下一步 || '结合眼前线索，确认尚待处理的事项。' }}</p>
         <footer>
-          <AffairsLinks :people="taskReferences(task).people" :places="taskReferences(task).places" :items="taskReferences(task).items" />
+          <AffairsLinks v-bind="taskReferences[id]" />
           <button
             v-if="task.关联事件ID && data.世界图志[task.关联事件ID]"
             type="button"
@@ -172,8 +172,13 @@ const props = defineProps<{ focus?: AffairsFocus | null }>();
 const root = ref<HTMLElement>();
 const data = useDataStore();
 const affairs = useAffairsStore();
-const knownReferences = computed(() => ({ people: [...Object.keys(data.红颜), ...Object.keys(data.NPC图鉴)], places: [...Object.keys(data.地点库), ...Object.keys(data.世界地图), data.本尊.行踪.当前区域], items: [data.本尊.法宝, data.本尊.背包, data.本尊.杂物袋].flatMap(record => Object.entries(record ?? {}).flatMap(([id, item]) => [id, item.名称])) }));
-const taskReferences = (task: Parameters<typeof inferTaskReferences>[0]) => inferTaskReferences(task, knownReferences.value);
+const knownReferences = computed(() => ({
+  people: [...Object.keys(data.红颜), ...Object.keys(data.NPC图鉴)],
+  places: [...Object.keys(data.地点库), ...Object.keys(data.世界地图), data.本尊.行踪.当前区域],
+  items: [data.本尊.法宝, data.本尊.背包, data.本尊.杂物袋].flatMap(record =>
+    Object.entries(record ?? {}).flatMap(([id, item]) => [id, item.名称]),
+  ),
+}));
 const displayLayer = computed(() =>
   inferLayerFromTrack(
     data.本尊.行踪.当前区域,
@@ -194,6 +199,9 @@ const tasks = computed(() =>
   ),
 );
 const results = computed(() => Object.entries(data.rawData?._近期任务结果 ?? {}).reverse());
+const taskReferences = computed(() =>
+  Object.fromEntries(tasks.value.map(([id, task]) => [id, inferTaskReferences(task, knownReferences.value)])),
+);
 const events = computed(() => {
   const visible = selectWorldEventsForDisplay(data.世界事件);
   const focused = data.世界事件.find(event => event.id === props.focus?.id);
@@ -417,7 +425,9 @@ footer {
   gap: 8px;
   margin-top: 5px;
 }
-footer :deep(.affairs-links) { margin-top: 0; }
+footer :deep(.affairs-links) {
+  margin-top: 0;
+}
 footer > button,
 .result-link {
   border: 0;
