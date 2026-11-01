@@ -1,0 +1,594 @@
+<template>
+  <section class="journey-panel" data-affairs-section="journeys" :data-affairs-id="journeys.currentId" tabindex="-1">
+    <header class="journey-heading">
+      <div>
+        <span class="eyebrow">山河未尽，去处由心</span>
+        <h2><i class="fa-solid fa-compass"></i>寻途与行旅</h2>
+      </div>
+      <button
+        type="button"
+        class="quiet-button"
+        :disabled="journeys.disabled"
+        @click="journeys.panelOpen = !journeys.panelOpen"
+      >
+        <i class="fa-solid fa-feather-pointed"></i>{{ journeys.panelOpen ? '收起寻途' : '寻一段远途' }}
+      </button>
+    </header>
+    <p v-if="!journeys.current && !journeys.panelOpen" class="journey-intro">
+      眼前诸事暂歇时，来这里看看远方。挑一段愿意追寻的经历，也可以写下自己的念头。
+    </p>
+    <p v-if="journeys.error" class="journey-error" role="alert">{{ journeys.error }}</p>
+
+    <div v-if="journeys.panelOpen" class="seeking-surface">
+      <label class="field-label"
+        >想往何处，想经历什么
+        <textarea
+          v-model="journeys.preference"
+          rows="2"
+          maxlength="600"
+          :disabled="journeys.seeking"
+          placeholder="例如：想去大陆之外看看；想与同行之人共历一段往事……"
+        ></textarea>
+      </label>
+      <div class="seeking-controls">
+        <label
+          >取意<select v-model="journeys.inspiration" :disabled="journeys.seeking">
+            <option value="">自由构想</option>
+            <option v-for="kind in ['远游', '问道', '立业', '旧愿']" :key="kind" :value="kind">{{ kind }}</option>
+          </select></label
+        >
+        <button v-if="journeys.seeking" type="button" class="quiet-button" @click="journeys.cancel">停止寻途</button>
+        <button v-else type="button" class="journey-button" :disabled="journeys.disabled" @click="journeys.seek">
+          {{ journeys.proposals.length ? '再寻三条去路' : '看看远方' }}
+        </button>
+      </div>
+      <p v-if="journeys.seeking" class="seeking-note" role="status">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>正在依眼前因缘，构思三条远途……
+      </p>
+      <p v-if="journeys.proposalsStale" class="seeking-note">这些提案来自先前场景，重寻后再决定此行。</p>
+      <div v-if="journeys.proposals.length" class="proposal-grid">
+        <article v-for="proposal in journeys.proposals" :key="proposal.name" class="proposal">
+          <span class="eyebrow">一条尚待选择的去路</span>
+          <h3>{{ proposal.name }}</h3>
+          <p>{{ proposal.lead }}</p>
+          <p class="proposal-goal"><span>远望</span>{{ proposal.goal }}</p>
+          <p><span class="field-caption">入手</span>{{ proposal.step }}</p>
+          <button
+            type="button"
+            class="journey-button"
+            :disabled="journeys.disabled || journeys.proposalsStale"
+            @click="journeys.choose(proposal)"
+          >
+            由此启程<i class="fa-solid fa-angle-right"></i>
+          </button>
+        </article>
+      </div>
+    </div>
+
+    <article v-if="journeys.current" class="current-journey">
+      <header class="current-heading">
+        <div>
+          <span class="eyebrow">{{ journeys.current.篇章 }}</span>
+          <h3>{{ journeys.current.名称 }}</h3>
+        </div>
+        <span class="journey-state">{{ journeys.current.状态 }}</span>
+      </header>
+      <p class="longing">{{ journeys.current.所求 }}</p>
+      <details class="origin">
+        <summary>此行缘起</summary>
+        <p>{{ journeys.current.缘起 }}</p>
+      </details>
+      <p v-if="journeys.current.进展" class="journey-progress"><span>近来所得</span>{{ journeys.current.进展 }}</p>
+      <p v-if="journeys.current.下一步" class="journey-next"><span>可循去处</span>{{ journeys.current.下一步 }}</p>
+      <div class="journey-links">
+        <button
+          v-for="id in journeys.current.关联任务.filter(id => data.任务列表[id] || data.rawData?._近期任务结果[id])"
+          :key="id"
+          type="button"
+          @click="affairs.navigate('task', id)"
+        >
+          任务 · {{ data.任务列表[id]?.名称 || data.rawData?._近期任务结果[id]?.名称 }}
+        </button>
+        <button
+          v-for="id in journeys.current.关联世闻.filter(id => data.世界图志[id])"
+          :key="id"
+          type="button"
+          @click="affairs.navigate('event', id)"
+        >
+          世闻 · {{ id }}
+        </button>
+      </div>
+      <div class="journey-controls">
+        <button
+          v-if="journeys.current.状态 !== '已落幕'"
+          type="button"
+          class="journey-button"
+          :disabled="journeys.disabled"
+          @click="journeys.resume"
+        >
+          {{
+            journeys.current.状态 === '暂歇'
+              ? '重拾此行'
+              : journeys.current.状态 === '待启程'
+                ? '从此处启程'
+                : '循此起念'
+          }}
+        </button>
+        <button
+          v-if="journeys.current.状态 === '进行中' || journeys.current.状态 === '待启程'"
+          type="button"
+          class="quiet-button"
+          :disabled="journeys.disabled"
+          @click="journeys.pause"
+        >
+          暂歇此行
+        </button>
+        <button type="button" class="quiet-button" :disabled="journeys.disabled" @click="journeys.untrack">
+          结束追踪
+        </button>
+      </div>
+
+      <div class="journal">
+        <nav class="journal-tabs" aria-label="行旅手札">
+          <button
+            v-for="tab in ['线索', '纪事', '猜想'] as const"
+            :key="tab"
+            type="button"
+            :aria-pressed="journalTab === tab"
+            @click="journalTab = tab"
+          >
+            {{ tab }}<span>{{ Object.keys(journeys.current[tab]).length }}</span>
+          </button>
+        </nav>
+        <div v-if="journalTab === '线索'" class="journal-entries">
+          <article v-for="[id, entry] in Object.entries(journeys.current.线索)" :key="id" class="journal-entry">
+            <label class="clue-selector"
+              ><input v-model="selectedClues" type="checkbox" :value="id" /><strong>{{ id }}</strong></label
+            >
+            <p>{{ entry.内容 }}</p>
+            <details v-if="entry.依据 || entry.时地">
+              <summary>回看依据</summary>
+              <p>{{ entry.依据 }}</p>
+              <small>{{ entry.时地 }}</small>
+            </details>
+          </article>
+          <p v-if="!Object.keys(journeys.current.线索).length" class="journal-empty">
+            沿途确认的发现，会逐渐记在这里。
+          </p>
+          <button v-if="selectedClues.length" type="button" class="quiet-button" @click="journalTab = '猜想'">
+            带着 {{ selectedClues.length }} 条线索记一笔
+          </button>
+        </div>
+        <div v-else-if="journalTab === '纪事'" class="journal-entries">
+          <article
+            v-for="[id, entry] in Object.entries(journeys.current.纪事)"
+            :key="id"
+            class="journal-entry memory-entry"
+          >
+            <strong>{{ id }}</strong>
+            <p>{{ entry.内容 }}</p>
+            <small>{{ entry.时地 }}</small>
+            <p v-if="entry.依据" class="entry-source">{{ entry.依据 }}</p>
+          </article>
+          <p v-if="!Object.keys(journeys.current.纪事).length" class="journal-empty">
+            重要的抉择、成果与重逢，留在这段行旅里。
+          </p>
+        </div>
+        <div v-else class="journal-entries">
+          <form class="guess-form" @submit.prevent="saveGuess">
+            <label class="field-label"
+              >我的想法<textarea
+                v-model="guess"
+                maxlength="600"
+                rows="2"
+                :disabled="journeys.disabled"
+                placeholder="把自己的猜想记下来，再寻找能够核实的办法。"
+              ></textarea>
+            </label>
+            <span v-if="selectedClues.length" class="field-caption">关联：{{ selectedClues.join('、') }}</span>
+            <button type="submit" class="quiet-button" :disabled="journeys.disabled || !guess.trim()">记入手札</button>
+          </form>
+          <article v-for="[id, entry] in Object.entries(journeys.current.猜想)" :key="id" class="journal-entry">
+            <span class="guess-state">{{ entry.状态 }}</span>
+            <p>{{ entry.内容 }}</p>
+            <div v-if="entry.关联线索.length" class="clue-tags">
+              <span v-for="clue in entry.关联线索" :key="clue">{{ clue }}</span>
+            </div>
+            <p v-if="entry.依据" class="entry-source">{{ entry.依据 }}</p>
+            <button type="button" class="quiet-button" :disabled="journeys.disabled" @click="journeys.verifyGuess(id)">
+              循此核实
+            </button>
+          </article>
+        </div>
+      </div>
+    </article>
+    <details v-if="Object.keys(journeys.archive.旅程).length" class="saved-journeys">
+      <summary>走过与未竟的行旅 · {{ Object.keys(journeys.archive.旅程).length }}</summary>
+      <div v-for="[id, entry] in Object.entries(journeys.archive.旅程).reverse()" :key="id" class="saved-journey">
+        <span
+          ><strong>{{ entry.名称 }}</strong
+          ><small>{{ entry.状态 }}</small></span
+        ><button
+          type="button"
+          class="quiet-button"
+          :disabled="journeys.disabled || id === journeys.currentId"
+          @click="journeys.track(id)"
+        >
+          {{ id === journeys.currentId ? '当前追踪' : '翻开此行' }}
+        </button>
+      </div>
+    </details>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+import { useJourneyStore } from '../stores/journey-store';
+import { useAffairsStore } from '../stores/affairs-store';
+import { useDataStore } from '../store';
+const journeys = useJourneyStore();
+const affairs = useAffairsStore();
+const data = useDataStore();
+const journalTab = ref<'线索' | '纪事' | '猜想'>('线索');
+const selectedClues = ref<string[]>([]);
+const guess = ref('');
+watch(
+  () => journeys.currentId,
+  () => {
+    selectedClues.value = [];
+    guess.value = '';
+  },
+);
+const saveGuess = async () => {
+  if (await journeys.addGuess(guess.value, selectedClues.value)) {
+    guess.value = '';
+    selectedClues.value = [];
+  }
+};
+</script>
+
+<style scoped lang="scss">
+.journey-panel {
+  margin: 0 0 28px;
+  padding: 20px 0;
+  border-block: 1px solid var(--line-subtle);
+  color: var(--text-primary);
+}
+.journey-heading,
+.current-heading,
+.seeking-controls,
+.saved-journey {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+h2,
+h3,
+p {
+  margin: 0;
+}
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  font:
+    600 20px 'Noto Serif SC',
+    STSong,
+    serif;
+}
+h2 i,
+.eyebrow,
+.field-caption,
+.journey-progress > span,
+.journey-next > span {
+  color: var(--gold-soft);
+}
+h3 {
+  font:
+    600 19px 'Noto Serif SC',
+    STSong,
+    serif;
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+.journey-intro,
+.journal-empty {
+  margin-top: 14px;
+  color: var(--text-secondary);
+  line-height: 1.9;
+  font-size: 13px;
+}
+button,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.quiet-button,
+.journey-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 5px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.journey-button {
+  border-color: var(--line-strong);
+  background: var(--button-bg);
+  color: var(--gold);
+}
+button:hover:not(:disabled) {
+  background: var(--button-hover);
+}
+.seeking-surface {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 6px;
+  background: var(--surface-inset);
+}
+.field-label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-primary);
+  resize: vertical;
+  line-height: 1.8;
+}
+.seeking-controls {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.seeking-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+select {
+  padding: 7px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 4px;
+  background: var(--surface-raised);
+}
+.seeking-note,
+.journey-error {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.seeking-note {
+  color: var(--text-secondary);
+}
+.journey-error {
+  color: var(--semantic-danger);
+}
+.proposal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 14px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 5px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.proposal .eyebrow {
+  font-size: 11px;
+}
+.proposal p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-secondary);
+}
+.proposal .proposal-goal {
+  color: var(--text-primary);
+}
+.proposal-goal span,
+.field-caption {
+  margin-right: 8px;
+  font-size: 12px;
+}
+.proposal > button {
+  margin-top: auto;
+}
+.current-journey {
+  margin-top: 20px;
+  padding: 22px 18px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--gold) 4%, var(--surface)), var(--surface-inset));
+  border: 1px solid var(--line-subtle);
+  border-radius: 7px;
+}
+.current-heading h3 {
+  margin-top: 7px;
+}
+.journey-state,
+.guess-state {
+  font-size: 12px;
+  color: var(--gold);
+}
+.longing {
+  margin-top: 16px;
+  line-height: 1.9;
+  font-size: 15px;
+}
+.origin {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.9;
+}
+summary {
+  cursor: pointer;
+}
+.origin p {
+  margin-top: 7px;
+}
+.journey-progress,
+.journey-next {
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.journey-progress > span,
+.journey-next > span {
+  margin-right: 10px;
+  font-size: 12px;
+}
+.journey-controls,
+.journey-links,
+.clue-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.journey-links button {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  font-size: 12px;
+}
+.journal {
+  margin-top: 22px;
+  border-top: 1px solid var(--line-subtle);
+}
+.journal-tabs {
+  display: flex;
+  gap: 22px;
+  padding-top: 10px;
+}
+.journal-tabs button {
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.journal-tabs button[aria-pressed='true'] {
+  color: var(--gold);
+  border-bottom-color: var(--gold-soft);
+}
+.journal-tabs button > span {
+  margin-left: 7px;
+  font-size: 11px;
+}
+.journal-entry {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line-subtle);
+  font-size: 13px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.journal-entry p {
+  margin-top: 6px;
+}
+.journal-entry details,
+.journal-entry small,
+.entry-source {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.clue-selector {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+input[type='checkbox'] {
+  accent-color: var(--gold);
+}
+.guess-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.guess-form > button {
+  justify-self: start;
+}
+.clue-tags {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.clue-tags > span {
+  border-bottom: 1px dotted var(--line-strong);
+}
+.journal-entry > button {
+  margin-top: 10px;
+}
+.saved-journeys {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.saved-journey {
+  margin-top: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.saved-journey strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.saved-journey small {
+  margin-left: 10px;
+}
+@media (max-width: 850px) {
+  .proposal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (pointer: coarse) {
+  textarea {
+    font-size: 16px;
+  }
+  button,
+  select,
+  .clue-selector {
+    min-height: 44px;
+  }
+}
+@media (max-width: 440px) {
+  .current-journey,
+  .seeking-surface {
+    padding: 16px 12px;
+  }
+  .journey-heading {
+    align-items: flex-start;
+  }
+}
+</style>
