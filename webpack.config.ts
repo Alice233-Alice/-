@@ -290,8 +290,8 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       ),
       chunkFilename: `${script_filepath.name}.[contenthash].chunk.js`,
       asyncChunks: true,
-      // 监听时先删除再创建同名文件，可能与 Windows 实时预览形成“待删除”竞态。
-      clean: argv.watch !== true,
+      // 监听时只清理上次生产构建遗留的 source map；保留页面/脚本，避免 Windows 预览占用时的删除竞态。
+      clean: argv.watch === true ? { keep: (asset: string) => !asset.endsWith('.map') } : true,
       publicPath: '',
       library: {
         type: 'module',

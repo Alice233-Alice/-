@@ -276,6 +276,82 @@ test('暂歇、续行与重开手札保留事实，猜想核实经原行动输�
   }
 });
 
+test('清理未追踪的行旅会同步移除蓝图，保留其他行旅、游戏事实与历史快照', async () => {
+  const first = journeys.createJourney(proposals[0]);
+  first.线索.旧碑 = { 内容: '旧碑残纹', 依据: '亲眼查验', 时地: '渡口' };
+  const h = harness({
+    state: {
+      行旅: { 当前追踪: '乙', 旅程: { 甲: first, 乙: journeys.createJourney(proposals[1]) } },
+      $行旅蓝图: { 甲: '甲的后台构思', 乙: '乙的后台构思' },
+      本尊: { 灵石: 321 },
+    },
+  });
+  try {
+    const before = lodash.cloneDeep(h.records.get(2));
+    h.records.set(1, lodash.cloneDeep(before));
+    assert.equal(await h.store.removeJourney('甲'), true);
+    const after = h.records.get(2);
+    assert.equal(after.stat_data.行旅.旅程.甲, undefined);
+    assert.equal(after.stat_data.$行旅蓝图.甲, undefined);
+    assert.equal(after.stat_data.行旅.当前追踪, '乙');
+    assert.deepEqual(after.stat_data.行旅.旅程.乙, before.stat_data.行旅.旅程.乙);
+    assert.equal(after.stat_data.$行旅蓝图.乙, '乙的后台构思');
+    assert.deepEqual(
+      lodash.omit(after.stat_data, ['行旅', '$行旅蓝图']),
+      lodash.omit(before.stat_data, ['行旅', '$行旅蓝图']),
+    );
+    assert.deepEqual(after.display_data, before.display_data);
+    assert.deepEqual(h.records.get(1), before);
+    assert.equal(h.writes.length, 1);
+    assert.equal(h.writes[0].target.message_id, 2);
+    assert.equal(h.actions.length, 0);
+  } finally {
+    h.close();
+  }
+});
+
+test('清理当前行旅同时取消追踪，空结构不再生成行旅引导', async () => {
+  const h = harness({
+    state: {
+      行旅: { 当前追踪: '甲', 旅程: { 甲: journeys.createJourney(proposals[0]) } },
+      $行旅蓝图: { 甲: '当前后台构思' },
+    },
+  });
+  try {
+    assert.match(journeys.buildJourneyContext(h.data.rawData), /当前后台构思/);
+    assert.equal(await h.store.removeJourney('甲'), true);
+    assert.deepEqual(h.data.rawData.行旅, { 当前追踪: '', 旅程: {} });
+    assert.deepEqual(h.data.rawData.$行旅蓝图, {});
+    assert.equal(journeys.buildJourneyContext(h.data.rawData), '');
+    assert.equal(h.store.current, undefined);
+  } finally {
+    h.close();
+  }
+});
+
+test('清理沿用历史楼层与生成锁定，失效记录不会写入存档', async () => {
+  const h = harness({
+    state: {
+      行旅: { 当前追踪: '', 旅程: { 甲: journeys.createJourney(proposals[0]) } },
+      $行旅蓝图: { 甲: '保留构思' },
+    },
+  });
+  try {
+    h.pseudo.isStoryHistoryLatest = false;
+    assert.equal(await h.store.removeJourney('甲'), false);
+    h.pseudo.isStoryHistoryLatest = true;
+    h.pseudo.isGenerating = true;
+    assert.equal(await h.store.removeJourney('甲'), false);
+    h.pseudo.isGenerating = false;
+    assert.equal(await h.store.removeJourney('已失效'), false);
+    assert.match(h.store.error, /已经不存在/);
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.records.get(2).stat_data.$行旅蓝图.甲, '保留构思');
+  } finally {
+    h.close();
+  }
+});
+
 test('正文后的真实MVU补丁推进篇章、线索、纪事与查证状态，旧快照可回看', () => {
   const journey = journeys.createJourney(proposals[0]);
   journey.猜想.上游 = { 内容: '木片来自上游', 关联线索: [], 状态: '待核实', 依据: '' };

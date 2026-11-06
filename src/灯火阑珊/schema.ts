@@ -419,7 +419,7 @@ function normalizeCompanionAliases(
   };
 }
 
-function getFavorGainLimitByValue(favor: number): number {
+export function getFavorGainLimitByValue(favor: number): number {
   const normalizedFavor = Math.max(0, Number.isFinite(favor) ? favor : 0);
   if (normalizedFavor <= 40) return 8;
   if (normalizedFavor <= 80) return 7;
@@ -428,7 +428,7 @@ function getFavorGainLimitByValue(favor: number): number {
   return 4;
 }
 
-function getFavorLossLimitByValue(favor: number): number {
+export function getFavorLossLimitByValue(favor: number): number {
   const normalizedFavor = Math.max(0, Number.isFinite(favor) ? favor : 0);
   if (normalizedFavor <= 20) return 6;
   if (normalizedFavor <= 60) return 4;
@@ -632,7 +632,7 @@ export const Schema = z.preprocess(
 
       // 系统设置
       _系统设置: SystemSettingsSchema,
-      // 内部快照：用于限制红颜好感度单次变动幅度
+      // 内部快照：记录当前已结算好感，整轮限幅由 MVU 更新结束事件处理。
       _好感度快照: z
         .record(
           z.string().describe('红颜名'),
@@ -663,27 +663,11 @@ export const Schema = z.preprocess(
         _临时状态手动覆盖签名: String(data._系统设置?._临时状态手动覆盖签名 ?? ''),
       };
 
-      const snapshot = _.cloneDeep(data._好感度快照 ?? {});
-
-      for (const [name, companion] of Object.entries(data.红颜 ?? {})) {
-        const currentFavor = Number(companion?.好感度);
-        if (!Number.isFinite(currentFavor)) {
-          continue;
-        }
-
-        const prevFavor = Number(snapshot[name]);
-        if (Number.isFinite(prevFavor)) {
-          const gainLimit = getFavorGainLimitByValue(prevFavor);
-          const lossLimit = getFavorLossLimitByValue(prevFavor);
-          companion.好感度 = _.clamp(currentFavor, prevFavor - lossLimit, prevFavor + gainLimit);
-        } else {
-          companion.好感度 = _.clamp(currentFavor, -200, 200);
-        }
-
-        snapshot[name] = companion.好感度;
-      }
-
-      data._好感度快照 = _.pickBy(snapshot, (_value, name) => _.has(data.红颜, name));
+      // Schema 同时用于界面读取与逐条命令校验，不能在这里重复进行整轮结算。
+      // 旧楼层的内部快照可能滞后；读取时只修正快照，不据此回退已保存的好感。
+      data._好感度快照 = Object.fromEntries(
+        Object.entries(data.红颜 ?? {}).map(([name, companion]) => [name, companion.好感度]),
+      );
       return data;
     }),
 );

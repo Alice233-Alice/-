@@ -1,4 +1,9 @@
-import { Schema, unwrapOpportunityPatchPayload } from '../灯火阑珊/schema';
+import {
+  getFavorGainLimitByValue,
+  getFavorLossLimitByValue,
+  Schema,
+  unwrapOpportunityPatchPayload,
+} from '../灯火阑珊/schema';
 import { COMPANION_CANONICAL_NAMES } from './companion-aliases';
 
 const COMPATIBILITY_INSTALLED_KEY = '__灯火阑珊_mvu_command_compatibility_installed__';
@@ -94,6 +99,9 @@ function normalizeCommandPath(rawPath: string): string {
   path = path
     .replace(/^stat_data\.可参与机遇(?=\.|$)/u, 'stat_data.$可参与机遇')
     .replace(/^可参与机遇(?=\.|$)/u, '$可参与机遇');
+
+  // 兼容额外模型沿用旧版库存根路径；权威结构统一存放在本尊下。
+  path = path.replace(/^(?:stat_data\.)?(背包|法宝|杂物袋)(?=\.|\[|$)/u, 'stat_data.本尊.$1');
 
   if (
     !path.startsWith('stat_data.') &&
@@ -319,17 +327,46 @@ export function guardParsedCommands(
   mutableCommands.push(...appendedCommands);
 }
 
-/** 仅在命令执行前兼容已知路径与格式，不接管数值结算或写回变量快照。 */
+/** 以本轮开始前的真实值统一限幅，避免读取或逐条 Schema 校验重复结算。 */
+export function settleCompanionFavor(variables: Mvu.MvuData, beforeUpdate: Mvu.MvuData): void {
+  const companions = _.get(variables, 'stat_data.红颜');
+  if (!companions || typeof companions !== 'object' || Array.isArray(companions)) return;
+
+  const previous = Schema.safeParse(_.get(beforeUpdate, 'stat_data'));
+  if (!previous.success) return;
+
+  const snapshot: Record<string, number> = {};
+  for (const [name, companion] of Object.entries(companions)) {
+    const value = Number(_.get(companion, '好感度'));
+    if (!Number.isFinite(value)) continue;
+
+    const oldValue = previous.data.红颜[name]?.好感度;
+    const settled =
+      typeof oldValue === 'number' && Number.isFinite(oldValue)
+        ? _.clamp(value, oldValue - getFavorLossLimitByValue(oldValue), oldValue + getFavorGainLimitByValue(oldValue))
+        : _.clamp(value, -200, 200);
+    _.set(companion as object, '好感度', settled);
+    snapshot[name] = settled;
+    if (settled !== value) {
+      console.info(`[灯火阑珊] ${name}好感按整轮限幅：${oldValue} → ${value}，结算为 ${settled}`);
+    }
+  }
+  _.set(variables, 'stat_data._好感度快照', snapshot);
+}
+
+/** 兼容命令并在整轮更新结束时结算好感；只修改本轮传入数据，不写回楼层。 */
 export function installMvuCommandCompatibility(): () => void {
   const globalRef = window as unknown as Record<string, unknown>;
   if (globalRef[COMPATIBILITY_INSTALLED_KEY]) return () => undefined;
   globalRef[COMPATIBILITY_INSTALLED_KEY] = true;
 
   const listener = eventOn(Mvu.events.COMMAND_PARSED, guardParsedCommands);
+  const favorListener = eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, settleCompanionFavor);
   console.info('[灯火阑珊] MVU 路径与格式兼容已启用');
 
   return () => {
     listener.stop();
+    favorListener.stop();
     delete globalRef[COMPATIBILITY_INSTALLED_KEY];
   };
 }

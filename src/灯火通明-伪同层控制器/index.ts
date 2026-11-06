@@ -462,6 +462,20 @@ const hasMountedPseudoApp = (frame: HTMLIFrameElement | null | undefined) => {
   }
 };
 
+const isPseudoFrontendLoader = (frame: HTMLIFrameElement) => {
+  const code = frame.closest('.TH-render')?.querySelector('pre code')?.textContent ?? '';
+  let loader = code;
+  try {
+    loader = decodeURIComponent(code);
+  } catch {
+    // 原始加载器含普通百分号时直接按原文识别。
+  }
+  return (
+    /(?:\$|jQuery)\s*\(\s*(['"])body\1\s*\)\s*\.load\s*\(/u.test(loader) &&
+    /(?:灯火通明|灯火阑珊)(?:-测试版)?\/index\.html(?=[?#'"]|$)/u.test(loader)
+  );
+};
+
 /**
  * 酒馆切换 swipe 时会清空 `.mes_text`，连同其中的 TH-render 一起销毁。
  * 原 iframe 受酒馆助手虚拟 DOM 管理，移动后仍会被删除；因此创建一个控制器自有
@@ -473,8 +487,9 @@ const parkFrame = (messageId: number, frame: HTMLIFrameElement) => {
   // 宿主可能先插入空 iframe 再填入地址；不能把 about:blank 当成正在加载的完整前端。
   const sourceUrl = frame.getAttribute('src')?.trim();
   if (!frame.getAttribute('srcdoc')?.trim() && (!sourceUrl || sourceUrl === 'about:blank')) return false;
-  // 预设思考卡片也会生成 iframe，只接管实际挂载了灯火界面的实例。
-  if (!hasMountedPseudoApp(frame)) return false;
+  // 已确认的本项目前端加载器可直接创建自有实例，避开视口外懒加载和两次串行挂载。
+  // 其他 iframe 仍需实际挂载灯火界面才允许接管。
+  if (!hasMountedPseudoApp(frame) && !isPseudoFrontendLoader(frame)) return false;
   const message = getMessageElement(messageId);
   if (!message || message.getAttribute('is_user') === 'true') return false;
   frame.closest('.TH-render')?.classList.add(NATIVE_STAGE_CLASS);
@@ -1156,6 +1171,14 @@ const refreshParkedFrontend = (frame: HTMLIFrameElement) => {
   return true;
 };
 
+const eagerLoadFrontendFrame = (frame: HTMLIFrameElement) => {
+  if (frame.loading !== 'lazy') return;
+  if (isPseudoFrontendLoader(frame)) {
+    // 尚未具备可复制的地址时，先解除懒加载，后续 src 到达仍由观察器接管。
+    frame.loading = 'eager';
+  }
+};
+
 const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestStoryStageId()) => {
   if (detachedMode || controllerDisposed) return;
   rememberFrame(frame);
@@ -1171,6 +1194,7 @@ const parkCandidateFrame = (frame: HTMLIFrameElement, latestMessageId = latestSt
     (activeGeneration?.operation === 'reroll' && messageId === activeGeneration.baseMessageId);
   if (!shouldPark) return;
   if (parkFrame(messageId, frame)) scheduleViewRefresh(0);
+  else if (!getFrameKeeper(messageId, false)?.querySelector(':scope > iframe')) eagerLoadFrontendFrame(frame);
 };
 
 const flushFrameCandidates = () => {
@@ -1239,8 +1263,8 @@ const parkLatestStageFrame = () => {
   const messageId = latestStoryStageId();
   if (messageId === undefined) return;
   const frames = getMessageElement(messageId)?.querySelectorAll<HTMLIFrameElement>('.TH-render iframe');
-  const frame = [...(frames ?? [])].find(hasMountedPseudoApp);
-  if (frame) parkCandidateFrame(frame);
+  // 首次进入时 iframe 可能尚未挂载，仍需识别并唤醒被视口外懒加载阻塞的加载器。
+  frames?.forEach(frame => parkCandidateFrame(frame, messageId));
 };
 
 const reconcileStageFrame = () => {
