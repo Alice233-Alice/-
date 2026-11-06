@@ -22,6 +22,7 @@ import {
   normalizeCultivationState,
 } from './schema/common';
 import { ProtagonistSchema } from './schema/protagonist';
+import { JourneyPlansSchema, JourneysSchema } from './schema/journeys';
 import { CURRENT_CULTIVATION_VERSION, CURRENT_SCHEMA_VERSION } from './schema/constants';
 import {
   DifficultySystemSchema,
@@ -573,6 +574,9 @@ export const Schema = z.preprocess(
             .value(),
         ),
       _近期任务结果: RecentQuestResultsSchema,
+
+      行旅: JourneysSchema,
+      $行旅蓝图: JourneyPlansSchema,
 
       // 声望系统 - 健壮性与智能管理优化
       声望系统: ReputationSystemSchema,

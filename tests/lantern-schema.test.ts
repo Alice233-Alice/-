@@ -84,6 +84,26 @@ test('灯火通明与灯火阑珊引用同一 Schema 实例', () => {
   assert.equal(BrightSchemaModule.Schema, Schema);
 });
 
+test('好感正向每40点分档，下降沿用原限额，重读不重复加点', () => {
+  const cases = [
+    [0, 8, 6], [20, 8, 6], [40, 8, 4], [41, 7, 4],
+    [80, 7, 3], [81, 6, 3], [120, 6, 3], [121, 5, 2],
+    [160, 5, 2], [161, 4, 2], [199, 4, 2], [200, 4, 2],
+  ];
+  for (const [previous, gain, loss] of cases) {
+    const old = parse({ 红颜: { 白清弦: { 好感度: previous } } });
+    for (const [delta, expected] of [[100, Math.min(200, previous + gain)], [-100, previous - loss], [0, previous]]) {
+      const result = executeUpdateVariable(old, makeUpdateVariable('按实际互动结算好感。', [
+        { op: 'delta', path: '/红颜/白清弦/好感度', value: delta },
+      ]));
+      assert.deepEqual(result.errors, []);
+      assert.equal(result.finalData.红颜.白清弦.好感度, expected, `旧值${previous}，delta${delta}`);
+      assert.deepEqual(parse(parse(result.finalData)), result.finalData);
+      assert.equal(old.红颜.白清弦.好感度, previous);
+    }
+  }
+});
+
 test('独立海域与地图锚点可由 initvar 保留且保持幂等', () => {
   const seaDomains = ['潮音海', '龙眠海', '蓬莱幻海', '北冥冰海', '无尽洋', '天泣洋', '永夜海域', '雷暴海'];
   const 地点库 = Object.fromEntries(

@@ -31,6 +31,7 @@ import {
   selectReasoningText,
 } from '../灯火通明/message-content';
 import { ParsedDialogueGeneration, generateDialogueReply, parseDialogueGeneration } from './dialogue-engine';
+import { buildJourneyContext, JOURNEY_GENERATION_PREFIX, JOURNEY_PROMPT_ID } from '../灯火通明-测试版/journey';
 
 type ReplyTarget = MessageEventSource & Pick<Window, 'postMessage'>;
 type WithoutEnvelope<T> = T extends unknown ? Omit<T, 'channel' | 'version'> : never;
@@ -3983,6 +3984,7 @@ const installDuplicateControllerObserver = () => {
 };
 
 const disposeController = () => {
+  uninjectPrompts([JOURNEY_PROMPT_ID]);
   if (controllerDisposed) return;
   const disposingGeneration = activeGeneration;
   controllerDisposed = true;
@@ -4042,6 +4044,23 @@ const disposeController = () => {
   restoreNativeChatPosition();
 };
 
+const syncJourneyPrompt = () => {
+  uninjectPrompts([JOURNEY_PROMPT_ID]);
+  if (controllerDisposed || activeInteraction.mode === 'dialogue' || typeof Mvu === 'undefined') return;
+  try {
+    const messageId = latestStoryStageId();
+    if (messageId === undefined) return;
+    const variables = Mvu.getMvuData({ type: 'message', message_id: messageId });
+    const content = buildJourneyContext(variables.stat_data);
+    if (content)
+      injectPrompts([
+        { id: JOURNEY_PROMPT_ID, role: 'system', position: 'in_chat', depth: 0, should_scan: false, content },
+      ]);
+  } catch (error) {
+    console.warn('[灯火阑珊·行旅] 本轮行旅引导未能读取', error);
+  }
+};
+
 controllerHost.__dhlPseudoLayerControllerLease__?.dispose();
 pruneDuplicateControllerFrames();
 controllerHost.__dhlPseudoLayerControllerLease__ = {
@@ -4049,6 +4068,17 @@ controllerHost.__dhlPseudoLayerControllerLease__ = {
   dispose: disposeController,
 };
 installDuplicateControllerObserver();
+
+controllerEventStops.push(
+  eventOn(tavern_events.GENERATION_AFTER_COMMANDS, type => {
+    if (type === 'quiet' || type === 'impersonate') uninjectPrompts([JOURNEY_PROMPT_ID]);
+    else syncJourneyPrompt();
+  }),
+  eventOn(iframe_events.GENERATION_STARTED, id => {
+    if (id.startsWith(JOURNEY_GENERATION_PREFIX)) uninjectPrompts([JOURNEY_PROMPT_ID]);
+    else syncJourneyPrompt();
+  }),
+);
 
 controllerEventStops.push(
   eventOn(tavern_events.MESSAGE_SENT, messageId => {
@@ -4249,6 +4279,7 @@ void waitGlobalInitialized('Mvu')
 
 controllerEventStops.push(
   eventOn(tavern_events.CHAT_CHANGED, () => {
+    uninjectPrompts([JOURNEY_PROMPT_ID]);
     clearDialogueCarryoverPrompt();
     if (activeGeneration?.engine === 'dedicated') {
       activeGeneration.cancelled = true;

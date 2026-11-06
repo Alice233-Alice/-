@@ -30,6 +30,8 @@ const MVU_ROOT_KEYS = [
   '红颜',
   'NPC图鉴',
   '任务列表',
+  '行旅',
+  '$行旅蓝图',
   '声望系统',
   '难度系统',
   '$可参与机遇',
@@ -75,6 +77,16 @@ function normalizeCommandPath(rawPath: string): string {
     path = path.replace(/^\/+/, '').replaceAll('/', '.');
   }
 
+  // 当前 MVU 的 JSONPatch 解析器会输出 ["行旅"]["旅程"] 形式的路径。
+  // 普通字段转为点路径供下方规则识别，键名里的点号等字符保留括号转义。
+  if (path.startsWith('[') || path.startsWith('stat_data[')) {
+    path = _.toPath(path)
+      .map((part, index) =>
+        /^[^.[\]/\s"']+$/u.test(part) ? `${index ? '.' : ''}${part}` : `[${JSON.stringify(part)}]`,
+      )
+      .join('');
+  }
+
   path = path.replaceAll('：', ':').replaceAll('。', '.').replace(/\s+/gu, '').replace(/\.\.+/gu, '.');
   for (const [from, to] of Object.entries(TRADITIONAL_PATH_ALIASES)) {
     path = path.replaceAll(from, to);
@@ -85,7 +97,7 @@ function normalizeCommandPath(rawPath: string): string {
 
   if (
     !path.startsWith('stat_data.') &&
-    MVU_ROOT_KEYS.some(rootKey => path === rootKey || path.startsWith(`${rootKey}.`))
+    MVU_ROOT_KEYS.some(rootKey => path === rootKey || path.startsWith(`${rootKey}.`) || path.startsWith(`${rootKey}[`))
   ) {
     path = `stat_data.${path}`;
   }
