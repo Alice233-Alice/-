@@ -16,10 +16,6 @@ const schema = require('../src/灯火通明/schema');
 const regions = require('../src/灯火通明/region-utils');
 const worldEvents = require('../src/灯火通明/world-events');
 const snapshotKey = '__踏月寻仙_last_valid_stat_data';
-const source = fs.readFileSync('src/灯火通明/stores/data-store.ts', 'utf8');
-const compiled = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText;
 const openingText = fs.readFileSync('src/灯火阑珊/第一条消息/开局十九-沈倩宁.yaml', 'utf8');
 const opening = schema.Schema.parse(YAML.parse(openingText.match(/<initvar>([\s\S]*?)<\/initvar>/)[1]));
 const state = (place: string, stones = 777) =>
@@ -33,7 +29,15 @@ const state = (place: string, stones = 777) =>
 
 // Run the actual store with real Vue, Pinia and Schema. Only the Tavern host,
 // image loader and timers are simulated; no live chat or save is modified.
-async function harness(floor: number, records: Map<number, any>, snapshot?: any) {
+async function harness(
+  floor: number,
+  records: Map<number, any>,
+  snapshot?: any,
+  sourcePath = 'src/灯火通明/stores/data-store.ts',
+) {
+  const compiled = ts.transpileModule(fs.readFileSync(sourcePath, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
   const chat: any = snapshot
     ? { [snapshotKey]: lodash.cloneDeep(snapshot), __踏月寻仙_last_valid_stat_data_message_id: floor }
     : {};
@@ -127,6 +131,7 @@ async function harness(floor: number, records: Map<number, any>, snapshot?: any)
     flush,
     poll: () => host.poll(),
     emit: (name: keyof typeof eventNames, id: number) => handlers.get(eventNames[name])?.forEach(fn => fn(id)),
+    emitMvu: (next: any, previous: any) => handlers.get('mvu')?.forEach(fn => fn(next, previous)),
     tick: async () => {
       const tasks = [...timers.values()];
       timers.clear();
@@ -141,6 +146,30 @@ async function harness(floor: number, records: Map<number, any>, snapshot?: any)
 }
 
 async function main() {
+  for (const sourcePath of [
+    'src/灯火通明/stores/data-store.ts',
+    'src/灯火通明-测试版/stores/data-store.ts',
+  ]) {
+    const previous = schema.Schema.parse({ 红颜: { 婵织烟: { 好感度: 24 } } });
+    const next = schema.Schema.parse({ 红颜: { 婵织烟: { 好感度: 27 } } });
+    const pending = await harness(4, new Map([[4, { stat_data: previous }]]), undefined, sourcePath);
+    try {
+      // MVU awaits this event before persisting. The listener must return
+      // without reading stale floor data or blocking the upcoming write.
+      pending.emitMvu({ stat_data: next }, { stat_data: previous });
+      assert.equal(pending.store.红颜.婵织烟.好感度, 24);
+      pending.records.set(4, { stat_data: next });
+      await pending.tick();
+      assert.equal(pending.store.红颜.婵织烟.好感度, 27, sourcePath);
+      assert.equal(pending.chat[snapshotKey].红颜.婵织烟.好感度, 27);
+      assert.equal(pending.writes.length, 0, '界面刷新不得重放命令或覆盖楼层变量');
+      pending.emitMvu({ stat_data: previous }, { stat_data: next });
+      await pending.tick();
+      assert.equal(pending.store.红颜.婵织烟.好感度, 27, '其他楼层事件不替换当前楼层数据');
+    } finally {
+      pending.close();
+    }
+  }
   for (const previousPlace of ['月映湖', '栖溟浮岛', '绝壁石台']) {
     const h = await harness(0, new Map([[0, { stat_data: opening }]]), state(previousPlace));
     try {

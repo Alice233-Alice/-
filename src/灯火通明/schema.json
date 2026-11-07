@@ -1547,10 +1547,10 @@
             }
           },
           "创建时间": {
-            "default": 1793448218314,
+            "default": 1794047089700,
             "anyOf": [
               {
-                "default": 1793448218279,
+                "default": 1794047089656,
                 "type": "number"
               },
               {
@@ -1603,6 +1603,148 @@
         ]
       }
     },
+    "行旅": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "当前追踪": {
+          "default": "",
+          "type": "string"
+        },
+        "旅程": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "旅程ID"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "名称": {
+                "default": "未名行旅",
+                "type": "string"
+              },
+              "缘起": {
+                "default": "",
+                "type": "string"
+              },
+              "所求": {
+                "default": "",
+                "type": "string"
+              },
+              "篇章": {
+                "default": "缘起",
+                "type": "string"
+              },
+              "进展": {
+                "default": "",
+                "type": "string"
+              },
+              "下一步": {
+                "default": "",
+                "type": "string"
+              },
+              "状态": {
+                "default": "待启程",
+                "type": "string",
+                "enum": [
+                  "待启程",
+                  "进行中",
+                  "暂歇",
+                  "已落幕"
+                ]
+              },
+              "关联任务": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "关联世闻": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "线索": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "线索名"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema4"
+                }
+              },
+              "纪事": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "纪事名"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema4"
+                }
+              },
+              "猜想": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "description": "想法ID"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "内容": {
+                      "default": "",
+                      "type": "string"
+                    },
+                    "关联线索": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "状态": {
+                      "default": "待核实",
+                      "type": "string",
+                      "enum": [
+                        "待核实",
+                        "有证据支持",
+                        "已印证",
+                        "已排除"
+                      ]
+                    },
+                    "依据": {
+                      "default": "",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "$行旅蓝图": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "旅程ID"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
     "声望系统": {
       "default": {},
       "type": "object",
@@ -1622,7 +1764,7 @@
             "type": "string"
           },
           "更新时间": {
-            "default": 1793448218314,
+            "default": 1794047089700,
             "type": "number"
           }
         }
@@ -1933,7 +2075,7 @@
             "type": "string"
           },
           "领悟时间": {
-            "default": 1793448218312,
+            "default": 1794047089698,
             "type": "number"
           }
         }
@@ -2033,6 +2175,23 @@
             "default": 1,
             "type": "number"
           }
+        }
+      }
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "内容": {
+          "default": "",
+          "type": "string"
+        },
+        "依据": {
+          "default": "",
+          "type": "string"
+        },
+        "时地": {
+          "default": "",
+          "type": "string"
         }
       }
     }

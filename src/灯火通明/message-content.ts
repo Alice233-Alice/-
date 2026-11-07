@@ -836,6 +836,105 @@ export const extractVariableUpdateDiagnostics = (text: string): VariableUpdateDi
   return result;
 };
 
+export const summarizeVariableDiagnostics = (
+  diagnostics: VariableUpdateDiagnostics | null | undefined,
+  maxPills = 3,
+): string[] => {
+  if (!diagnostics || !diagnostics.operations.length) return [];
+  const decodeSeg = (seg: string) => seg.replace(/~1/g, '/').replace(/~0/g, '~');
+  const formatDelta = (val: unknown) => {
+    const num = Number(val);
+    if (!Number.isFinite(num)) return String(val ?? '');
+    return `${num >= 0 ? '+' : ''}${num}`;
+  };
+  const scored: Array<{ score: number; label: string }> = [];
+
+  for (const operation of diagnostics.operations) {
+    const op = String(operation.op ?? '').trim().toLowerCase();
+    const segments = String(operation.path ?? '')
+      .replaceAll('／', '/')
+      .split('/')
+      .filter(Boolean)
+      .map(decodeSeg);
+    if (!segments.length || segments.some(seg => seg.startsWith('_'))) continue;
+
+    const [root, sub, third] = segments;
+    const val = operation.value;
+
+    if (root === '本尊' && sub === '修为') {
+      scored.push({
+        score: 100,
+        label: op === 'delta' ? `修为 ${formatDelta(val)}` : `修为 ${String(val ?? '')}`,
+      });
+      continue;
+    }
+    if (root === '本尊' && sub === '等级') {
+      scored.push({
+        score: 98,
+        label: op === 'delta' ? `境界 ${formatDelta(val)}` : `境界 Lv.${String(val ?? '')}`,
+      });
+      continue;
+    }
+    if (root === '红颜' && sub && third === '好感度') {
+      scored.push({
+        score: 95,
+        label: `${sub}好感 ${op === 'delta' ? formatDelta(val) : String(val ?? '')}`,
+      });
+      continue;
+    }
+    if (root === '红颜' && sub && third === '关系' && typeof val === 'string' && val.trim()) {
+      scored.push({ score: 90, label: `${sub}·${val.trim().slice(0, 6)}` });
+      continue;
+    }
+    if (root === '本尊' && sub === '灵石') {
+      scored.push({
+        score: 88,
+        label: op === 'delta' ? `灵石 ${formatDelta(val)}` : `灵石 ${String(val ?? '')}`,
+      });
+      continue;
+    }
+    if (root === '本尊' && sub === '行踪' && third === '当前区域' && typeof val === 'string' && val.trim()) {
+      scored.push({ score: 85, label: `行至·${val.trim().slice(0, 8)}` });
+      continue;
+    }
+    if (root === '本尊' && (sub === '法宝' || sub === '背包' || sub === '神通列表') && third) {
+      const actionWord = op === 'remove' ? '失去' : sub === '神通列表' ? '神通' : '所得';
+      scored.push({ score: 82, label: `${actionWord}·${third.slice(0, 8)}` });
+      continue;
+    }
+    if (root === '本尊' && sub === '战斗状态' && third === '负荷' && segments[3] && typeof val === 'string') {
+      scored.push({ score: 78, label: `${segments[3]}·${val.trim().slice(0, 4)}` });
+      continue;
+    }
+    if (root === '任务列表' && sub) {
+      const cleanTask = sub.replace(/^(?:[A-Za-z0-9_.-]+)_?/u, '').trim() || '任务';
+      scored.push({ score: 75, label: `任务·${cleanTask.slice(0, 7)}` });
+      continue;
+    }
+    if (root === '世界时钟' && sub === '时辰' && typeof val === 'string' && val.trim()) {
+      scored.push({ score: 65, label: `时辰·${val.trim().slice(0, 6)}` });
+      continue;
+    }
+    if (root === '$可参与机遇' || root === '当前处境') continue;
+
+    const leaf = segments.at(-1) ?? root;
+    if (op === 'delta' && Number.isFinite(Number(val))) {
+      scored.push({ score: 60, label: `${leaf} ${formatDelta(val)}` });
+    } else if (typeof val === 'string' && val.trim().length > 0 && val.trim().length <= 8) {
+      scored.push({ score: 55, label: `${leaf}·${val.trim()}` });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  const unique: string[] = [];
+  for (const item of scored) {
+    if (!item.label || unique.includes(item.label)) continue;
+    unique.push(item.label);
+    if (unique.length >= maxPills) break;
+  }
+  return unique;
+};
+
 export const stripStructuredBlocks = (text: string) => {
   let result = stripEmbeddedHtmlDocuments(text);
   STRUCTURAL_TAGS.forEach(tag => {

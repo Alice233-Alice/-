@@ -10,7 +10,7 @@ const {
   describeRealmByLevel,
   getRealmThreshold,
 } = require('../src/灯火阑珊/schema.ts');
-const { guardParsedCommands } = require('../src/灯火阑珊-变量结构/guard.ts');
+const { guardParsedCommands, settleCompanionFavor } = require('../src/灯火阑珊-变量结构/guard.ts');
 
 export type PatchOperation = {
   op: 'replace' | 'delta' | 'insert' | 'remove';
@@ -356,6 +356,7 @@ export function executeUpdateVariable(
   const candidate = applyGuardedCommands(oldData, commands);
 
   const finalData = Schema.parse(candidate);
+  settleCompanionFavor({ stat_data: finalData } as any, { stat_data: oldData } as any);
   const warnings: string[] = [];
   const errors = [
     ...collectInvariantErrors(finalData),

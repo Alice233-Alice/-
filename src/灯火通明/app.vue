@@ -154,6 +154,8 @@ import shanhaiArt from './assets/shanhai-scroll.svg?url';
 import starAltarArt from './assets/star-altar-chart.svg?url';
 import { resolveMapAnchor } from '../灯火阑珊/map-system';
 import { createMovingPanelFit } from './moving-panel-fit';
+import { scheduleAtlasPrefetch } from './atlas/assets';
+import { resolveAtlasLocation } from './atlas/location';
 import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from './store';
@@ -201,7 +203,7 @@ const viewportMode = ref<ViewportMode>(getViewportMode());
 const readingMode = computed<ReadingMode>(() => themeStore.readingModes[viewportMode.value]);
 const activeView = ref<StageView>('gallery');
 // Prepare the atlas only on first entry; tab changes retain its textures and camera.
-const mapOpened = ref(false);
+const mapOpened = ref(reloadedView === 'map');
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
 const showReadingSettings = ref(false);
 const showGreetingIndex = ref(false);
@@ -632,6 +634,25 @@ watch(
   { immediate: true },
 );
 
+let cancelAtlasPrefetch: (() => void) | undefined;
+watch(
+  [() => store.hasData, isDetachedMode],
+  ([ready, detached]) => {
+    cancelAtlasPrefetch?.();
+    cancelAtlasPrefetch = undefined;
+    if (ready && !detached) {
+      cancelAtlasPrefetch = scheduleAtlasPrefetch(
+        resolveAtlasLocation({
+          currentLocation: store.本尊.行踪.当前区域,
+          currentDomain: parentRegion.value,
+          currentLayer: store.本尊.行踪.所属层级,
+        }).realm,
+      );
+    }
+  },
+  { immediate: true },
+);
+
 onMounted(() => {
   pseudoLayerStore.start();
   const parentChat = window.parent.document.querySelector('#chat');
@@ -641,6 +662,7 @@ onMounted(() => {
   scheduleViewportUpdate();
 });
 onBeforeUnmount(() => {
+  cancelAtlasPrefetch?.();
   parentChatResizeObserver.disconnect();
   movingPanelFit.dispose();
   pseudoLayerStore.dispose();

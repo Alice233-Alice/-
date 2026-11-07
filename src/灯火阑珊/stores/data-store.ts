@@ -732,39 +732,13 @@ export const useDataStore = defineStore(
     });
 
     // 监听 MVU 变量更新事件
-    // 🔧 修复：VARIABLE_UPDATE_ENDED 只有 2 个参数 (new_variables, old_variables)，
-    // 没有第 3 个 variable_option 参数来判断是哪个楼层更新了。
-    // 因此改为：事件触发时重新读取当前楼层的变量，比较是否有变化。
+    // MVU 更新结束事件早于楼层写回；让出当前事件后再读取所属楼层。
     waitGlobalInitialized('Mvu')
       .then(() => {
         debugLog('[踏月寻仙] 开始监听 MVU 变量更新事件');
 
         eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, () => {
-          try {
-            // 重新读取当前楼层的变量（而非使用事件参数，因为事件参数不带楼层信息）
-            const variables = getMessageVariablesSafe(message_id);
-            const statData = _.get(variables, 'stat_data', null);
-            const messageContent = getCurrentMessageContent();
-
-            if (statData && Object.keys(statData).length > 0) {
-              try {
-                const parsedData = tryParseStatData(statData, messageContent);
-
-                // 只在数据实际变化时才更新，避免无意义的重渲染
-                if (parsedData && !_.isEqual(rawData.value, parsedData)) {
-                  debugLog('[踏月寻仙] MVU 变量更新 → 当前楼层数据已变化，更新显示');
-                  rawData.value = _.cloneDeep(parsedData);
-                  saveLastValidSnapshot(parsedData, currentMessageIdNumber);
-                }
-              } catch (parseError) {
-                console.error('[踏月寻仙] Schema 解析失败', parseError);
-              }
-            }
-
-            parseCurrentMessageCards();
-          } catch (e) {
-            console.error('[踏月寻仙] 处理 MVU 变量更新失败', e);
-          }
+          debouncedInitData(200);
         });
       })
       .catch(e => {

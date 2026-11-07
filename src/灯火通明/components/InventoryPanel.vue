@@ -1,172 +1,273 @@
 <template>
-  <div class="panel inventory-panel">
-    <div class="inventory-section">
-      <div class="section-title"><i class="fa-solid fa-gem"></i> 法宝</div>
-      <div class="items-grid">
-        <template v-for="(item, key) in store.本尊.法宝" :key="key">
-          <div v-if="key && String(key).trim()" class="item-card treasure">
-            <div class="item-name">{{ item?.名称 || key }}</div>
-            <div class="item-rank">{{ item?.品阶 || '未知' }}</div>
-            <div class="item-desc">{{ item?.描述 || '暂无描述' }}</div>
-          </div>
-        </template>
-        <div v-if="!store.本尊.法宝 || Object.keys(store.本尊.法宝).length === 0" class="empty-hint">空空如也</div>
+  <div ref="inventoryRoot" class="panel inventory-panel">
+    <section v-for="section in sections" :key="section.key" class="inventory-section">
+      <div class="section-header">
+        <div class="section-title"><i :class="section.icon"></i> {{ section.title }}</div>
+        <span v-if="section.key === 'treasure'" class="spirit-stone-tag" title="当前随身灵石">
+          <i class="fa-solid fa-gem"></i> 灵石 {{ formatNumber(store.本尊.灵石) }}
+        </span>
       </div>
-    </div>
-
-    <div class="inventory-section">
-      <div class="section-title"><i class="fa-solid fa-box-open"></i> 储物戒</div>
-      <div class="items-grid">
-        <template v-for="(item, key) in store.本尊.背包" :key="key">
-          <div v-if="key && String(key).trim()" class="item-card">
-            <div class="item-header">
-              <span class="item-name">{{ item?.名称 || key }}</span>
-              <span class="item-count">×{{ item?.数量 || 1 }}</span>
+      <div v-if="section.items.length" class="items-list">
+        <div
+          v-for="item in section.items"
+          :key="item.uid"
+          class="item-strip"
+          :data-item-name="item.name"
+          tabindex="-1"
+          :class="`tier-${item.tier}`"
+        >
+          <div class="item-topline">
+            <div class="item-title-group">
+              <span class="item-name">{{ item.name }}</span
+              ><span class="item-rank">{{ item.rankLabel }}</span>
             </div>
-            <div class="item-rank">{{ item?.品阶 || '未知' }}</div>
-            <div class="item-desc">{{ item?.描述 || '暂无描述' }}</div>
+            <span v-if="section.key !== 'treasure' || item.count > 1" class="item-count">×{{ item.count }}</span>
           </div>
-        </template>
-        <div v-if="!store.本尊.背包 || Object.keys(store.本尊.背包).length === 0" class="empty-hint">空空如也</div>
+          <div class="item-desc">{{ item.description }}</div>
+        </div>
       </div>
-    </div>
-
-    <div class="inventory-section">
-      <div class="section-title"><i class="fa-solid fa-bag-shopping"></i> 杂物袋</div>
-      <div class="items-grid">
-        <template v-for="(item, key) in store.本尊.杂物袋" :key="key">
-          <div v-if="key && String(key).trim()" class="item-card">
-            <div class="item-header">
-              <span class="item-name">{{ item?.名称 || key }}</span>
-              <span class="item-count">×{{ item?.数量 || 1 }}</span>
-            </div>
-            <div class="item-rank">{{ item?.品阶 || '未知' }}</div>
-            <div class="item-desc">{{ item?.描述 || '暂无描述' }}</div>
-          </div>
-        </template>
-        <div v-if="!store.本尊.杂物袋 || Object.keys(store.本尊.杂物袋).length === 0" class="empty-hint">空空如也</div>
-      </div>
-    </div>
+      <div v-else class="empty-hint">空空如也</div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, nextTick, ref, watch } from 'vue';
 import { useDataStore } from '../store';
+import { focusStageElement } from '../affairs';
+
+const props = defineProps<{ focusName?: string; focusNonce?: number }>();
+const inventoryRoot = ref<HTMLElement>();
+
+type ItemTier = 'heaven' | 'earth' | 'mystic' | 'yellow' | 'mortal';
+
+interface ParsedInventoryItem {
+  uid: string;
+  name: string;
+  description: string;
+  rankLabel: string;
+  count: number;
+  tier: ItemTier;
+}
 
 const store = useDataStore();
+
+function resolveItemTier(rankRaw: string, isTreasure: boolean): ItemTier {
+  const text = rankRaw.trim();
+  if (/道器|圣|仙|天|先天|神|帝|至尊|极品/u.test(text)) return 'heaven';
+  if (/灵宝|法宝|地|上品|珍/u.test(text)) return 'earth';
+  if (/灵器|玄|中品/u.test(text)) return 'mystic';
+  if (/法器|黄|下品/u.test(text)) return 'yellow';
+  return isTreasure ? 'mystic' : 'mortal';
+}
+
+function extractSectionItems(
+  record: Record<string, any> | undefined,
+  category: 'treasure' | 'ring' | 'misc',
+): ParsedInventoryItem[] {
+  if (!record) return [];
+  return Object.entries(record)
+    .filter(([key]) => Boolean(key && String(key).trim()))
+    .map(([key, raw]) => {
+      const name = String(raw?.名称 || key).trim();
+      const description = String(raw?.描述 || '暂无描述').trim();
+      const rankRaw = String(raw?.品阶 || '凡').trim();
+      const count = Math.max(1, Number(raw?.数量 ?? 1) || 1);
+      return {
+        uid: `${category}:${key}`,
+        name,
+        description,
+        rankLabel: rankRaw || '凡',
+        count,
+        tier: resolveItemTier(rankRaw, category === 'treasure'),
+      };
+    });
+}
+
+const sections = computed(() => [
+  { key: 'treasure', title: '法宝', icon: 'fa-solid fa-gem', items: extractSectionItems(store.本尊.法宝, 'treasure') },
+  { key: 'ring', title: '储物戒', icon: 'fa-solid fa-ring', items: extractSectionItems(store.本尊.背包, 'ring') },
+  {
+    key: 'misc',
+    title: '杂物袋',
+    icon: 'fa-solid fa-bag-shopping',
+    items: extractSectionItems(store.本尊.杂物袋, 'misc'),
+  },
+]);
+watch(
+  [() => props.focusName, () => props.focusNonce],
+  async () => {
+    if (!props.focusName) return;
+    await nextTick();
+    focusStageElement(
+      Array.from(inventoryRoot.value?.querySelectorAll<HTMLElement>('[data-item-name]') ?? []).find(
+        element => element.dataset.itemName === props.focusName,
+      ),
+    );
+  },
+  { immediate: true, flush: 'post' },
+);
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
+}
 </script>
 
 <style lang="scss" scoped>
 .inventory-panel {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  color: var(--text-primary);
+}
 
-  .inventory-section {
-    margin-bottom: 20px;
+.inventory-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 
-  .section-title {
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--text-accent);
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-accent);
 
-    i {
-      color: var(--accent-color);
-    }
-  }
-
-  .items-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .item-card {
-    padding: 10px 12px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-
-    &.treasure {
-      border-color: var(--border-active);
-      background: var(--button-active);
-    }
-
-    .item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .item-name {
-      font-weight: 500;
-      color: var(--text-primary);
-    }
-
-    .item-count {
-      font-size: 12px;
-      color: var(--accent-color);
-    }
-
-    .item-rank {
-      font-size: 11px;
-      color: #ffc864;
-      margin: 4px 0;
-    }
-
-    .item-desc {
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-  }
-
-  .empty-hint {
-    text-align: center;
-    padding: 20px;
-    color: #506070;
-    font-style: italic;
+  i {
+    color: var(--gold);
   }
 }
 
-// 手机端适配
+.spirit-stone-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+
+  i {
+    font-size: 11px;
+  }
+}
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-strip {
+  --tier-color: var(--text-secondary);
+
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--line-subtle) 55%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--tier-color) 48%, transparent);
+  border-radius: 5px;
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--tier-color) 4%, transparent), transparent 44%),
+    linear-gradient(90deg, color-mix(in srgb, var(--surface-inset) 24%, transparent), transparent);
+  &:focus {
+    outline: 1px solid var(--gold);
+    outline-offset: 3px;
+  }
+
+  &.tier-heaven {
+    --tier-color: var(--gold);
+  }
+  &.tier-earth {
+    --tier-color: var(--jade);
+  }
+  &.tier-mystic {
+    --tier-color: var(--semantic-info);
+  }
+  &.tier-yellow {
+    --tier-color: var(--semantic-warning);
+  }
+  &.tier-mortal {
+    --tier-color: var(--text-secondary);
+  }
+}
+
+.item-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.item-title-group {
+  min-width: 0;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item-rank {
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--tier-color);
+  background: color-mix(in srgb, var(--tier-color) 8%, transparent);
+}
+
+.item-count {
+  flex: none;
+  font-size: 12px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.item-desc {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.empty-hint {
+  padding: 16px 0;
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary);
+  opacity: 0.65;
+}
+
 @media screen and (max-width: 480px) {
   .inventory-panel {
-    padding: 12px;
+    gap: 18px;
+  }
 
-    .inventory-section {
-      margin-bottom: 16px;
-    }
+  .item-strip {
+    padding: 9px 12px;
+  }
 
-    .section-title {
-      font-size: 13px;
-    }
+  .item-name {
+    font-size: 13px;
+  }
 
-    .item-card {
-      padding: 8px 10px;
-
-      .item-name {
-        font-size: 12px;
-      }
-
-      .item-count {
-        font-size: 11px;
-      }
-
-      .item-rank {
-        font-size: 10px;
-      }
-
-      .item-desc {
-        font-size: 10px;
-      }
-    }
+  .item-desc {
+    font-size: 11.5px;
   }
 }
 </style>

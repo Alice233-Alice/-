@@ -9,13 +9,35 @@ const lodash = require('lodash');
 const { Schema } = require('../src/灯火通明-测试版/schema');
 const { Schema: formalSchema } = require('../src/灯火通明/schema');
 const { chooseTrackedTask, prioritizeAffairsActions, describeAffairsChanges, inferTaskReferences } = require('../src/灯火通明-测试版/affairs');
-const { buildFallbackActions, resolveActionFeed } = require('../src/灯火通明-测试版/action-feed');
+const { buildFallbackActions, getActionCopy, normalizeAction, resolveActionFeed } = require('../src/灯火通明-测试版/action-feed');
 const { copyQuestForPreset } = require('../src/灯火通明-测试版/quest-preset');
 const { executeUpdateVariable, makeUpdateVariable } = require('./lantern-mvu-harness');
 const { parse, compileScript, compileTemplate } = require('vue/compiler-sfc');
 const tests: Array<[string, () => void]> = [];
 const test = (name: string, fn: () => void) => tests.push([name, fn]);
 const quest = (name: string, extra: any = {}) => ({ 名称: name, 目标: '查明线索的来处。', 创建时间: 0, ...extra });
+
+test('行动卡合并重复说明，保留不同的事件和风险，提交字段保持原样', () => {
+  const action = normalizeAction({
+    标题: '探寻黄泉出口',
+    行动: '跟随晚棠的指引，寻找离开黄泉古迹的道路',
+    事件: '跟随晚棠的指引，寻找离开黄泉古迹的道路',
+    提示: '极高，随时可能遭遇幽冥潮汐或强大亡魂',
+    类型: '探索',
+  });
+  const before = lodash.cloneDeep(action);
+  assert.deepEqual(getActionCopy(action), {
+    title: action.标题, description: action.行动, event: '', hint: action.提示,
+  });
+  assert.deepEqual(action, before);
+  assert.equal(getActionCopy({ ...action, 事件: '  ' + action.行动 + '。  ' }).event, '');
+  assert.equal(getActionCopy({ ...action, 事件: '远处传来舟铃声。' }).event, '远处传来舟铃声。');
+  assert.equal(getActionCopy({ ...action, 标题: action.行动 + '。' }).description, '');
+  assert.equal(getActionCopy({ ...action, 标题: undefined }).description, '');
+  assert.equal(getActionCopy({ ...action, 提示: action.行动 }).hint, '');
+  assert.equal(getActionCopy({ ...action, 事件: '跟随晚棠的指引，寻找离开黄泉古迹的道路？' }).event,
+    '跟随晚棠的指引，寻找离开黄泉古迹的道路？');
+});
 
 test('旧任务和正式版共用结构兼容，结果归档幂等且不结算资产', () => {
   assert.equal(Schema, formalSchema);

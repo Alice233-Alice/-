@@ -32,6 +32,7 @@ const { getBurdenTone } = require('../src/灯火通明/components/combat-utils')
 const { buildFallbackActions, resolveActionFeed } = require('../src/灯火通明/action-feed');
 const { copyQuestForPreset } = require('../src/灯火通明/quest-preset');
 const { executeUpdateVariable, makeUpdateVariable } = require('./lantern-mvu-harness');
+const { settleCompanionFavor } = require('../src/灯火阑珊-变量结构/guard');
 const { preservesRelationshipContinuity } = require('../src/灯火通明/narrative-continuity');
 const { getWorldEventEntries, selectWorldEventsForDisplay } = require('../src/灯火通明/world-events');
 const { parseWorldEventPatchOperation, restoreWorldEventLedger } = require('../src/灯火通明/world-event-patch-guard');
@@ -100,6 +101,71 @@ test('好感正向每40点分档，下降沿用原限额，重读不重复加点
       assert.equal(result.finalData.红颜.白清弦.好感度, expected, `旧值${previous}，delta${delta}`);
       assert.deepEqual(parse(parse(result.finalData)), result.finalData);
       assert.equal(old.红颜.白清弦.好感度, previous);
+    }
+  }
+});
+
+test('读取楼层时修复滞后快照，保持已保存好感且不修改输入', () => {
+  const input = parse({ 红颜: { 婵织烟: { 好感度: 27 } } });
+  input._好感度快照.婵织烟 = 18;
+  const original = clone(input);
+  const result = parse(input);
+  assert.equal(result.红颜.婵织烟.好感度, 27);
+  assert.equal(result._好感度快照.婵织烟, 27);
+  assert.deepEqual(parse(result), result);
+  assert.deepEqual(input, original);
+});
+
+test('24加3以本轮真实旧值结算，滞后快照与逐条校验顺序均不影响结果', () => {
+  for (const favorFirst of [true, false]) {
+    const before = parse({ 红颜: { 婵织烟: { 好感度: 24 } } });
+    before._好感度快照.婵织烟 = 18;
+    const original = clone(before);
+    let candidate = clone(before);
+    const favor = () => { candidate.红颜.婵织烟.好感度 += 3; };
+    const situation = () => { candidate.当前处境 = '偏院客舍调息后，收到后门赴约的传音。'; };
+    for (const update of favorFirst ? [favor, situation] : [situation, favor]) {
+      update();
+      candidate = parse(candidate);
+    }
+    settleCompanionFavor({ stat_data: candidate }, { stat_data: before });
+    assert.equal(candidate.红颜.婵织烟.好感度, 27);
+    assert.equal(candidate._好感度快照.婵织烟, 27);
+    assert.deepEqual(parse(candidate), candidate);
+    assert.deepEqual(before, original);
+  }
+});
+
+test('多条好感命令共享整轮限额，重复结算不加点，下一轮使用新旧值', () => {
+  const before = parse({ 红颜: { 婵织烟: { 好感度: 24 } } });
+  let candidate = clone(before);
+  for (const gain of [7, 7]) {
+    candidate.红颜.婵织烟.好感度 += gain;
+    candidate = parse(candidate);
+  }
+  settleCompanionFavor({ stat_data: candidate }, { stat_data: before });
+  assert.equal(candidate.红颜.婵织烟.好感度, 32);
+  settleCompanionFavor({ stat_data: candidate }, { stat_data: before });
+  assert.equal(candidate.红颜.婵织烟.好感度, 32);
+  const next = clone(candidate);
+  next.红颜.婵织烟.好感度 += 3;
+  settleCompanionFavor({ stat_data: next }, { stat_data: candidate });
+  assert.equal(next.红颜.婵织烟.好感度, 35);
+  assert.equal(next._好感度快照.婵织烟, 35);
+});
+
+test('旧库存根路径归入本尊，新增物品与描述更新均保留', () => {
+  for (const container of ['背包', '法宝', '杂物袋']) {
+    for (const prefix of ['', '/stat_data']) {
+      const old = parse({ 本尊: { [container]: { 旧物: { 名称: '旧物', 描述: '原描述', 数量: 1 } } } });
+      const result = executeUpdateVariable(old, makeUpdateVariable('保留已发生的库存变化。', [
+        { op: 'replace', path: `${prefix}/${container}/旧物/描述`, value: '新的已知描述' },
+        { op: 'insert', path: `${prefix}/${container}/青竹小坠`, value: { 名称: '青竹小坠', 数量: 1 } },
+      ]));
+      assert.deepEqual(result.errors, []);
+      assert.equal(result.finalData.本尊[container].旧物.描述, '新的已知描述');
+      assert.equal(result.finalData.本尊[container].青竹小坠.数量, 1);
+      assert.equal(result.finalData[container], undefined);
     }
   }
 });

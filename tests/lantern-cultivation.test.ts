@@ -39,6 +39,21 @@ function replay(oldData: unknown, patch: unknown[]) {
   return result.finalData;
 }
 
+test('白清弦默认资料及三份JSON结构与渡劫中期人设一致', () => {
+  const white = Schema.parse({}).红颜角色库.白清弦;
+  assert.equal(white.级, 34);
+  assert.equal(white.根, '天金灵根');
+  assert.equal(white.质, '先天剑骨');
+  assert.equal(white.器, '戮天剑');
+  for (const frontend of ['灯火阑珊', '灯火通明', '灯火通明-测试版']) {
+    const json = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'src', frontend, 'schema.json'), 'utf8'));
+    assert.deepEqual(
+      json.properties.红颜角色库.default.白清弦,
+      require('../src/灯火阑珊/schema').DEFAULT_CHARACTER_LIB.白清弦,
+    );
+  }
+});
+
 test('满修为与超额积累保持等级和每一种明确选择的阶段', () => {
   for (const 阶段 of ['修炼中', '瓶颈中', '突破中', '稳固中', '压境中']) {
     const data = parse({ 等级: 6, 修为: 660, 修炼状态: { 阶段 } });
@@ -237,96 +252,118 @@ test('全部已有有效开局保留等级与修为点数并可重复读取', ()
   console.info(JSON.stringify({ validOpeningBlocks: valid, existingInvalidYaml: invalid }));
 });
 
-test('实际预设表单导出与导入保留本尊和红颜的完整修炼经过', () => {
-  const vm = require('node:vm');
-  const ts = require('typescript');
-  const schemaModule = require('../src/灯火阑珊/schema');
-  const original = parse(
-    {
-      等级: 6,
-      修为: 660,
-      修炼状态: { 阶段: '压境中', 方式: '温养经脉', 地点: '静室', 根基描述: '经脉已渐稳固', 已修炼年数: 0.25 },
-    },
-    {
-      白清弦: {
-        等级: 34,
-        修为: 100,
-        修炼状态: {
-          阶段: '稳固中',
-          上次结果: '成功',
-          最近突破: { 类型: '突破', 原等级: 33, 目标等级: 34, 消耗修为: getRealmThreshold(33), 依据: '闭关破境。' },
+for (const frontend of ['灯火通明', '灯火通明-测试版']) {
+  test(`${frontend}红颜预设可编辑境界并完整导入导出修行与羁绊`, () => {
+    const vm = require('node:vm');
+    const ts = require('typescript');
+    const schemaModule = require('../src/灯火阑珊/schema');
+    const original = parse(
+      {
+        等级: 6,
+        修为: 660,
+        修炼状态: { 阶段: '压境中', 方式: '温养经脉', 地点: '静室', 根基描述: '经脉已渐稳固', 已修炼年数: 0.25 },
+      },
+      {
+        白清弦: {
+          等级: 34,
+          修为: 100,
+          羁绊纪事: { 护道旧约: { 类型: '承诺', 摘要: '结伴护道。', 时地: '抱雪峰' } },
+          修炼状态: {
+            阶段: '稳固中',
+            上次结果: '成功',
+            最近突破: { 类型: '突破', 原等级: 33, 目标等级: 34, 消耗修为: getRealmThreshold(33), 依据: '闭关破境。' },
+          },
         },
       },
-    },
-  );
-  const component = fs.readFileSync(path.join(process.cwd(), 'src/灯火通明/components/PresetPanel.vue'), 'utf8');
-  const script = component.match(/<script setup[^>]*>([\s\S]*?)<\/script>/u)?.[1];
-  assert.ok(script);
-  let exported: any;
-  const host: any = {
-    exports: {},
-    _: lodash,
-    console,
-    ref: (value: unknown) => ({ value }),
-    computed: (getter: () => unknown) => ({
-      get value() {
-        return getter();
+    );
+    original.红颜角色库.自定义道友 = { ...original.红颜角色库.白清弦, 级: 42, 龄: '外25实766' };
+    const component = fs.readFileSync(path.join(process.cwd(), `src/${frontend}/components/PresetPanel.vue`), 'utf8');
+    const script = component.match(/<script setup[^>]*>([\s\S]*?)<\/script>/u)?.[1];
+    assert.ok(script);
+    let exported: any;
+    const host: any = {
+      exports: {},
+      _: lodash,
+      console,
+      ref: (value: unknown) => ({ value }),
+      computed: (getter: () => unknown) => ({
+        get value() {
+          return getter();
+        },
+      }),
+      onMounted: () => {},
+      toastr: {
+        success: () => {},
+        error: (message: string) => {
+          throw Error(message);
+        },
       },
-    }),
-    onMounted: () => {},
-    toastr: {
-      success: () => {},
-      error: (message: string) => {
-        throw Error(message);
+      Blob: class {
+        content: string;
+        constructor(parts: string[]) {
+          this.content = parts.join('');
+        }
       },
-    },
-    Blob: class {
-      content: string;
-      constructor(parts: string[]) {
-        this.content = parts.join('');
-      }
-    },
-    URL: {
-      createObjectURL: (blob: { content: string }) => {
-        exported = JSON.parse(blob.content);
-        return 'blob:preset-test';
+      URL: {
+        createObjectURL: (blob: { content: string }) => {
+          exported = JSON.parse(blob.content);
+          return 'blob:preset-test';
+        },
+        revokeObjectURL: () => {},
       },
-      revokeObjectURL: () => {},
-    },
-    document: { createElement: () => ({ click: () => {}, remove: () => {} }), body: { appendChild: () => {} } },
-    FileReader: class {
-      onload: (event: unknown) => void = () => {};
-      readAsText(file: { content: string }) {
-        this.onload({ target: { result: file.content } });
-      }
-    },
-    require: (id: string) => {
-      if (id === '../schema') return schemaModule;
-      if (id === '../store') return { useDataStore: () => original };
-      if (id === '../quest-preset') return require('../src/灯火通明/quest-preset');
-      throw Error('Unexpected dependency: ' + id);
-    },
-  };
-  const compiled = ts.transpileModule(script, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  vm.runInNewContext(
-    compiled +
-      '\nglobalThis.presetTest = { loadCurrentData, exportPreset, importPreset, convertCompanionsToMvu, formData };',
-    host,
-  );
-  host.presetTest.loadCurrentData();
-  host.presetTest.exportPreset();
-  assert.deepEqual(exported.preset.基础属性.修炼状态, original.本尊.修炼状态);
-  assert.deepEqual(exported.preset.红颜.白清弦.修炼状态, original.红颜.白清弦.修炼状态);
-  host.presetTest.formData.value.修炼状态 = schemaModule.ProtagonistSchema.parse({}).修炼状态;
-  host.presetTest.formData.value.红颜 = {};
-  host.presetTest.importPreset({ target: { files: [{ content: JSON.stringify(exported) }], value: 'preset.json' } });
-  assert.equal(host.presetTest.formData.value.修炼状态.阶段, '压境中');
-  assert.equal(host.presetTest.formData.value.修炼状态.根基描述, '经脉已渐稳固');
-  const companion = host.presetTest.convertCompanionsToMvu().白清弦;
-  assert.equal(companion.修炼状态.阶段, '稳固中');
-  assert.equal(companion.修炼状态.最近突破.消耗修为, getRealmThreshold(33));
-});
+      document: { createElement: () => ({ click: () => {}, remove: () => {} }), body: { appendChild: () => {} } },
+      FileReader: class {
+        onload: (event: unknown) => void = () => {};
+        readAsText(file: { content: string }) {
+          this.onload({ target: { result: file.content } });
+        }
+      },
+      require: (id: string) => {
+        if (id === '../schema') return schemaModule;
+        if (id === '../store') return { useDataStore: () => original };
+        if (id === '../quest-preset') return require('../src/灯火通明/quest-preset');
+        throw Error('Unexpected dependency: ' + id);
+      },
+    };
+    const compiled = ts.transpileModule(script, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    vm.runInNewContext(
+      compiled +
+        '\nglobalThis.presetTest = { loadCurrentData, exportPreset, importPreset, convertCompanionsToMvu, formData, toggleCompanion };',
+      host,
+    );
+    host.presetTest.loadCurrentData();
+    const draft = host.presetTest.formData.value.红颜.白清弦;
+    Object.assign(draft, {
+      等级: 35, 修为: 12345.5, 灵根: '自定灵根', 体质: '自定道体', 功法: '自定功法',
+      本命兵器: '自定神兵', 灵石: 54321, 已活岁月: 2401,
+    });
+    draft.修炼状态.阶段 = '压境中';
+    draft.修炼状态.方式 = '温养剑骨';
+    draft.修炼状态.计划年数 = 0.75;
+    draft.修炼状态.已修炼年数 = 0.25;
+    const expectedCompanion = JSON.parse(JSON.stringify(draft));
+    host.presetTest.toggleCompanion('自定义道友');
+    assert.equal(host.presetTest.formData.value.红颜.自定义道友.等级, 42);
+    assert.equal(host.presetTest.formData.value.红颜.自定义道友.已活岁月, 766);
+    host.presetTest.exportPreset();
+    assert.deepEqual(exported.preset.基础属性.修炼状态, original.本尊.修炼状态);
+    assert.deepEqual(exported.preset.红颜.白清弦, expectedCompanion);
+    host.presetTest.formData.value.修炼状态 = schemaModule.ProtagonistSchema.parse({}).修炼状态;
+    host.presetTest.formData.value.红颜 = {};
+    host.presetTest.importPreset({ target: { files: [{ content: JSON.stringify(exported) }], value: 'preset.json' } });
+    assert.equal(host.presetTest.formData.value.修炼状态.阶段, '压境中');
+    assert.equal(host.presetTest.formData.value.修炼状态.根基描述, '经脉已渐稳固');
+    const companion = host.presetTest.convertCompanionsToMvu().白清弦;
+    assert.equal(companion.修炼状态.阶段, '压境中');
+    assert.deepEqual(
+      schemaModule.CompanionSchema.parse(companion),
+      schemaModule.CompanionSchema.parse(expectedCompanion),
+    );
+    assert.equal(schemaModule.CompanionSchema.parse(companion).境界描述, '渡劫后期');
+    assert.equal(companion.修炼状态.最近突破.消耗修为, getRealmThreshold(33));
+  });
+}
 
 console.info(`${passed} cultivation and preset regressions passed.`);

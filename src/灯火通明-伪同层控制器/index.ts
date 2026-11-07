@@ -32,6 +32,7 @@ import {
 } from '../灯火通明/message-content';
 import { ParsedDialogueGeneration, generateDialogueReply, parseDialogueGeneration } from './dialogue-engine';
 import { buildJourneyContext, JOURNEY_GENERATION_PREFIX, JOURNEY_PROMPT_ID } from '../灯火通明-测试版/journey';
+import { clearReadingPosition, saveReadingPosition } from '../灯火通明-测试版/reading-position';
 
 type ReplyTarget = MessageEventSource & Pick<Window, 'postMessage'>;
 type WithoutEnvelope<T> = T extends unknown ? Omit<T, 'channel' | 'version'> : never;
@@ -543,6 +544,15 @@ const getParkedMessageId = () => {
   const keeper = active ?? keepers.filter(isMounted).at(-1);
   const messageId = Number(keeper?.dataset.messageId);
   return Number.isFinite(messageId) ? messageId : undefined;
+};
+
+const rememberStageReadingPosition = () => {
+  const messageId = getParkedMessageId();
+  if (messageId === undefined) return;
+  saveReadingPosition(
+    getFrameKeeper(messageId, false)?.querySelector<HTMLIFrameElement>(':scope > iframe'),
+    String(getCurrentChatId()),
+  );
 };
 
 const syncParkedStage = (hostMessageId: number | undefined) => {
@@ -1157,6 +1167,7 @@ const refreshParkedFrontend = (frame: HTMLIFrameElement) => {
     return true;
   }
   const currentView = keptFrame.contentDocument?.querySelector('.cultivation-status')?.getAttribute('data-view');
+  saveReadingPosition(keptFrame, String(getCurrentChatId()));
   if (currentView) keptFrame.dataset.dhlReloadView = currentView;
   keptFrame.dataset.dhlFrontendRevision = revision;
   frameLoadStartedAt.set(keptFrame, Date.now());
@@ -1391,10 +1402,13 @@ const restoreNativeChatPosition = () => {
   const scrollToLatest = () => {
     const activeLease = controllerHost.__dhlPseudoLayerControllerLease__;
     if (!chat.isConnected || (activeLease && activeLease.instanceId !== controllerInstanceId)) return;
-    chat.scrollTop = chat.scrollHeight;
+    const latest = [...chat.querySelectorAll<HTMLElement>(':scope > .mes')].at(-1);
+    if (!latest) return;
+    const text = latest.querySelector<HTMLElement>('.mes_text') ?? latest;
+    chat.scrollTop += text.getBoundingClientRect().top - chat.getBoundingClientRect().top;
   };
 
-  // 停放的 iframe 恢复后高度可能连续变化两帧，因此在原生布局稳定前持续校正到底部。
+  // 切回原生时定位到最新楼层的正文开头，两帧后交还滚动控制。
   tavernWindow.requestAnimationFrame(() => {
     scrollToLatest();
     tavernWindow.requestAnimationFrame(scrollToLatest);
@@ -1493,6 +1507,7 @@ const setDetachedMode = (detached: boolean, source?: ReplyTarget) => {
     broadcastView();
     return;
   }
+  if (detached) rememberStageReadingPosition();
   detachedMode = detached;
   localStorage.setItem(PSEUDO_LAYER_DETACHED_STORAGE_KEY, String(detached));
   activeInteraction = STORY_INTERACTION;
@@ -1515,6 +1530,7 @@ const setDetachedMode = (detached: boolean, source?: ReplyTarget) => {
     applyStageVisibility();
     restoreNativeChatPosition();
   } else {
+    clearReadingPosition(tavernWindow, getCurrentChatId());
     invalidateStageSnapshot();
     installFrameObserver();
     parkLatestStageFrame();
@@ -1954,14 +1970,7 @@ const waitForNativeSwipeMaterialized = async (messageId: number, timeout = 5000,
   return isNativeSwipeMaterialized(messageId, generation);
 };
 
-const getCurrentChatId = () =>
-  String(
-    (
-      tavernWindow as typeof tavernWindow & {
-        SillyTavern?: { getCurrentChatId?: () => string };
-      }
-    ).SillyTavern?.getCurrentChatId?.() ?? '',
-  );
+const getCurrentChatId = () => String(SillyTavern.getCurrentChatId() ?? '');
 
 type NativeRerollOriginal = NonNullable<ActiveGeneration['rerollOriginal']>;
 type PendingNativeRerollRecord = {
@@ -4010,6 +4019,7 @@ const installDuplicateControllerObserver = () => {
 const disposeController = () => {
   uninjectPrompts([JOURNEY_PROMPT_ID]);
   if (controllerDisposed) return;
+  rememberStageReadingPosition();
   const disposingGeneration = activeGeneration;
   controllerDisposed = true;
   if (generationHealthTimer !== null) window.clearInterval(generationHealthTimer);

@@ -29,11 +29,14 @@
 
       <section class="sanctum-grid" aria-label="修炼根基总览">
         <div class="foundation-column foundation-left">
-          <div v-for="item in leftFoundation" :key="item.label" class="foundation-item is-left">
+          <div v-for="item in leftFoundation" :key="item.label" class="foundation-item">
             <div class="foundation-icon"><i :class="item.icon"></i></div>
             <div class="foundation-copy">
-              <span>{{ item.label }}</span>
-              <strong :class="item.toneClass">{{ item.value }}</strong>
+              <div class="foundation-topline">
+                <span>{{ item.label }}</span>
+                <strong :class="item.toneClass">{{ item.title }}</strong>
+              </div>
+              <p v-if="item.detail" class="foundation-detail">{{ item.detail }}</p>
             </div>
           </div>
         </div>
@@ -67,8 +70,11 @@
           <div v-for="item in rightFoundation" :key="item.label" class="foundation-item">
             <div class="foundation-icon"><i :class="item.icon"></i></div>
             <div class="foundation-copy">
-              <span>{{ item.label }}</span>
-              <strong :class="item.toneClass">{{ item.value }}</strong>
+              <div class="foundation-topline">
+                <span>{{ item.label }}</span>
+                <strong :class="item.toneClass">{{ item.title }}</strong>
+              </div>
+              <p v-if="item.detail" class="foundation-detail">{{ item.detail }}</p>
             </div>
           </div>
         </div>
@@ -76,13 +82,36 @@
 
       <section class="progress-belt" aria-label="周天积累">
         <div class="progress-heading">
-          <div>
+          <div class="progress-title-group">
             <i class="fa-solid fa-wind"></i>
             <span>周天积累</span>
+            <strong>
+              {{ formatNumber(store.本尊.修为) }} <small>/ {{ formatNumber(store.本尊.突破阈值) }}</small>
+            </strong>
           </div>
-          <strong
-            >{{ formatNumber(store.本尊.修为) }} <small>/ {{ formatNumber(store.本尊.突破阈值) }}</small></strong
-          >
+          <div class="progress-actions">
+            <button
+              v-if="canBreakthrough"
+              type="button"
+              class="cultivation-action-btn is-breakthrough"
+              :disabled="pseudo.isGenerating || (!pseudo.isDetachedMode && !pseudo.isStoryHistoryLatest)"
+              :title="pseudo.isDetachedMode ? '将破境意图填入酒馆输入框' : '将破境意图填入底部行动栏'"
+              @click="draftBreakthrough"
+            >
+              <i class="fa-solid fa-bolt"></i>
+              <span>尝试破境</span>
+            </button>
+            <button
+              type="button"
+              class="cultivation-action-btn"
+              :disabled="pseudo.isGenerating || (!pseudo.isDetachedMode && !pseudo.isStoryHistoryLatest)"
+              :title="pseudo.isDetachedMode ? '将吐纳修持意图填入酒馆输入框' : '将吐纳修持意图填入底部行动栏'"
+              @click="draftMeditate"
+            >
+              <i class="fa-solid fa-yin-yang"></i>
+              <span>吐纳修持</span>
+            </button>
+          </div>
         </div>
         <div class="progress-track" aria-hidden="true">
           <div class="progress-fill"></div>
@@ -169,11 +198,12 @@ import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 
 import { getRealmColor, getRootColor } from '../schema';
-import { useDataStore } from '../store';
+import { useDataStore, usePseudoLayerStore } from '../store';
 
 interface FoundationItem {
   label: string;
-  value: string;
+  title: string;
+  detail: string;
   icon: string;
   toneClass?: string;
 }
@@ -184,6 +214,7 @@ interface PathNote {
 }
 
 const store = useDataStore();
+const pseudo = usePseudoLayerStore();
 const archiveOpen = ref(false);
 const archiveDraft = ref('');
 const archiveSaving = ref(false);
@@ -201,6 +232,19 @@ const progressValue = computed(() => {
 });
 const displayProgress = computed(() => `${progressValue.value.toFixed(1)}%`);
 const remainingCultivation = computed(() => Math.max(0, store.本尊.突破阈值 - store.本尊.修为));
+const canBreakthrough = computed(() => Boolean(store.本尊.积累已足 || remainingCultivation.value <= 0));
+
+function splitFoundationValue(rawValue: unknown): { title: string; detail: string } {
+  const text = String(rawValue ?? '').trim() || '未知';
+  const match = /^([^（(]+?)\s*[（(]([\s\S]+)[）)]$/.exec(text);
+  if (match) {
+    return {
+      title: match[1].trim() || text,
+      detail: match[2].replace(/[）)]$/u, '').trim(),
+    };
+  }
+  return { title: text, detail: '' };
+}
 
 const panelStyle = computed(
   () =>
@@ -212,43 +256,71 @@ const panelStyle = computed(
     }) as CSSProperties,
 );
 
-const leftFoundation = computed<FoundationItem[]>(() => [
-  {
-    label: '灵根',
-    value: store.本尊.灵根,
-    icon: 'fa-solid fa-seedling',
-    toneClass: 'root-tone',
-  },
-  {
-    label: '体质',
-    value: store.本尊.体质,
-    icon: 'fa-solid fa-person-rays',
-  },
-  {
-    label: '功法',
-    value: store.本尊.功法,
-    icon: 'fa-solid fa-scroll',
-  },
-]);
+const leftFoundation = computed<FoundationItem[]>(() => {
+  const root = splitFoundationValue(store.本尊.灵根);
+  const body = splitFoundationValue(store.本尊.体质);
+  const art = splitFoundationValue(store.本尊.功法);
+  return [
+    {
+      label: '灵根',
+      title: root.title,
+      detail: root.detail,
+      icon: 'fa-solid fa-seedling',
+      toneClass: 'root-tone',
+    },
+    {
+      label: '体质',
+      title: body.title,
+      detail: body.detail,
+      icon: 'fa-solid fa-person-rays',
+    },
+    {
+      label: '功法',
+      title: art.title,
+      detail: art.detail,
+      icon: 'fa-solid fa-scroll',
+    },
+  ];
+});
 
-const rightFoundation = computed<FoundationItem[]>(() => [
-  {
-    label: '本命兵器',
-    value: store.本尊.本命兵器,
-    icon: 'fa-solid fa-khanda',
-  },
-  {
-    label: '灵石',
-    value: formatNumber(store.本尊.灵石),
-    icon: 'fa-solid fa-gem',
-    toneClass: 'gold-tone',
-  },
-  {
-    label: '寿元',
-    value: store.本尊.寿元状态,
-    icon: 'fa-solid fa-hourglass-half',
-  },
-]);
+const rightFoundation = computed<FoundationItem[]>(() => {
+  const weapon = splitFoundationValue(store.本尊.本命兵器);
+  const lifespan = splitFoundationValue(store.本尊.寿元状态);
+  return [
+    {
+      label: '本命兵器',
+      title: weapon.title,
+      detail: weapon.detail,
+      icon: 'fa-solid fa-khanda',
+    },
+    {
+      label: '灵石',
+      title: formatNumber(store.本尊.灵石),
+      detail: '',
+      icon: 'fa-solid fa-gem',
+      toneClass: 'gold-tone',
+    },
+    {
+      label: '寿元',
+      title: lifespan.title,
+      detail: lifespan.detail,
+      icon: 'fa-solid fa-hourglass-half',
+    },
+  ];
+});
+
+function draftMeditate(): void {
+  const method =
+    String(store.本尊.功法 || '')
+      .split(/[（(]/)[0]
+      ?.trim() || '本门心法';
+  pseudo.performAction('吐纳修持', `静坐运转《${method}》，引周遭灵机入体，搬运周天以精进修为。`);
+}
+
+function draftBreakthrough(): void {
+  const target = store.本尊.修炼状态.突破目标 || '下一境界';
+  pseudo.performAction('尝试破境', `气机积累已臻圆满，凝神收敛心念，运转周天全力冲击「${target}」瓶颈。`);
+}
 
 const pathNotes = computed<PathNote[]>(() => {
   const cultivation = store.本尊.修炼状态;
@@ -483,35 +555,22 @@ async function saveArchive(): Promise<void> {
   position: relative;
   min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 10px 4px;
-}
-
-.foundation-item::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, var(--line-strong), var(--line-subtle) 66%, transparent);
-  opacity: 0.7;
-}
-
-.foundation-item.is-left {
-  flex-direction: row-reverse;
-  text-align: right;
-}
-
-.foundation-item.is-left::after {
-  background: linear-gradient(270deg, var(--line-strong), var(--line-subtle) 66%, transparent);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 9px;
+  background:
+    linear-gradient(125deg, color-mix(in srgb, var(--surface-raised) 82%, transparent), transparent 72%),
+    color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--stage-shadow) 18%, transparent);
 }
 
 .foundation-icon {
   flex: 0 0 38px;
   width: 38px;
   height: 38px;
+  margin-top: 2px;
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--line-strong) 64%, transparent);
@@ -529,23 +588,46 @@ async function saveArchive(): Promise<void> {
 
 .foundation-copy {
   min-width: 0;
+  flex: 1;
   display: grid;
-  gap: 3px;
+  gap: 5px;
+  text-align: left;
 }
 
-.foundation-copy span {
+.foundation-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.foundation-topline span {
   color: var(--text-secondary);
   font-size: 11px;
+  letter-spacing: 0.06em;
 }
 
-.foundation-copy strong {
+.foundation-topline strong {
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--text-primary);
   font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1.35;
+}
+
+.foundation-detail {
+  margin: 0;
+  padding-top: 5px;
+  border-top: 1px dashed color-mix(in srgb, var(--line-subtle) 78%, transparent);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.62;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .foundation-copy .root-tone {
@@ -705,7 +787,8 @@ async function saveArchive(): Promise<void> {
 }
 
 .progress-heading,
-.progress-heading > div,
+.progress-title-group,
+.progress-actions,
 .progress-foot {
   display: flex;
   align-items: center;
@@ -713,30 +796,68 @@ async function saveArchive(): Promise<void> {
 
 .progress-heading {
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 9px;
 }
 
-.progress-heading > div {
-  gap: 7px;
+.progress-title-group {
+  gap: 8px;
 }
-.progress-heading i {
+.progress-title-group i {
   color: var(--jade);
-  font-size: 11px;
+  font-size: 12px;
 }
-.progress-heading span {
+.progress-title-group span {
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 12px;
 }
-.progress-heading strong {
+.progress-title-group strong {
+  margin-left: 4px;
   color: var(--text-primary);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
-.progress-heading small {
+.progress-title-group small {
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 400;
+}
+
+.progress-actions {
+  gap: 7px;
+}
+
+.cultivation-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--jade) 42%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 10%, var(--surface-inset));
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--button-active);
+  }
+  &.is-breakthrough {
+    border-color: color-mix(in srgb, var(--gold) 58%, var(--line-strong));
+    color: var(--gold);
+    background: color-mix(in srgb, var(--gold) 15%, var(--surface-inset));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--gold) 18%, transparent);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }
 
 .progress-track {

@@ -314,12 +314,15 @@ function draftMeditate(): void {
     String(store.本尊.功法 || '')
       .split(/[（(]/)[0]
       ?.trim() || '本门心法';
-  pseudo.performAction('吐纳修持', `静坐运转《${method}》，引周遭灵机入体，搬运周天以精进修为。`);
+  pseudo.performAction('吐纳修持', `寻一处清静之地盘膝坐定，缓缓运转《${method}》，纳周遭灵机入体，行功打磨修为。`);
 }
 
 function draftBreakthrough(): void {
   const target = store.本尊.修炼状态.突破目标 || '下一境界';
-  pseudo.performAction('尝试破境', `气机积累已臻圆满，凝神收敛心念，运转周天全力冲击「${target}」瓶颈。`);
+  pseudo.performAction(
+    '尝试破境',
+    `眼下气机已蓄至圆满，收敛心神、闭目定息，催动周天真元一鼓作气叩击「${target}」关隘。`,
+  );
 }
 
 const pathNotes = computed<PathNote[]>(() => {

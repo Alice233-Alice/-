@@ -160,6 +160,8 @@ import shanhaiArt from './assets/shanhai-scroll.svg?url';
 import starAltarArt from './assets/star-altar-chart.svg?url';
 import { resolveMapAnchor } from '../灯火阑珊/map-system';
 import { createMovingPanelFit } from './moving-panel-fit';
+import { scheduleAtlasPrefetch } from './atlas/assets';
+import { resolveAtlasLocation } from './atlas/location';
 import { loadReadingPosition, saveReadingPosition } from './reading-position';
 import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
@@ -213,7 +215,7 @@ const reloadedReading = shallowRef(
 const activeView = ref<StageView>(reloadedView || 'gallery');
 window.frameElement?.removeAttribute('data-dhl-reload-view');
 // Prepare the atlas only on first entry; tab changes retain its textures and camera.
-const mapOpened = ref(false);
+const mapOpened = ref(reloadedView === 'map');
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
 const showReadingSettings = ref(false);
 const showGreetingIndex = ref(false);
@@ -655,6 +657,25 @@ watch(
   { immediate: true },
 );
 
+let cancelAtlasPrefetch: (() => void) | undefined;
+watch(
+  [() => store.hasData, isDetachedMode],
+  ([ready, detached]) => {
+    cancelAtlasPrefetch?.();
+    cancelAtlasPrefetch = undefined;
+    if (ready && !detached) {
+      cancelAtlasPrefetch = scheduleAtlasPrefetch(
+        resolveAtlasLocation({
+          currentLocation: store.本尊.行踪.当前区域,
+          currentDomain: parentRegion.value,
+          currentLayer: store.本尊.行踪.所属层级,
+        }).realm,
+      );
+    }
+  },
+  { immediate: true },
+);
+
 onMounted(() => {
   pseudoLayerStore.start();
   const parentChat = window.parent.document.querySelector('#chat');
@@ -664,6 +685,7 @@ onMounted(() => {
   scheduleViewportUpdate();
 });
 onBeforeUnmount(() => {
+  cancelAtlasPrefetch?.();
   saveReadingPosition(window.frameElement as HTMLIFrameElement | null, String(SillyTavern.getCurrentChatId() ?? ''));
   parentChatResizeObserver.disconnect();
   movingPanelFit.dispose();

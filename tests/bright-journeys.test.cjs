@@ -1,3 +1,4 @@
+/* eslint-disable import-x/no-nodejs-modules, @typescript-eslint/no-require-imports */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -12,6 +13,8 @@ require('ts-node').register({ project: 'tsconfig.schema-test.json', files: true,
 global._ = lodash;
 const { Schema } = require('../src/灯火通明-测试版/schema');
 const journeys = require('../src/灯火通明-测试版/journey');
+const { ensureSentence } = require('../src/灯火通明-测试版/action-text');
+const { buildQuestAction, buildFallbackActions } = require('../src/灯火通明-测试版/action-feed');
 const cloudStories = require('../src/灯火通明-测试版/cloud-stories');
 const { executeUpdateVariable, makeUpdateVariable } = require('./lantern-mvu-harness');
 const { guardParsedCommands } = require('../src/灯火阑珊-变量结构/guard');
@@ -133,6 +136,57 @@ test('提案完整校验，旧存档获得空行旅，候选保持待证意向',
   assert.equal(chosen.状态, '待启程');
   assert.deepEqual(chosen.线索, {});
   assert.deepEqual(chosen.纪事, {});
+});
+
+test('行动直接采用下一步，已有句末标点不重复，设定和进展留在后台', () => {
+  for (const sentence of ['先去渡口问路。', '问问守人可曾见过？', '有人在吗?', '先过去看看！', '走吧!', '再等等…']) {
+    assert.equal(ensureSentence('  ' + sentence + '\n'), sentence);
+  }
+  assert.equal(ensureSentence('  先去渡口问路  '), '先去渡口问路。');
+  assert.equal(ensureSentence(' \n '), '');
+  const journey = journeys.createJourney(proposals[0]);
+  journey.所求 = '循着旧约探访远海。';
+  journey.进展 = '已经与渡口守人交谈。';
+  journey.下一步 = '  前往上游船坊，找船户辨认残木。  ';
+  for (const status of ['待启程', '进行中']) {
+    journey.状态 = status;
+    assert.equal(journeys.buildJourneyAction(journey), '前往上游船坊，找船户辨认残木。');
+  }
+  journey.下一步 = '前往上游船坊，找船户辨认残木';
+  assert.equal(journeys.buildJourneyAction(journey), '前往上游船坊，找船户辨认残木。');
+});
+
+test('行旅缺少下一步时依状态落笔，核实猜想只带真实关联线索', () => {
+  const journey = journeys.createJourney(proposals[0]);
+  journey.下一步 = '  ';
+  assert.equal(journeys.buildJourneyAction(journey), '盘算着「望潮书」一事，先在附近寻个由头探探风声。');
+  journey.状态 = '进行中';
+  journey.进展 = '已经问清木片来自上游。；，';
+  assert.equal(
+    journeys.buildJourneyAction(journey),
+    '顺着「望潮书」眼下的眉目（已经问清木片来自上游），继续往下追查。',
+  );
+  journey.进展 = '';
+  assert.equal(journeys.buildJourneyAction(journey), '先把「望潮书」手头的线索理一理，看看下一步从哪儿落脚。');
+  journey.线索.潮痕 = { 内容: '木片上有旧潮痕', 依据: '当面查验', 时地: '渡口' };
+  journey.猜想.来处 = { 内容: '木片来自上游。', 关联线索: ['潮痕', '失效线索'], 状态: '待核实', 依据: '' };
+  const guess = journeys.buildJourneyAction(journey, '来处');
+  assert.match(guess, /木片来自上游。结合手头已知的线索（潮痕：木片上有旧潮痕）/u);
+  assert.doesNotMatch(guess, /失效线索|。。/u);
+  journey.猜想.来处.关联线索 = [];
+  assert.doesNotMatch(journeys.buildJourneyAction(journey, '来处'), /结合手头已知的线索/u);
+});
+
+test('任务与世闻兜底沿用具体下一步，缺少切口时自然探听或静观', () => {
+  assert.equal(buildQuestAction('问舟', { 名称: '问舟', 下一步: '去船坊问问。' }).行动, '去船坊问问。');
+  assert.equal(buildQuestAction('问舟', { 下一步: '去船坊问问' }).行动, '去船坊问问。');
+  assert.equal(buildQuestAction('问舟', {}).行动, '借眼下的空档理一理「问舟」的头绪，看看接下来先办哪一桩。');
+  const event = { 状态: '活跃', 阶段: '征兆', 事件: '药香有异，尚待查证。', 下一步: '核对进货单。' };
+  assert.equal(buildFallbackActions({}, '', { 丹香异变: event })[0].行动, '核对进货单。');
+  const fallback = buildFallbackActions({}, '', { 丹香异变: { ...event, 下一步: '  ' } })[0];
+  assert.equal(fallback.行动, '留意着「丹香异变」的动静，先在近处探听一下风声。');
+  assert.equal(fallback.关联事件ID, '丹香异变');
+  assert.equal(buildFallbackActions({}, '眼前暂静')[0].行动, '暂且按兵不动，先留意周遭的动静与风向。');
 });
 
 test('预设选篇固定ID与版本快照，重复选择保留进展及旧版，其他行旅继续保留', async () => {
@@ -319,7 +373,8 @@ test('暂歇、续行与重开手札保留事实，猜想核实经原行动输�
     assert.equal(journeys.buildJourneyContext(h.data.rawData), '');
     await h.store.resume();
     assert.equal(h.store.current.状态, '进行中');
-    assert.match(h.actions.at(-1)[1], /已与渡口守人交谈/);
+    assert.equal(h.actions.at(-1)[1], proposals[0].step + '。');
+    assert.match(journeys.buildJourneyContext(h.data.rawData), /已与渡口守人交谈/);
     await h.store.addGuess('木片可能来自上游', ['潮痕', '不存在']);
     const guessId = Object.keys(h.store.current.猜想)[0];
     assert.deepEqual(Array.from(h.store.current.猜想[guessId].关联线索), ['潮痕']);
@@ -491,6 +546,9 @@ test('测试版组件与世界书可编译，后台构思不进入提案卡片',
     'JourneyTrail.vue',
     'InlineActionChoices.vue',
     'AffairsPanel.vue',
+    'AffairsActions.vue',
+    'CultivationPanel.vue',
+    'DialogueStage.vue',
     'PseudoCommandDock.vue',
   ]) {
     const filename = path.join(root, 'components', file);
