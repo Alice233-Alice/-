@@ -1,23 +1,5 @@
 <template>
   <div ref="inventoryRoot" class="panel inventory-panel">
-    <section class="inventory-section" data-item-name="灵石" tabindex="-1">
-      <div class="section-header">
-        <div class="section-title"><i class="fa-solid fa-coins"></i> 灵石</div>
-        <span class="spirit-stone-tag">折合下品 {{ formatNumber(getSpiritStoneTotal(store.本尊.灵石)) }}</span>
-      </div>
-      <div class="spirit-stone-grid">
-        <div
-          v-for="grade in SPIRIT_STONE_GRADES"
-          :key="grade"
-          class="spirit-stone-balance"
-          :data-item-name="grade"
-          tabindex="-1"
-        >
-          <span class="spirit-stone-name">{{ grade }}</span>
-          <span class="spirit-stone-count">{{ formatNumber(store.本尊.灵石[grade]) }}<small> 枚</small></span>
-        </div>
-      </div>
-    </section>
     <section v-for="section in sections" :key="section.key" class="inventory-section">
       <div class="section-header">
         <div class="section-title"><i :class="section.icon"></i> {{ section.title }}</div>
@@ -42,6 +24,24 @@
         </div>
       </div>
       <div v-else class="empty-hint">空空如也</div>
+    </section>
+    <section class="inventory-section" data-item-name="灵石" tabindex="-1">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-coins"></i> 灵石</div>
+        <span class="spirit-stone-tag">折合下品 {{ formatNumber(getSpiritStoneTotal(store.本尊.灵石)) }}</span>
+      </div>
+      <div class="spirit-stone-grid">
+        <div
+          v-for="grade in SPIRIT_STONE_GRADES"
+          :key="grade"
+          class="spirit-stone-balance"
+          :data-item-name="grade"
+          tabindex="-1"
+        >
+          <span class="spirit-stone-name">{{ grade }}</span>
+          <span class="spirit-stone-count">{{ formatNumber(store.本尊.灵石[grade]) }}<small> 枚</small></span>
+        </div>
+      </div>
     </section>
   </div>
 </template>
