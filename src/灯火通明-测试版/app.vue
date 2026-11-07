@@ -51,12 +51,18 @@
           v-show="activeView === 'timeline'"
           :active="activeView === 'timeline'"
           :anchor-message-id="timelineAnchorMessageId"
+          :initial-position="reloadedReading"
           :immersive="isImmersive"
           :mobile-layout="isMobileViewport"
           @active-entry="timelineActiveMessageId = $event"
           @edit-message="openTimelineEditor"
         />
-        <PseudoStoryReader v-if="activeView === 'story'" :immersive="isImmersive" :mobile-layout="isMobileViewport" />
+        <PseudoStoryReader
+          v-if="activeView === 'story'"
+          :immersive="isImmersive"
+          :mobile-layout="isMobileViewport"
+          :initial-position="reloadedReading"
+        />
         <PresetPanel v-else-if="activeView === 'preset'" />
         <CultivationPanel v-else-if="activeView === 'cultivation'" />
         <SkillsPanel v-else-if="activeView === 'skills'" />
@@ -154,6 +160,7 @@ import shanhaiArt from './assets/shanhai-scroll.svg?url';
 import starAltarArt from './assets/star-altar-chart.svg?url';
 import { resolveMapAnchor } from '../灯火阑珊/map-system';
 import { createMovingPanelFit } from './moving-panel-fit';
+import { loadReadingPosition, saveReadingPosition } from './reading-position';
 import { inferLayerFromTrack } from './region-utils';
 import { getDangerColor } from './schema';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from './store';
@@ -200,6 +207,9 @@ const readImmersivePreference = (mode: ViewportMode) => {
 const viewportMode = ref<ViewportMode>(getViewportMode());
 const readingMode = computed<ReadingMode>(() => themeStore.readingModes[viewportMode.value]);
 const reloadedView = window.frameElement?.getAttribute('data-dhl-reload-view') as StageView | null;
+const reloadedReading = shallowRef(
+  loadReadingPosition(window.frameElement as HTMLIFrameElement | null, String(SillyTavern.getCurrentChatId() ?? '')),
+);
 const activeView = ref<StageView>(reloadedView || 'gallery');
 window.frameElement?.removeAttribute('data-dhl-reload-view');
 // Prepare the atlas only on first entry; tab changes retain its textures and camera.
@@ -209,7 +219,7 @@ const showReadingSettings = ref(false);
 const showGreetingIndex = ref(false);
 const showRawMessageEditor = ref(false);
 const editorTarget = ref<{ messageId: number; label: string } | null>(null);
-const timelineAnchorMessageId = ref(-1);
+const timelineAnchorMessageId = ref(reloadedReading.value?.messageId ?? -1);
 const timelineActiveMessageId = ref(-1);
 const modeViewport = ref<HTMLElement>();
 const scrollPositions = new Map<StageView, number>();
@@ -534,6 +544,13 @@ const closeRawEditor = () => {
 };
 
 watch(activeView, (next, previous) => {
+  if (isReadingView(previous)) {
+    const position = saveReadingPosition(
+      window.frameElement as HTMLIFrameElement | null,
+      String(SillyTavern.getCurrentChatId() ?? ''),
+    );
+    if (position) reloadedReading.value = position;
+  }
   if (next === 'map') mapOpened.value = true;
   if (!isReadingView(previous) && modeViewport.value) {
     scrollPositions.set(previous, modeViewport.value.scrollTop);
@@ -596,10 +613,6 @@ watch(
     if (isDetachedMode.value) return;
     if (messageId < 0 || messageId === previousMessageId) return;
     if (readingMode.value === 'scroll') {
-      if (timelineAnchorMessageId.value < 0) {
-        timelineAnchorMessageId.value = messageId;
-        timelineActiveMessageId.value = messageId;
-      }
       if (isReadingView(activeView.value)) activeView.value = 'timeline';
       return;
     }
@@ -651,6 +664,7 @@ onMounted(() => {
   scheduleViewportUpdate();
 });
 onBeforeUnmount(() => {
+  saveReadingPosition(window.frameElement as HTMLIFrameElement | null, String(SillyTavern.getCurrentChatId() ?? ''));
   parentChatResizeObserver.disconnect();
   movingPanelFit.dispose();
   pseudoLayerStore.dispose();
