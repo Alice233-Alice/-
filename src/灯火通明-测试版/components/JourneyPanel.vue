@@ -15,7 +15,7 @@
       </button>
     </header>
     <p v-if="!journeys.current && !journeys.panelOpen" class="journey-intro">
-      眼前诸事暂歇时，来这里看看远方。挑一段愿意追寻的经历，也可以写下自己的念头。
+      山河还长，挑一段想走的路，也可写下心里的念头。
     </p>
     <p v-if="journeys.error" class="journey-error" role="alert">{{ journeys.error }}</p>
 
@@ -32,7 +32,7 @@
             rows="2"
             maxlength="600"
             :disabled="journeys.seeking"
-            placeholder="例如：想去大陆之外看看；想与同行之人共历一段往事……"
+            placeholder="例如：想去远海走走，或陪某位故人了却一桩旧愿……"
           ></textarea>
         </label>
         <div class="seeking-controls">
@@ -48,12 +48,12 @@
           </button>
         </div>
         <p v-if="journeys.seeking" class="seeking-note" role="status">
-          <i class="fa-solid fa-circle-notch fa-spin"></i>正在依眼前因缘，构思三条远途……
+          <i class="fa-solid fa-circle-notch fa-spin"></i>正替你寻三条去路……
         </p>
-        <p v-if="journeys.proposalsStale" class="seeking-note">这些提案来自先前场景，重寻后再决定此行。</p>
+        <p v-if="journeys.proposalsStale" class="seeking-note">这是先前寻得的去路，眼下已有变化，重新寻一回再挑吧。</p>
         <div v-if="journeys.proposals.length" class="proposal-grid">
           <article v-for="proposal in journeys.proposals" :key="proposal.name" class="proposal">
-            <span class="eyebrow">一条尚待选择的去路</span>
+            <span class="eyebrow">风传一处去路</span>
             <h3>{{ proposal.name }}</h3>
             <p>{{ proposal.lead }}</p>
             <p class="proposal-goal"><span>远望</span>{{ proposal.goal }}</p>
@@ -115,11 +115,7 @@
           @click="journeys.resume"
         >
           {{
-            journeys.current.状态 === '暂歇'
-              ? '重拾此行'
-              : journeys.current.状态 === '待启程'
-                ? '从此处启程'
-                : '循此起念'
+            journeys.current.状态 === '暂歇' ? '重拾此行' : journeys.current.状态 === '待启程' ? '就此启程' : '循线前行'
           }}
         </button>
         <button
@@ -161,7 +157,7 @@
             </details>
           </article>
           <p v-if="!Object.keys(journeys.current.线索).length" class="journal-empty">
-            沿途确认的发现，会逐渐记在这里。
+            沿途看见、问清的事，会记在这里。
           </p>
           <button v-if="selectedClues.length" type="button" class="quiet-button" @click="journalTab = '猜想'">
             带着 {{ selectedClues.length }} 条线索记一笔
@@ -190,7 +186,7 @@
                 maxlength="600"
                 rows="2"
                 :disabled="journeys.disabled"
-                placeholder="把自己的猜想记下来，再寻找能够核实的办法。"
+                placeholder="记下心头的猜测，待日后寻机印证……"
               ></textarea>
             </label>
             <span v-if="selectedClues.length" class="field-caption">关联：{{ selectedClues.join('、') }}</span>

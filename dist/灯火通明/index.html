@@ -15121,6 +15121,11 @@ var __webpack_modules__ = {
         const props = __props;
         const inventoryRoot = (0, vue__WEBPACK_IMPORTED_MODULE_0__.ref)();
         const store = (0, _store__WEBPACK_IMPORTED_MODULE_1__.useDataStore)();
+        const stoneRates = [ ..._schema__WEBPACK_IMPORTED_MODULE_2__.SPIRIT_STONE_GRADES ].reverse().map(grade => ({
+          grade,
+          count: _schema__WEBPACK_IMPORTED_MODULE_2__.SPIRIT_STONE_WEIGHTS.极品灵石 / _schema__WEBPACK_IMPORTED_MODULE_2__.SPIRIT_STONE_WEIGHTS[grade]
+        }));
+        const stoneRateText = stoneRates.map(rate => `${formatNumber(rate.count)} ${rate.grade}`).join(" = ");
         function resolveItemTier(rankRaw, isTreasure) {
           const text = rankRaw.trim();
           if (/道器|圣|仙|天|先天|神|帝|至尊|极品/u.test(text)) return "heaven";
@@ -15177,6 +15182,8 @@ var __webpack_modules__ = {
           props,
           inventoryRoot,
           store,
+          stoneRates,
+          stoneRateText,
           resolveItemTier,
           extractSectionItems,
           sections,
@@ -22199,19 +22206,36 @@ var __webpack_modules__ = {
       tabindex: "-1"
     };
     const _hoisted_14 = {
-      class: "section-header"
+      class: "spirit-stone-valuation"
     };
-    const _hoisted_15 = {
+    const _hoisted_15 = [ "title" ];
+    const _hoisted_16 = {
       class: "spirit-stone-tag"
     };
-    const _hoisted_16 = {
-      class: "spirit-stone-grid"
+    const _hoisted_17 = {
+      class: "spirit-stone-conversion"
     };
-    const _hoisted_17 = [ "data-item-name" ];
     const _hoisted_18 = {
-      class: "spirit-stone-name"
+      class: "spirit-stone-rate"
     };
     const _hoisted_19 = {
+      key: 0,
+      class: "spirit-stone-equals"
+    };
+    const _hoisted_20 = {
+      class: "spirit-stone-grid"
+    };
+    const _hoisted_21 = [ "data-grade", "data-item-name" ];
+    const _hoisted_22 = {
+      class: "spirit-stone-caption"
+    };
+    const _hoisted_23 = {
+      class: "spirit-stone-name"
+    };
+    const _hoisted_24 = {
+      class: "spirit-stone-value"
+    };
+    const _hoisted_25 = {
       class: "spirit-stone-count"
     };
     function render(_ctx, _cache, $props, $setup, $data, $options) {
@@ -22242,25 +22266,69 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_11, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(item.description), 1) ], 10, _hoisted_5))), 128)) ])) : ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_12, "空空如也")) ]))), 128)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("section", _hoisted_13, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_14, [ _cache[0] || (_cache[0] = (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("details", _hoisted_14, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("summary", {
+        class: "section-header spirit-stone-summary",
+        title: "折算说明：" + $setup.stoneRateText
+      }, [ _cache[2] || (_cache[2] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
-        class: "fa-solid fa-coins"
-      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 灵石") ], -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_15, "折合下品 " + (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber($setup.getSpiritStoneTotal($setup.store.本尊.灵石))), 1) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_16, [ ((0, 
+        class: "fa-solid fa-coins",
+        "aria-hidden": "true"
+      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 灵石") ], -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_16, [ _cache[0] || (_cache[0] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
+        class: "spirit-stone-valuation-label"
+      }, "折合下品", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("strong", null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber($setup.getSpiritStoneTotal($setup.store.本尊.灵石))), 1), _cache[1] || (_cache[1] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("svg", {
+        class: "spirit-stone-chevron",
+        viewBox: "0 0 16 16",
+        "aria-hidden": "true",
+        focusable: "false"
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("path", {
+        d: "m4 6 4 4 4-4"
+      }) ], -1)) ]) ], 8, _hoisted_15), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_17, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("p", _hoisted_18, [ ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), 
+      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.stoneRates, (rate, index) => ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, {
+        key: rate.grade
+      }, [ index ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_19, "＝")) : (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber(rate.count)) + " " + (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(rate.grade), 1) ], 64))), 128)) ]), _cache[3] || (_cache[3] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("p", {
+        class: "spirit-stone-note"
+      }, "四品按实际枚数分别持有，百进制用于估值，兑换随剧情结算。", -1)) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_20, [ ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.SPIRIT_STONE_GRADES, grade => ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
         key: grade,
-        class: "spirit-stone-balance",
+        class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "spirit-stone-balance", {
+          "is-empty": $setup.store.本尊.灵石[grade] === 0
+        } ]),
+        "data-grade": grade,
         "data-item-name": grade,
         tabindex: "-1"
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_18, (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(grade), 1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_19, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)((0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber($setup.store.本尊.灵石[grade])), 1), _cache[1] || (_cache[1] = (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("small", null, " 枚", -1)) ]) ], 8, _hoisted_17))), 128)) ]) ]) ], 512);
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_22, [ _cache[4] || (_cache[4] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
+        class: "spirit-stone-emblem",
+        "aria-hidden": "true"
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("svg", {
+        viewBox: "0 0 28 28",
+        focusable: "false"
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("path", {
+        class: "crystal-face",
+        d: "m14 3 10 8-10 14L4 11Z"
+      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("path", {
+        class: "crystal-facets",
+        d: "M4 11h20M14 3l-5 8 5 14 5-14Z"
+      }) ]) ], -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_23, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(grade), 1) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_24, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_25, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber($setup.store.本尊.灵石[grade])), 1), _cache[5] || (_cache[5] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
+        class: "spirit-stone-unit"
+      }, "枚", -1)) ]) ], 10, _hoisted_21))), 128)) ]) ]) ], 512);
     }
   },
   "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.4/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_d29aa30b0ce151e4a84b6ebc428df4fd/node_modules/ts-loader/index.js??clonedRuleSet-526!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明/components/MobilePortraitButton.vue?vue&type=template&id=5667f042&scoped=true&ts=true"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -29931,7 +29999,7 @@ let __webpack_exports__ = {};
 /*!*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/.pnpm/css-loader@7.1.4_webpack@5.108.4/node_modules/css-loader/dist/cjs.js??clonedRuleSet-531.use[1]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/stylePostLoader.js!./node_modules/.pnpm/postcss-loader@8.2.1_postcs_b407f2231d7881d489cc94d288d8f1c1/node_modules/postcss-loader/dist/cjs.js!./node_modules/.pnpm/sass-loader@17.0.0_sass@1.101.0_webpack@5.108.4/node_modules/sass-loader/dist/cjs/index.js??clonedRuleSet-531.use[3]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明/components/InventoryPanel.vue?vue&type=style&index=0&id=752df61b&lang=scss&scoped=true ***!
   \*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
-.inventory-panel[data-v-752df61b]{display:flex;flex-direction:column;gap:22px;color:var(--text-primary)}.inventory-section[data-v-752df61b]{display:flex;flex-direction:column;gap:10px}.section-header[data-v-752df61b]{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-title[data-v-752df61b]{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--text-accent)}.section-title i[data-v-752df61b]{color:var(--gold)}.spirit-stone-tag[data-v-752df61b]{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border:1px solid color-mix(in srgb,var(--gold) 28%,transparent);border-radius:999px;color:var(--gold);font-size:12px;font-variant-numeric:tabular-nums}.spirit-stone-tag i[data-v-752df61b]{font-size:11px}.spirit-stone-grid[data-v-752df61b]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.spirit-stone-balance[data-v-752df61b]{display:flex;flex-direction:column;gap:7px;min-width:0;padding:12px;border:1px solid color-mix(in srgb,var(--gold) 22%,transparent);border-radius:5px}.spirit-stone-balance[data-v-752df61b]:focus{outline:1px solid var(--gold);outline-offset:3px}.spirit-stone-name[data-v-752df61b]{color:var(--text-secondary);font-size:12px}.spirit-stone-count[data-v-752df61b]{color:var(--gold);font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.spirit-stone-count small[data-v-752df61b]{color:var(--text-secondary);font-size:11px}.items-list[data-v-752df61b]{display:flex;flex-direction:column;gap:8px}.item-strip[data-v-752df61b]{--tier-color:var(--text-secondary);padding:11px 14px;border:1px solid color-mix(in srgb,var(--line-subtle) 55%,transparent);border-left:2px solid color-mix(in srgb,var(--tier-color) 48%,transparent);border-radius:5px;background:linear-gradient(100deg,color-mix(in srgb,var(--tier-color) 4%,transparent),transparent 44%),linear-gradient(90deg,color-mix(in srgb,var(--surface-inset) 24%,transparent),transparent)}.item-strip[data-v-752df61b]:focus{outline:1px solid var(--gold);outline-offset:3px}.item-strip.tier-heaven[data-v-752df61b]{--tier-color:var(--gold)}.item-strip.tier-earth[data-v-752df61b]{--tier-color:var(--jade)}.item-strip.tier-mystic[data-v-752df61b]{--tier-color:var(--semantic-info)}.item-strip.tier-yellow[data-v-752df61b]{--tier-color:var(--semantic-warning)}.item-strip.tier-mortal[data-v-752df61b]{--tier-color:var(--text-secondary)}.item-topline[data-v-752df61b]{display:flex;align-items:center;justify-content:space-between;gap:12px}.item-title-group[data-v-752df61b]{min-width:0;display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:8px}.item-name[data-v-752df61b]{font-size:14px;font-weight:600;color:var(--text-primary)}.item-rank[data-v-752df61b]{padding:0 5px;border-radius:3px;font-size:11px;color:var(--tier-color);background:color-mix(in srgb,var(--tier-color) 8%,transparent)}.item-count[data-v-752df61b]{flex:none;font-size:12px;color:var(--gold-soft);font-variant-numeric:tabular-nums}.item-desc[data-v-752df61b]{margin-top:5px;font-size:12px;line-height:1.6;color:var(--text-secondary)}.empty-hint[data-v-752df61b]{padding:16px 0;text-align:center;font-size:12px;font-style:italic;color:var(--text-secondary);opacity:0.65}@media screen and (max-width:480px){.spirit-stone-grid[data-v-752df61b]{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-panel[data-v-752df61b]{gap:18px}.item-strip[data-v-752df61b]{padding:9px 12px}.item-name[data-v-752df61b]{font-size:13px}.item-desc[data-v-752df61b]{font-size:11.5px}}
+.inventory-panel[data-v-752df61b]{display:flex;flex-direction:column;gap:22px;color:var(--text-primary)}.inventory-section[data-v-752df61b]{display:flex;flex-direction:column;gap:10px}.section-header[data-v-752df61b]{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-title[data-v-752df61b]{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--text-accent)}.section-title i[data-v-752df61b]{color:var(--gold)}.spirit-stone-valuation[data-v-752df61b]{min-width:0}.spirit-stone-summary[data-v-752df61b]{padding:2px 0;border-radius:5px;list-style:none;cursor:pointer}.spirit-stone-summary[data-v-752df61b]::-webkit-details-marker{display:none}.spirit-stone-summary[data-v-752df61b]:focus-visible{outline:2px solid var(--gold);outline-offset:4px}.spirit-stone-summary .section-title[data-v-752df61b]{flex:none}.spirit-stone-tag[data-v-752df61b]{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;min-width:0;padding:4px 10px;border:1px solid color-mix(in srgb,var(--gold) 28%,transparent);border-radius:6px;background:linear-gradient(120deg,color-mix(in srgb,var(--gold) 7%,transparent),transparent);color:var(--gold);font-size:12px;font-variant-numeric:tabular-nums;transition:border-color 160ms ease}.spirit-stone-tag strong[data-v-752df61b]{min-width:0;font-weight:600;overflow-wrap:anywhere}.spirit-stone-valuation-label[data-v-752df61b]{white-space:nowrap}.spirit-stone-chevron[data-v-752df61b]{flex:none;width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;transition:transform 160ms ease}.spirit-stone-valuation[open] .spirit-stone-tag[data-v-752df61b]{border-color:color-mix(in srgb,var(--gold) 55%,transparent)}.spirit-stone-valuation[open] .spirit-stone-chevron[data-v-752df61b]{transform:rotate(180deg)}.spirit-stone-conversion[data-v-752df61b]{margin-top:10px;padding:10px 13px;border:1px solid color-mix(in srgb,var(--gold) 19%,transparent);border-radius:6px;background:linear-gradient(100deg,color-mix(in srgb,var(--gold) 4%,transparent),transparent)}.spirit-stone-rate[data-v-752df61b]{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 7px;margin:0;color:var(--text-primary);font-size:12px;line-height:1.7}.spirit-stone-rate>span[data-v-752df61b]:not(.spirit-stone-equals){white-space:nowrap}.spirit-stone-equals[data-v-752df61b]{color:var(--gold)}.spirit-stone-note[data-v-752df61b]{margin:5px 0 0;color:var(--text-secondary);font-size:11px;line-height:1.7}.spirit-stone-grid[data-v-752df61b]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.spirit-stone-balance[data-v-752df61b]{--stone-color:var(--jade-soft);--stone-tint:8%;--stone-rim:34%;position:relative;isolation:isolate;display:flex;flex-direction:column;gap:17px;min-width:0;padding:12px;overflow:hidden;border:1px solid color-mix(in srgb,var(--stone-color) var(--stone-rim),transparent);border-radius:7px;background:linear-gradient(145deg,color-mix(in srgb,var(--stone-color) var(--stone-tint),transparent),transparent 65%),linear-gradient(0deg,color-mix(in srgb,var(--surface-inset) 18%,transparent),transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--stone-color) 13%,transparent);transition:border-color 180ms ease,box-shadow 180ms ease}.spirit-stone-balance[data-v-752df61b]::before,.spirit-stone-balance[data-v-752df61b]::after{position:absolute;z-index:-1;pointer-events:none;content:""}.spirit-stone-balance[data-v-752df61b]::before{right:-21px;bottom:-39px;width:100px;aspect-ratio:1;border:1px solid color-mix(in srgb,var(--stone-color) 14%,transparent);background:linear-gradient(40deg,color-mix(in srgb,var(--stone-color) 3%,transparent),transparent 70%);transform:rotate(34deg)}.spirit-stone-balance[data-v-752df61b]::after{top:5px;left:5px;width:8px;height:8px;border-top:1px solid color-mix(in srgb,var(--stone-color) 40%,transparent);border-left:1px solid color-mix(in srgb,var(--stone-color) 40%,transparent)}.spirit-stone-balance[data-grade=中品灵石][data-v-752df61b]{--stone-color:var(--jade)}.spirit-stone-balance[data-grade=上品灵石][data-v-752df61b]{--stone-color:color-mix(in srgb,#b39ad8 80%,var(--text-primary))}.spirit-stone-balance[data-grade=极品灵石][data-v-752df61b]{--stone-color:var(--gold)}.spirit-stone-balance.is-empty[data-v-752df61b]{--stone-tint:3%;--stone-rim:17%;box-shadow:none}.spirit-stone-balance.is-empty[data-v-752df61b]::before,.spirit-stone-balance.is-empty[data-v-752df61b]::after{opacity:0.45}.spirit-stone-balance.is-empty .spirit-stone-emblem[data-v-752df61b]{background:color-mix(in srgb,var(--stone-color) 4%,transparent)}.spirit-stone-balance.is-empty .spirit-stone-name[data-v-752df61b],.spirit-stone-balance.is-empty .spirit-stone-count[data-v-752df61b]{color:var(--text-secondary)}.spirit-stone-balance.is-empty .spirit-stone-count[data-v-752df61b]{text-shadow:none}.spirit-stone-balance[data-v-752df61b]:focus{outline:2px solid var(--stone-color);outline-offset:3px}.light-theme .spirit-stone-balance[data-grade=上品灵石][data-v-752df61b]{--stone-color:#77558f}.spirit-stone-caption[data-v-752df61b]{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}.spirit-stone-emblem[data-v-752df61b]{display:inline-flex;flex:none;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid color-mix(in srgb,var(--stone-color) 21%,transparent);border-radius:5px;background:color-mix(in srgb,var(--stone-color) 9%,transparent);color:var(--stone-color)}.spirit-stone-emblem svg[data-v-752df61b]{width:18px;height:18px;stroke:currentColor;stroke-width:1.1;stroke-linejoin:round}.spirit-stone-emblem .crystal-face[data-v-752df61b]{fill:currentColor;fill-opacity:0.12}.spirit-stone-emblem .crystal-facets[data-v-752df61b]{fill:none}.spirit-stone-name[data-v-752df61b]{color:var(--text-primary);font-size:12px;font-weight:500}.spirit-stone-value[data-v-752df61b]{display:flex;align-items:baseline;gap:6px;min-width:0}.spirit-stone-count[data-v-752df61b]{min-width:0;color:var(--stone-color);font-size:25px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums;text-shadow:0 0 20px color-mix(in srgb,var(--stone-color) 18%,transparent);overflow-wrap:anywhere}.spirit-stone-unit[data-v-752df61b]{flex:none;color:var(--text-secondary);font-size:11px}@media (hover:hover){.spirit-stone-summary:hover .spirit-stone-tag[data-v-752df61b]{border-color:color-mix(in srgb,var(--gold) 55%,transparent)}.spirit-stone-balance[data-v-752df61b]:not(.is-empty):hover{border-color:color-mix(in srgb,var(--stone-color) 58%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--stone-color) 24%,transparent)}}.items-list[data-v-752df61b]{display:flex;flex-direction:column;gap:8px}.item-strip[data-v-752df61b]{--tier-color:var(--text-secondary);padding:11px 14px;border:1px solid color-mix(in srgb,var(--line-subtle) 55%,transparent);border-left:2px solid color-mix(in srgb,var(--tier-color) 48%,transparent);border-radius:5px;background:linear-gradient(100deg,color-mix(in srgb,var(--tier-color) 4%,transparent),transparent 44%),linear-gradient(90deg,color-mix(in srgb,var(--surface-inset) 24%,transparent),transparent)}.item-strip[data-v-752df61b]:focus{outline:1px solid var(--gold);outline-offset:3px}.item-strip.tier-heaven[data-v-752df61b]{--tier-color:var(--gold)}.item-strip.tier-earth[data-v-752df61b]{--tier-color:var(--jade)}.item-strip.tier-mystic[data-v-752df61b]{--tier-color:var(--semantic-info)}.item-strip.tier-yellow[data-v-752df61b]{--tier-color:var(--semantic-warning)}.item-strip.tier-mortal[data-v-752df61b]{--tier-color:var(--text-secondary)}.item-topline[data-v-752df61b]{display:flex;align-items:center;justify-content:space-between;gap:12px}.item-title-group[data-v-752df61b]{min-width:0;display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:8px}.item-name[data-v-752df61b]{font-size:14px;font-weight:600;color:var(--text-primary)}.item-rank[data-v-752df61b]{padding:0 5px;border-radius:3px;font-size:11px;color:var(--tier-color);background:color-mix(in srgb,var(--tier-color) 8%,transparent)}.item-count[data-v-752df61b]{flex:none;font-size:12px;color:var(--gold-soft);font-variant-numeric:tabular-nums}.item-desc[data-v-752df61b]{margin-top:5px;font-size:12px;line-height:1.6;color:var(--text-secondary)}.empty-hint[data-v-752df61b]{padding:16px 0;text-align:center;font-size:12px;font-style:italic;color:var(--text-secondary);opacity:0.65}@media screen and (max-width:480px){.spirit-stone-grid[data-v-752df61b]{grid-template-columns:repeat(2,minmax(0,1fr))}.spirit-stone-balance[data-v-752df61b]{gap:14px}.spirit-stone-count[data-v-752df61b]{font-size:23px}.inventory-panel[data-v-752df61b]{gap:18px}.item-strip[data-v-752df61b]{padding:9px 12px}.item-name[data-v-752df61b]{font-size:13px}.item-desc[data-v-752df61b]{font-size:11.5px}}
 /*!****************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/.pnpm/css-loader@7.1.4_webpack@5.108.4/node_modules/css-loader/dist/cjs.js??clonedRuleSet-531.use[1]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/stylePostLoader.js!./node_modules/.pnpm/postcss-loader@8.2.1_postcs_b407f2231d7881d489cc94d288d8f1c1/node_modules/postcss-loader/dist/cjs.js!./node_modules/.pnpm/sass-loader@17.0.0_sass@1.101.0_webpack@5.108.4/node_modules/sass-loader/dist/cjs/index.js??clonedRuleSet-531.use[3]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明/components/PresetPanel.vue?vue&type=style&index=0&id=99c3023c&lang=scss&scoped=true ***!
   \****************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/

@@ -7,7 +7,7 @@
         <div class="brief-domain">{{ displayLayer }}</div>
       </div>
       <div class="brief-desc">
-        <i class="fa-solid fa-quote-left"></i>{{ data.本尊.行踪.环境描述 || '周遭情势尚未明晰。'
+        <i class="fa-solid fa-quote-left"></i>{{ data.本尊.行踪.环境描述 || '此地情形，还待细看。'
         }}<i class="fa-solid fa-quote-right"></i>
       </div>
       <div class="brief-routes">
@@ -21,7 +21,7 @@
           >
             <i class="fa-solid fa-location-dot"></i>{{ connection }}
           </button>
-          <span v-if="!connections.length" class="empty-hint">尚未探明通道</span>
+          <span v-if="!connections.length" class="empty-hint">去路尚待探明</span>
         </div>
       </div>
     </div>
@@ -55,7 +55,7 @@
         </header>
         <p class="task-goal">{{ task.目标 }}</p>
         <p v-if="task.进度" class="task-progress"><span>进展</span>{{ task.进度 }}</p>
-        <p class="task-next"><span>下一步</span>{{ task.下一步 || '结合眼前线索，确认尚待处理的事项。' }}</p>
+        <p class="task-next"><span>下一步</span>{{ task.下一步 || '先理一理手头线索，看看从何处着手。' }}</p>
         <footer>
           <AffairsLinks v-bind="taskReferences[id]" />
           <button
@@ -116,7 +116,7 @@
         </footer>
       </article>
       <div v-if="!events.length" class="calm-state">
-        <p>四野暂静，尚无确切近闻。沿着眼前的人与事，也许能听见新的消息。</p>
+        <p>近来还没听到什么新鲜事，四下走走，或许便有消息。</p>
         <button type="button" class="intent-button" :disabled="affairs.interactionDisabled" @click="askForNews">
           打听近闻
         </button>
@@ -162,6 +162,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { buildQuestAction } from '../action-feed';
+import { ensureSentence } from '../action-text';
 import { focusStageElement, inferTaskReferences, type AffairsFocus } from '../affairs';
 import { inferLayerFromTrack, normalizeRegionName } from '../region-utils';
 import { useDataStore } from '../store';
@@ -220,16 +221,13 @@ const inquireEvent = (event: WorldEventView) => {
   }
   affairs.perform(
     `追查·${event.名称}`,
-    event.下一步
-      ? `围绕「${event.名称}」，尝试从已知线索入手：${event.下一步}`
-      : `留心打探关于「${event.名称}」${event.地点 ? `（${event.地点}）` : ''}的近期动向，核实已知消息，再决定如何介入。`,
+    event.下一步?.trim()
+      ? ensureSentence(event.下一步)
+      : `留心打探「${event.名称}」${event.地点 ? `在${event.地点}一带` : ''}的近况，看看眼下成了什么局面。`,
   );
 };
 const askForNews = () =>
-  affairs.perform(
-    '打听近闻',
-    `在${data.本尊.行踪.当前区域}留心可见动静，在合适的交谈机会询问附近近期值得留意的消息，分辨传闻与已知事实。`,
-  );
+  affairs.perform('打听近闻', `在${data.本尊.行踪.当前区域}四下转转，寻个顺嘴的由头向旁人打听几句近日的新鲜消息。`);
 watch(
   () => props.focus,
   async target => {

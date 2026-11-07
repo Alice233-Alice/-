@@ -1,5 +1,5 @@
 <template>
-  <section class="story-reader" :class="{ streaming: isStoryGenerating }">
+  <section class="story-reader" :class="{ streaming: isStoryGenerating }" :data-reader-message-id="storyMessageId">
     <div v-if="userPrompt" class="turn-context-bar">
       <button
         type="button"
@@ -63,6 +63,7 @@
         <div
           ref="scrollRef"
           class="story-scroll"
+          :data-following="isFollowingStream"
           tabindex="0"
           @scroll="handleStreamScroll"
           @wheel.passive="handleStreamWheel"
@@ -150,10 +151,7 @@
               >
                 <i class="fa-solid fa-code-branch"></i>
                 <span class="variable-label">天道推演</span>
-                <span
-                  v-if="contextPanel !== 'variable' && variableSummaryPills.length"
-                  class="variable-inline-pills"
-                >
+                <span v-if="contextPanel !== 'variable' && variableSummaryPills.length" class="variable-inline-pills">
                   <em v-for="pill in variableSummaryPills" :key="pill" class="variable-inline-pill">{{ pill }}</em>
                 </span>
                 <span class="variable-count">{{ variableStatusLabel }}</span>
@@ -220,6 +218,7 @@ import {
 } from '../message-content';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import { useStreamFollow } from '../composables/use-stream-follow';
+import { restoreReadingPosition, type ReadingPosition } from '../reading-position';
 import BranchChoicePanel from './BranchChoicePanel.vue';
 import GenerationRecoveryPanel from './GenerationRecoveryPanel.vue';
 import InlineActionChoices from './InlineActionChoices.vue';
@@ -228,7 +227,8 @@ import ReasoningDisplay from './ReasoningDisplay.vue';
 import ScenePortraitRail from './ScenePortraitRail.vue';
 import VariableDiagnosticsPanel from './VariableDiagnosticsPanel.vue';
 
-const props = defineProps<{ immersive?: boolean; mobileLayout?: boolean }>();
+const props = defineProps<{ immersive?: boolean; mobileLayout?: boolean; initialPosition?: ReadingPosition | null }>();
+let pendingInitialPosition = props.initialPosition?.view === 'story' ? props.initialPosition : null;
 const pseudo = usePseudoLayerStore();
 const data = useDataStore();
 const appearance = useThemeStore();
@@ -246,6 +246,7 @@ const {
   handlePointerUp: handleStreamPointerUp,
   queueFollow: queueStreamFollow,
   resumeFollowing: resumeStreamFollow,
+  pauseFollowing: pauseStreamFollow,
 } = useStreamFollow(scrollRef);
 type ContextPanel = 'prompt' | 'reasoning' | 'variable';
 
@@ -318,6 +319,24 @@ const currentRawMessage = computed(() =>
 );
 const parsedMessage = computed(() => parseMessageContent(currentRawMessage.value));
 const storyHtml = computed(() => formatNarrativeHtml(parsedMessage.value.narrative, storyMessageId.value));
+watch(
+  [storyHtml, storyMessageId],
+  () => {
+    const saved = pendingInitialPosition;
+    if (!saved || !storyHtml.value || saved.messageId !== storyMessageId.value) return;
+    void nextTick(() => {
+      const element = scrollRef.value;
+      if (!element || !pendingInitialPosition) return;
+      if (saved.following) resumeStreamFollow(false);
+      else {
+        pauseStreamFollow();
+        if (!restoreReadingPosition(element, saved)) element.scrollTop = saved.top;
+      }
+      pendingInitialPosition = null;
+    });
+  },
+  { immediate: true },
+);
 const branchChoices = computed(() => parsedMessage.value.choices);
 const variableDiagnostics = computed(() => extractVariableUpdateDiagnostics(currentRawMessage.value));
 const variableSummaryPills = computed(() => summarizeVariableDiagnostics(variableDiagnostics.value, 3));

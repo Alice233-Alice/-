@@ -5,6 +5,7 @@
       <div
         ref="scrollRef"
         class="timeline-scroll"
+        :data-following="isFollowing"
         tabindex="0"
         @scroll="handleScroll"
         @wheel.passive="handleWheel"
@@ -691,6 +692,7 @@
 <script setup lang="ts">
 import { getCharacterImageCandidates } from '../character-assets';
 import { useStreamFollow } from '../composables/use-stream-follow';
+import { restoreReadingPosition, type ReadingPosition } from '../reading-position';
 import {
   extractVariableUpdateDiagnostics,
   formatMessageHtml,
@@ -714,6 +716,7 @@ import VariableDiagnosticsPanel from './VariableDiagnosticsPanel.vue';
 
 const props = defineProps<{
   anchorMessageId: number;
+  initialPosition?: ReadingPosition | null;
   active: boolean;
   immersive?: boolean;
   mobileLayout?: boolean;
@@ -755,6 +758,8 @@ const LIVE_STORY_REASONING_ID = -1;
 const LIVE_DIALOGUE_REASONING_ID = -2;
 const deleteTarget = ref<{ messageId: number; label: string } | null>(null);
 let initialPositioned = false;
+let pendingInitialPosition = props.initialPosition?.view === 'timeline' ? props.initialPosition : null;
+let positionTarget = props.anchorMessageId;
 type ViewportAnchor = {
   messageId: number | null;
   relativeTop: number;
@@ -913,7 +918,8 @@ const toggleDialogueReasoning = (messageId: number) => {
 const requestInitialPage = () => {
   if (!props.active || !pseudo.controllerReady || pseudo.timelineLoading) return;
   initialPositioned = false;
-  pseudo.resetTimeline(props.anchorMessageId);
+  positionTarget = props.anchorMessageId;
+  pseudo.resetTimeline(positionTarget);
 };
 
 const positionInitialAnchor = () => {
@@ -921,10 +927,21 @@ const positionInitialAnchor = () => {
   void nextTick(() => {
     const element = scrollRef.value;
     if (!props.active || !element || initialPositioned) return;
+    const saved = pendingInitialPosition;
+    pendingInitialPosition = null;
+    if (saved) {
+      if (saved.following) resumeFollowing(false);
+      else {
+        pauseFollowing();
+        if (!restoreReadingPosition(element, saved)) element.scrollTop = saved.top;
+      }
+      initialPositioned = true;
+      return;
+    }
     const anchor =
-      element.querySelector<HTMLElement>(`[data-timeline-id='${props.anchorMessageId}']`) ??
+      element.querySelector<HTMLElement>(`[data-timeline-id='${positionTarget}']`) ??
       element.querySelector<HTMLElement>('[data-timeline-id]:last-of-type');
-    if (props.anchorMessageId === pseudo.view.latestMessageId || !anchor) {
+    if (positionTarget < 0 || positionTarget === pseudo.view.latestMessageId || !anchor) {
       resumeFollowing(false);
       [80, 260].forEach(delay => {
         initialSettleTimers.push(
@@ -1079,7 +1096,7 @@ const updateActiveEntry = () => {
 };
 
 const handleScroll = () => {
-  if (!props.active) return;
+  if (!props.active || !initialPositioned) return;
   handleStreamScroll();
   const element = scrollRef.value;
   if (!element) return;
@@ -1090,6 +1107,8 @@ const handleScroll = () => {
 
 const returnLatest = () => {
   if (pseudo.timelineHasNewer) {
+    pendingInitialPosition = null;
+    positionTarget = pseudo.view.latestMessageId;
     initialPositioned = false;
     pseudo.resetTimeline(pseudo.view.latestMessageId);
     return;

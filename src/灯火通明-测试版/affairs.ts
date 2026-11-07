@@ -3,17 +3,37 @@ import type { SchemaType } from './schema';
 
 export type AffairsSnapshot = Pick<SchemaType, '任务列表' | '世界图志' | '_近期任务结果'>;
 export type AffairsChange = { kind: 'task' | 'event' | 'result'; id: string; title: string; detail: string };
-export type AffairsDestination = { kind: 'task' | 'event' | 'person' | 'place' | 'item'; id: string; nonce: number };
-export type AffairsFocus = { section: 'actions' | 'tasks' | 'events' | 'results'; id?: string; nonce: number };
+export type AffairsDestination = {
+  kind: 'task' | 'event' | 'person' | 'place' | 'item' | 'journey';
+  id: string;
+  nonce: number;
+};
+export type AffairsFocus = {
+  section: 'actions' | 'tasks' | 'events' | 'results' | 'journeys';
+  id?: string;
+  nonce: number;
+};
 
 /** 旧存档缺少关联字段时，仅从原文辨认已收录的完整名称，不写回变量。 */
 export function inferTaskReferences(
-  task: { 名称?: string; 目标?: string; 进度?: string; 下一步?: string; 关联人物?: string[]; 关联地点?: string[]; 关联物品?: string[] },
+  task: {
+    名称?: string;
+    目标?: string;
+    进度?: string;
+    下一步?: string;
+    关联人物?: string[];
+    关联地点?: string[];
+    关联物品?: string[];
+  },
   known: { people: string[]; places: string[]; items: string[] },
 ) {
   const text = [task.名称, task.目标, task.进度, task.下一步].filter(Boolean).join('｜');
   const mentioned = (names: string[]) => [...new Set(names)].filter(name => name.length > 1 && text.includes(name));
-  return { people: task.关联人物 ?? mentioned(known.people), places: task.关联地点 ?? mentioned(known.places), items: task.关联物品 ?? mentioned(known.items) };
+  return {
+    people: task.关联人物 ?? mentioned(known.people),
+    places: task.关联地点 ?? mentioned(known.places),
+    items: task.关联物品 ?? mentioned(known.items),
+  };
 }
 
 export function chooseTrackedTask(tasks: Record<string, TaskSnapshot>, preferred: string): string {

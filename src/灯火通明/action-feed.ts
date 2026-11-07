@@ -17,6 +17,7 @@ export type OpportunityAction = {
   事件性质: ProposalEventNature;
   事件?: string;
   关联事件ID?: string;
+  关联任务ID?: string;
   提示?: string;
 };
 
@@ -28,7 +29,7 @@ export type JsonPatchOperation = {
 
 export type ActionFeedMode = 'full' | 'partial' | 'fallback' | 'none' | 'cleared';
 
-type TaskSnapshot = { 名称?: unknown; 类型?: unknown; 目标?: unknown };
+export type TaskSnapshot = { 名称?: unknown; 类型?: unknown; 目标?: unknown; 下一步?: unknown; 状态?: unknown };
 
 type ResolveActionFeedOptions = {
   operations: JsonPatchOperation[];
@@ -97,6 +98,22 @@ const normalizeActionPayload = (
   return normalizeActionList(payload, companionNames, worldEvents);
 };
 
+export const buildQuestAction = (id: string, task: TaskSnapshot): OpportunityAction => {
+  const name = String(task.名称 || id).trim();
+  const next = String(task.下一步 ?? '').trim();
+  return {
+    标题: next ? `推进「${name}」` : `梳理「${name}」`,
+    行动: next
+      ? `围绕「${name}」，着手处理下一步：${next}`
+      : `结合眼前处境和已经掌握的线索，梳理「${name}」尚待处理的事项，确认可以采取的下一步。`,
+    类型: ({ 每日: '修炼', 临危受命: '战斗' } as const)[String(task.类型) as '每日' | '临危受命'] ?? '探索',
+    叙事类型: '当前行动',
+    事件性质: '无事件',
+    关联任务ID: id,
+    提示: '依据任务当前节点起念，结果随正文展开',
+  };
+};
+
 export const buildFallbackActions = (
   tasks: Record<string, TaskSnapshot>,
   situation: unknown,
@@ -116,28 +133,15 @@ export const buildFallbackActions = (
         },
       ]
     : [];
-  const taskActions = Object.values(tasks)
+  const taskActions = Object.entries(tasks)
+    .filter(([, task]) => !task.状态 || task.状态 === '进行中')
     .slice(0, 2)
-    .flatMap<OpportunityAction>(task => {
+    .flatMap<OpportunityAction>(([id, task]) => {
       const name = String(task.名称 ?? '').trim();
       const target = String(task.目标 ?? '').trim();
       if (!name || !target) return [];
 
-      const typeByTask: Record<string, OpportunityType> = {
-        每日: '修炼',
-        临危受命: '战斗',
-        秘境探索: '探索',
-      };
-      return [
-        {
-          标题: `推进「${name}」`,
-          行动: `继续推进「${name}」：${target}`,
-          类型: typeByTask[String(task.类型 ?? '')] ?? '探索',
-          叙事类型: '当前行动',
-          事件性质: '无事件',
-          提示: '依据进行中任务生成的行动',
-        },
-      ];
+      return [buildQuestAction(id, task)];
     });
   if (eventActions.length > 0 || taskActions.length > 0) return [...eventActions, ...taskActions].slice(0, 3);
   if (!String(situation ?? '').trim()) return [];

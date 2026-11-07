@@ -150,6 +150,12 @@
               >
                 <i class="fa-solid fa-code-branch"></i>
                 <span class="variable-label">天道推演</span>
+                <span
+                  v-if="contextPanel !== 'variable' && variableSummaryPills.length"
+                  class="variable-inline-pills"
+                >
+                  <em v-for="pill in variableSummaryPills" :key="pill" class="variable-inline-pill">{{ pill }}</em>
+                </span>
                 <span class="variable-count">{{ variableStatusLabel }}</span>
                 <i class="fa-solid fa-chevron-down context-chevron"></i>
               </button>
@@ -210,6 +216,7 @@ import {
   parseMessageContent,
   selectReasoningText,
   stripStructuredBlocks,
+  summarizeVariableDiagnostics,
 } from '../message-content';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import { useStreamFollow } from '../composables/use-stream-follow';
@@ -313,6 +320,7 @@ const parsedMessage = computed(() => parseMessageContent(currentRawMessage.value
 const storyHtml = computed(() => formatNarrativeHtml(parsedMessage.value.narrative, storyMessageId.value));
 const branchChoices = computed(() => parsedMessage.value.choices);
 const variableDiagnostics = computed(() => extractVariableUpdateDiagnostics(currentRawMessage.value));
+const variableSummaryPills = computed(() => summarizeVariableDiagnostics(variableDiagnostics.value, 3));
 const variableStatusLabel = computed(() => {
   const diagnostics = variableDiagnostics.value;
   if (!diagnostics) return '';
@@ -530,11 +538,31 @@ defineExpose({ scrollElement: scrollRef });
 }
 
 .variable-inline-trigger {
-  min-height: 31px !important;
-  padding: 0 11px !important;
+  min-height: 34px !important;
+  padding: 4px 12px !important;
+  flex-wrap: wrap;
   border: 1px solid var(--line-subtle) !important;
   border-radius: 999px !important;
   background: color-mix(in srgb, var(--surface-inset) 82%, transparent) !important;
+}
+
+.variable-inline-pills {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.variable-inline-pill {
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--jade) 34%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 10%, var(--surface-inset));
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 550;
+  white-space: nowrap;
 }
 
 .variable-inline-trigger:hover,
@@ -1087,7 +1115,7 @@ defineExpose({ scrollElement: scrollRef });
 
   &.with-portrait {
     grid-template-areas: 'copy portrait';
-    grid-template-columns: minmax(0, 1fr) clamp(250px, 24vw, 350px);
+    grid-template-columns: minmax(0, 1fr) clamp(260px, 23vw, 360px);
   }
 }
 

@@ -15,7 +15,7 @@ const readStorage = (key: string): string | null => {
 };
 
 const submitMode = ref<ActionSubmitMode>(readStorage(SUBMIT_MODE_STORAGE_KEY) === 'direct' ? 'direct' : 'confirm');
-const inlineActionsEnabled = ref(readStorage(INLINE_ACTIONS_STORAGE_KEY) === 'true');
+const inlineActionsEnabled = ref(readStorage(INLINE_ACTIONS_STORAGE_KEY) !== 'false');
 
 const writeStorage = (key: string, value: string, label: string) => {
   if (typeof window === 'undefined') return;

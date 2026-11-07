@@ -5,6 +5,7 @@ import {
   type ProposalEventNature,
 } from './schema';
 import { preservesRelationshipContinuity } from './narrative-continuity';
+import { ensureSentence } from './action-text';
 import { getForegroundWorldEvent, getWorldEventEntries } from './world-events';
 
 export type OpportunityType = '探索' | '交涉' | '战斗' | '修炼' | '整备' | '亲密';
@@ -30,6 +31,24 @@ export type JsonPatchOperation = {
 export type ActionFeedMode = 'full' | 'partial' | 'fallback' | 'none' | 'cleared';
 
 export type TaskSnapshot = { 名称?: unknown; 类型?: unknown; 目标?: unknown; 下一步?: unknown; 状态?: unknown };
+
+/** 只整理展示文字，保留选择行动时提交的原始字段。 */
+export function getActionCopy(action: OpportunityAction) {
+  const seen = new Set<string>();
+  const take = (text: string | undefined) => {
+    const value = text?.trim() ?? '';
+    const key = value.replace(/\s+/gu, ' ').replace(/[。.]+$/u, '');
+    if (!value || seen.has(key)) return '';
+    seen.add(key);
+    return value;
+  };
+  return {
+    title: take(action.标题?.trim() || action.行动),
+    description: take(action.行动),
+    event: take(action.事件),
+    hint: take(action.提示),
+  };
+}
 
 type ResolveActionFeedOptions = {
   operations: JsonPatchOperation[];
@@ -102,15 +121,13 @@ export const buildQuestAction = (id: string, task: TaskSnapshot): OpportunityAct
   const name = String(task.名称 || id).trim();
   const next = String(task.下一步 ?? '').trim();
   return {
-    标题: next ? `推进「${name}」` : `梳理「${name}」`,
-    行动: next
-      ? `围绕「${name}」，着手处理下一步：${next}`
-      : `结合眼前处境和已经掌握的线索，梳理「${name}」尚待处理的事项，确认可以采取的下一步。`,
+    标题: next ? `推进「${name}」` : `理清「${name}」`,
+    行动: next ? ensureSentence(next) : `借眼下的空档理一理「${name}」的头绪，看看接下来先办哪一桩。`,
     类型: ({ 每日: '修炼', 临危受命: '战斗' } as const)[String(task.类型) as '每日' | '临危受命'] ?? '探索',
     叙事类型: '当前行动',
     事件性质: '无事件',
     关联任务ID: id,
-    提示: '依据任务当前节点起念，结果随正文展开',
+    提示: '顺着此事眼下的脉络往下走',
   };
 };
 
@@ -124,7 +141,9 @@ export const buildFallbackActions = (
     ? [
         {
           标题: `留意「${foregroundEvent.名称}」`,
-          行动: `先从眼前可见的动静入手，了解「${foregroundEvent.名称}」的最新变化，再决定是否介入。`,
+          行动: foregroundEvent.下一步?.trim()
+            ? ensureSentence(foregroundEvent.下一步)
+            : `留意着「${foregroundEvent.名称}」的动静，先在近处探听一下风声。`,
           类型: '探索',
           叙事类型: '回应事件',
           事件性质: '回应已发生事件',
@@ -149,11 +168,11 @@ export const buildFallbackActions = (
   return [
     {
       标题: '静观其变',
-      行动: '继续观察当前局势，并根据眼前变化决定下一步。',
+      行动: '暂且按兵不动，先留意周遭的动静与风向。',
       类型: '探索',
       叙事类型: '平淡延续',
       事件性质: '无事件',
-      提示: '依据当前处境提供的行动',
+      提示: '静看局势变化',
     },
   ];
 };

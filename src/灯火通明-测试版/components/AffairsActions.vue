@@ -2,7 +2,7 @@
   <section v-if="!inline || shouldShowInline" class="affairs-actions" :class="{ inline }" aria-label="此刻可为">
     <header v-if="inline" class="inline-heading">
       <span class="heading-rule"></span><span class="heading-title"><i class="fa-solid fa-compass"></i>接下来</span
-      ><span class="heading-note">{{ submitMode === 'direct' ? '选择后直接推演' : '选择后填入行动栏' }}</span
+      ><span class="heading-note">{{ submitMode === 'direct' ? '点选后直接推演' : '先填入行动栏，改好再发' }}</span
       ><span class="heading-rule"></span>
     </header>
     <header v-else class="section-heading">
@@ -24,14 +24,14 @@
               v-model="inlineActionsEnabled"
               type="checkbox"
               @change="setInlineActionsEnabled(inlineActionsEnabled)"
-            />附于正文末尾</label
+            />也显示在正文后</label
           >
           <label
             >选择行动后<select
               :value="submitMode"
               @change="setSubmitMode(($event.target as HTMLSelectElement).value as ActionSubmitMode)"
             >
-              <option value="confirm">填入行动栏</option>
+              <option value="confirm">先填入行动栏</option>
               <option value="direct">直接推演</option>
             </select></label
           >
@@ -64,8 +64,8 @@
     </details>
     <div v-if="data.启用行动提示" class="action-list">
       <article
-        v-for="(action, index) in affairs.actions"
-        :key="getActionKey(action, index)"
+        v-for="{ action, key, copy } in actionCards"
+        :key="key"
         class="action-card"
         :class="`type-${action.类型}`"
       >
@@ -77,10 +77,10 @@
         >
           <span class="action-icon"><i :class="getActionIcon(action.类型)"></i></span>
           <span class="action-copy"
-            ><strong>{{ action.标题 || action.行动 }}</strong
-            ><span v-if="action.标题">{{ action.行动 }}</span
-            ><span v-if="action.事件" class="action-event">{{ action.事件 }}</span
-            ><small v-if="action.提示">{{ action.提示 }}</small></span
+            ><strong>{{ copy.title }}</strong
+            ><span v-if="copy.description">{{ copy.description }}</span
+            ><span v-if="copy.event" class="action-event">{{ copy.event }}</span
+            ><small v-if="copy.hint">{{ copy.hint }}</small></span
           >
           <span class="action-type">{{ action.类型 }}</span
           ><i class="fa-solid" :class="submitMode === 'direct' ? 'fa-paper-plane' : 'fa-angle-right'"></i>
@@ -102,17 +102,21 @@
           </button>
         </div>
       </article>
-      <p v-if="!affairs.actions.length" class="quiet">眼前尚无明确方向，可继续观察，也可自行起念。</p>
+      <p v-if="!affairs.actions.length" class="quiet">眼下暂无紧要动静，不妨四下走走，或自己定个去处。</p>
     </div>
     <div v-if="!inline" class="quick-actions">
-      <span>{{ submitMode === 'direct' ? '点选后推演' : '点选后填入，可继续修改' }}</span>
-      <button type="button" :disabled="affairs.interactionDisabled" @click="affairs.perform('继续', '继续当前剧情。')">
+      <span>{{ submitMode === 'direct' ? '点选后直接推演' : '点选后先填入行动栏，改好再发' }}</span>
+      <button
+        type="button"
+        :disabled="affairs.interactionDisabled"
+        @click="affairs.perform('继续', '顺着眼下的话头与局势继续往下走。')"
+      >
         <i class="fa-solid fa-forward-step"></i>继续
       </button>
       <button
         type="button"
         :disabled="affairs.interactionDisabled"
-        @click="affairs.perform('随机', '根据当前处境随机采取一个合理行动。')"
+        @click="affairs.perform('随机', '顺着眼下境遇，随心走一步看看。')"
       >
         <i class="fa-solid fa-dice"></i>随机
       </button>
@@ -124,7 +128,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-import { getActionIcon, getActionKey } from '../action-feed';
+import { getActionCopy, getActionIcon, getActionKey } from '../action-feed';
 import { useActionPreferences, type ActionSubmitMode } from '../action-preferences';
 import { useDataStore, usePseudoLayerStore } from '../store';
 import { useAffairsStore } from '../stores/affairs-store';
@@ -132,6 +136,13 @@ defineProps<{ inline?: boolean }>();
 const data = useDataStore();
 const pseudo = usePseudoLayerStore();
 const affairs = useAffairsStore();
+const actionCards = computed(() =>
+  affairs.actions.map((action, index) => ({
+    action,
+    key: getActionKey(action, index),
+    copy: getActionCopy(action),
+  })),
+);
 const { submitMode, inlineActionsEnabled, setSubmitMode, setInlineActionsEnabled } = useActionPreferences();
 const shouldShowInline = computed(
   () =>

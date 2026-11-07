@@ -241,6 +241,21 @@
                     <strong>天道推演</strong>
                     <small>因果流转 · 变数落定</small>
                   </span>
+                  <span
+                    v-if="
+                      !isContextOpen(entry.representativeMessageId, 'variable') &&
+                      storyVariableSummaryPills(storyReasoningRawMessage(entry)).length
+                    "
+                    class="variable-shell-pills"
+                  >
+                    <em
+                      v-for="pill in storyVariableSummaryPills(storyReasoningRawMessage(entry))"
+                      :key="pill"
+                      class="variable-pill"
+                    >
+                      {{ pill }}
+                    </em>
+                  </span>
                   <span class="variable-shell-count">
                     {{ variableStatusLabel(storyDiagnostics(storyReasoningRawMessage(entry))) }}
                   </span>
@@ -619,6 +634,12 @@
                 <strong>天道推演</strong>
                 <small>因果流转 · 变数落定</small>
               </span>
+              <span
+                v-if="!isContextOpen(LIVE_STORY_REASONING_ID, 'variable') && liveVariableSummaryPills.length"
+                class="variable-shell-pills"
+              >
+                <em v-for="pill in liveVariableSummaryPills" :key="pill" class="variable-pill">{{ pill }}</em>
+              </span>
               <span class="variable-shell-count">{{ variableStatusLabel(liveVariableDiagnostics) }}</span>
               <i class="fa-solid fa-chevron-down variable-shell-chevron"></i>
             </button>
@@ -678,6 +699,7 @@ import {
   parseMessageContent,
   selectReasoningText,
   stripStructuredBlocks,
+  summarizeVariableDiagnostics,
 } from '../message-content';
 import type { PseudoLayerTimelineEntry } from '../pseudo-layer-protocol';
 import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
@@ -775,6 +797,7 @@ const liveStoryHtml = computed(() =>
 );
 const liveBranchChoices = computed(() => liveMessageContent.value.choices);
 const liveVariableDiagnostics = computed(() => extractVariableUpdateDiagnostics(pseudo.streamText));
+const liveVariableSummaryPills = computed(() => summarizeVariableDiagnostics(liveVariableDiagnostics.value, 3));
 const liveDialogueHtml = computed(() => formatMessageHtml(pseudo.streamText, pseudo.view.latestMessageId));
 const liveStatus = computed(() => pseudo.generationLabel);
 const isRerollTargetTurn = (messageId: number) => pseudo.isRerolling && messageId === pseudo.rerollTargetMessageId;
@@ -813,6 +836,7 @@ const dialogueVisible = (text: string) => parseMessageContent(text).dialogue;
 const formatDialogue = (text: string, messageId: number) =>
   formatMessageHtml(parseMessageContent(text).dialogue.dialogue, messageId);
 const storyDiagnostics = (text: string) => extractVariableUpdateDiagnostics(text);
+const storyVariableSummaryPills = (text: string) => summarizeVariableDiagnostics(storyDiagnostics(text), 3);
 const variableStatusLabel = (diagnostics: ReturnType<typeof extractVariableUpdateDiagnostics>) => {
   if (!diagnostics) return '';
   if (!diagnostics.isComplete) return '接收中';
@@ -1220,7 +1244,7 @@ onBeforeUnmount(() => {
 
 .timeline-reader.with-portrait {
   grid-template-areas: 'copy portrait';
-  grid-template-columns: minmax(0, 1fr) clamp(250px, 24vw, 350px);
+  grid-template-columns: minmax(0, 1fr) clamp(260px, 23vw, 360px);
 }
 
 .timeline-reader::before {
@@ -1860,9 +1884,11 @@ onBeforeUnmount(() => {
 
 .entry-context button.variable-shell {
   position: relative;
-  width: min(100%, 260px);
+  width: auto;
+  max-width: 100%;
+  min-width: 240px;
   min-height: 46px;
-  padding: 5px 10px 5px 5px;
+  padding: 5px 12px 5px 5px;
   gap: 9px;
   overflow: hidden;
   border-color: color-mix(in srgb, var(--jade) 34%, var(--line-subtle));
@@ -1880,6 +1906,26 @@ onBeforeUnmount(() => {
     inset -18px 0 32px color-mix(in srgb, var(--stage-shadow) 12%, transparent),
     0 7px 20px color-mix(in srgb, var(--stage-shadow) 24%, transparent);
   isolation: isolate;
+}
+
+.variable-shell-pills {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-left: 4px;
+}
+
+.variable-pill {
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--jade) 34%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--jade);
+  background: color-mix(in srgb, var(--jade) 10%, var(--surface-inset));
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 550;
+  white-space: nowrap;
 }
 
 .entry-context button.variable-shell::before {
