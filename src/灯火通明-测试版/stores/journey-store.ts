@@ -200,6 +200,13 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     write(state => {
       state.行旅.当前追踪 = '';
     });
+  const removeJourney = (id: string) =>
+    write(state => {
+      if (!state.行旅.旅程[id]) throw new Error('这段行旅已经不存在。');
+      delete state.行旅.旅程[id];
+      delete state.$行旅蓝图[id];
+      if (state.行旅.当前追踪 === id) state.行旅.当前追踪 = '';
+    });
   const addGuess = async (content: string, clues: string[]) => {
     const text = content.trim().slice(0, 600);
     if (!text || !current.value) return false;
@@ -236,6 +243,7 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     pause,
     resume,
     untrack,
+    removeJourney,
     addGuess,
     verifyGuess,
   };

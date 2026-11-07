@@ -202,20 +202,58 @@
         </div>
       </div>
     </article>
-    <details v-if="Object.keys(journeys.archive.旅程).length" class="saved-journeys">
+    <details v-if="Object.keys(journeys.archive.旅程).length" class="saved-journeys" :open="!journeys.current">
       <summary>走过与未竟的行旅 · {{ Object.keys(journeys.archive.旅程).length }}</summary>
+      <p class="saved-hint">结束追踪会保留记录，可在这里翻看或清理。</p>
       <div v-for="[id, entry] in Object.entries(journeys.archive.旅程).reverse()" :key="id" class="saved-journey">
-        <span
-          ><strong>{{ entry.名称 }}</strong
-          ><small>{{ entry.状态 }}</small></span
-        ><button
-          type="button"
-          class="quiet-button"
-          :disabled="journeys.disabled || id === journeys.currentId"
-          @click="journeys.track(id)"
+        <div class="saved-journey-row">
+          <span
+            ><strong>{{ entry.名称 }}</strong
+            ><small>{{ entry.状态 }}</small></span
+          >
+          <div class="saved-journey-actions">
+            <button
+              type="button"
+              class="quiet-button"
+              :disabled="journeys.disabled || id === journeys.currentId"
+              @click="journeys.track(id)"
+            >
+              {{ id === journeys.currentId ? '当前追踪' : '翻开此行' }}
+            </button>
+            <button
+              type="button"
+              class="quiet-button clear-record"
+              :disabled="journeys.disabled"
+              :aria-expanded="cleanupId === id"
+              @click="cleanupId = cleanupId === id ? '' : id"
+            >
+              清理记录
+            </button>
+          </div>
+        </div>
+        <div
+          v-if="cleanupId === id"
+          class="cleanup-confirm"
+          role="group"
+          aria-label="清理行旅确认"
+          @keydown.esc="cleanupId = ''"
         >
-          {{ id === journeys.currentId ? '当前追踪' : '翻开此行' }}
-        </button>
+          <p>确认清理「{{ entry.名称 }}」？这段行旅、线索、纪事、猜想与剧情构思会从当前存档移除。</p>
+          <p>既有正文、任务与世闻继续保留；回看旧楼层仍可见当时的行旅记录。</p>
+          <div class="journey-controls">
+            <button
+              type="button"
+              class="quiet-button clear-record"
+              :disabled="journeys.disabled"
+              @click="clearSavedJourney(id)"
+            >
+              确认清理
+            </button>
+            <button type="button" class="quiet-button" :disabled="journeys.saving" @click="cleanupId = ''">
+              保留记录
+            </button>
+          </div>
+        </div>
       </div>
     </details>
   </section>
@@ -232,18 +270,20 @@ const data = useDataStore();
 const journalTab = ref<'线索' | '纪事' | '猜想'>('线索');
 const selectedClues = ref<string[]>([]);
 const guess = ref('');
-watch(
-  () => journeys.currentId,
-  () => {
-    selectedClues.value = [];
-    guess.value = '';
-  },
-);
+const cleanupId = ref('');
+watch([() => journeys.currentId, () => data.viewedMessageId], () => {
+  selectedClues.value = [];
+  guess.value = '';
+  cleanupId.value = '';
+});
 const saveGuess = async () => {
   if (await journeys.addGuess(guess.value, selectedClues.value)) {
     guess.value = '';
     selectedClues.value = [];
   }
+};
+const clearSavedJourney = async (id: string) => {
+  if (await journeys.removeJourney(id)) cleanupId.value = '';
 };
 </script>
 
@@ -257,7 +297,7 @@ const saveGuess = async () => {
 .journey-heading,
 .current-heading,
 .seeking-controls,
-.saved-journey {
+.saved-journey-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -566,6 +606,29 @@ input[type='checkbox'] {
 }
 .saved-journey small {
   margin-left: 10px;
+}
+.saved-hint {
+  margin-top: 12px;
+  line-height: 1.8;
+}
+.saved-journey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.clear-record {
+  color: var(--semantic-danger);
+}
+.cleanup-confirm {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--semantic-danger) 35%, var(--line-subtle));
+  border-radius: 5px;
+  background: var(--surface-inset);
+  line-height: 1.9;
+}
+.cleanup-confirm p + p {
+  margin-top: 6px;
 }
 @media (max-width: 850px) {
   .proposal-grid {

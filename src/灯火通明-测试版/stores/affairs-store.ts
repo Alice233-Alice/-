@@ -12,6 +12,7 @@ import { useActionPreferences } from '../action-preferences';
 import { Schema } from '../schema';
 import { useDataStore } from './data-store';
 import { usePseudoLayerStore } from './pseudo-layer-store';
+import { useJourneyStore } from './journey-store';
 
 const HISTORY_PAGE_SIZE = 32;
 
@@ -19,6 +20,7 @@ export const useAffairsStore = defineStore('bright-test-affairs', () => {
   const data = useDataStore();
   const pseudo = usePseudoLayerStore();
   const preferences = useActionPreferences();
+  const journeys = useJourneyStore();
   const storageKey = `dhl-affairs:tracked:${SillyTavern.getCurrentChatId()}`;
   const readPreference = () => {
     try {
@@ -87,7 +89,11 @@ export const useAffairsStore = defineStore('bright-test-affairs', () => {
   );
   const changes = computed(() => (data.rawData ? describeAffairsChanges(before.value, data.rawData) : []));
   const interactionDisabled = computed(
-    () => pseudo.isGenerating || (pseudo.isDetachedMode ? !pseudo.isNativeLatest : !pseudo.isStoryHistoryLatest),
+    () =>
+      pseudo.isGenerating ||
+      journeys.seeking ||
+      journeys.saving ||
+      (pseudo.isDetachedMode ? !pseudo.isNativeLatest : !pseudo.isStoryHistoryLatest),
   );
   const track = (id: string) => {
     if (interactionDisabled.value || !data.任务列表[id]) return;

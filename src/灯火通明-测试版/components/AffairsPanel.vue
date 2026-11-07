@@ -25,6 +25,7 @@
         </div>
       </div>
     </div>
+    <JourneyPanel />
     <div data-affairs-section="actions" tabindex="-1"><AffairsActions /></div>
     <section data-affairs-section="tasks" tabindex="-1" class="ledger-section">
       <h2>
@@ -167,6 +168,7 @@ import { useDataStore } from '../store';
 import { useAffairsStore } from '../stores/affairs-store';
 import { eventParticipationLabelMap, selectWorldEventsForDisplay, type WorldEventView } from '../world-events';
 import AffairsActions from './AffairsActions.vue';
+import JourneyPanel from './JourneyPanel.vue';
 import AffairsLinks from './AffairsLinks.vue';
 const props = defineProps<{ focus?: AffairsFocus | null }>();
 const root = ref<HTMLElement>();

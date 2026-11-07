@@ -474,7 +474,10 @@ watch(
   () => affairs.navigation,
   target => {
     if (!target) return;
-    if (target.kind === 'task' || target.kind === 'event') {
+    if (target.kind === 'journey') {
+      affairsFocus.value = { section: 'journeys', id: target.id, nonce: target.nonce };
+      openView('affairs');
+    } else if (target.kind === 'task' || target.kind === 'event') {
       affairsFocus.value = {
         section: target.kind === 'event' ? 'events' : store.任务列表[target.id] ? 'tasks' : 'results',
         id: target.id,
@@ -495,8 +498,13 @@ watch(
 );
 watch(
   isDetachedMode,
-  detached => {
-    activeView.value = detached ? 'gallery' : readingViewForMode(readingMode.value);
+  (detached, previous) => {
+    activeView.value =
+      previous === undefined && !detached && reloadedView
+        ? reloadedView
+        : detached
+          ? 'gallery'
+          : readingViewForMode(readingMode.value);
     if (!detached) restoreReadingPreference();
   },
   { immediate: true },
