@@ -364,7 +364,7 @@ test('生成或编辑进行中拒绝脱离，延迟停放任务在待命时不�
   host.reconcile();
 });
 
-function appHarness(detached = false, latest = true, viewportWidth = 1200) {
+function appHarness(detached = false, latest = true, viewportWidth = 1200, reloadedView = null) {
   const { parse, compileScript } = require('vue/compiler-sfc');
   const filename = 'src/灯火通明-测试版/app.vue';
   const descriptor = parse(fs.readFileSync(filename, 'utf8'), { filename }).descriptor;
@@ -377,6 +377,7 @@ function appHarness(detached = false, latest = true, viewportWidth = 1200) {
     controllerReady: true,
     generationState: 'idle',
     isLatest: true,
+    isStoryHistoryLatest: true,
     dialogueDrawerOpen: false,
     view: { ...stageView },
     selectHistory() {},
@@ -402,7 +403,10 @@ function appHarness(detached = false, latest = true, viewportWidth = 1200) {
     _: require('lodash'),
     onMounted() {},
     onBeforeUnmount() {},
-    window: { parent: { innerWidth: viewportWidth, innerHeight: 900 } },
+    window: {
+      parent: { innerWidth: viewportWidth, innerHeight: 900 },
+      frameElement: { getAttribute: () => reloadedView, removeAttribute() {} },
+    },
     localStorage: { getItem: () => null, setItem() {} },
     SillyTavern: { getCurrentChatId: () => 'test-chat' },
     ResizeObserver: class {
@@ -414,6 +418,8 @@ function appHarness(detached = false, latest = true, viewportWidth = 1200) {
       if (id === './store')
         return { useDataStore: () => data, usePseudoLayerStore: () => pseudo, useThemeStore: () => theme };
       if (id === './moving-panel-fit') return { createMovingPanelFit: () => ({ sync() {}, dispose() {} }) };
+      if (id === './stores/affairs-store') return { useAffairsStore: () => vue.reactive({ navigation: null }) };
+      if (id === './affairs') return { readingViewForMode: mode => (mode === 'scroll' ? 'timeline' : 'story') };
       if (id === './schema') return { getDangerColor: () => '#999' };
       if (id === '../灯火阑珊/map-system') return { resolveMapAnchor: () => null };
       if (id === './region-utils') return { inferLayerFromTrack: () => ({}) };
@@ -426,19 +432,19 @@ function appHarness(detached = false, latest = true, viewportWidth = 1200) {
   return { app, pseudo, data, close: () => scope.stop() };
 }
 
-test('双模式默认首页均为图鉴，图鉴排在世闻之前，历史楼层默认折叠且暂停图片预加载', () => {
+test('伪同层进入阅读、原生默认图鉴，行事合并任务与世闻，历史楼层默认折叠', () => {
   for (const detached of [false, true]) {
     const h = appHarness(detached);
     try {
-      assert.equal(h.app.activeView.value, 'gallery');
+      assert.equal(h.app.activeView.value, detached ? 'gallery' : 'story');
       assert.ok(
         h.app.tabs.value.findIndex(tab => tab.id === 'gallery') <
-          h.app.tabs.value.findIndex(tab => tab.id === 'actions'),
+          h.app.tabs.value.findIndex(tab => tab.id === 'affairs'),
       );
       if (detached) {
         assert.ok(h.app.tabs.value.every(tab => !['story', 'timeline'].includes(tab.id)));
-        assert.equal(h.app.tabs.value[4].id, 'trace');
-        assert.equal(h.app.tabs.value[6].id, 'inventory');
+        assert.equal(h.app.tabs.value[1].id, 'affairs');
+        assert.equal(h.app.tabs.value[5].id, 'inventory');
         assert.equal(h.data.viewed, 2);
       }
     } finally {
@@ -464,21 +470,34 @@ test('双模式默认首页均为图鉴，图鉴排在世闻之前，历史楼�
   }
 });
 
-test('生成完成后回到图鉴，控制器切换阅读锚点不会把图鉴首页挤走', async () => {
+test('生成切入正文并保持阅读，查看图鉴时切换锚点不会挤走页面', async () => {
   const h = appHarness();
   try {
+    h.app.activeView.value = 'affairs';
     h.pseudo.generationState = 'generating';
     await vue.nextTick();
-    assert.equal(h.app.activeView.value, 'gallery');
+    assert.equal(h.app.activeView.value, 'story');
     h.app.activeView.value = 'story';
     await vue.nextTick();
     h.pseudo.generationState = 'idle';
     await vue.nextTick();
-    assert.equal(h.app.activeView.value, 'gallery');
+    assert.equal(h.app.activeView.value, 'story');
+    h.app.activeView.value = 'gallery';
     h.pseudo.view.selectedMessageId = 0;
     await vue.nextTick();
     assert.equal(h.app.activeView.value, 'gallery');
   } finally {
     h.close();
+  }
+});
+
+test('自动投射后保留行事面板，原生楼层维持图鉴入口', () => {
+  for (const detached of [false, true]) {
+    const h = appHarness(detached, true, 1200, 'affairs');
+    try {
+      assert.equal(h.app.activeView.value, detached ? 'gallery' : 'affairs');
+    } finally {
+      h.close();
+    }
   }
 });
