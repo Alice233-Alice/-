@@ -12,6 +12,7 @@ require('ts-node').register({ project: 'tsconfig.schema-test.json', files: true,
 global._ = lodash;
 const { Schema } = require('../src/灯火通明-测试版/schema');
 const journeys = require('../src/灯火通明-测试版/journey');
+const cloudStories = require('../src/灯火通明-测试版/cloud-stories');
 const { executeUpdateVariable, makeUpdateVariable } = require('./lantern-mvu-harness');
 const { guardParsedCommands } = require('../src/灯火阑珊-变量结构/guard');
 const root = 'src/灯火通明-测试版/';
@@ -82,6 +83,7 @@ function harness(options = {}) {
       if (id === 'klona') return require('klona');
       if (id === '../action-preferences') return { useActionPreferences: () => ({ submitMode }) };
       if (id === '../journey') return journeys;
+      if (id === '../cloud-stories') return cloudStories;
       if (id === '../../灯火阑珊/schema/journeys') return require('../src/灯火阑珊/schema/journeys');
       if (id === '../schema') return { Schema };
       if (id === './data-store') return { useDataStore: () => data };
@@ -131,6 +133,67 @@ test('提案完整校验，旧存档获得空行旅，候选保持待证意向',
   assert.equal(chosen.状态, '待启程');
   assert.deepEqual(chosen.线索, {});
   assert.deepEqual(chosen.纪事, {});
+});
+
+test('预设选篇固定ID与版本快照，重复选择保留进展及旧版，其他行旅继续保留', async () => {
+  const { blueprintFile, ...metadata } = require('../examples/cloud-stories/sample.json');
+  const story = { ...metadata, blueprint: fs.readFileSync('examples/cloud-stories/' + blueprintFile, 'utf8') };
+  const h = harness({ state: { 行旅: { 当前追踪: '旧旅', 旅程: { 旧旅: journeys.createJourney(proposals[0]) } } } });
+  try {
+    assert.equal(await h.store.chooseStory(story), true);
+    const id = cloudStories.cloudJourneyId(story.id);
+    assert.equal(h.store.currentId, id);
+    assert.equal(h.store.current.状态, '待启程');
+    assert.equal(h.actions.length, 1);
+    assert.equal(cloudStories.readStorySnapshot(h.data.rawData.$行旅蓝图[id]).revision, 1);
+    assert.ok(h.data.rawData.行旅.旅程.旧旅);
+    h.records.get(2).stat_data.行旅.旅程[id].进展 = '已查验登记簿';
+    h.records.get(2).stat_data.行旅.旅程[id].状态 = '进行中';
+    h.data.viewMessage(2);
+    assert.equal(await h.store.chooseStory({ ...story, revision: 2, blueprint: '云端的新稿' }), true);
+    assert.equal(h.actions.length, 1);
+    assert.equal(h.store.current.进展, '已查验登记簿');
+    assert.equal(Object.keys(h.store.archive.旅程).length, 2);
+    assert.equal(cloudStories.readStorySnapshot(h.data.rawData.$行旅蓝图[id]).revision, 1);
+    const context = journeys.buildJourneyContext(h.data.rawData);
+    assert.match(context, /作者预设蓝图|固定核心真相|灯底旧骨/);
+    assert.doesNotMatch(context, /云端的新稿/);
+    await h.store.pause();
+    assert.equal(journeys.buildJourneyContext(h.data.rawData), '');
+    await h.store.resume();
+    assert.equal(h.store.current.状态, '进行中');
+    assert.match(journeys.buildJourneyContext(h.data.rawData), /已查验登记簿/);
+  } finally {
+    h.close();
+  }
+});
+
+test('预设选篇沿用历史楼层与生成锁定，非法文稿不写入MVU', async () => {
+  const h = harness();
+  const story = {
+    id: 'locked',
+    revision: 1,
+    name: '测试故事',
+    genres: ['恐怖'],
+    length: '短篇',
+    lead: '待证传闻',
+    goal: '调查异常',
+    step: '先问路人',
+    blueprint: '幕后真相',
+  };
+  try {
+    h.pseudo.isStoryHistoryLatest = false;
+    assert.equal(await h.store.chooseStory(story), false);
+    h.pseudo.isStoryHistoryLatest = true;
+    h.pseudo.isGenerating = true;
+    assert.equal(await h.store.chooseStory(story), false);
+    h.pseudo.isGenerating = false;
+    assert.equal(await h.store.chooseStory({ ...story, id: '../invalid' }), false);
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.actions.length, 0);
+  } finally {
+    h.close();
+  }
 });
 
 test('寻途为独立预览请求，过滤禁用设定，不写正文与MVU', async () => {
@@ -423,6 +486,8 @@ test('测试版组件与世界书可编译，后台构思不进入提案卡片',
   const { parse, compileScript, compileTemplate } = require('vue/compiler-sfc');
   for (const file of [
     'JourneyPanel.vue',
+    'CloudStoriesPanel.vue',
+    'CloudStoryManager.vue',
     'JourneyTrail.vue',
     'InlineActionChoices.vue',
     'AffairsPanel.vue',

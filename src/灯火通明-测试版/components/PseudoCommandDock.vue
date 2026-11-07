@@ -32,7 +32,7 @@
           <button
             type="button"
             class="active"
-            :disabled="pseudo.isGenerating"
+            :disabled="pseudo.isGenerating || journeys.seeking || journeys.saving"
             title="普通剧情推演"
             @click="chooseStory"
           >
@@ -41,7 +41,7 @@
           <button
             type="button"
             :class="{ active: pseudo.dialogueDrawerOpen }"
-            :disabled="pseudo.isGenerating"
+            :disabled="pseudo.isGenerating || journeys.seeking || journeys.saving"
             title="与角色直接交谈"
             @click="chooseDialogue"
           >
@@ -59,8 +59,14 @@
           ref="textareaRef"
           v-model="pseudo.draftPrompt"
           rows="1"
-          :disabled="pseudo.isGenerating"
-          :placeholder="pseudo.isGenerating ? pseudo.generationWaitingText : '写下此刻想做的事……'"
+          :disabled="pseudo.isGenerating || journeys.seeking || journeys.saving"
+          :placeholder="
+            journeys.seeking
+              ? '正在寻途，稍后起念……'
+              : pseudo.isGenerating
+                ? pseudo.generationWaitingText
+                : '写下此刻想做的事……'
+          "
           @focus="isFocused = true"
           @blur="isFocused = false"
           @keydown.ctrl.enter.prevent="submitCurrent"
@@ -123,6 +129,7 @@ import { useDataStore, usePseudoLayerStore, useThemeStore } from '../store';
 import type { ReadingMode } from '../stores/theme-store';
 import DialogueTargetPicker from './DialogueTargetPicker.vue';
 import MobilePortraitButton from './MobilePortraitButton.vue';
+import { useJourneyStore } from '../stores/journey-store';
 
 const props = defineProps<{
   activeView: string;
@@ -134,6 +141,7 @@ const emit = defineEmits<{ (event: 'open-view', view: 'story'): void }>();
 const pseudo = usePseudoLayerStore();
 const data = useDataStore();
 const appearance = useThemeStore();
+const journeys = useJourneyStore();
 const textareaRef = ref<HTMLTextAreaElement>();
 const isFocused = ref(false);
 const showTargetPicker = ref(false);
@@ -165,8 +173,11 @@ const primaryLabel = '推演';
 const primaryTitle = '开始推演';
 
 const primaryIcon = 'fa-paper-plane';
-const primaryDisabled = computed(() =>
-  props.readingMode === 'scroll' ? !pseudo.canSubmitLatestStory : !pseudo.canSubmitStory,
+const primaryDisabled = computed(
+  () =>
+    journeys.seeking ||
+    journeys.saving ||
+    (props.readingMode === 'scroll' ? !pseudo.canSubmitLatestStory : !pseudo.canSubmitStory),
 );
 
 const chooseStory = () => {

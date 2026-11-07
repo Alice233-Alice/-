@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { klona } from 'klona';
 import { useActionPreferences } from '../action-preferences';
+import { CloudStorySchema, cloudJourneyId, createStorySnapshot, type CloudStory } from '../cloud-stories';
 import {
   buildJourneyAction,
   createJourney,
@@ -175,6 +176,32 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     }
     return saved;
   };
+  const chooseStory = async (input: CloudStory) => {
+    let selected: Journey | undefined;
+    let created = false;
+    const saved = await write(state => {
+      const story = CloudStorySchema.parse(input);
+      const id = cloudJourneyId(story.id);
+      if (!state.行旅.旅程[id]) {
+        state.行旅.旅程[id] = createJourney({
+          name: story.name,
+          lead: story.lead,
+          goal: story.goal,
+          step: story.step,
+          plan: story.blueprint,
+        });
+        state.$行旅蓝图[id] = createStorySnapshot(story);
+        created = true;
+      }
+      state.行旅.当前追踪 = id;
+      selected = state.行旅.旅程[id];
+    });
+    if (saved) {
+      panelOpen.value = false;
+      if (created && selected) perform(selected);
+    }
+    return saved;
+  };
   const track = (id: string) =>
     write(state => {
       if (!state.行旅.旅程[id]) throw new Error('这段行旅已经不存在。');
@@ -239,6 +266,7 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     seek,
     cancel,
     choose,
+    chooseStory,
     track,
     pause,
     resume,

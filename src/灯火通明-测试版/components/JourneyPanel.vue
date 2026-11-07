@@ -19,50 +19,58 @@
     </p>
     <p v-if="journeys.error" class="journey-error" role="alert">{{ journeys.error }}</p>
 
-    <div v-if="journeys.panelOpen" class="seeking-surface">
-      <label class="field-label"
-        >想往何处，想经历什么
-        <textarea
-          v-model="journeys.preference"
-          rows="2"
-          maxlength="600"
-          :disabled="journeys.seeking"
-          placeholder="例如：想去大陆之外看看；想与同行之人共历一段往事……"
-        ></textarea>
-      </label>
-      <div class="seeking-controls">
-        <label
-          >取意<select v-model="journeys.inspiration" :disabled="journeys.seeking">
-            <option value="">自由构想</option>
-            <option v-for="kind in ['远游', '问道', '立业', '旧愿']" :key="kind" :value="kind">{{ kind }}</option>
-          </select></label
-        >
-        <button v-if="journeys.seeking" type="button" class="quiet-button" @click="journeys.cancel">停止寻途</button>
-        <button v-else type="button" class="journey-button" :disabled="journeys.disabled" @click="journeys.seek">
-          {{ journeys.proposals.length ? '再寻三条去路' : '看看远方' }}
-        </button>
-      </div>
-      <p v-if="journeys.seeking" class="seeking-note" role="status">
-        <i class="fa-solid fa-circle-notch fa-spin"></i>正在依眼前因缘，构思三条远途……
-      </p>
-      <p v-if="journeys.proposalsStale" class="seeking-note">这些提案来自先前场景，重寻后再决定此行。</p>
-      <div v-if="journeys.proposals.length" class="proposal-grid">
-        <article v-for="proposal in journeys.proposals" :key="proposal.name" class="proposal">
-          <span class="eyebrow">一条尚待选择的去路</span>
-          <h3>{{ proposal.name }}</h3>
-          <p>{{ proposal.lead }}</p>
-          <p class="proposal-goal"><span>远望</span>{{ proposal.goal }}</p>
-          <p><span class="field-caption">入手</span>{{ proposal.step }}</p>
-          <button
-            type="button"
-            class="journey-button"
-            :disabled="journeys.disabled || journeys.proposalsStale"
-            @click="journeys.choose(proposal)"
+    <div v-if="journeys.panelOpen" class="journey-picker">
+      <nav class="picker-tabs" aria-label="寻途方式">
+        <button type="button" :aria-pressed="pickerTab === 'free'" @click="pickerTab = 'free'">随心寻途</button>
+        <button type="button" :aria-pressed="pickerTab === 'cloud'" @click="pickerTab = 'cloud'">云端故事</button>
+      </nav>
+      <div v-if="pickerTab === 'free'" class="seeking-surface">
+        <label class="field-label"
+          >想往何处，想经历什么
+          <textarea
+            v-model="journeys.preference"
+            rows="2"
+            maxlength="600"
+            :disabled="journeys.seeking"
+            placeholder="例如：想去大陆之外看看；想与同行之人共历一段往事……"
+          ></textarea>
+        </label>
+        <div class="seeking-controls">
+          <label
+            >取意<select v-model="journeys.inspiration" :disabled="journeys.seeking">
+              <option value="">自由构想</option>
+              <option v-for="kind in ['远游', '问道', '立业', '旧愿']" :key="kind" :value="kind">{{ kind }}</option>
+            </select></label
           >
-            由此启程<i class="fa-solid fa-angle-right"></i>
+          <button v-if="journeys.seeking" type="button" class="quiet-button" @click="journeys.cancel">停止寻途</button>
+          <button v-else type="button" class="journey-button" :disabled="journeys.disabled" @click="journeys.seek">
+            {{ journeys.proposals.length ? '再寻三条去路' : '看看远方' }}
           </button>
-        </article>
+        </div>
+        <p v-if="journeys.seeking" class="seeking-note" role="status">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>正在依眼前因缘，构思三条远途……
+        </p>
+        <p v-if="journeys.proposalsStale" class="seeking-note">这些提案来自先前场景，重寻后再决定此行。</p>
+        <div v-if="journeys.proposals.length" class="proposal-grid">
+          <article v-for="proposal in journeys.proposals" :key="proposal.name" class="proposal">
+            <span class="eyebrow">一条尚待选择的去路</span>
+            <h3>{{ proposal.name }}</h3>
+            <p>{{ proposal.lead }}</p>
+            <p class="proposal-goal"><span>远望</span>{{ proposal.goal }}</p>
+            <p><span class="field-caption">入手</span>{{ proposal.step }}</p>
+            <button
+              type="button"
+              class="journey-button"
+              :disabled="journeys.disabled || journeys.proposalsStale"
+              @click="journeys.choose(proposal)"
+            >
+              由此启程<i class="fa-solid fa-angle-right"></i>
+            </button>
+          </article>
+        </div>
       </div>
+
+      <CloudStoriesPanel v-else />
     </div>
 
     <article v-if="journeys.current" class="current-journey">
@@ -261,10 +269,12 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import CloudStoriesPanel from './CloudStoriesPanel.vue';
 import { useJourneyStore } from '../stores/journey-store';
 import { useAffairsStore } from '../stores/affairs-store';
 import { useDataStore } from '../store';
 const journeys = useJourneyStore();
+const pickerTab = ref<'free' | 'cloud'>('free');
 const affairs = useAffairsStore();
 const data = useDataStore();
 const journalTab = ref<'线索' | '纪事' | '猜想'>('线索');
@@ -293,6 +303,28 @@ const clearSavedJourney = async (id: string) => {
   padding: 20px 0;
   border-block: 1px solid var(--line-subtle);
   color: var(--text-primary);
+}
+.journey-picker {
+  margin-top: 16px;
+}
+.picker-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.picker-tabs button {
+  padding: 10px 2px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.picker-tabs button[aria-pressed='true'] {
+  color: var(--gold);
+  border-bottom-color: var(--gold-soft);
 }
 .journey-heading,
 .current-heading,
