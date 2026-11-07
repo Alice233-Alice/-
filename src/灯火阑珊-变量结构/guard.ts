@@ -1,7 +1,12 @@
 import {
   getFavorGainLimitByValue,
   getFavorLossLimitByValue,
+  getSpiritStoneCurrencyGrade,
+  normalizeSpiritStoneAmount,
+  normalizeSpiritStoneLedger,
+  normalizeSpiritStoneState,
   Schema,
+  type SpiritStoneGrade,
   unwrapOpportunityPatchPayload,
 } from '../灯火阑珊/schema';
 import { COMPANION_CANONICAL_NAMES } from './companion-aliases';
@@ -110,9 +115,8 @@ function normalizeCommandPath(rawPath: string): string {
     path = `stat_data.${path}`;
   }
 
-  // 兼容旧版把灵石建模成分级对象的更新路径。当前权威 Schema 中本尊.灵石是标量，
-  // 因而旧式 delta /本尊/灵石/下品灵石 必须在 MVU 执行加减前落到标量字段。
-  path = path.replace(/^stat_data\.本尊\.灵石\.(?:下品灵石|灵石)$/u, 'stat_data.本尊.灵石');
+  path = path.replace(/^(stat_data\.(?:本尊|红颜\.[^./]+)\.灵石)\.灵石$/u, '$1.下品灵石');
+  path = path.replace(/^(stat_data\.(?:本尊|红颜\.[^./]+)\.灵石\.(?:下品|中品|上品|极品)灵石)\.数量$/u, '$1');
   path = path.replace(/^(stat_data\.(?:本尊|红颜\.[^./]+)\.修炼状态)\.境界变动(?=\.|$)/u, '$1.最近突破');
 
   return path;
@@ -212,6 +216,157 @@ function tryParseLiteralObject(input: unknown): Record<string, unknown> | null {
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
+  }
+}
+
+function decodeCommandValue(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+/** 只改写本批命令，迁移和库存差额均在影子副本中计算。 */
+function normalizeSpiritStoneCommands(variables: Mvu.MvuData, commands: GuardMutableCommand[]): void {
+  const containers = ['背包', '杂物袋', '法宝'] as const;
+  const migrationReason = '四品灵石旧账归并';
+  const contexts = new Map<string, { stocks: Map<string, { grade: SpiritStoneGrade; amount: number }> }>();
+  const prelude: GuardMutableCommand[] = [];
+  const getTarget = (command: GuardMutableCommand) => {
+    const parts = _.toPath(String(command.args[0] ?? ''));
+    const size =
+      parts[0] === 'stat_data' && parts[1] === '本尊'
+        ? 2
+        : parts[0] === 'stat_data' && parts[1] === '红颜' && parts[2]
+          ? 3
+          : 0;
+    return size ? { actor: parts.slice(0, size).join('.'), tail: parts.slice(size) } : null;
+  };
+  const isInventory = (name: string) => containers.includes(name as (typeof containers)[number]);
+
+  for (const command of commands) {
+    const target = getTarget(command);
+    if (!target || contexts.has(target.actor)) continue;
+    const source = _.get(variables, target.actor);
+    if (!_.isPlainObject(source)) continue;
+    const valueIndex = getCommandValueArgIndex(command);
+    const value = valueIndex === null ? undefined : decodeCommandValue(command.args[valueIndex]);
+    const incomingItem = target.tail.length === 2 && _.isPlainObject(value) ? value : undefined;
+    const oldItem = _.get(source, target.tail.slice(0, 2));
+    const inventoryGrade =
+      isInventory(target.tail[0]) && target.tail[1]
+        ? getSpiritStoneCurrencyGrade(target.tail[1], incomingItem ?? oldItem)
+        : null;
+    if (target.tail[0] !== '灵石' && !inventoryGrade) continue;
+
+    const stocks = new Map<string, { grade: SpiritStoneGrade; amount: number }>();
+    for (const container of containers) {
+      for (const [key, item] of Object.entries(source[container] ?? {})) {
+        const grade = getSpiritStoneCurrencyGrade(key, item as any);
+        if (grade)
+          stocks.set(`${container}:${key}`, { grade, amount: normalizeSpiritStoneAmount((item as any)?.数量) });
+      }
+    }
+    contexts.set(target.actor, { stocks });
+    if (commands.some(item => item.reason === migrationReason && item.args[0] === `${target.actor}.灵石`)) continue;
+    const normalized = normalizeSpiritStoneState(source.灵石, ...containers.map(name => source[name]));
+    containers.forEach((name, index) => {
+      if (!_.isEqual(source[name] ?? {}, normalized.inventories[index])) {
+        prelude.push({
+          type: 'set',
+          args: [`${target.actor}.${name}`, JSON.stringify(normalized.inventories[index])],
+          reason: migrationReason,
+        });
+      }
+    });
+    if (!_.isEqual(source.灵石, normalized.spiritStone)) {
+      prelude.push({
+        type: _.has(source, '灵石') ? 'set' : 'insert',
+        args: [`${target.actor}.灵石`, JSON.stringify(normalized.spiritStone)],
+        reason: migrationReason,
+      });
+    }
+  }
+
+  if (!contexts.size) return;
+  const shadow = _.cloneDeep(variables);
+  commands.unshift(...prelude);
+  for (const command of commands) {
+    if (!Array.isArray(command.args) || !command.args.length) continue;
+    const target = getTarget(command);
+    const context = target && contexts.get(target.actor);
+    const valueIndex = getCommandValueArgIndex(command);
+    const value = valueIndex === null ? undefined : decodeCommandValue(command.args[valueIndex]);
+    if (target && context) {
+      const ledgerPath = `${target.actor}.灵石`;
+      const ledger = normalizeSpiritStoneLedger(_.get(shadow, ledgerPath));
+      if (target.tail[0] === '灵石') {
+        const isLegacyScalar =
+          target.tail.length === 1 &&
+          (command.type === 'add' || (command.type !== 'delete' && !_.isPlainObject(value)));
+        if (isLegacyScalar) {
+          command.args[0] = `${ledgerPath}.下品灵石`;
+          target.tail.push('下品灵石');
+        }
+        if (target.tail.length === 1) {
+          const removed = command.type === 'delete';
+          command.type = 'set';
+          command.args = [
+            ledgerPath,
+            JSON.stringify(removed ? normalizeSpiritStoneLedger() : normalizeSpiritStoneLedger(value)),
+          ];
+        } else if (target.tail.length === 2 && getSpiritStoneCurrencyGrade(target.tail[1])) {
+          if (command.type === 'delete') {
+            command.type = 'set';
+            command.args = [command.args[0], '0'];
+          } else if (command.type === 'insert') {
+            command.type = 'set';
+            command.args = [command.args[0], JSON.stringify(normalizeSpiritStoneAmount(value))];
+          }
+        }
+      } else if (isInventory(target.tail[0]) && target.tail[1]) {
+        const stockKey = `${target.tail[0]}:${target.tail[1]}`;
+        const stock = context.stocks.get(stockKey);
+        const incomingItem = target.tail.length === 2 && _.isPlainObject(value) ? value : undefined;
+        const grade = incomingItem
+          ? getSpiritStoneCurrencyGrade(target.tail[1], incomingItem)
+          : (stock?.grade ?? getSpiritStoneCurrencyGrade(target.tail[1]));
+        if (grade) {
+          const oldAmount = stock?.amount ?? 0;
+          let newAmount = oldAmount;
+          let delta = 0;
+          if (command.type === 'delete' && (target.tail.length === 2 || target.tail[2] === '数量')) {
+            newAmount = 0;
+            delta = -oldAmount;
+          } else if (target.tail.length === 2 && incomingItem) {
+            newAmount = normalizeSpiritStoneAmount((incomingItem as Record<string, unknown>).数量);
+            delta = newAmount - oldAmount;
+          } else if (target.tail[2] === '数量') {
+            newAmount = normalizeSpiritStoneAmount(command.type === 'add' ? oldAmount + Number(value) : value);
+            // 归账后库存已清空，旧式 delta 仍直接作用于持有的对应币种。
+            delta =
+              command.type === 'add' ? (Number.isFinite(Number(value)) ? Number(value) : 0) : newAmount - oldAmount;
+          }
+          context.stocks.set(stockKey, { grade, amount: newAmount });
+          command.type = 'add';
+          command.args = [`${ledgerPath}.${grade}`, String(delta)];
+          command.reason = '库存灵石数量差额已归入对应品级账册';
+        }
+      }
+      // 子字段命令始终基于完整账册执行，避免旧标量和缺省品级导致 delta 失败。
+      if (String(command.args[0]).startsWith(`${ledgerPath}.`) && !_.isPlainObject(_.get(shadow, ledgerPath))) {
+        _.set(shadow, ledgerPath, ledger);
+      }
+    }
+
+    const path = String(command.args[0]);
+    const index = getCommandValueArgIndex(command);
+    const nextValue = index === null ? undefined : decodeCommandValue(command.args[index]);
+    if (command.type === 'delete') _.unset(shadow, path);
+    else if (command.type === 'add') _.set(shadow, path, Number(_.get(shadow, path, 0)) + Number(nextValue));
+    else _.set(shadow, path, nextValue);
   }
 }
 
@@ -325,6 +480,7 @@ export function guardParsedCommands(
   }
 
   mutableCommands.push(...appendedCommands);
+  normalizeSpiritStoneCommands(variables, mutableCommands);
 }
 
 /** 以本轮开始前的真实值统一限幅，避免读取或逐条 Schema 校验重复结算。 */

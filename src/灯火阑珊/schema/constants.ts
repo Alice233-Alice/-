@@ -5,7 +5,7 @@
 // 小境界
 export const REALM_STAGES = ['初期', '中期', '后期', '大圆满'] as const;
 export const CURRENT_CULTIVATION_VERSION = 4;
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 // 大境界（1-48，共12个大境界）
 export const REALM_NAMES = [
   '练气',

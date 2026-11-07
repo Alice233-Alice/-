@@ -1417,11 +1417,25 @@ var __webpack_modules__ = {
           });
           continue;
         }
-        if (root === "本尊" && sub === "灵石") {
-          scored.push({
-            score: 88,
-            label: op === "delta" ? `灵石 ${formatDelta(val)}` : `灵石 ${String(val ?? "")}`
-          });
+        if (root === "本尊" && sub === "灵石" || root === "红颜" && third === "灵石") {
+          const prefix = root === "红颜" ? `${sub}·` : "";
+          const grade = segments[root === "红颜" ? 3 : 2];
+          if (val && typeof val === "object" && !Array.isArray(val)) {
+            for (const [name, amount] of Object.entries(val)) {
+              if (/^(下品|中品|上品|极品)灵石$/u.test(name)) {
+                scored.push({
+                  score: 88,
+                  label: `${prefix}${name} ${String(amount ?? 0)}`
+                });
+              }
+            }
+          } else {
+            const name = /^(下品|中品|上品|极品)灵石$/u.test(grade ?? "") ? grade : "下品灵石";
+            scored.push({
+              score: 88,
+              label: `${prefix}${name} ${op === "delta" ? formatDelta(val) : op === "remove" ? "0" : String(val ?? "")}`
+            });
+          }
           continue;
         }
         if (root === "本尊" && sub === "行踪" && third === "当前区域" && typeof val === "string" && val.trim()) {
@@ -1747,10 +1761,13 @@ var __webpack_modules__ = {
       RecentQuestResultsSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.RecentQuestResultsSchema,
       ReputationEntrySchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.ReputationEntrySchema,
       ReputationSystemSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.ReputationSystemSchema,
+      SPIRIT_STONE_GRADES: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SPIRIT_STONE_GRADES,
+      SPIRIT_STONE_WEIGHTS: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SPIRIT_STONE_WEIGHTS,
       Schema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.Schema,
       SkillListSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SkillListSchema,
       SkillSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SkillSchema,
       SpiritRootSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SpiritRootSchema,
+      SpiritStoneLedgerSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SpiritStoneLedgerSchema,
       SystemSettingsSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SystemSettingsSchema,
       TechniqueSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.TechniqueSchema,
       TreasureSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.TreasureSchema,
@@ -1759,6 +1776,7 @@ var __webpack_modules__ = {
       WORLD_EVENT_LEDGER_LIMIT: () => _schema__WEBPACK_IMPORTED_MODULE_0__.WORLD_EVENT_LEDGER_LIMIT,
       WorldEventLedgerSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.WorldEventLedgerSchema,
       WorldEventSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.WorldEventSchema,
+      addSpiritStoneLedgers: () => _schema__WEBPACK_IMPORTED_MODULE_0__.addSpiritStoneLedgers,
       compactWorldEventLedger: () => _schema__WEBPACK_IMPORTED_MODULE_0__.compactWorldEventLedger,
       compareRealmStanding: () => _schema__WEBPACK_IMPORTED_MODULE_0__.compareRealmStanding,
       compareWorldEventTimeDescending: () => _schema__WEBPACK_IMPORTED_MODULE_0__.compareWorldEventTimeDescending,
@@ -1774,6 +1792,8 @@ var __webpack_modules__ = {
       getRealmColor: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getRealmColor,
       getRealmThreshold: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getRealmThreshold,
       getRootColor: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getRootColor,
+      getSpiritStoneCurrencyGrade: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getSpiritStoneCurrencyGrade,
+      getSpiritStoneTotal: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getSpiritStoneTotal,
       isSpiritStoneCurrencyItem: () => _schema__WEBPACK_IMPORTED_MODULE_0__.isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => _schema__WEBPACK_IMPORTED_MODULE_0__.migrateCultivationProgress,
       migrateCultivatorInput: () => _schema__WEBPACK_IMPORTED_MODULE_0__.migrateCultivatorInput,
@@ -1781,6 +1801,7 @@ var __webpack_modules__ = {
       normalizeCultivationState: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeCultivationState,
       normalizeRealmLevel: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeSpiritStoneAmount,
+      normalizeSpiritStoneLedger: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeSpiritStoneLedger,
       normalizeSpiritStoneState: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeSpiritStoneState,
       parseRealmToLevel: () => _schema__WEBPACK_IMPORTED_MODULE_0__.parseRealmToLevel,
       previewCultivationBreakthrough: () => _schema__WEBPACK_IMPORTED_MODULE_0__.previewCultivationBreakthrough,
@@ -1959,10 +1980,13 @@ var __webpack_modules__ = {
       RecentQuestResultsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.RecentQuestResultsSchema,
       ReputationEntrySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.ReputationEntrySchema,
       ReputationSystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.ReputationSystemSchema,
+      SPIRIT_STONE_GRADES: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SPIRIT_STONE_GRADES,
+      SPIRIT_STONE_WEIGHTS: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SPIRIT_STONE_WEIGHTS,
       Schema: () => Schema,
       SkillListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillListSchema,
       SkillSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillSchema,
       SpiritRootSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_8__.SpiritRootSchema,
+      SpiritStoneLedgerSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SpiritStoneLedgerSchema,
       SystemSettingsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.SystemSettingsSchema,
       TechniqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_8__.TechniqueSchema,
       TreasureSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_8__.TreasureSchema,
@@ -1971,6 +1995,7 @@ var __webpack_modules__ = {
       WORLD_EVENT_LEDGER_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.WORLD_EVENT_LEDGER_LIMIT,
       WorldEventLedgerSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.WorldEventLedgerSchema,
       WorldEventSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.WorldEventSchema,
+      addSpiritStoneLedgers: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.addSpiritStoneLedgers,
       compactWorldEventLedger: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.compactWorldEventLedger,
       compareRealmStanding: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.compareRealmStanding,
       compareWorldEventTimeDescending: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.compareWorldEventTimeDescending,
@@ -1986,6 +2011,8 @@ var __webpack_modules__ = {
       getRealmColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.getRealmColor,
       getRealmThreshold: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getRealmThreshold,
       getRootColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.getRootColor,
+      getSpiritStoneCurrencyGrade: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getSpiritStoneCurrencyGrade,
+      getSpiritStoneTotal: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getSpiritStoneTotal,
       isSpiritStoneCurrencyItem: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress,
       migrateCultivatorInput: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivatorInput,
@@ -1993,6 +2020,7 @@ var __webpack_modules__ = {
       normalizeCultivationState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState,
       normalizeRealmLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneAmount,
+      normalizeSpiritStoneLedger: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneLedger,
       normalizeSpiritStoneState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneState,
       parseRealmToLevel: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.parseRealmToLevel,
       previewCultivationBreakthrough: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.previewCultivationBreakthrough,
@@ -2075,7 +2103,9 @@ var __webpack_modules__ = {
       const fallbackRelationContext = _.cloneDeep(DEFAULT_COMPANION.关系上下文);
       merged.等级 = Math.max(Number(base.等级 ?? DEFAULT_COMPANION.等级), Number(incoming.等级 ?? DEFAULT_COMPANION.等级));
       merged.修为 = Math.max(Number(base.修为 ?? DEFAULT_COMPANION.修为), Number(incoming.修为 ?? DEFAULT_COMPANION.修为));
-      merged.灵石 = Math.max(Number(base.灵石 ?? DEFAULT_COMPANION.灵石), Number(incoming.灵石 ?? DEFAULT_COMPANION.灵石));
+      for (const grade of _schema_common__WEBPACK_IMPORTED_MODULE_3__.SPIRIT_STONE_GRADES) {
+        merged.灵石[grade] = Math.max(base.灵石[grade], incoming.灵石[grade]);
+      }
       merged.已活岁月 = Math.max(Number(base.已活岁月 ?? DEFAULT_COMPANION.已活岁月), Number(incoming.已活岁月 ?? DEFAULT_COMPANION.已活岁月));
       const fallbackCultivationState = _.cloneDeep(DEFAULT_COMPANION.修炼状态);
       merged.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)({
@@ -2518,7 +2548,7 @@ var __webpack_modules__ = {
       功法: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       本命兵器: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       神通列表: _common__WEBPACK_IMPORTED_MODULE_1__.SkillListSchema,
-      灵石: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
+      灵石: _common__WEBPACK_IMPORTED_MODULE_1__.SpiritStoneLedgerSchema,
       已活岁月: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
       修炼状态: _common__WEBPACK_IMPORTED_MODULE_1__.CultivationStateSchema,
       好感度: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => _.clamp(v, -200, 200)).prefault(0),
@@ -2533,7 +2563,7 @@ var __webpack_modules__ = {
       功法: "无",
       本命兵器: "无",
       神通列表: {},
-      灵石: 0,
+      灵石: {},
       已活岁月: 0,
       修炼状态: {},
       好感度: 0,
@@ -2567,8 +2597,12 @@ var __webpack_modules__ = {
       ItemSchema: () => ItemSchema,
       NormalizedStringListSchema: () => NormalizedStringListSchema,
       RealmTransitionSchema: () => RealmTransitionSchema,
+      SPIRIT_STONE_GRADES: () => SPIRIT_STONE_GRADES,
+      SPIRIT_STONE_WEIGHTS: () => SPIRIT_STONE_WEIGHTS,
       SkillListSchema: () => SkillListSchema,
       SkillSchema: () => SkillSchema,
+      SpiritStoneLedgerSchema: () => SpiritStoneLedgerSchema,
+      addSpiritStoneLedgers: () => addSpiritStoneLedgers,
       computeRealmInfo: () => computeRealmInfo,
       describeRealmByLevel: () => describeRealmByLevel,
       extractSpiritStoneFromInventory: () => extractSpiritStoneFromInventory,
@@ -2576,6 +2610,8 @@ var __webpack_modules__ = {
       getBreakthroughCost: () => getBreakthroughCost,
       getCultivationStatusLabel: () => getCultivationStatusLabel,
       getRealmThreshold: () => getRealmThreshold,
+      getSpiritStoneCurrencyGrade: () => getSpiritStoneCurrencyGrade,
+      getSpiritStoneTotal: () => getSpiritStoneTotal,
       isSpiritStoneCurrencyItem: () => isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => migrateCultivationProgress,
       migrateCultivatorInput: () => migrateCultivatorInput,
@@ -2583,6 +2619,7 @@ var __webpack_modules__ = {
       normalizeCultivationState: () => normalizeCultivationState,
       normalizeRealmLevel: () => normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => normalizeSpiritStoneAmount,
+      normalizeSpiritStoneLedger: () => normalizeSpiritStoneLedger,
       normalizeSpiritStoneState: () => normalizeSpiritStoneState,
       previewCultivationBreakthrough: () => previewCultivationBreakthrough,
       品阶映射: () => 品阶映射,
@@ -2665,24 +2702,71 @@ var __webpack_modules__ = {
       品阶: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(value => value.trim()).prefault(""),
       数量: finiteNumber(0).transform(v => Math.max(0, Math.floor(v))).prefault(1)
     });
-    const 灵石货币别名 = new Set([ "灵石", "下品灵石" ]);
+    const SPIRIT_STONE_GRADES = [ "下品灵石", "中品灵石", "上品灵石", "极品灵石" ];
+    const SPIRIT_STONE_WEIGHTS = {
+      下品灵石: 1,
+      中品灵石: 100,
+      上品灵石: 1e4,
+      极品灵石: 1e6
+    };
     function normalizeSpiritStoneCurrencyName(value) {
       return String(value ?? "").trim().replace(/\s+/g, "");
     }
+    function getSpiritStoneCurrencyGrade(key, item) {
+      const name = normalizeSpiritStoneCurrencyName(item?.名称);
+      const keyName = normalizeSpiritStoneCurrencyName(key);
+      const isGrade = value => SPIRIT_STONE_GRADES.includes(value);
+      if (name && name !== "灵石" && !isGrade(name)) return null;
+      if (isGrade(name)) return name;
+      if (isGrade(keyName)) return keyName;
+      if ((name || keyName) !== "灵石") return null;
+      const rank = normalizeSpiritStoneCurrencyName(item?.品阶);
+      if (isGrade(rank)) return rank;
+      return isGrade(`${rank}灵石`) ? `${rank}灵石` : "下品灵石";
+    }
     function isSpiritStoneCurrencyItem(key, item) {
-      const candidates = [ normalizeSpiritStoneCurrencyName(key), normalizeSpiritStoneCurrencyName(item?.名称) ].filter(Boolean);
-      return candidates.some(candidate => 灵石货币别名.has(candidate));
+      return getSpiritStoneCurrencyGrade(key, item) !== null;
+    }
+    function normalizeSpiritStoneAmount(value) {
+      const source = _.isPlainObject(value) ? value.数量 : value;
+      const amount = typeof source === "number" || typeof source === "string" ? Number(source) : 0;
+      return Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+    }
+    function normalizeSpiritStoneLedger(value) {
+      const source = _.isPlainObject(value) ? value : null;
+      return {
+        下品灵石: normalizeSpiritStoneAmount(source ? source.下品灵石 ?? source.灵石 ?? source.数量 : value),
+        中品灵石: normalizeSpiritStoneAmount(source?.中品灵石),
+        上品灵石: normalizeSpiritStoneAmount(source?.上品灵石),
+        极品灵石: normalizeSpiritStoneAmount(source?.极品灵石)
+      };
+    }
+    const SpiritStoneLedgerSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(normalizeSpiritStoneLedger, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      下品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      中品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      上品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      极品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0)
+    }).prefault({}));
+    function addSpiritStoneLedgers(...values) {
+      const result = normalizeSpiritStoneLedger();
+      for (const value of values) {
+        const ledger = normalizeSpiritStoneLedger(value);
+        for (const grade of SPIRIT_STONE_GRADES) result[grade] += ledger[grade];
+      }
+      return result;
+    }
+    function getSpiritStoneTotal(value) {
+      const ledger = normalizeSpiritStoneLedger(value);
+      return SPIRIT_STONE_GRADES.reduce((total, grade) => total + ledger[grade] * SPIRIT_STONE_WEIGHTS[grade], 0);
     }
     function extractSpiritStoneFromInventory(inventory) {
       const nextInventory = {};
-      let spiritStone = 0;
+      const spiritStone = normalizeSpiritStoneLedger();
       for (const [key, item] of Object.entries(inventory ?? {})) {
         if (!item) continue;
-        if (isSpiritStoneCurrencyItem(key, item)) {
-          const amount = Number(item.数量);
-          if (Number.isFinite(amount) && amount > 0) {
-            spiritStone += amount;
-          }
+        const grade = getSpiritStoneCurrencyGrade(key, item);
+        if (grade) {
+          spiritStone[grade] += normalizeSpiritStoneAmount(item.数量);
           continue;
         }
         nextInventory[key] = item;
@@ -2692,25 +2776,11 @@ var __webpack_modules__ = {
         spiritStone
       };
     }
-    function normalizeSpiritStoneAmount(value) {
-      const candidates = [ value ];
-      if (_.isPlainObject(value)) {
-        const legacyLedger = value;
-        candidates.unshift(legacyLedger.下品灵石, legacyLedger.灵石, legacyLedger.数量);
-      }
-      for (const candidate of candidates) {
-        const amountSource = _.isPlainObject(candidate) ? candidate.数量 : candidate;
-        if (amountSource == null || typeof amountSource === "string" && !amountSource.trim()) continue;
-        const amount = Number(amountSource);
-        if (Number.isFinite(amount)) return Math.max(0, amount);
-      }
-      return 0;
-    }
     function normalizeSpiritStoneState(spiritStone, ...inventories) {
-      let nextSpiritStone = normalizeSpiritStoneAmount(spiritStone);
+      let nextSpiritStone = normalizeSpiritStoneLedger(spiritStone);
       const normalizedInventories = inventories.map(inventory => {
         const normalized = extractSpiritStoneFromInventory(inventory);
-        nextSpiritStone += normalized.spiritStone;
+        nextSpiritStone = addSpiritStoneLedgers(nextSpiritStone, normalized.spiritStone);
         return normalized.inventory;
       });
       return {
@@ -2957,7 +3027,7 @@ var __webpack_modules__ = {
     });
     const REALM_STAGES = [ "初期", "中期", "后期", "大圆满" ];
     const CURRENT_CULTIVATION_VERSION = 4;
-    const CURRENT_SCHEMA_VERSION = 6;
+    const CURRENT_SCHEMA_VERSION = 7;
     const REALM_NAMES = [ "练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "真仙", "仙王", "仙帝" ];
     const LEGACY_REALM_THRESHOLDS = [ 100, 200, 300, 400, 500, 600, 700, 800, 900, 1e3, 1100, 1200, 2400, 2400, 2400, 2400, 4800, 4800, 4800, 4800, 9600, 9600, 9600, 9600, 19200, 19200, 19200, 19200, 38400, 38400, 38400, 38400, 76800, 76800, 76800, 76800, 153600, 153600, 153600, 153600, 307200, 307200, 307200, 307200, 614400, 614400, 614400, 614400 ];
     const V2_REALM_MAJOR_BASES = [ 100, 160, 260, 420, 680, 1100, 1780, 2880, 4660, 7540, 12200, 19740 ];
@@ -3428,8 +3498,7 @@ var __webpack_modules__ = {
       功法: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       本命兵器: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       神通列表: _common__WEBPACK_IMPORTED_MODULE_1__.SkillListSchema,
-      灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeSpiritStoneAmount, (0, 
-      _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v))).prefault(0),
+      灵石: _common__WEBPACK_IMPORTED_MODULE_1__.SpiritStoneLedgerSchema,
       已活岁月: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
       修炼状态: _common__WEBPACK_IMPORTED_MODULE_1__.CultivationStateSchema,
       行踪: LocationTrackSchema,
@@ -3449,7 +3518,7 @@ var __webpack_modules__ = {
       功法: "无",
       本命兵器: "无",
       神通列表: {},
-      灵石: 0,
+      灵石: {},
       已活岁月: 0,
       修炼状态: {},
       行踪: {
@@ -3516,11 +3585,12 @@ var __webpack_modules__ = {
         失败惩罚记录: ""
       }
     }).transform(data => {
-      const spiritStoneNormalization = (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeSpiritStoneState)(data.灵石, data.背包, data.杂物袋);
-      const [normalizedBackpack, normalizedMiscBag] = spiritStoneNormalization.inventories;
+      const spiritStoneNormalization = (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeSpiritStoneState)(data.灵石, data.背包, data.杂物袋, data.法宝);
+      const [normalizedBackpack, normalizedMiscBag, normalizedTreasures] = spiritStoneNormalization.inventories;
       data.灵石 = spiritStoneNormalization.spiritStone;
       data.背包 = normalizedBackpack ?? {};
       data.杂物袋 = normalizedMiscBag ?? {};
+      data.法宝 = normalizedTreasures ?? {};
       const cultivator = {
         ...data,
         修炼状态: (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeCultivationState)(data.修炼状态, {

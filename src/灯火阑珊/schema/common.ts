@@ -111,7 +111,15 @@ export const ItemSchema = z.object({
     .prefault(1),
 });
 
-const 灵石货币别名 = new Set(['灵石', '下品灵石']);
+export const SPIRIT_STONE_GRADES = ['下品灵石', '中品灵石', '上品灵石', '极品灵石'] as const;
+export type SpiritStoneGrade = (typeof SPIRIT_STONE_GRADES)[number];
+export type SpiritStoneLedger = Record<SpiritStoneGrade, number>;
+export const SPIRIT_STONE_WEIGHTS: Record<SpiritStoneGrade, number> = {
+  下品灵石: 1,
+  中品灵石: 100,
+  上品灵石: 10000,
+  极品灵石: 1000000,
+};
 
 function normalizeSpiritStoneCurrencyName(value: unknown): string {
   return String(value ?? '')
@@ -119,28 +127,83 @@ function normalizeSpiritStoneCurrencyName(value: unknown): string {
     .replace(/\s+/g, '');
 }
 
-export function isSpiritStoneCurrencyItem(key: unknown, item?: { 名称?: unknown } | null): boolean {
-  const candidates = [normalizeSpiritStoneCurrencyName(key), normalizeSpiritStoneCurrencyName(item?.名称)].filter(
-    Boolean,
-  );
-
-  return candidates.some(candidate => 灵石货币别名.has(candidate));
+export function getSpiritStoneCurrencyGrade(
+  key: unknown,
+  item?: { 名称?: unknown; 品阶?: unknown } | null,
+): SpiritStoneGrade | null {
+  const name = normalizeSpiritStoneCurrencyName(item?.名称);
+  const keyName = normalizeSpiritStoneCurrencyName(key);
+  const isGrade = (value: string): value is SpiritStoneGrade => SPIRIT_STONE_GRADES.includes(value as SpiritStoneGrade);
+  // 有明确名称的材料、原矿、凭证等仍是普通物品。
+  if (name && name !== '灵石' && !isGrade(name)) return null;
+  if (isGrade(name)) return name;
+  if (isGrade(keyName)) return keyName;
+  if ((name || keyName) !== '灵石') return null;
+  const rank = normalizeSpiritStoneCurrencyName(item?.品阶);
+  if (isGrade(rank)) return rank;
+  return isGrade(`${rank}灵石`) ? (`${rank}灵石` as SpiritStoneGrade) : '下品灵石';
 }
 
-export function extractSpiritStoneFromInventory<T extends { 名称?: unknown; 数量?: unknown }>(
+export function isSpiritStoneCurrencyItem(key: unknown, item?: { 名称?: unknown; 品阶?: unknown } | null): boolean {
+  return getSpiritStoneCurrencyGrade(key, item) !== null;
+}
+
+/** 将单项枚数规范为非负整数，也兼容旧版的 { 数量 } 包装。 */
+export function normalizeSpiritStoneAmount(value: unknown): number {
+  const source = _.isPlainObject(value) ? (value as Record<string, unknown>).数量 : value;
+  const amount = typeof source === 'number' || typeof source === 'string' ? Number(source) : 0;
+  return Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+}
+
+/** 旧标量余额视为下品，四品账册始终保留实际枚数。 */
+export function normalizeSpiritStoneLedger(value?: unknown): SpiritStoneLedger {
+  const source = _.isPlainObject(value) ? (value as Record<string, unknown>) : null;
+  return {
+    下品灵石: normalizeSpiritStoneAmount(source ? (source.下品灵石 ?? source.灵石 ?? source.数量) : value),
+    中品灵石: normalizeSpiritStoneAmount(source?.中品灵石),
+    上品灵石: normalizeSpiritStoneAmount(source?.上品灵石),
+    极品灵石: normalizeSpiritStoneAmount(source?.极品灵石),
+  };
+}
+
+export const SpiritStoneLedgerSchema = z.preprocess(
+  normalizeSpiritStoneLedger,
+  z
+    .object({
+      下品灵石: z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      中品灵石: z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      上品灵石: z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      极品灵石: z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+    })
+    .prefault({}),
+);
+
+export function addSpiritStoneLedgers(...values: unknown[]): SpiritStoneLedger {
+  const result = normalizeSpiritStoneLedger();
+  for (const value of values) {
+    const ledger = normalizeSpiritStoneLedger(value);
+    for (const grade of SPIRIT_STONE_GRADES) result[grade] += ledger[grade];
+  }
+  return result;
+}
+
+export function getSpiritStoneTotal(value: unknown): number {
+  const ledger = normalizeSpiritStoneLedger(value);
+  return SPIRIT_STONE_GRADES.reduce((total, grade) => total + ledger[grade] * SPIRIT_STONE_WEIGHTS[grade], 0);
+}
+
+export function extractSpiritStoneFromInventory<T extends { 名称?: unknown; 品阶?: unknown; 数量?: unknown }>(
   inventory: Record<string, T> | undefined,
-): { inventory: Record<string, T>; spiritStone: number } {
+): { inventory: Record<string, T>; spiritStone: SpiritStoneLedger } {
   const nextInventory: Record<string, T> = {};
-  let spiritStone = 0;
+  const spiritStone = normalizeSpiritStoneLedger();
 
   for (const [key, item] of Object.entries(inventory ?? {})) {
     if (!item) continue;
 
-    if (isSpiritStoneCurrencyItem(key, item)) {
-      const amount = Number(item.数量);
-      if (Number.isFinite(amount) && amount > 0) {
-        spiritStone += amount;
-      }
+    const grade = getSpiritStoneCurrencyGrade(key, item);
+    if (grade) {
+      spiritStone[grade] += normalizeSpiritStoneAmount(item.数量);
       continue;
     }
 
@@ -150,36 +213,15 @@ export function extractSpiritStoneFromInventory<T extends { 名称?: unknown; �
   return { inventory: nextInventory, spiritStone };
 }
 
-/**
- * 把现行标量与旧版 `{ 下品灵石: number }` 账本统一为当前使用的灵石数值。
- * 这里只识别同义的“灵石/下品灵石”，不擅自换算中品、上品等不同币值。
- */
-export function normalizeSpiritStoneAmount(value: unknown): number {
-  const candidates: unknown[] = [value];
-  if (_.isPlainObject(value)) {
-    const legacyLedger = value as Record<string, unknown>;
-    candidates.unshift(legacyLedger.下品灵石, legacyLedger.灵石, legacyLedger.数量);
-  }
-
-  for (const candidate of candidates) {
-    const amountSource = _.isPlainObject(candidate) ? (candidate as Record<string, unknown>).数量 : candidate;
-    if (amountSource == null || (typeof amountSource === 'string' && !amountSource.trim())) continue;
-    const amount = Number(amountSource);
-    if (Number.isFinite(amount)) return Math.max(0, amount);
-  }
-
-  return 0;
-}
-
-export function normalizeSpiritStoneState<T extends { 名称?: unknown; 数量?: unknown }>(
+export function normalizeSpiritStoneState<T extends { 名称?: unknown; 品阶?: unknown; 数量?: unknown }>(
   spiritStone: unknown,
   ...inventories: Array<Record<string, T> | undefined>
-): { spiritStone: number; inventories: Array<Record<string, T>> } {
-  let nextSpiritStone = normalizeSpiritStoneAmount(spiritStone);
+): { spiritStone: SpiritStoneLedger; inventories: Array<Record<string, T>> } {
+  let nextSpiritStone = normalizeSpiritStoneLedger(spiritStone);
 
   const normalizedInventories = inventories.map(inventory => {
     const normalized = extractSpiritStoneFromInventory(inventory);
-    nextSpiritStone += normalized.spiritStone;
+    nextSpiritStone = addSpiritStoneLedgers(nextSpiritStone, normalized.spiritStone);
     return normalized.inventory;
   });
 

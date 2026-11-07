@@ -20,6 +20,7 @@ import {
   migrateCultivationProgress,
   NormalizedStringListSchema,
   normalizeCultivationState,
+  SPIRIT_STONE_GRADES,
 } from './schema/common';
 import { ProtagonistSchema } from './schema/protagonist';
 import { JourneyPlansSchema, JourneysSchema } from './schema/journeys';
@@ -64,6 +65,9 @@ export {
   computeRealmInfo,
   describeRealmByLevel,
   extractSpiritStoneFromInventory,
+  addSpiritStoneLedgers,
+  getSpiritStoneCurrencyGrade,
+  getSpiritStoneTotal,
   finiteNumber,
   getCultivationStatusLabel,
   getBreakthroughCost,
@@ -76,7 +80,11 @@ export {
   migrateCultivatorInput,
   NormalizedStringListSchema,
   normalizeSpiritStoneAmount,
+  normalizeSpiritStoneLedger,
   normalizeSpiritStoneState,
+  SPIRIT_STONE_GRADES,
+  SPIRIT_STONE_WEIGHTS,
+  SpiritStoneLedgerSchema,
   normalizeCultivationState,
   normalizeRealmLevel,
   previewCultivationBreakthrough,
@@ -86,6 +94,7 @@ export {
   品阶映射,
   熟练度映射,
 } from './schema/common';
+export type { SpiritStoneGrade, SpiritStoneLedger } from './schema/common';
 export {
   CONFIG,
   CURRENT_CULTIVATION_VERSION,
@@ -232,7 +241,9 @@ function mergeCompanionData(
   const fallbackRelationContext = _.cloneDeep(DEFAULT_COMPANION.关系上下文);
   merged.等级 = Math.max(Number(base.等级 ?? DEFAULT_COMPANION.等级), Number(incoming.等级 ?? DEFAULT_COMPANION.等级));
   merged.修为 = Math.max(Number(base.修为 ?? DEFAULT_COMPANION.修为), Number(incoming.修为 ?? DEFAULT_COMPANION.修为));
-  merged.灵石 = Math.max(Number(base.灵石 ?? DEFAULT_COMPANION.灵石), Number(incoming.灵石 ?? DEFAULT_COMPANION.灵石));
+  for (const grade of SPIRIT_STONE_GRADES) {
+    merged.灵石[grade] = Math.max(base.灵石[grade], incoming.灵石[grade]);
+  }
   merged.已活岁月 = Math.max(
     Number(base.已活岁月 ?? DEFAULT_COMPANION.已活岁月),
     Number(incoming.已活岁月 ?? DEFAULT_COMPANION.已活岁月),

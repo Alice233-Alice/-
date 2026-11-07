@@ -5111,11 +5111,25 @@ var __webpack_modules__ = {
           });
           continue;
         }
-        if (root === "本尊" && sub === "灵石") {
-          scored.push({
-            score: 88,
-            label: op === "delta" ? `灵石 ${formatDelta(val)}` : `灵石 ${String(val ?? "")}`
-          });
+        if (root === "本尊" && sub === "灵石" || root === "红颜" && third === "灵石") {
+          const prefix = root === "红颜" ? `${sub}·` : "";
+          const grade = segments[root === "红颜" ? 3 : 2];
+          if (val && typeof val === "object" && !Array.isArray(val)) {
+            for (const [name, amount] of Object.entries(val)) {
+              if (/^(下品|中品|上品|极品)灵石$/u.test(name)) {
+                scored.push({
+                  score: 88,
+                  label: `${prefix}${name} ${String(amount ?? 0)}`
+                });
+              }
+            }
+          } else {
+            const name = /^(下品|中品|上品|极品)灵石$/u.test(grade ?? "") ? grade : "下品灵石";
+            scored.push({
+              score: 88,
+              label: `${prefix}${name} ${op === "delta" ? formatDelta(val) : op === "remove" ? "0" : String(val ?? "")}`
+            });
+          }
           continue;
         }
         if (root === "本尊" && sub === "行踪" && third === "当前区域" && typeof val === "string" && val.trim()) {
@@ -5790,10 +5804,13 @@ var __webpack_modules__ = {
       RecentQuestResultsSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.RecentQuestResultsSchema,
       ReputationEntrySchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.ReputationEntrySchema,
       ReputationSystemSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.ReputationSystemSchema,
+      SPIRIT_STONE_GRADES: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SPIRIT_STONE_GRADES,
+      SPIRIT_STONE_WEIGHTS: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SPIRIT_STONE_WEIGHTS,
       Schema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.Schema,
       SkillListSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SkillListSchema,
       SkillSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SkillSchema,
       SpiritRootSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SpiritRootSchema,
+      SpiritStoneLedgerSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SpiritStoneLedgerSchema,
       SystemSettingsSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.SystemSettingsSchema,
       TechniqueSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.TechniqueSchema,
       TreasureSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.TreasureSchema,
@@ -5802,6 +5819,7 @@ var __webpack_modules__ = {
       WORLD_EVENT_LEDGER_LIMIT: () => _schema__WEBPACK_IMPORTED_MODULE_0__.WORLD_EVENT_LEDGER_LIMIT,
       WorldEventLedgerSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.WorldEventLedgerSchema,
       WorldEventSchema: () => _schema__WEBPACK_IMPORTED_MODULE_0__.WorldEventSchema,
+      addSpiritStoneLedgers: () => _schema__WEBPACK_IMPORTED_MODULE_0__.addSpiritStoneLedgers,
       compactWorldEventLedger: () => _schema__WEBPACK_IMPORTED_MODULE_0__.compactWorldEventLedger,
       compareRealmStanding: () => _schema__WEBPACK_IMPORTED_MODULE_0__.compareRealmStanding,
       compareWorldEventTimeDescending: () => _schema__WEBPACK_IMPORTED_MODULE_0__.compareWorldEventTimeDescending,
@@ -5817,6 +5835,8 @@ var __webpack_modules__ = {
       getRealmColor: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getRealmColor,
       getRealmThreshold: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getRealmThreshold,
       getRootColor: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getRootColor,
+      getSpiritStoneCurrencyGrade: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getSpiritStoneCurrencyGrade,
+      getSpiritStoneTotal: () => _schema__WEBPACK_IMPORTED_MODULE_0__.getSpiritStoneTotal,
       isSpiritStoneCurrencyItem: () => _schema__WEBPACK_IMPORTED_MODULE_0__.isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => _schema__WEBPACK_IMPORTED_MODULE_0__.migrateCultivationProgress,
       migrateCultivatorInput: () => _schema__WEBPACK_IMPORTED_MODULE_0__.migrateCultivatorInput,
@@ -5824,6 +5844,7 @@ var __webpack_modules__ = {
       normalizeCultivationState: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeCultivationState,
       normalizeRealmLevel: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeSpiritStoneAmount,
+      normalizeSpiritStoneLedger: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeSpiritStoneLedger,
       normalizeSpiritStoneState: () => _schema__WEBPACK_IMPORTED_MODULE_0__.normalizeSpiritStoneState,
       parseRealmToLevel: () => _schema__WEBPACK_IMPORTED_MODULE_0__.parseRealmToLevel,
       previewCultivationBreakthrough: () => _schema__WEBPACK_IMPORTED_MODULE_0__.previewCultivationBreakthrough,
@@ -9955,10 +9976,13 @@ var __webpack_modules__ = {
       RecentQuestResultsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.RecentQuestResultsSchema,
       ReputationEntrySchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.ReputationEntrySchema,
       ReputationSystemSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.ReputationSystemSchema,
+      SPIRIT_STONE_GRADES: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SPIRIT_STONE_GRADES,
+      SPIRIT_STONE_WEIGHTS: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SPIRIT_STONE_WEIGHTS,
       Schema: () => Schema,
       SkillListSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillListSchema,
       SkillSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SkillSchema,
       SpiritRootSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_8__.SpiritRootSchema,
+      SpiritStoneLedgerSchema: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.SpiritStoneLedgerSchema,
       SystemSettingsSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.SystemSettingsSchema,
       TechniqueSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_8__.TechniqueSchema,
       TreasureSchema: () => _schema_world__WEBPACK_IMPORTED_MODULE_8__.TreasureSchema,
@@ -9967,6 +9991,7 @@ var __webpack_modules__ = {
       WORLD_EVENT_LEDGER_LIMIT: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.WORLD_EVENT_LEDGER_LIMIT,
       WorldEventLedgerSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.WorldEventLedgerSchema,
       WorldEventSchema: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.WorldEventSchema,
+      addSpiritStoneLedgers: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.addSpiritStoneLedgers,
       compactWorldEventLedger: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.compactWorldEventLedger,
       compareRealmStanding: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.compareRealmStanding,
       compareWorldEventTimeDescending: () => _schema_systems__WEBPACK_IMPORTED_MODULE_7__.compareWorldEventTimeDescending,
@@ -9982,6 +10007,8 @@ var __webpack_modules__ = {
       getRealmColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.getRealmColor,
       getRealmThreshold: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getRealmThreshold,
       getRootColor: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.getRootColor,
+      getSpiritStoneCurrencyGrade: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getSpiritStoneCurrencyGrade,
+      getSpiritStoneTotal: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.getSpiritStoneTotal,
       isSpiritStoneCurrencyItem: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivationProgress,
       migrateCultivatorInput: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.migrateCultivatorInput,
@@ -9989,6 +10016,7 @@ var __webpack_modules__ = {
       normalizeCultivationState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState,
       normalizeRealmLevel: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneAmount,
+      normalizeSpiritStoneLedger: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneLedger,
       normalizeSpiritStoneState: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeSpiritStoneState,
       parseRealmToLevel: () => _schema_utils__WEBPACK_IMPORTED_MODULE_9__.parseRealmToLevel,
       previewCultivationBreakthrough: () => _schema_common__WEBPACK_IMPORTED_MODULE_3__.previewCultivationBreakthrough,
@@ -10071,7 +10099,9 @@ var __webpack_modules__ = {
       const fallbackRelationContext = _.cloneDeep(DEFAULT_COMPANION.关系上下文);
       merged.等级 = Math.max(Number(base.等级 ?? DEFAULT_COMPANION.等级), Number(incoming.等级 ?? DEFAULT_COMPANION.等级));
       merged.修为 = Math.max(Number(base.修为 ?? DEFAULT_COMPANION.修为), Number(incoming.修为 ?? DEFAULT_COMPANION.修为));
-      merged.灵石 = Math.max(Number(base.灵石 ?? DEFAULT_COMPANION.灵石), Number(incoming.灵石 ?? DEFAULT_COMPANION.灵石));
+      for (const grade of _schema_common__WEBPACK_IMPORTED_MODULE_3__.SPIRIT_STONE_GRADES) {
+        merged.灵石[grade] = Math.max(base.灵石[grade], incoming.灵石[grade]);
+      }
       merged.已活岁月 = Math.max(Number(base.已活岁月 ?? DEFAULT_COMPANION.已活岁月), Number(incoming.已活岁月 ?? DEFAULT_COMPANION.已活岁月));
       const fallbackCultivationState = _.cloneDeep(DEFAULT_COMPANION.修炼状态);
       merged.修炼状态 = (0, _schema_common__WEBPACK_IMPORTED_MODULE_3__.normalizeCultivationState)({
@@ -10514,7 +10544,7 @@ var __webpack_modules__ = {
       功法: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       本命兵器: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       神通列表: _common__WEBPACK_IMPORTED_MODULE_1__.SkillListSchema,
-      灵石: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
+      灵石: _common__WEBPACK_IMPORTED_MODULE_1__.SpiritStoneLedgerSchema,
       已活岁月: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
       修炼状态: _common__WEBPACK_IMPORTED_MODULE_1__.CultivationStateSchema,
       好感度: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => _.clamp(v, -200, 200)).prefault(0),
@@ -10529,7 +10559,7 @@ var __webpack_modules__ = {
       功法: "无",
       本命兵器: "无",
       神通列表: {},
-      灵石: 0,
+      灵石: {},
       已活岁月: 0,
       修炼状态: {},
       好感度: 0,
@@ -10563,8 +10593,12 @@ var __webpack_modules__ = {
       ItemSchema: () => ItemSchema,
       NormalizedStringListSchema: () => NormalizedStringListSchema,
       RealmTransitionSchema: () => RealmTransitionSchema,
+      SPIRIT_STONE_GRADES: () => SPIRIT_STONE_GRADES,
+      SPIRIT_STONE_WEIGHTS: () => SPIRIT_STONE_WEIGHTS,
       SkillListSchema: () => SkillListSchema,
       SkillSchema: () => SkillSchema,
+      SpiritStoneLedgerSchema: () => SpiritStoneLedgerSchema,
+      addSpiritStoneLedgers: () => addSpiritStoneLedgers,
       computeRealmInfo: () => computeRealmInfo,
       describeRealmByLevel: () => describeRealmByLevel,
       extractSpiritStoneFromInventory: () => extractSpiritStoneFromInventory,
@@ -10572,6 +10606,8 @@ var __webpack_modules__ = {
       getBreakthroughCost: () => getBreakthroughCost,
       getCultivationStatusLabel: () => getCultivationStatusLabel,
       getRealmThreshold: () => getRealmThreshold,
+      getSpiritStoneCurrencyGrade: () => getSpiritStoneCurrencyGrade,
+      getSpiritStoneTotal: () => getSpiritStoneTotal,
       isSpiritStoneCurrencyItem: () => isSpiritStoneCurrencyItem,
       migrateCultivationProgress: () => migrateCultivationProgress,
       migrateCultivatorInput: () => migrateCultivatorInput,
@@ -10579,6 +10615,7 @@ var __webpack_modules__ = {
       normalizeCultivationState: () => normalizeCultivationState,
       normalizeRealmLevel: () => normalizeRealmLevel,
       normalizeSpiritStoneAmount: () => normalizeSpiritStoneAmount,
+      normalizeSpiritStoneLedger: () => normalizeSpiritStoneLedger,
       normalizeSpiritStoneState: () => normalizeSpiritStoneState,
       previewCultivationBreakthrough: () => previewCultivationBreakthrough,
       品阶映射: () => 品阶映射,
@@ -10661,24 +10698,71 @@ var __webpack_modules__ = {
       品阶: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().transform(value => value.trim()).prefault(""),
       数量: finiteNumber(0).transform(v => Math.max(0, Math.floor(v))).prefault(1)
     });
-    const 灵石货币别名 = new Set([ "灵石", "下品灵石" ]);
+    const SPIRIT_STONE_GRADES = [ "下品灵石", "中品灵石", "上品灵石", "极品灵石" ];
+    const SPIRIT_STONE_WEIGHTS = {
+      下品灵石: 1,
+      中品灵石: 100,
+      上品灵石: 1e4,
+      极品灵石: 1e6
+    };
     function normalizeSpiritStoneCurrencyName(value) {
       return String(value ?? "").trim().replace(/\s+/g, "");
     }
+    function getSpiritStoneCurrencyGrade(key, item) {
+      const name = normalizeSpiritStoneCurrencyName(item?.名称);
+      const keyName = normalizeSpiritStoneCurrencyName(key);
+      const isGrade = value => SPIRIT_STONE_GRADES.includes(value);
+      if (name && name !== "灵石" && !isGrade(name)) return null;
+      if (isGrade(name)) return name;
+      if (isGrade(keyName)) return keyName;
+      if ((name || keyName) !== "灵石") return null;
+      const rank = normalizeSpiritStoneCurrencyName(item?.品阶);
+      if (isGrade(rank)) return rank;
+      return isGrade(`${rank}灵石`) ? `${rank}灵石` : "下品灵石";
+    }
     function isSpiritStoneCurrencyItem(key, item) {
-      const candidates = [ normalizeSpiritStoneCurrencyName(key), normalizeSpiritStoneCurrencyName(item?.名称) ].filter(Boolean);
-      return candidates.some(candidate => 灵石货币别名.has(candidate));
+      return getSpiritStoneCurrencyGrade(key, item) !== null;
+    }
+    function normalizeSpiritStoneAmount(value) {
+      const source = _.isPlainObject(value) ? value.数量 : value;
+      const amount = typeof source === "number" || typeof source === "string" ? Number(source) : 0;
+      return Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+    }
+    function normalizeSpiritStoneLedger(value) {
+      const source = _.isPlainObject(value) ? value : null;
+      return {
+        下品灵石: normalizeSpiritStoneAmount(source ? source.下品灵石 ?? source.灵石 ?? source.数量 : value),
+        中品灵石: normalizeSpiritStoneAmount(source?.中品灵石),
+        上品灵石: normalizeSpiritStoneAmount(source?.上品灵石),
+        极品灵石: normalizeSpiritStoneAmount(source?.极品灵石)
+      };
+    }
+    const SpiritStoneLedgerSchema = zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(normalizeSpiritStoneLedger, zod__WEBPACK_IMPORTED_MODULE_0__.z.object({
+      下品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      中品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      上品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0),
+      极品灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.coerce.number().transform(normalizeSpiritStoneAmount).prefault(0)
+    }).prefault({}));
+    function addSpiritStoneLedgers(...values) {
+      const result = normalizeSpiritStoneLedger();
+      for (const value of values) {
+        const ledger = normalizeSpiritStoneLedger(value);
+        for (const grade of SPIRIT_STONE_GRADES) result[grade] += ledger[grade];
+      }
+      return result;
+    }
+    function getSpiritStoneTotal(value) {
+      const ledger = normalizeSpiritStoneLedger(value);
+      return SPIRIT_STONE_GRADES.reduce((total, grade) => total + ledger[grade] * SPIRIT_STONE_WEIGHTS[grade], 0);
     }
     function extractSpiritStoneFromInventory(inventory) {
       const nextInventory = {};
-      let spiritStone = 0;
+      const spiritStone = normalizeSpiritStoneLedger();
       for (const [key, item] of Object.entries(inventory ?? {})) {
         if (!item) continue;
-        if (isSpiritStoneCurrencyItem(key, item)) {
-          const amount = Number(item.数量);
-          if (Number.isFinite(amount) && amount > 0) {
-            spiritStone += amount;
-          }
+        const grade = getSpiritStoneCurrencyGrade(key, item);
+        if (grade) {
+          spiritStone[grade] += normalizeSpiritStoneAmount(item.数量);
           continue;
         }
         nextInventory[key] = item;
@@ -10688,25 +10772,11 @@ var __webpack_modules__ = {
         spiritStone
       };
     }
-    function normalizeSpiritStoneAmount(value) {
-      const candidates = [ value ];
-      if (_.isPlainObject(value)) {
-        const legacyLedger = value;
-        candidates.unshift(legacyLedger.下品灵石, legacyLedger.灵石, legacyLedger.数量);
-      }
-      for (const candidate of candidates) {
-        const amountSource = _.isPlainObject(candidate) ? candidate.数量 : candidate;
-        if (amountSource == null || typeof amountSource === "string" && !amountSource.trim()) continue;
-        const amount = Number(amountSource);
-        if (Number.isFinite(amount)) return Math.max(0, amount);
-      }
-      return 0;
-    }
     function normalizeSpiritStoneState(spiritStone, ...inventories) {
-      let nextSpiritStone = normalizeSpiritStoneAmount(spiritStone);
+      let nextSpiritStone = normalizeSpiritStoneLedger(spiritStone);
       const normalizedInventories = inventories.map(inventory => {
         const normalized = extractSpiritStoneFromInventory(inventory);
-        nextSpiritStone += normalized.spiritStone;
+        nextSpiritStone = addSpiritStoneLedgers(nextSpiritStone, normalized.spiritStone);
         return normalized.inventory;
       });
       return {
@@ -10953,7 +11023,7 @@ var __webpack_modules__ = {
     });
     const REALM_STAGES = [ "初期", "中期", "后期", "大圆满" ];
     const CURRENT_CULTIVATION_VERSION = 4;
-    const CURRENT_SCHEMA_VERSION = 6;
+    const CURRENT_SCHEMA_VERSION = 7;
     const REALM_NAMES = [ "练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "真仙", "仙王", "仙帝" ];
     const LEGACY_REALM_THRESHOLDS = [ 100, 200, 300, 400, 500, 600, 700, 800, 900, 1e3, 1100, 1200, 2400, 2400, 2400, 2400, 4800, 4800, 4800, 4800, 9600, 9600, 9600, 9600, 19200, 19200, 19200, 19200, 38400, 38400, 38400, 38400, 76800, 76800, 76800, 76800, 153600, 153600, 153600, 153600, 307200, 307200, 307200, 307200, 614400, 614400, 614400, 614400 ];
     const V2_REALM_MAJOR_BASES = [ 100, 160, 260, 420, 680, 1100, 1780, 2880, 4660, 7540, 12200, 19740 ];
@@ -11424,8 +11494,7 @@ var __webpack_modules__ = {
       功法: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       本命兵器: zod__WEBPACK_IMPORTED_MODULE_0__.z.string().prefault("无"),
       神通列表: _common__WEBPACK_IMPORTED_MODULE_1__.SkillListSchema,
-      灵石: zod__WEBPACK_IMPORTED_MODULE_0__.z.preprocess(_common__WEBPACK_IMPORTED_MODULE_1__.normalizeSpiritStoneAmount, (0, 
-      _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v))).prefault(0),
+      灵石: _common__WEBPACK_IMPORTED_MODULE_1__.SpiritStoneLedgerSchema,
       已活岁月: (0, _common__WEBPACK_IMPORTED_MODULE_1__.finiteNumber)(0).transform(v => Math.max(0, v)).prefault(0),
       修炼状态: _common__WEBPACK_IMPORTED_MODULE_1__.CultivationStateSchema,
       行踪: LocationTrackSchema,
@@ -11445,7 +11514,7 @@ var __webpack_modules__ = {
       功法: "无",
       本命兵器: "无",
       神通列表: {},
-      灵石: 0,
+      灵石: {},
       已活岁月: 0,
       修炼状态: {},
       行踪: {
@@ -11512,11 +11581,12 @@ var __webpack_modules__ = {
         失败惩罚记录: ""
       }
     }).transform(data => {
-      const spiritStoneNormalization = (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeSpiritStoneState)(data.灵石, data.背包, data.杂物袋);
-      const [normalizedBackpack, normalizedMiscBag] = spiritStoneNormalization.inventories;
+      const spiritStoneNormalization = (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeSpiritStoneState)(data.灵石, data.背包, data.杂物袋, data.法宝);
+      const [normalizedBackpack, normalizedMiscBag, normalizedTreasures] = spiritStoneNormalization.inventories;
       data.灵石 = spiritStoneNormalization.spiritStone;
       data.背包 = normalizedBackpack ?? {};
       data.杂物袋 = normalizedMiscBag ?? {};
+      data.法宝 = normalizedTreasures ?? {};
       const cultivator = {
         ...data,
         修炼状态: (0, _common__WEBPACK_IMPORTED_MODULE_1__.normalizeCultivationState)(data.修炼状态, {
@@ -15043,8 +15113,8 @@ var __webpack_modules__ = {
             detail: weapon.detail,
             icon: "fa-solid fa-khanda"
           }, {
-            label: "灵石",
-            title: formatNumber(store.本尊.灵石),
+            label: "灵石（折合下品）",
+            title: formatNumber((0, _schema__WEBPACK_IMPORTED_MODULE_1__.getSpiritStoneTotal)(store.本尊.灵石)),
             detail: "",
             icon: "fa-solid fa-gem",
             toneClass: "gold-tone"
@@ -16156,7 +16226,8 @@ var __webpack_modules__ = {
     var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */ "vue");
     var vue__WEBPACK_IMPORTED_MODULE_0___default = __webpack_require__.n(vue__WEBPACK_IMPORTED_MODULE_0__);
     var _store__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../store */ "./src/灯火通明-测试版/store.ts");
-    var _affairs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../affairs */ "./src/灯火通明-测试版/affairs.ts");
+    var _schema__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../schema */ "./src/灯火通明-测试版/schema.ts");
+    var _affairs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../affairs */ "./src/灯火通明-测试版/affairs.ts");
     const __WEBPACK_DEFAULT_EXPORT__ = (0, vue__WEBPACK_IMPORTED_MODULE_0__.defineComponent)({
       __name: "InventoryPanel",
       props: {
@@ -16218,7 +16289,7 @@ var __webpack_modules__ = {
         (0, vue__WEBPACK_IMPORTED_MODULE_0__.watch)([ () => props.focusName, () => props.focusNonce ], async () => {
           if (!props.focusName) return;
           await (0, vue__WEBPACK_IMPORTED_MODULE_0__.nextTick)();
-          (0, _affairs__WEBPACK_IMPORTED_MODULE_2__.focusStageElement)(Array.from(inventoryRoot.value?.querySelectorAll("[data-item-name]") ?? []).find(element => element.dataset.itemName === props.focusName));
+          (0, _affairs__WEBPACK_IMPORTED_MODULE_3__.focusStageElement)(Array.from(inventoryRoot.value?.querySelectorAll("[data-item-name]") ?? []).find(element => element.dataset.itemName === props.focusName));
         }, {
           immediate: true,
           flush: "post"
@@ -16233,7 +16304,13 @@ var __webpack_modules__ = {
           resolveItemTier,
           extractSectionItems,
           sections,
-          formatNumber
+          formatNumber,
+          get getSpiritStoneTotal() {
+            return _schema__WEBPACK_IMPORTED_MODULE_2__.getSpiritStoneTotal;
+          },
+          get SPIRIT_STONE_GRADES() {
+            return _schema__WEBPACK_IMPORTED_MODULE_2__.SPIRIT_STONE_GRADES;
+          }
         };
         Object.defineProperty(__returned__, "__isScriptSetup", {
           enumerable: false,
@@ -16555,7 +16632,7 @@ var __webpack_modules__ = {
           体质: "",
           功法: "",
           本命兵器: "",
-          灵石: 0,
+          灵石: (0, _schema__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneLedger)(),
           姓名: "",
           宗门: "",
           出身: "",
@@ -16620,7 +16697,7 @@ var __webpack_modules__ = {
             功法: charData.法,
             本命兵器: charData.器,
             神通列表,
-            灵石: 0,
+            灵石: (0, _schema__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneLedger)(),
             已活岁月: Number(charData.龄.match(/实(?:历)?\s*(\d+)/u)?.[1] ?? 0),
             尝试突破: false,
             修炼状态: _schema__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema.parse({
@@ -16734,7 +16811,7 @@ var __webpack_modules__ = {
                 名称: item.名称 || name,
                 描述: item.描述 || "",
                 品阶: item.品阶 || "",
-                数量: item.数量 || 1
+                数量: item.数量 ?? 1
               };
             }
           }
@@ -16745,10 +16822,11 @@ var __webpack_modules__ = {
                 名称: item.名称 || name,
                 描述: item.描述 || "",
                 品阶: item.品阶 || "",
-                数量: item.数量 || 1
+                数量: item.数量 ?? 1
               };
             }
           }
+          const normalizedTreasures = normalizeInventorySpiritStone(法宝);
           const normalizedBackpack = normalizeInventorySpiritStone(背包);
           const 杂物袋 = {};
           if (store.本尊.杂物袋) {
@@ -16757,7 +16835,7 @@ var __webpack_modules__ = {
                 名称: item.名称 || name,
                 描述: item.描述 || "",
                 品阶: item.品阶 || "",
-                数量: item.数量 || 1
+                数量: item.数量 ?? 1
               };
             }
           }
@@ -16801,7 +16879,7 @@ var __webpack_modules__ = {
                 功法: companion.功法 ?? "",
                 本命兵器: companion.本命兵器 ?? "",
                 神通列表,
-                灵石: companion.灵石 ?? 0,
+                灵石: (0, _schema__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneLedger)(companion.灵石),
                 已活岁月: companion.已活岁月 ?? 0,
                 尝试突破: companion.尝试突破 ?? false,
                 修炼状态: _schema__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema.parse(companion).修炼状态,
@@ -16817,7 +16895,7 @@ var __webpack_modules__ = {
             体质: store.本尊.体质 ?? "",
             功法: store.本尊.功法 ?? "",
             本命兵器: store.本尊.本命兵器 ?? "",
-            灵石: (store.本尊.灵石 ?? 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone,
+            灵石: (0, _schema__WEBPACK_IMPORTED_MODULE_2__.addSpiritStoneLedgers)(store.本尊.灵石, normalizedTreasures.spiritStone, normalizedBackpack.spiritStone, normalizedMiscBag.spiritStone),
             姓名: store.本尊.身份?.姓名 ?? "",
             宗门: store.本尊.身份?.宗门 ?? "",
             出身: store.本尊.身份?.出身 ?? "",
@@ -16844,7 +16922,7 @@ var __webpack_modules__ = {
             },
             任务列表,
             神通列表,
-            法宝,
+            法宝: normalizedTreasures.inventory,
             背包: normalizedBackpack.inventory,
             杂物袋: normalizedMiscBag.inventory,
             红颜
@@ -16962,9 +17040,10 @@ var __webpack_modules__ = {
           const messageId = getCurrentMessageId();
           const customOpeningContent = isCustomOpeningEditable.value ? normalizeCustomOpeningContent() : "";
           const currentMessageContent = customOpeningContent || getCurrentFloorMessageContent();
+          const normalizedTreasures = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.法宝));
           const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
           const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
-          const normalizedSpiritStone = Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone;
+          const normalizedSpiritStone = (0, _schema__WEBPACK_IMPORTED_MODULE_2__.addSpiritStoneLedgers)(formData.value.灵石, normalizedTreasures.spiritStone, normalizedBackpack.spiritStone, normalizedMiscBag.spiritStone);
           const patchData = {
             本尊: {
               等级: formData.value.等级,
@@ -16998,7 +17077,7 @@ var __webpack_modules__ = {
                 触发原因: formData.value.渡劫状态.触发原因
               },
               神通列表: convertSkillsToMvu(),
-              法宝: convertItemsToMvu(formData.value.法宝),
+              法宝: normalizedTreasures.inventory,
               背包: normalizedBackpack.inventory,
               杂物袋: normalizedMiscBag.inventory
             },
@@ -17063,7 +17142,7 @@ var __webpack_modules__ = {
               _.set(vars, "stat_data.本尊.当前敌人", {});
               _.set(vars, "stat_data.本尊.渡劫状态", _.cloneDeep(formData.value.渡劫状态));
               _.set(vars, "stat_data.本尊.神通列表", convertSkillsToMvu());
-              _.set(vars, "stat_data.本尊.法宝", convertItemsToMvu(formData.value.法宝));
+              _.set(vars, "stat_data.本尊.法宝", normalizedTreasures.inventory);
               _.set(vars, "stat_data.本尊.背包", normalizedBackpack.inventory);
               _.set(vars, "stat_data.本尊.杂物袋", normalizedMiscBag.inventory);
               _.set(vars, "stat_data.红颜", convertCompanionsToMvu());
@@ -17091,7 +17170,7 @@ var __webpack_modules__ = {
             体质: defaultData.本尊.体质 ?? "",
             功法: defaultData.本尊.功法 ?? "",
             本命兵器: defaultData.本尊.本命兵器 ?? "",
-            灵石: defaultData.本尊.灵石 ?? 0,
+            灵石: (0, _schema__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneLedger)(defaultData.本尊.灵石),
             姓名: defaultData.本尊.身份?.姓名 ?? "",
             宗门: defaultData.本尊.身份?.宗门 ?? "",
             出身: defaultData.本尊.身份?.出身 ?? "",
@@ -17122,11 +17201,12 @@ var __webpack_modules__ = {
           toastr.info("已恢复为默认值");
         };
         const exportPreset = () => {
+          const normalizedTreasures = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.法宝));
           const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
           const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
-          const normalizedSpiritStone = Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone;
+          const normalizedSpiritStone = (0, _schema__WEBPACK_IMPORTED_MODULE_2__.addSpiritStoneLedgers)(formData.value.灵石, normalizedTreasures.spiritStone, normalizedBackpack.spiritStone, normalizedMiscBag.spiritStone);
           const exportData = {
-            version: "1.6",
+            version: "1.7",
             exportTime: (new Date).toISOString(),
             preset: {
               基础属性: {
@@ -17161,7 +17241,7 @@ var __webpack_modules__ = {
               },
               任务列表: convertQuestsToMvu(),
               神通列表: convertSkillsToMvu(),
-              法宝: convertItemsToMvu(formData.value.法宝),
+              法宝: normalizedTreasures.inventory,
               背包: normalizedBackpack.inventory,
               杂物袋: normalizedMiscBag.inventory,
               红颜: convertCompanionsToMvu()
@@ -17194,6 +17274,11 @@ var __webpack_modules__ = {
                 return;
               }
               const preset = data.preset;
+              const importsSpiritStone = Object.hasOwn(preset.基础属性 ?? {}, "灵石") || [ "法宝", "背包", "杂物袋" ].some(container => Object.entries(preset[container] ?? {}).some(([key, item]) => (0, 
+              _schema__WEBPACK_IMPORTED_MODULE_2__.isSpiritStoneCurrencyItem)(key, item)));
+              if (importsSpiritStone) {
+                formData.value.灵石 = (0, _schema__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneLedger)(preset.基础属性?.灵石);
+              }
               if (preset.基础属性) {
                 formData.value.等级 = preset.基础属性.等级 ?? formData.value.等级;
                 formData.value.修为 = preset.基础属性.修为 ?? formData.value.修为;
@@ -17204,7 +17289,7 @@ var __webpack_modules__ = {
                 formData.value.体质 = preset.基础属性.体质 ?? formData.value.体质;
                 formData.value.功法 = preset.基础属性.功法 ?? formData.value.功法;
                 formData.value.本命兵器 = preset.基础属性.本命兵器 ?? formData.value.本命兵器;
-                formData.value.灵石 = preset.基础属性.灵石 ?? formData.value.灵石;
+                formData.value.灵石 = (0, _schema__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneLedger)(preset.基础属性.灵石 ?? formData.value.灵石);
                 formData.value.已活岁月 = preset.基础属性.已活岁月 ?? formData.value.已活岁月;
               }
               if (preset.身份信息) {
@@ -17268,9 +17353,14 @@ var __webpack_modules__ = {
                     名称: item.名称 || name,
                     描述: item.描述 || "",
                     品阶: item.品阶 || "",
-                    数量: item.数量 || 1
+                    数量: item.数量 ?? 1
                   };
                 }
+              }
+              if (preset.法宝) {
+                const normalizedTreasures = normalizeInventorySpiritStone(formData.value.法宝);
+                formData.value.法宝 = normalizedTreasures.inventory;
+                formData.value.灵石 = (0, _schema__WEBPACK_IMPORTED_MODULE_2__.addSpiritStoneLedgers)(formData.value.灵石, normalizedTreasures.spiritStone);
               }
               if (preset.背包) {
                 formData.value.背包 = {};
@@ -17279,12 +17369,12 @@ var __webpack_modules__ = {
                     名称: item.名称 || name,
                     描述: item.描述 || "",
                     品阶: item.品阶 || "",
-                    数量: item.数量 || 1
+                    数量: item.数量 ?? 1
                   };
                 }
                 const normalizedBackpack = normalizeInventorySpiritStone(formData.value.背包);
                 formData.value.背包 = normalizedBackpack.inventory;
-                formData.value.灵石 += normalizedBackpack.spiritStone;
+                formData.value.灵石 = (0, _schema__WEBPACK_IMPORTED_MODULE_2__.addSpiritStoneLedgers)(formData.value.灵石, normalizedBackpack.spiritStone);
               }
               if (preset.杂物袋) {
                 formData.value.杂物袋 = {};
@@ -17293,12 +17383,12 @@ var __webpack_modules__ = {
                     名称: item.名称 || name,
                     描述: item.描述 || "",
                     品阶: item.品阶 || "",
-                    数量: item.数量 || 1
+                    数量: item.数量 ?? 1
                   };
                 }
                 const normalizedMiscBag = normalizeInventorySpiritStone(formData.value.杂物袋);
                 formData.value.杂物袋 = normalizedMiscBag.inventory;
-                formData.value.灵石 += normalizedMiscBag.spiritStone;
+                formData.value.灵石 = (0, _schema__WEBPACK_IMPORTED_MODULE_2__.addSpiritStoneLedgers)(formData.value.灵石, normalizedMiscBag.spiritStone);
               }
               if (preset.红颜) {
                 formData.value.红颜 = {};
@@ -17333,7 +17423,7 @@ var __webpack_modules__ = {
                     功法: companion.功法 ?? "",
                     本命兵器: companion.本命兵器 ?? "",
                     神通列表,
-                    灵石: companion.灵石 ?? 0,
+                    灵石: (0, _schema__WEBPACK_IMPORTED_MODULE_2__.normalizeSpiritStoneLedger)(companion.灵石),
                     已活岁月: companion.已活岁月 ?? 0,
                     尝试突破: companion.尝试突破 ?? false,
                     修炼状态: _schema__WEBPACK_IMPORTED_MODULE_2__.CompanionSchema.parse(companion).修炼状态,
@@ -17402,7 +17492,10 @@ var __webpack_modules__ = {
           resetToDefault,
           exportPreset,
           triggerImport,
-          importPreset
+          importPreset,
+          get SPIRIT_STONE_GRADES() {
+            return _schema__WEBPACK_IMPORTED_MODULE_2__.SPIRIT_STONE_GRADES;
+          }
         };
         Object.defineProperty(__returned__, "__isScriptSetup", {
           enumerable: false,
@@ -23700,62 +23793,92 @@ var __webpack_modules__ = {
       class: "panel inventory-panel"
     };
     const _hoisted_2 = {
-      class: "section-header"
+      class: "inventory-section",
+      "data-item-name": "灵石",
+      tabindex: "-1"
     };
     const _hoisted_3 = {
-      class: "section-title"
+      class: "section-header"
     };
     const _hoisted_4 = {
-      key: 0,
-      class: "spirit-stone-tag",
-      title: "当前随身灵石"
+      class: "spirit-stone-tag"
     };
     const _hoisted_5 = {
-      key: 0,
-      class: "items-list"
+      class: "spirit-stone-grid"
     };
     const _hoisted_6 = [ "data-item-name" ];
     const _hoisted_7 = {
-      class: "item-topline"
+      class: "spirit-stone-name"
     };
     const _hoisted_8 = {
-      class: "item-title-group"
+      class: "spirit-stone-count"
     };
     const _hoisted_9 = {
-      class: "item-name"
+      class: "section-header"
     };
     const _hoisted_10 = {
-      class: "item-rank"
+      class: "section-title"
     };
     const _hoisted_11 = {
       key: 0,
+      class: "items-list"
+    };
+    const _hoisted_12 = [ "data-item-name" ];
+    const _hoisted_13 = {
+      class: "item-topline"
+    };
+    const _hoisted_14 = {
+      class: "item-title-group"
+    };
+    const _hoisted_15 = {
+      class: "item-name"
+    };
+    const _hoisted_16 = {
+      class: "item-rank"
+    };
+    const _hoisted_17 = {
+      key: 0,
       class: "item-count"
     };
-    const _hoisted_12 = {
+    const _hoisted_18 = {
       class: "item-desc"
     };
-    const _hoisted_13 = {
+    const _hoisted_19 = {
       key: 1,
       class: "empty-hint"
     };
     function render(_ctx, _cache, $props, $setup, $data, $options) {
-      return (0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [ ((0, 
+      return (0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("section", _hoisted_2, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_3, [ _cache[0] || (_cache[0] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
+        class: "section-title"
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+        class: "fa-solid fa-coins"
+      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 灵石") ], -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_4, "折合下品 " + (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber($setup.getSpiritStoneTotal($setup.store.本尊.灵石))), 1) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_5, [ ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), 
+      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.SPIRIT_STONE_GRADES, grade => ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
+        key: grade,
+        class: "spirit-stone-balance",
+        "data-item-name": grade,
+        tabindex: "-1"
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_7, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(grade), 1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_8, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)((0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber($setup.store.本尊.灵石[grade])), 1), _cache[1] || (_cache[1] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("small", null, " 枚", -1)) ]) ], 8, _hoisted_6))), 128)) ]) ]), ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.sections, section => ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("section", {
         key: section.key,
         class: "inventory-section"
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_2, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_3, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_9, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_10, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)(section.icon)
-      }, null, 2), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" " + (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(section.title), 1) ]), section.key === "treasure" ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_4, [ _cache[0] || (_cache[0] = (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
-        class: "fa-solid fa-gem"
-      }, null, -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 灵石 " + (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.formatNumber($setup.store.本尊.灵石)), 1) ])) : (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]), section.items.length ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_5, [ ((0, 
+      }, null, 2), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" " + (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(section.title), 1) ]) ]), section.items.length ? ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_11, [ ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)(section.items, item => ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
@@ -23763,14 +23886,14 @@ var __webpack_modules__ = {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "item-strip", `tier-${item.tier}` ]),
         "data-item-name": item.name,
         tabindex: "-1"
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_7, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_8, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_9, (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(item.name), 1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_10, (0, 
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_13, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_14, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_15, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(item.name), 1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_16, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(item.rankLabel), 1) ]), section.key !== "treasure" || item.count > 1 ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_11, "×" + (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_17, "×" + (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(item.count), 1)) : (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_12, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(item.description), 1) ], 10, _hoisted_6))), 128)) ])) : ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_13, "空空如也")) ]))), 128)) ], 512);
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_18, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(item.description), 1) ], 10, _hoisted_12))), 128)) ])) : ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_19, "空空如也")) ]))), 128)) ], 512);
     }
   },
   "./node_modules/.pnpm/unplugin@3.3.0_webpack@5.108.4/node_modules/unplugin/dist/webpack/loaders/transform.mjs??unplugin-vue-components!./node_modules/.pnpm/unplugin@2.3.11/node_modules/unplugin/dist/webpack/loaders/transform.js??unplugin-auto-import!./node_modules/.pnpm/ts-loader@9.6.2_loader-util_d29aa30b0ce151e4a84b6ebc428df4fd/node_modules/ts-loader/index.js??clonedRuleSet-458!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[4]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明-测试版/components/JourneyPanel.vue?vue&type=template&id=5caae970&scoped=true&ts=true"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -24556,9 +24679,7 @@ var __webpack_modules__ = {
     const _hoisted_15 = {
       class: "preset-section"
     };
-    const _hoisted_16 = {
-      class: "form-row"
-    };
+    const _hoisted_16 = [ "onUpdate:modelValue", "aria-label" ];
     const _hoisted_17 = {
       class: "preset-section"
     };
@@ -24734,173 +24855,174 @@ var __webpack_modules__ = {
     };
     const _hoisted_83 = [ "onUpdate:modelValue", "aria-label" ];
     const _hoisted_84 = [ "onUpdate:modelValue", "aria-label" ];
-    const _hoisted_85 = {
+    const _hoisted_85 = [ "onUpdate:modelValue", "aria-label" ];
+    const _hoisted_86 = {
       class: "form-row"
     };
-    const _hoisted_86 = [ "onUpdate:modelValue", "aria-label" ];
-    const _hoisted_87 = [ "value" ];
-    const _hoisted_88 = [ "onUpdate:modelValue", "aria-label" ];
+    const _hoisted_87 = [ "onUpdate:modelValue", "aria-label" ];
+    const _hoisted_88 = [ "value" ];
     const _hoisted_89 = [ "onUpdate:modelValue", "aria-label" ];
-    const _hoisted_90 = {
+    const _hoisted_90 = [ "onUpdate:modelValue", "aria-label" ];
+    const _hoisted_91 = {
       class: "form-row"
     };
-    const _hoisted_91 = {
+    const _hoisted_92 = {
       class: "favor-input-group"
     };
-    const _hoisted_92 = [ "onUpdate:modelValue" ];
-    const _hoisted_93 = {
+    const _hoisted_93 = [ "onUpdate:modelValue" ];
+    const _hoisted_94 = {
       class: "form-row"
     };
-    const _hoisted_94 = [ "onUpdate:modelValue" ];
-    const _hoisted_95 = {
+    const _hoisted_95 = [ "onUpdate:modelValue" ];
+    const _hoisted_96 = {
       class: "form-row form-row-top"
     };
-    const _hoisted_96 = [ "onUpdate:modelValue" ];
-    const _hoisted_97 = {
+    const _hoisted_97 = [ "onUpdate:modelValue" ];
+    const _hoisted_98 = {
       class: "form-row form-row-top"
     };
-    const _hoisted_98 = [ "onUpdate:modelValue" ];
-    const _hoisted_99 = {
+    const _hoisted_99 = [ "onUpdate:modelValue" ];
+    const _hoisted_100 = {
       class: "form-row form-row-top"
     };
-    const _hoisted_100 = [ "onUpdate:modelValue" ];
-    const _hoisted_101 = {
+    const _hoisted_101 = [ "onUpdate:modelValue" ];
+    const _hoisted_102 = {
       class: "form-row form-row-top"
     };
-    const _hoisted_102 = [ "onUpdate:modelValue" ];
-    const _hoisted_103 = {
+    const _hoisted_103 = [ "onUpdate:modelValue" ];
+    const _hoisted_104 = {
       class: "form-row form-row-top"
     };
-    const _hoisted_104 = [ "onUpdate:modelValue" ];
-    const _hoisted_105 = {
-      class: "preset-section"
-    };
+    const _hoisted_105 = [ "onUpdate:modelValue" ];
     const _hoisted_106 = {
-      key: 0,
-      class: "empty-hint"
+      class: "preset-section"
     };
     const _hoisted_107 = {
-      class: "item-header"
-    };
-    const _hoisted_108 = [ "onUpdate:modelValue" ];
-    const _hoisted_109 = [ "onClick" ];
-    const _hoisted_110 = {
-      class: "item-row"
-    };
-    const _hoisted_111 = {
-      class: "item-field"
-    };
-    const _hoisted_112 = [ "onUpdate:modelValue" ];
-    const _hoisted_113 = {
-      class: "item-field"
-    };
-    const _hoisted_114 = [ "onUpdate:modelValue" ];
-    const _hoisted_115 = {
-      class: "item-field"
-    };
-    const _hoisted_116 = [ "onUpdate:modelValue" ];
-    const _hoisted_117 = {
-      class: "item-row full"
-    };
-    const _hoisted_118 = {
-      class: "item-field full"
-    };
-    const _hoisted_119 = [ "onUpdate:modelValue" ];
-    const _hoisted_120 = {
-      class: "preset-section"
-    };
-    const _hoisted_121 = {
       key: 0,
       class: "empty-hint"
+    };
+    const _hoisted_108 = {
+      class: "item-header"
+    };
+    const _hoisted_109 = [ "onUpdate:modelValue" ];
+    const _hoisted_110 = [ "onClick" ];
+    const _hoisted_111 = {
+      class: "item-row"
+    };
+    const _hoisted_112 = {
+      class: "item-field"
+    };
+    const _hoisted_113 = [ "onUpdate:modelValue" ];
+    const _hoisted_114 = {
+      class: "item-field"
+    };
+    const _hoisted_115 = [ "onUpdate:modelValue" ];
+    const _hoisted_116 = {
+      class: "item-field"
+    };
+    const _hoisted_117 = [ "onUpdate:modelValue" ];
+    const _hoisted_118 = {
+      class: "item-row full"
+    };
+    const _hoisted_119 = {
+      class: "item-field full"
+    };
+    const _hoisted_120 = [ "onUpdate:modelValue" ];
+    const _hoisted_121 = {
+      class: "preset-section"
     };
     const _hoisted_122 = {
-      class: "item-header"
-    };
-    const _hoisted_123 = [ "onUpdate:modelValue" ];
-    const _hoisted_124 = [ "onClick" ];
-    const _hoisted_125 = {
-      class: "item-row"
-    };
-    const _hoisted_126 = {
-      class: "item-field"
-    };
-    const _hoisted_127 = [ "onUpdate:modelValue" ];
-    const _hoisted_128 = {
-      class: "item-field"
-    };
-    const _hoisted_129 = [ "onUpdate:modelValue" ];
-    const _hoisted_130 = {
-      class: "item-row full"
-    };
-    const _hoisted_131 = {
-      class: "item-field full"
-    };
-    const _hoisted_132 = [ "onUpdate:modelValue" ];
-    const _hoisted_133 = {
-      class: "preset-section"
-    };
-    const _hoisted_134 = {
       key: 0,
       class: "empty-hint"
+    };
+    const _hoisted_123 = {
+      class: "item-header"
+    };
+    const _hoisted_124 = [ "onUpdate:modelValue" ];
+    const _hoisted_125 = [ "onClick" ];
+    const _hoisted_126 = {
+      class: "item-row"
+    };
+    const _hoisted_127 = {
+      class: "item-field"
+    };
+    const _hoisted_128 = [ "onUpdate:modelValue" ];
+    const _hoisted_129 = {
+      class: "item-field"
+    };
+    const _hoisted_130 = [ "onUpdate:modelValue" ];
+    const _hoisted_131 = {
+      class: "item-row full"
+    };
+    const _hoisted_132 = {
+      class: "item-field full"
+    };
+    const _hoisted_133 = [ "onUpdate:modelValue" ];
+    const _hoisted_134 = {
+      class: "preset-section"
     };
     const _hoisted_135 = {
-      class: "item-header"
-    };
-    const _hoisted_136 = [ "onUpdate:modelValue" ];
-    const _hoisted_137 = [ "onClick" ];
-    const _hoisted_138 = {
-      class: "item-row"
-    };
-    const _hoisted_139 = {
-      class: "item-field"
-    };
-    const _hoisted_140 = [ "onUpdate:modelValue" ];
-    const _hoisted_141 = {
-      class: "item-field"
-    };
-    const _hoisted_142 = [ "onUpdate:modelValue" ];
-    const _hoisted_143 = {
-      class: "item-row full"
-    };
-    const _hoisted_144 = {
-      class: "item-field full"
-    };
-    const _hoisted_145 = [ "onUpdate:modelValue" ];
-    const _hoisted_146 = {
-      class: "preset-section"
-    };
-    const _hoisted_147 = {
       key: 0,
       class: "empty-hint"
     };
-    const _hoisted_148 = {
+    const _hoisted_136 = {
       class: "item-header"
     };
-    const _hoisted_149 = [ "onUpdate:modelValue" ];
-    const _hoisted_150 = [ "onClick" ];
-    const _hoisted_151 = {
+    const _hoisted_137 = [ "onUpdate:modelValue" ];
+    const _hoisted_138 = [ "onClick" ];
+    const _hoisted_139 = {
       class: "item-row"
     };
-    const _hoisted_152 = {
+    const _hoisted_140 = {
       class: "item-field"
     };
-    const _hoisted_153 = [ "onUpdate:modelValue" ];
-    const _hoisted_154 = {
+    const _hoisted_141 = [ "onUpdate:modelValue" ];
+    const _hoisted_142 = {
       class: "item-field"
     };
-    const _hoisted_155 = [ "onUpdate:modelValue" ];
-    const _hoisted_156 = {
+    const _hoisted_143 = [ "onUpdate:modelValue" ];
+    const _hoisted_144 = {
       class: "item-row full"
     };
-    const _hoisted_157 = {
+    const _hoisted_145 = {
       class: "item-field full"
     };
-    const _hoisted_158 = [ "onUpdate:modelValue" ];
-    const _hoisted_159 = {
+    const _hoisted_146 = [ "onUpdate:modelValue" ];
+    const _hoisted_147 = {
+      class: "preset-section"
+    };
+    const _hoisted_148 = {
+      key: 0,
+      class: "empty-hint"
+    };
+    const _hoisted_149 = {
+      class: "item-header"
+    };
+    const _hoisted_150 = [ "onUpdate:modelValue" ];
+    const _hoisted_151 = [ "onClick" ];
+    const _hoisted_152 = {
+      class: "item-row"
+    };
+    const _hoisted_153 = {
+      class: "item-field"
+    };
+    const _hoisted_154 = [ "onUpdate:modelValue" ];
+    const _hoisted_155 = {
+      class: "item-field"
+    };
+    const _hoisted_156 = [ "onUpdate:modelValue" ];
+    const _hoisted_157 = {
+      class: "item-row full"
+    };
+    const _hoisted_158 = {
+      class: "item-field full"
+    };
+    const _hoisted_159 = [ "onUpdate:modelValue" ];
+    const _hoisted_160 = {
       class: "preset-actions secondary"
     };
     function render(_ctx, _cache, $props, $setup, $data, $options) {
-      return (0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [ _cache[133] || (_cache[133] = (0, 
+      return (0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [ _cache[131] || (_cache[131] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "preset-header"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("h3", null, [ (0, 
@@ -24910,12 +25032,12 @@ var __webpack_modules__ = {
         class: "preset-desc"
       }, "自定义角色初始属性，增加游戏自由度") ], -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_2, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 仅开局一显示：手动编辑自定义开场正文 "), $setup.isCustomOpeningEditable ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_3, [ _cache[26] || (_cache[26] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_3, [ _cache[25] || (_cache[25] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-pen-fancy"
-      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "自定义开局正文") ], -1)), _cache[27] || (_cache[27] = (0, 
+      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "自定义开局正文") ], -1)), _cache[26] || (_cache[26] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "inline-hint opening-hint"
       }, "只会更新开局一，其他固定开局正文不会被覆盖。", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, 
@@ -24926,13 +25048,13 @@ var __webpack_modules__ = {
         placeholder: "填写开场场景、当前事件和希望从哪里开始。无需填写性别，人物设定继续沿用世界书。"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.customOpeningText ] ]) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 境界修为 "), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_4, [ _cache[30] || (_cache[30] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_4, [ _cache[29] || (_cache[29] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-circle-radiation"
       }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "境界修为") ], -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_5, [ _cache[28] || (_cache[28] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_5, [ _cache[27] || (_cache[27] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "境界等级", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_6, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
@@ -24944,7 +25066,7 @@ var __webpack_modules__ = {
         number: true
       } ] ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_7, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.currentRealmDescription), 1) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_8, [ _cache[29] || (_cache[29] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_8, [ _cache[28] || (_cache[28] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "当前修为", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => $setup.formData.修为 = $event),
@@ -24953,224 +25075,231 @@ var __webpack_modules__ = {
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.修为, void 0, {
         number: true
       } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 资质天赋 "), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_9, [ _cache[33] || (_cache[33] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_9, [ _cache[32] || (_cache[32] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-gem"
       }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "资质天赋") ], -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_10, [ _cache[31] || (_cache[31] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_10, [ _cache[30] || (_cache[30] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "灵根", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => $setup.formData.灵根 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.灵根 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_11, [ _cache[32] || (_cache[32] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_11, [ _cache[31] || (_cache[31] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "体质", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => $setup.formData.体质 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.体质 ] ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 功法兵器 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_12, [ _cache[36] || (_cache[36] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 功法兵器 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_12, [ _cache[35] || (_cache[35] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-book-open-reader"
       }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "功法兵器") ], -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_13, [ _cache[34] || (_cache[34] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_13, [ _cache[33] || (_cache[33] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "功法", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => $setup.formData.功法 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.功法 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_14, [ _cache[35] || (_cache[35] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_14, [ _cache[34] || (_cache[34] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "本命兵器", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => $setup.formData.本命兵器 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.本命兵器 ] ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 资源财富 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_15, [ _cache[38] || (_cache[38] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 资源财富 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_15, [ _cache[36] || (_cache[36] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-coins"
-      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "资源财富") ], -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_16, [ _cache[37] || (_cache[37] = (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "灵石", -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => $setup.formData.灵石 = $event),
+      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "资源财富") ], -1)), ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.SPIRIT_STONE_GRADES, grade => ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
+        key: grade,
+        class: "form-row"
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(grade), 1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+        "onUpdate:modelValue": $event => $setup.formData.灵石[grade] = $event,
         type: "number",
-        min: "0"
-      }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.灵石, void 0, {
+        min: "0",
+        step: "1",
+        "aria-label": grade
+      }, null, 8, _hoisted_16), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.灵石[grade], void 0, {
         number: true
-      } ] ]) ]), _cache[39] || (_cache[39] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
+      } ] ]) ]))), 128)), _cache[37] || (_cache[37] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "inline-hint"
-      }, "普通灵石统一记在这里；若误填到储物戒中，应用时会自动并入账册。", -1)) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 身份信息 "), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_17, [ _cache[44] || (_cache[44] = (0, 
+      }, "四品分别记录实际枚数，百进制折算用于汇总；兑换依剧情结算。", -1)) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 身份信息 "), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_17, [ _cache[42] || (_cache[42] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-user"
       }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "身份信息") ], -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_18, [ _cache[40] || (_cache[40] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_18, [ _cache[38] || (_cache[38] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "姓名", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => $setup.formData.姓名 = $event),
+        "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => $setup.formData.姓名 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.姓名 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_19, [ _cache[41] || (_cache[41] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_19, [ _cache[39] || (_cache[39] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "宗门", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => $setup.formData.宗门 = $event),
+        "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => $setup.formData.宗门 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.宗门 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_20, [ _cache[42] || (_cache[42] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_20, [ _cache[40] || (_cache[40] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "出身", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => $setup.formData.出身 = $event),
+        "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => $setup.formData.出身 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.出身 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_21, [ _cache[43] || (_cache[43] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_21, [ _cache[41] || (_cache[41] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "已活岁月", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => $setup.formData.已活岁月 = $event),
+        "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => $setup.formData.已活岁月 = $event),
         type: "number",
         min: "0"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.已活岁月, void 0, {
         number: true
       } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 位置信息 "), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_22, [ _cache[48] || (_cache[48] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_22, [ _cache[46] || (_cache[46] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-map-location-dot"
       }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "位置信息") ], -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_23, [ _cache[45] || (_cache[45] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_23, [ _cache[43] || (_cache[43] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "当前区域", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => $setup.formData.当前区域 = $event),
+        "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => $setup.formData.当前区域 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.当前区域 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_24, [ _cache[46] || (_cache[46] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_24, [ _cache[44] || (_cache[44] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "所属层级", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => $setup.formData.所属层级 = $event),
+        "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => $setup.formData.所属层级 = $event),
         type: "text"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.所属层级 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_25, [ _cache[47] || (_cache[47] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_25, [ _cache[45] || (_cache[45] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "当前处境", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
-        "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => $setup.formData.当前处境 = $event),
+        "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => $setup.formData.当前处境 = $event),
         rows: "3",
         placeholder: "一句话说明人在哪里、和谁在一起、眼下要做什么"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.当前处境 ] ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 身心与历劫状态 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_26, [ _cache[66] || (_cache[66] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 身心与历劫状态 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_26, [ _cache[64] || (_cache[64] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-bolt"
       }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "身心与历劫状态") ], -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_27, [ _cache[49] || (_cache[49] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_27, [ _cache[47] || (_cache[47] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "真元", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => $setup.formData.战斗状态.负荷.真元 = $event),
+        "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => $setup.formData.战斗状态.负荷.真元 = $event),
         type: "text",
         list: "essence-burden-options"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.战斗状态.负荷.真元, void 0, {
         trim: true
-      } ] ]), _cache[50] || (_cache[50] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<datalist id="essence-burden-options" data-v-dd56cf1e><option value="充盈" data-v-dd56cf1e>充盈</option><option value="尚足" data-v-dd56cf1e>尚足</option><option value="吃紧" data-v-dd56cf1e>吃紧</option><option value="枯竭" data-v-dd56cf1e>枯竭</option></datalist>', 1)) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_28, [ _cache[51] || (_cache[51] = (0, 
+      } ] ]), _cache[48] || (_cache[48] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<datalist id="essence-burden-options" data-v-dd56cf1e><option value="充盈" data-v-dd56cf1e>充盈</option><option value="尚足" data-v-dd56cf1e>尚足</option><option value="吃紧" data-v-dd56cf1e>吃紧</option><option value="枯竭" data-v-dd56cf1e>枯竭</option></datalist>', 1)) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_28, [ _cache[49] || (_cache[49] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "神识", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => $setup.formData.战斗状态.负荷.神识 = $event),
+        "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => $setup.formData.战斗状态.负荷.神识 = $event),
         type: "text",
         list: "soul-burden-options"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.战斗状态.负荷.神识, void 0, {
         trim: true
-      } ] ]), _cache[52] || (_cache[52] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<datalist id="soul-burden-options" data-v-dd56cf1e><option value="澄明" data-v-dd56cf1e>澄明</option><option value="疲乏" data-v-dd56cf1e>疲乏</option><option value="动荡" data-v-dd56cf1e>动荡</option><option value="受创" data-v-dd56cf1e>受创</option></datalist>', 1)) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_29, [ _cache[53] || (_cache[53] = (0, 
+      } ] ]), _cache[50] || (_cache[50] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<datalist id="soul-burden-options" data-v-dd56cf1e><option value="澄明" data-v-dd56cf1e>澄明</option><option value="疲乏" data-v-dd56cf1e>疲乏</option><option value="动荡" data-v-dd56cf1e>动荡</option><option value="受创" data-v-dd56cf1e>受创</option></datalist>', 1)) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_29, [ _cache[51] || (_cache[51] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "肉身", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => $setup.formData.战斗状态.负荷.肉身 = $event),
+        "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => $setup.formData.战斗状态.负荷.肉身 = $event),
         type: "text",
         list: "body-burden-options"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.战斗状态.负荷.肉身, void 0, {
         trim: true
-      } ] ]), _cache[54] || (_cache[54] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<datalist id="body-burden-options" data-v-dd56cf1e><option value="无恙" data-v-dd56cf1e>无恙</option><option value="轻创" data-v-dd56cf1e>轻创</option><option value="重创" data-v-dd56cf1e>重创</option><option value="濒危" data-v-dd56cf1e>濒危</option></datalist>', 1)) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_30, [ _cache[56] || (_cache[56] = (0, 
+      } ] ]), _cache[52] || (_cache[52] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<datalist id="body-burden-options" data-v-dd56cf1e><option value="无恙" data-v-dd56cf1e>无恙</option><option value="轻创" data-v-dd56cf1e>轻创</option><option value="重创" data-v-dd56cf1e>重创</option><option value="濒危" data-v-dd56cf1e>濒危</option></datalist>', 1)) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_30, [ _cache[54] || (_cache[54] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "正在渡劫", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
-        "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => $setup.formData.渡劫状态.正在渡劫 = $event)
-      }, [ ..._cache[55] || (_cache[55] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
+        "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => $setup.formData.渡劫状态.正在渡劫 = $event)
+      }, [ ..._cache[53] || (_cache[53] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
         value: false
       }, "否", -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
         value: true
       }, "是", -1) ]) ], 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, $setup.formData.渡劫状态.正在渡劫 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_31, [ _cache[58] || (_cache[58] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_31, [ _cache[56] || (_cache[56] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "劫种", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
-        "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => $setup.formData.渡劫状态.劫种 = $event)
-      }, [ ..._cache[57] || (_cache[57] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="无" data-v-dd56cf1e>无</option><option value="雷劫" data-v-dd56cf1e>雷劫</option><option value="心劫" data-v-dd56cf1e>心劫</option><option value="天劫" data-v-dd56cf1e>天劫</option><option value="情劫" data-v-dd56cf1e>情劫</option><option value="因果劫" data-v-dd56cf1e>因果劫</option><option value="红尘劫" data-v-dd56cf1e>红尘劫</option><option value="轮回劫" data-v-dd56cf1e>轮回劫</option>', 8) ]) ], 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, $setup.formData.渡劫状态.劫种 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_32, [ _cache[60] || (_cache[60] = (0, 
+        "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => $setup.formData.渡劫状态.劫种 = $event)
+      }, [ ..._cache[55] || (_cache[55] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="无" data-v-dd56cf1e>无</option><option value="雷劫" data-v-dd56cf1e>雷劫</option><option value="心劫" data-v-dd56cf1e>心劫</option><option value="天劫" data-v-dd56cf1e>天劫</option><option value="情劫" data-v-dd56cf1e>情劫</option><option value="因果劫" data-v-dd56cf1e>因果劫</option><option value="红尘劫" data-v-dd56cf1e>红尘劫</option><option value="轮回劫" data-v-dd56cf1e>轮回劫</option>', 8) ]) ], 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, $setup.formData.渡劫状态.劫种 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_32, [ _cache[58] || (_cache[58] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "劫难等级", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
-        "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => $setup.formData.渡劫状态.劫难等级 = $event)
-      }, [ ..._cache[59] || (_cache[59] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="无" data-v-dd56cf1e>无</option><option value="小劫" data-v-dd56cf1e>小劫</option><option value="中劫" data-v-dd56cf1e>中劫</option><option value="大劫" data-v-dd56cf1e>大劫</option><option value="天罚" data-v-dd56cf1e>天罚</option>', 5) ]) ], 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, $setup.formData.渡劫状态.劫难等级 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_33, [ _cache[61] || (_cache[61] = (0, 
+        "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => $setup.formData.渡劫状态.劫难等级 = $event)
+      }, [ ..._cache[57] || (_cache[57] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="无" data-v-dd56cf1e>无</option><option value="小劫" data-v-dd56cf1e>小劫</option><option value="中劫" data-v-dd56cf1e>中劫</option><option value="大劫" data-v-dd56cf1e>大劫</option><option value="天罚" data-v-dd56cf1e>天罚</option>', 5) ]) ], 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, $setup.formData.渡劫状态.劫难等级 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_33, [ _cache[59] || (_cache[59] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "当前阶段", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => $setup.formData.渡劫状态.当前阶段 = $event),
+        "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => $setup.formData.渡劫状态.当前阶段 = $event),
         type: "number",
         min: "0",
         max: "9"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.渡劫状态.当前阶段, void 0, {
         number: true
-      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_34, [ _cache[62] || (_cache[62] = (0, 
+      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_34, [ _cache[60] || (_cache[60] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "总阶段数", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => $setup.formData.渡劫状态.总阶段数 = $event),
+        "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => $setup.formData.渡劫状态.总阶段数 = $event),
         type: "number",
         min: "0",
         max: "9"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.渡劫状态.总阶段数, void 0, {
         number: true
-      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_35, [ _cache[63] || (_cache[63] = (0, 
+      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_35, [ _cache[61] || (_cache[61] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "劫力承受", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
-        "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => $setup.formData.渡劫状态.劫力承受 = $event),
+        "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => $setup.formData.渡劫状态.劫力承受 = $event),
         type: "number",
         min: "0",
         max: "100"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.渡劫状态.劫力承受, void 0, {
         number: true
-      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_36, [ _cache[64] || (_cache[64] = (0, 
+      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_36, [ _cache[62] || (_cache[62] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "劫难描述", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
-        "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => $setup.formData.渡劫状态.劫难描述 = $event),
+        "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => $setup.formData.渡劫状态.劫难描述 = $event),
         rows: "2",
         placeholder: "如：天雷三重，心魔并起"
       }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.渡劫状态.劫难描述 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_37, [ _cache[65] || (_cache[65] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_37, [ _cache[63] || (_cache[63] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "触发原因", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
-        "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => $setup.formData.渡劫状态.触发原因 = $event),
+        "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => $setup.formData.渡劫状态.触发原因 = $event),
         rows: "2",
         placeholder: "如：破境冲关，心境不稳"
-      }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.渡劫状态.触发原因 ] ]) ]), _cache[67] || (_cache[67] = (0, 
+      }, null, 512), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $setup.formData.渡劫状态.触发原因 ] ]) ]), _cache[65] || (_cache[65] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "inline-hint"
       }, "未处于渡劫中时，系统会自动清空活动中的劫难阶段与描述，仅保留结果类信息。", -1)) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 行踪任务 "), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_38, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
-      }, [ _cache[69] || (_cache[69] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ _cache[67] || (_cache[67] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-scroll"
-      }, null, -1)), _cache[70] || (_cache[70] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "行踪任务", -1)), (0, 
+      }, null, -1)), _cache[68] || (_cache[68] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "行踪任务", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-add-small",
         onClick: $setup.addQuest
-      }, [ ..._cache[68] || (_cache[68] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[66] || (_cache[66] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-plus"
-      }, null, -1) ]) ]) ]), _cache[78] || (_cache[78] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
+      }, null, -1) ]) ]) ]), _cache[76] || (_cache[76] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "inline-hint"
       }, "这里维护行事页的进行中任务及关联线索；应用时会覆盖当前任务列表。", -1)), Object.keys($setup.formData.任务列表).length === 0 ? ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_39, "暂无任务，点击右上角添加")) : (0, 
@@ -25190,29 +25319,29 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-delete-small",
         onClick: $event => $setup.removeQuest(taskId)
-      }, [ ..._cache[71] || (_cache[71] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[69] || (_cache[69] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-trash"
       }, null, -1) ]) ], 8, _hoisted_42) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_43, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_44, [ _cache[73] || (_cache[73] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_44, [ _cache[71] || (_cache[71] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "任务类型", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
         "onUpdate:modelValue": $event => task.类型 = $event
-      }, [ ..._cache[72] || (_cache[72] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="主线" data-v-dd56cf1e>主线</option><option value="支线" data-v-dd56cf1e>支线</option><option value="每日" data-v-dd56cf1e>每日</option><option value="临危受命" data-v-dd56cf1e>临危受命</option><option value="秘境探索" data-v-dd56cf1e>秘境探索</option>', 5) ]) ], 8, _hoisted_45), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, task.类型 ] ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_46, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_47, [ _cache[74] || (_cache[74] = (0, 
+      }, [ ..._cache[70] || (_cache[70] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="主线" data-v-dd56cf1e>主线</option><option value="支线" data-v-dd56cf1e>支线</option><option value="每日" data-v-dd56cf1e>每日</option><option value="临危受命" data-v-dd56cf1e>临危受命</option><option value="秘境探索" data-v-dd56cf1e>秘境探索</option>', 5) ]) ], 8, _hoisted_45), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, task.类型 ] ]) ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_46, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_47, [ _cache[72] || (_cache[72] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "任务目标", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => task.目标 = $event,
         placeholder: "如：前往栖月洞府寻药，为疗伤做准备",
         rows: "2"
       }, null, 8, _hoisted_48), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, task.目标 ] ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_49, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_50, [ _cache[75] || (_cache[75] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_49, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_50, [ _cache[73] || (_cache[73] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "任务进度", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => task.进度 = $event,
         placeholder: "已完成的事项或已发现的线索",
         rows: "2"
       }, null, 8, _hoisted_51), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, task.进度 ] ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_52, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_53, [ _cache[76] || (_cache[76] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_52, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_53, [ _cache[74] || (_cache[74] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "下一步", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => task.下一步 = $event,
@@ -25231,18 +25360,18 @@ var __webpack_modules__ = {
         placeholder: "多个名称用顿号分隔，沿用资料中的名称",
         onChange: $event => task[field] = $event.target.value.split(/[、，,\n]/u).map(name => name.trim()).filter(Boolean)
       }, null, 40, _hoisted_56) ]) ])), 64)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_57, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_58, [ _cache[77] || (_cache[77] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_58, [ _cache[75] || (_cache[75] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "关联事件ID", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => task.关联事件ID = $event,
         placeholder: "对应世界图志中的现有事件名称，可留空"
       }, null, 8, _hoisted_59), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, task.关联事件ID ] ]) ]) ]) ]))), 128)) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 红颜初始关系 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_60, [ _cache[92] || (_cache[92] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 红颜初始关系 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_60, [ _cache[90] || (_cache[90] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-heart"
-      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "红颜初始关系") ], -1)), _cache[93] || (_cache[93] = (0, 
+      }), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "红颜初始关系") ], -1)), _cache[91] || (_cache[91] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("p", {
         class: "section-hint"
       }, "选择开局已结识的红颜，自定境界、修为、资质与初始关系", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 可选红颜列表 "), (0, 
@@ -25264,7 +25393,7 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_69, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(char.根) + " · " + (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(char.质), 1) ]) ], 10, _hoisted_62))), 128)) ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 已选红颜详细设置 "), Object.keys($setup.formData.红颜).length > 0 ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_70, [ _cache[91] || (_cache[91] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_70, [ _cache[89] || (_cache[89] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "selected-title"
       }, "已选红颜设置", -1)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("datalist", _hoisted_71, [ ((0, 
@@ -25284,10 +25413,10 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-delete-small",
         onClick: $event => $setup.removeCompanion(name)
-      }, [ ..._cache[79] || (_cache[79] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[77] || (_cache[77] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-times"
       }, null, -1) ]) ], 8, _hoisted_75) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_76, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_77, [ _cache[80] || (_cache[80] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_77, [ _cache[78] || (_cache[78] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "境界", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
         "onUpdate:modelValue": $event => companion.等级 = $event,
@@ -25299,7 +25428,7 @@ var __webpack_modules__ = {
         value: level
       }, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($setup.getRealmDescription(level)), 9, _hoisted_79)), 64)) ], 8, _hoisted_78), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, companion.等级, void 0, {
         number: true
-      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_80, [ _cache[81] || (_cache[81] = (0, 
+      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_80, [ _cache[79] || (_cache[79] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "当前修为", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => companion.修为 = $event,
@@ -25309,7 +25438,7 @@ var __webpack_modules__ = {
         "aria-label": name + "修为"
       }, null, 8, _hoisted_81), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.修为, void 0, {
         number: true
-      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("details", _hoisted_82, [ _cache[83] || (_cache[83] = (0, 
+      } ] ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("details", _hoisted_82, [ _cache[81] || (_cache[81] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("summary", null, "资质、功法与修炼详情", -1)), ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)([ "灵根", "体质", "功法", "本命兵器" ], field => (0, 
@@ -25323,8 +25452,23 @@ var __webpack_modules__ = {
         type: "text",
         "aria-label": name + field
       }, null, 8, _hoisted_83), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion[field] ] ]) ])), 64)), ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.renderList)([ "灵石", "已活岁月" ], field => (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.SPIRIT_STONE_GRADES, grade => ((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
+        key: grade,
+        class: "form-row"
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(grade), 1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+        "onUpdate:modelValue": $event => companion.灵石[grade] = $event,
+        type: "number",
+        min: "0",
+        step: "1",
+        "aria-label": name + grade
+      }, null, 8, _hoisted_84), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.灵石[grade], void 0, {
+        number: true
+      } ] ]) ]))), 128)), ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.renderList)([ "已活岁月" ], field => (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         key: field,
         class: "form-row"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, (0, 
@@ -25335,9 +25479,9 @@ var __webpack_modules__ = {
         min: "0",
         step: "any",
         "aria-label": name + field
-      }, null, 8, _hoisted_84), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion[field], void 0, {
+      }, null, 8, _hoisted_85), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion[field], void 0, {
         number: true
-      } ] ]) ])), 64)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_85, [ _cache[82] || (_cache[82] = (0, 
+      } ] ]) ])), 64)), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_86, [ _cache[80] || (_cache[80] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "修炼阶段", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
         "onUpdate:modelValue": $event => companion.修炼状态.阶段 = $event,
@@ -25347,7 +25491,7 @@ var __webpack_modules__ = {
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
         key: phase,
         value: phase
-      }, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(phase), 9, _hoisted_87)), 64)) ], 8, _hoisted_86), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, companion.修炼状态.阶段 ] ]) ]), ((0, 
+      }, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(phase), 9, _hoisted_88)), 64)) ], 8, _hoisted_87), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, companion.修炼状态.阶段 ] ]) ]), ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)([ "方式", "地点", "根基描述", "瓶颈原因" ], field => (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
@@ -25359,7 +25503,7 @@ var __webpack_modules__ = {
         "onUpdate:modelValue": $event => companion.修炼状态[field] = $event,
         type: "text",
         "aria-label": name + field
-      }, null, 8, _hoisted_88), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.修炼状态[field] ] ]) ])), 64)), ((0, 
+      }, null, 8, _hoisted_89), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.修炼状态[field] ] ]) ])), 64)), ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)([ "计划年数", "已修炼年数" ], field => (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         key: field,
@@ -25372,23 +25516,23 @@ var __webpack_modules__ = {
         min: "0",
         step: "any",
         "aria-label": name + field
-      }, null, 8, _hoisted_89), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.修炼状态[field], void 0, {
+      }, null, 8, _hoisted_90), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.修炼状态[field], void 0, {
         number: true
-      } ] ]) ])), 64)) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_90, [ _cache[84] || (_cache[84] = (0, 
+      } ] ]) ])), 64)) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_91, [ _cache[82] || (_cache[82] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "好感度", -1)), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_91, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_92, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => companion.好感度 = $event,
         type: "range",
         min: "-200",
         max: "200",
         class: "favor-slider"
-      }, null, 8, _hoisted_92), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.好感度, void 0, {
+      }, null, 8, _hoisted_93), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.好感度, void 0, {
         number: true
       } ] ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
         class: (0, vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([ "favor-value", $setup.getFavorClass(companion.好感度) ])
       }, (0, vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(companion.好感度), 3) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_93, [ _cache[85] || (_cache[85] = (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_94, [ _cache[83] || (_cache[83] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "关系称谓", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => companion.关系 = $event,
@@ -25396,301 +25540,301 @@ var __webpack_modules__ = {
         list: "companion-relation-options",
         class: "relation-input",
         placeholder: "可自定义，如：旧识、师友、命定之人"
-      }, null, 8, _hoisted_94), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_95, [ _cache[86] || (_cache[86] = (0, 
+      }, null, 8, _hoisted_95), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_96, [ _cache[84] || (_cache[84] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "当前情绪", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => companion.关系上下文.当前情绪 = $event,
         class: "relation-textarea",
         rows: "2",
         placeholder: "如：面上清冷，实则挂心"
-      }, null, 8, _hoisted_96), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.当前情绪 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_97, [ _cache[87] || (_cache[87] = (0, 
+      }, null, 8, _hoisted_97), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.当前情绪 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_98, [ _cache[85] || (_cache[85] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "态度缘由", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => companion.关系上下文.态度缘由 = $event,
         class: "relation-textarea",
         rows: "2",
         placeholder: "如：曾受你相助，因此愿暗中照拂"
-      }, null, 8, _hoisted_98), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.态度缘由 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_99, [ _cache[88] || (_cache[88] = (0, 
+      }, null, 8, _hoisted_99), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.态度缘由 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_100, [ _cache[86] || (_cache[86] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "关系诉求", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => companion.关系上下文.关系诉求 = $event,
         class: "relation-textarea",
         rows: "2",
         placeholder: "如：希望你先稳住根基，再谈情意"
-      }, null, 8, _hoisted_100), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.关系诉求 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_101, [ _cache[89] || (_cache[89] = (0, 
+      }, null, 8, _hoisted_101), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.关系诉求 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_102, [ _cache[87] || (_cache[87] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "相处禁忌", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => companion.关系上下文.相处禁忌 = $event,
         class: "relation-textarea",
         rows: "2",
         placeholder: "如：忌提旧伤，忌擅探识海"
-      }, null, 8, _hoisted_102), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.相处禁忌 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_103, [ _cache[90] || (_cache[90] = (0, 
+      }, null, 8, _hoisted_103), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.相处禁忌 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_104, [ _cache[88] || (_cache[88] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "未了约定", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => companion.关系上下文.未了约定 = $event,
         class: "relation-textarea",
         rows: "2",
         placeholder: "如：待你结丹后，再同赴北冥"
-      }, null, 8, _hoisted_104), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.未了约定 ] ]) ]) ]) ]))), 128)) ])) : (0, 
+      }, null, 8, _hoisted_105), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, companion.关系上下文.未了约定 ] ]) ]) ]) ]))), 128)) ])) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 神通列表 "), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_105, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_106, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
-      }, [ _cache[95] || (_cache[95] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ _cache[93] || (_cache[93] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-wand-magic-sparkles"
-      }, null, -1)), _cache[96] || (_cache[96] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "神通列表", -1)), (0, 
+      }, null, -1)), _cache[94] || (_cache[94] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "神通列表", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-add-small",
         onClick: $setup.addSkill
-      }, [ ..._cache[94] || (_cache[94] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[92] || (_cache[92] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-plus"
       }, null, -1) ]) ]) ]), Object.keys($setup.formData.神通列表).length === 0 ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
-      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_106, "暂无神通，点击右上角添加")) : (0, 
+      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_107, "暂无神通，点击右上角添加")) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.formData.神通列表, (skill, skillName) => ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
         key: skillName,
         class: "item-card"
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_107, [ (0, 
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_108, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => skill.名称 = $event,
         type: "text",
         placeholder: "神通名称",
         class: "item-name-input"
-      }, null, 8, _hoisted_108), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, skill.名称 ] ]), (0, 
+      }, null, 8, _hoisted_109), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, skill.名称 ] ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-delete-small",
         onClick: $event => $setup.removeSkill(skillName)
-      }, [ ..._cache[97] || (_cache[97] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[95] || (_cache[95] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-trash"
-      }, null, -1) ]) ], 8, _hoisted_109) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_110, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_111, [ _cache[99] || (_cache[99] = (0, 
+      }, null, -1) ]) ], 8, _hoisted_110) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_111, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_112, [ _cache[97] || (_cache[97] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "类型", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
         "onUpdate:modelValue": $event => skill.类型 = $event
-      }, [ ..._cache[98] || (_cache[98] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
+      }, [ ..._cache[96] || (_cache[96] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
         value: "功法"
       }, "功法", -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
         value: "神通"
       }, "神通", -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("option", {
         value: "秘术"
-      }, "秘术", -1) ]) ], 8, _hoisted_112), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, skill.类型 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_113, [ _cache[101] || (_cache[101] = (0, 
+      }, "秘术", -1) ]) ], 8, _hoisted_113), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, skill.类型 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_114, [ _cache[99] || (_cache[99] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "品阶", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
         "onUpdate:modelValue": $event => skill.品阶 = $event
-      }, [ ..._cache[100] || (_cache[100] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="凡" data-v-dd56cf1e>凡</option><option value="黄" data-v-dd56cf1e>黄</option><option value="玄" data-v-dd56cf1e>玄</option><option value="地" data-v-dd56cf1e>地</option><option value="天" data-v-dd56cf1e>天</option><option value="仙" data-v-dd56cf1e>仙</option><option value="圣" data-v-dd56cf1e>圣</option><option value="先天" data-v-dd56cf1e>先天</option>', 8) ]) ], 8, _hoisted_114), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, skill.品阶 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_115, [ _cache[103] || (_cache[103] = (0, 
+      }, [ ..._cache[98] || (_cache[98] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="凡" data-v-dd56cf1e>凡</option><option value="黄" data-v-dd56cf1e>黄</option><option value="玄" data-v-dd56cf1e>玄</option><option value="地" data-v-dd56cf1e>地</option><option value="天" data-v-dd56cf1e>天</option><option value="仙" data-v-dd56cf1e>仙</option><option value="圣" data-v-dd56cf1e>圣</option><option value="先天" data-v-dd56cf1e>先天</option>', 8) ]) ], 8, _hoisted_115), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, skill.品阶 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_116, [ _cache[101] || (_cache[101] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "熟练度", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
         "onUpdate:modelValue": $event => skill.熟练度 = $event
-      }, [ ..._cache[102] || (_cache[102] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="入门" data-v-dd56cf1e>入门</option><option value="熟练" data-v-dd56cf1e>熟练</option><option value="精通" data-v-dd56cf1e>精通</option><option value="大成" data-v-dd56cf1e>大成</option><option value="圆满" data-v-dd56cf1e>圆满</option><option value="化境" data-v-dd56cf1e>化境</option>', 6) ]) ], 8, _hoisted_116), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, skill.熟练度 ] ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_117, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_118, [ _cache[104] || (_cache[104] = (0, 
+      }, [ ..._cache[100] || (_cache[100] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="入门" data-v-dd56cf1e>入门</option><option value="熟练" data-v-dd56cf1e>熟练</option><option value="精通" data-v-dd56cf1e>精通</option><option value="大成" data-v-dd56cf1e>大成</option><option value="圆满" data-v-dd56cf1e>圆满</option><option value="化境" data-v-dd56cf1e>化境</option>', 6) ]) ], 8, _hoisted_117), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, skill.熟练度 ] ]) ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_118, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_119, [ _cache[102] || (_cache[102] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "描述", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => skill.描述 = $event,
         placeholder: "神通描述...",
         rows: "2"
-      }, null, 8, _hoisted_119), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, skill.描述 ] ]) ]) ]) ]))), 128)) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 法宝 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_120, [ (0, 
+      }, null, 8, _hoisted_120), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, skill.描述 ] ]) ]) ]) ]))), 128)) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 法宝 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_121, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
-      }, [ _cache[106] || (_cache[106] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ _cache[104] || (_cache[104] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-gem"
-      }, null, -1)), _cache[107] || (_cache[107] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "法宝", -1)), (0, 
+      }, null, -1)), _cache[105] || (_cache[105] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "法宝", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-add-small",
         onClick: $setup.addTreasure
-      }, [ ..._cache[105] || (_cache[105] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[103] || (_cache[103] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-plus"
       }, null, -1) ]) ]) ]), Object.keys($setup.formData.法宝).length === 0 ? ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), 
-      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_121, "暂无法宝，点击右上角添加")) : (0, 
+      (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_122, "暂无法宝，点击右上角添加")) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.formData.法宝, (item, itemName) => ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
         key: itemName,
         class: "item-card"
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_122, [ (0, 
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_123, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.名称 = $event,
         type: "text",
         placeholder: "法宝名称",
         class: "item-name-input"
-      }, null, 8, _hoisted_123), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.名称 ] ]), (0, 
+      }, null, 8, _hoisted_124), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.名称 ] ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-delete-small",
         onClick: $event => $setup.removeTreasure(itemName)
-      }, [ ..._cache[108] || (_cache[108] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[106] || (_cache[106] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-trash"
-      }, null, -1) ]) ], 8, _hoisted_124) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_125, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_126, [ _cache[110] || (_cache[110] = (0, 
+      }, null, -1) ]) ], 8, _hoisted_125) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_126, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_127, [ _cache[108] || (_cache[108] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "品阶", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("select", {
         "onUpdate:modelValue": $event => item.品阶 = $event
-      }, [ ..._cache[109] || (_cache[109] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="凡器" data-v-dd56cf1e>凡器</option><option value="法器" data-v-dd56cf1e>法器</option><option value="灵器" data-v-dd56cf1e>灵器</option><option value="法宝" data-v-dd56cf1e>法宝</option><option value="灵宝" data-v-dd56cf1e>灵宝</option><option value="仙器" data-v-dd56cf1e>仙器</option><option value="圣器" data-v-dd56cf1e>圣器</option><option value="道器" data-v-dd56cf1e>道器</option>', 8) ]) ], 8, _hoisted_127), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, item.品阶 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_128, [ _cache[111] || (_cache[111] = (0, 
+      }, [ ..._cache[107] || (_cache[107] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createStaticVNode)('<option value="凡器" data-v-dd56cf1e>凡器</option><option value="法器" data-v-dd56cf1e>法器</option><option value="灵器" data-v-dd56cf1e>灵器</option><option value="法宝" data-v-dd56cf1e>法宝</option><option value="灵宝" data-v-dd56cf1e>灵宝</option><option value="仙器" data-v-dd56cf1e>仙器</option><option value="圣器" data-v-dd56cf1e>圣器</option><option value="道器" data-v-dd56cf1e>道器</option>', 8) ]) ], 8, _hoisted_128), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelSelect, item.品阶 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_129, [ _cache[109] || (_cache[109] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "数量", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.数量 = $event,
         type: "number",
         min: "1"
-      }, null, 8, _hoisted_129), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.数量, void 0, {
+      }, null, 8, _hoisted_130), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.数量, void 0, {
         number: true
-      } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_130, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_131, [ _cache[112] || (_cache[112] = (0, 
+      } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_131, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_132, [ _cache[110] || (_cache[110] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "描述", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => item.描述 = $event,
         placeholder: "法宝描述...",
         rows: "2"
-      }, null, 8, _hoisted_132), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.描述 ] ]) ]) ]) ]))), 128)) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 储物戒（背包） "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_133, [ (0, 
+      }, null, 8, _hoisted_133), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.描述 ] ]) ]) ]) ]))), 128)) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 储物戒（背包） "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_134, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
-      }, [ _cache[114] || (_cache[114] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ _cache[112] || (_cache[112] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-box-open"
-      }, null, -1)), _cache[115] || (_cache[115] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "储物戒", -1)), (0, 
+      }, null, -1)), _cache[113] || (_cache[113] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "储物戒", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-add-small",
         onClick: $setup.addInventoryItem
-      }, [ ..._cache[113] || (_cache[113] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[111] || (_cache[111] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-plus"
-      }, null, -1) ]) ]) ]), _cache[120] || (_cache[120] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
+      }, null, -1) ]) ]) ]), _cache[118] || (_cache[118] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "inline-hint"
       }, "功法玉简、丹药、材料放在储物戒；通用灵石不必重复登记成物品。", -1)), Object.keys($setup.formData.背包).length === 0 ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_134, "暂无物品，点击右上角添加")) : (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_135, "暂无物品，点击右上角添加")) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.formData.背包, (item, itemName) => ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
         key: itemName,
         class: "item-card"
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_135, [ (0, 
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_136, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.名称 = $event,
         type: "text",
         placeholder: "物品名称",
         class: "item-name-input"
-      }, null, 8, _hoisted_136), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.名称 ] ]), (0, 
+      }, null, 8, _hoisted_137), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.名称 ] ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-delete-small",
         onClick: $event => $setup.removeInventoryItem(itemName)
-      }, [ ..._cache[116] || (_cache[116] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[114] || (_cache[114] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-trash"
-      }, null, -1) ]) ], 8, _hoisted_137) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_138, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_139, [ _cache[117] || (_cache[117] = (0, 
+      }, null, -1) ]) ], 8, _hoisted_138) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_139, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_140, [ _cache[115] || (_cache[115] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "品阶", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.品阶 = $event,
         type: "text",
         placeholder: "如：上品"
-      }, null, 8, _hoisted_140), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.品阶 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_141, [ _cache[118] || (_cache[118] = (0, 
+      }, null, 8, _hoisted_141), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.品阶 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_142, [ _cache[116] || (_cache[116] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "数量", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.数量 = $event,
         type: "number",
         min: "1"
-      }, null, 8, _hoisted_142), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.数量, void 0, {
+      }, null, 8, _hoisted_143), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.数量, void 0, {
         number: true
-      } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_143, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_144, [ _cache[119] || (_cache[119] = (0, 
+      } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_144, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_145, [ _cache[117] || (_cache[117] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "描述", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => item.描述 = $event,
         placeholder: "物品描述...",
         rows: "2"
-      }, null, 8, _hoisted_145), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.描述 ] ]) ]) ]) ]))), 128)) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 杂物袋 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_146, [ (0, 
+      }, null, 8, _hoisted_146), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.描述 ] ]) ]) ]) ]))), 128)) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 杂物袋 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_147, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "section-title"
-      }, [ _cache[122] || (_cache[122] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ _cache[120] || (_cache[120] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-bag-shopping"
-      }, null, -1)), _cache[123] || (_cache[123] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "杂物袋", -1)), (0, 
+      }, null, -1)), _cache[121] || (_cache[121] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "杂物袋", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-add-small",
         onClick: $setup.addMiscItem
-      }, [ ..._cache[121] || (_cache[121] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[119] || (_cache[119] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-plus"
-      }, null, -1) ]) ]) ]), _cache[128] || (_cache[128] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
+      }, null, -1) ]) ]) ]), _cache[126] || (_cache[126] = (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "inline-hint"
       }, "随身杂物、凡俗用品放在杂物袋；通用灵石不必重复登记成物品。", -1)), Object.keys($setup.formData.杂物袋).length === 0 ? ((0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_147, "暂无物品，点击右上角添加")) : (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_148, "暂无物品，点击右上角添加")) : (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), ((0, vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), 
       (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($setup.formData.杂物袋, (item, itemName) => ((0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", {
         key: itemName,
         class: "item-card"
-      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_148, [ (0, 
+      }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_149, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.名称 = $event,
         type: "text",
         placeholder: "物品名称",
         class: "item-name-input"
-      }, null, 8, _hoisted_149), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.名称 ] ]), (0, 
+      }, null, 8, _hoisted_150), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.名称 ] ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-delete-small",
         onClick: $event => $setup.removeMiscItem(itemName)
-      }, [ ..._cache[124] || (_cache[124] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[122] || (_cache[122] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-trash"
-      }, null, -1) ]) ], 8, _hoisted_150) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_151, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_152, [ _cache[125] || (_cache[125] = (0, 
+      }, null, -1) ]) ], 8, _hoisted_151) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_152, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_153, [ _cache[123] || (_cache[123] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "品阶", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.品阶 = $event,
         type: "text",
         placeholder: "如：凡物"
-      }, null, 8, _hoisted_153), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.品阶 ] ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_154, [ _cache[126] || (_cache[126] = (0, 
+      }, null, 8, _hoisted_154), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.品阶 ] ]) ]), (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_155, [ _cache[124] || (_cache[124] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "数量", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         "onUpdate:modelValue": $event => item.数量 = $event,
         type: "number",
         min: "1"
-      }, null, 8, _hoisted_155), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.数量, void 0, {
+      }, null, 8, _hoisted_156), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.数量, void 0, {
         number: true
-      } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_156, [ (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_157, [ _cache[127] || (_cache[127] = (0, 
+      } ] ]) ]) ]), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_157, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_158, [ _cache[125] || (_cache[125] = (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "描述", -1)), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("textarea", {
         "onUpdate:modelValue": $event => item.描述 = $event,
         placeholder: "物品描述...",
         rows: "2"
-      }, null, 8, _hoisted_158), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.描述 ] ]) ]) ]) ]))), 128)) ]) ]), (0, 
+      }, null, 8, _hoisted_159), [ [ vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, item.描述 ] ]) ]) ]) ]))), 128)) ]) ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 操作按钮 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", {
         class: "preset-actions"
       }, [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-apply",
         onClick: $setup.applyPreset
-      }, [ ..._cache[129] || (_cache[129] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[127] || (_cache[127] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-check"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 应用预设 ", -1) ]) ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-reset",
         onClick: $setup.resetToDefault
-      }, [ ..._cache[130] || (_cache[130] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[128] || (_cache[128] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-rotate-left"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 恢复默认 ", -1) ]) ]) ]), (0, 
-      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 导入导出按钮 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_159, [ (0, 
+      vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" 导入导出按钮 "), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_160, [ (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-export",
         onClick: $setup.exportPreset
-      }, [ ..._cache[131] || (_cache[131] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[129] || (_cache[129] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-file-export"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 导出预设 ", -1) ]) ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         class: "btn-import",
         onClick: $setup.triggerImport
-      }, [ ..._cache[132] || (_cache[132] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
+      }, [ ..._cache[130] || (_cache[130] = [ (0, vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("i", {
         class: "fa-solid fa-file-import"
       }, null, -1), (0, vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" 导入预设 ", -1) ]) ]), (0, 
       vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
@@ -32115,7 +32259,7 @@ let __webpack_exports__ = {};
 /*!***********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/.pnpm/css-loader@7.1.4_webpack@5.108.4/node_modules/css-loader/dist/cjs.js??clonedRuleSet-463.use[1]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/stylePostLoader.js!./node_modules/.pnpm/postcss-loader@8.2.1_postcs_b407f2231d7881d489cc94d288d8f1c1/node_modules/postcss-loader/dist/cjs.js!./node_modules/.pnpm/sass-loader@17.0.0_sass@1.101.0_webpack@5.108.4/node_modules/sass-loader/dist/cjs/index.js??clonedRuleSet-463.use[3]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明-测试版/components/InventoryPanel.vue?vue&type=style&index=0&id=6ed63e2c&lang=scss&scoped=true ***!
   \***********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
-.inventory-panel[data-v-6ed63e2c]{display:flex;flex-direction:column;gap:22px;color:var(--text-primary)}.inventory-section[data-v-6ed63e2c]{display:flex;flex-direction:column;gap:10px}.section-header[data-v-6ed63e2c]{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-title[data-v-6ed63e2c]{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--text-accent)}.section-title i[data-v-6ed63e2c]{color:var(--gold)}.spirit-stone-tag[data-v-6ed63e2c]{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border:1px solid color-mix(in srgb,var(--gold) 28%,transparent);border-radius:999px;color:var(--gold);font-size:12px;font-variant-numeric:tabular-nums}.spirit-stone-tag i[data-v-6ed63e2c]{font-size:11px}.items-list[data-v-6ed63e2c]{display:flex;flex-direction:column;gap:8px}.item-strip[data-v-6ed63e2c]{--tier-color:var(--text-secondary);padding:11px 14px;border:1px solid color-mix(in srgb,var(--line-subtle) 55%,transparent);border-left:2px solid color-mix(in srgb,var(--tier-color) 48%,transparent);border-radius:5px;background:linear-gradient(100deg,color-mix(in srgb,var(--tier-color) 4%,transparent),transparent 44%),linear-gradient(90deg,color-mix(in srgb,var(--surface-inset) 24%,transparent),transparent)}.item-strip[data-v-6ed63e2c]:focus{outline:1px solid var(--gold);outline-offset:3px}.item-strip.tier-heaven[data-v-6ed63e2c]{--tier-color:var(--gold)}.item-strip.tier-earth[data-v-6ed63e2c]{--tier-color:var(--jade)}.item-strip.tier-mystic[data-v-6ed63e2c]{--tier-color:var(--semantic-info)}.item-strip.tier-yellow[data-v-6ed63e2c]{--tier-color:var(--semantic-warning)}.item-strip.tier-mortal[data-v-6ed63e2c]{--tier-color:var(--text-secondary)}.item-topline[data-v-6ed63e2c]{display:flex;align-items:center;justify-content:space-between;gap:12px}.item-title-group[data-v-6ed63e2c]{min-width:0;display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:8px}.item-name[data-v-6ed63e2c]{font-size:14px;font-weight:600;color:var(--text-primary)}.item-rank[data-v-6ed63e2c]{padding:0 5px;border-radius:3px;font-size:11px;color:var(--tier-color);background:color-mix(in srgb,var(--tier-color) 8%,transparent)}.item-count[data-v-6ed63e2c]{flex:none;font-size:12px;color:var(--gold-soft);font-variant-numeric:tabular-nums}.item-desc[data-v-6ed63e2c]{margin-top:5px;font-size:12px;line-height:1.6;color:var(--text-secondary)}.empty-hint[data-v-6ed63e2c]{padding:16px 0;text-align:center;font-size:12px;font-style:italic;color:var(--text-secondary);opacity:0.65}@media screen and (max-width:480px){.inventory-panel[data-v-6ed63e2c]{gap:18px}.item-strip[data-v-6ed63e2c]{padding:9px 12px}.item-name[data-v-6ed63e2c]{font-size:13px}.item-desc[data-v-6ed63e2c]{font-size:11.5px}}
+.inventory-panel[data-v-6ed63e2c]{display:flex;flex-direction:column;gap:22px;color:var(--text-primary)}.inventory-section[data-v-6ed63e2c]{display:flex;flex-direction:column;gap:10px}.section-header[data-v-6ed63e2c]{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-title[data-v-6ed63e2c]{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--text-accent)}.section-title i[data-v-6ed63e2c]{color:var(--gold)}.spirit-stone-tag[data-v-6ed63e2c]{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border:1px solid color-mix(in srgb,var(--gold) 28%,transparent);border-radius:999px;color:var(--gold);font-size:12px;font-variant-numeric:tabular-nums}.spirit-stone-tag i[data-v-6ed63e2c]{font-size:11px}.spirit-stone-grid[data-v-6ed63e2c]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.spirit-stone-balance[data-v-6ed63e2c]{display:flex;flex-direction:column;gap:7px;min-width:0;padding:12px;border:1px solid color-mix(in srgb,var(--gold) 22%,transparent);border-radius:5px}.spirit-stone-balance[data-v-6ed63e2c]:focus{outline:1px solid var(--gold);outline-offset:3px}.spirit-stone-name[data-v-6ed63e2c]{color:var(--text-secondary);font-size:12px}.spirit-stone-count[data-v-6ed63e2c]{color:var(--gold);font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.spirit-stone-count small[data-v-6ed63e2c]{color:var(--text-secondary);font-size:11px}.items-list[data-v-6ed63e2c]{display:flex;flex-direction:column;gap:8px}.item-strip[data-v-6ed63e2c]{--tier-color:var(--text-secondary);padding:11px 14px;border:1px solid color-mix(in srgb,var(--line-subtle) 55%,transparent);border-left:2px solid color-mix(in srgb,var(--tier-color) 48%,transparent);border-radius:5px;background:linear-gradient(100deg,color-mix(in srgb,var(--tier-color) 4%,transparent),transparent 44%),linear-gradient(90deg,color-mix(in srgb,var(--surface-inset) 24%,transparent),transparent)}.item-strip[data-v-6ed63e2c]:focus{outline:1px solid var(--gold);outline-offset:3px}.item-strip.tier-heaven[data-v-6ed63e2c]{--tier-color:var(--gold)}.item-strip.tier-earth[data-v-6ed63e2c]{--tier-color:var(--jade)}.item-strip.tier-mystic[data-v-6ed63e2c]{--tier-color:var(--semantic-info)}.item-strip.tier-yellow[data-v-6ed63e2c]{--tier-color:var(--semantic-warning)}.item-strip.tier-mortal[data-v-6ed63e2c]{--tier-color:var(--text-secondary)}.item-topline[data-v-6ed63e2c]{display:flex;align-items:center;justify-content:space-between;gap:12px}.item-title-group[data-v-6ed63e2c]{min-width:0;display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:8px}.item-name[data-v-6ed63e2c]{font-size:14px;font-weight:600;color:var(--text-primary)}.item-rank[data-v-6ed63e2c]{padding:0 5px;border-radius:3px;font-size:11px;color:var(--tier-color);background:color-mix(in srgb,var(--tier-color) 8%,transparent)}.item-count[data-v-6ed63e2c]{flex:none;font-size:12px;color:var(--gold-soft);font-variant-numeric:tabular-nums}.item-desc[data-v-6ed63e2c]{margin-top:5px;font-size:12px;line-height:1.6;color:var(--text-secondary)}.empty-hint[data-v-6ed63e2c]{padding:16px 0;text-align:center;font-size:12px;font-style:italic;color:var(--text-secondary);opacity:0.65}@media screen and (max-width:480px){.spirit-stone-grid[data-v-6ed63e2c]{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-panel[data-v-6ed63e2c]{gap:18px}.item-strip[data-v-6ed63e2c]{padding:9px 12px}.item-name[data-v-6ed63e2c]{font-size:13px}.item-desc[data-v-6ed63e2c]{font-size:11.5px}}
 /*!********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/.pnpm/css-loader@7.1.4_webpack@5.108.4/node_modules/css-loader/dist/cjs.js??clonedRuleSet-463.use[1]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/stylePostLoader.js!./node_modules/.pnpm/postcss-loader@8.2.1_postcs_b407f2231d7881d489cc94d288d8f1c1/node_modules/postcss-loader/dist/cjs.js!./node_modules/.pnpm/sass-loader@17.0.0_sass@1.101.0_webpack@5.108.4/node_modules/sass-loader/dist/cjs/index.js??clonedRuleSet-463.use[3]!./node_modules/.pnpm/vue-loader@17.4.2_@vue+comp_9e47f2260b114f159a3c300a0b190712/node_modules/vue-loader/dist/index.js??ruleSet[1].rules[6].use[0]!./src/灯火通明-测试版/components/PresetPanel.vue?vue&type=style&index=0&id=dd56cf1e&lang=scss&scoped=true ***!
   \********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/

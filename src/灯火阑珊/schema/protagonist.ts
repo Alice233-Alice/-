@@ -14,7 +14,7 @@ import {
   migrateCultivatorInput,
   normalizeCultivationState,
   normalizeRealmLevel,
-  normalizeSpiritStoneAmount,
+  SpiritStoneLedgerSchema,
   normalizeSpiritStoneState,
 } from './common';
 import { parseRealmToLevel } from './utils';
@@ -466,12 +466,7 @@ export const ProtagonistSchema = z.preprocess(
       功法: z.string().prefault('无'),
       本命兵器: z.string().prefault('无'),
       神通列表: SkillListSchema,
-      灵石: z
-        .preprocess(
-          normalizeSpiritStoneAmount,
-          finiteNumber(0).transform(v => Math.max(0, v)),
-        )
-        .prefault(0),
+      灵石: SpiritStoneLedgerSchema,
       已活岁月: finiteNumber(0)
         .transform(v => Math.max(0, v))
         .prefault(0),
@@ -498,7 +493,7 @@ export const ProtagonistSchema = z.preprocess(
       功法: '无',
       本命兵器: '无',
       神通列表: {},
-      灵石: 0,
+      灵石: {},
       已活岁月: 0,
       修炼状态: {},
       行踪: {
@@ -553,11 +548,12 @@ export const ProtagonistSchema = z.preprocess(
       },
     })
     .transform(data => {
-      const spiritStoneNormalization = normalizeSpiritStoneState(data.灵石, data.背包, data.杂物袋);
-      const [normalizedBackpack, normalizedMiscBag] = spiritStoneNormalization.inventories;
+      const spiritStoneNormalization = normalizeSpiritStoneState(data.灵石, data.背包, data.杂物袋, data.法宝);
+      const [normalizedBackpack, normalizedMiscBag, normalizedTreasures] = spiritStoneNormalization.inventories;
       data.灵石 = spiritStoneNormalization.spiritStone;
       data.背包 = normalizedBackpack ?? {};
       data.杂物袋 = normalizedMiscBag ?? {};
+      data.法宝 = normalizedTreasures ?? {};
       const cultivator = { ...data, 修炼状态: normalizeCultivationState(data.修炼状态, { level: data.等级 }) };
       return { ...cultivator, ...computeRealmInfo(cultivator) };
     }),

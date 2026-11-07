@@ -1,11 +1,26 @@
 <template>
   <div ref="inventoryRoot" class="panel inventory-panel">
+    <section class="inventory-section" data-item-name="灵石" tabindex="-1">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-coins"></i> 灵石</div>
+        <span class="spirit-stone-tag">折合下品 {{ formatNumber(getSpiritStoneTotal(store.本尊.灵石)) }}</span>
+      </div>
+      <div class="spirit-stone-grid">
+        <div
+          v-for="grade in SPIRIT_STONE_GRADES"
+          :key="grade"
+          class="spirit-stone-balance"
+          :data-item-name="grade"
+          tabindex="-1"
+        >
+          <span class="spirit-stone-name">{{ grade }}</span>
+          <span class="spirit-stone-count">{{ formatNumber(store.本尊.灵石[grade]) }}<small> 枚</small></span>
+        </div>
+      </div>
+    </section>
     <section v-for="section in sections" :key="section.key" class="inventory-section">
       <div class="section-header">
         <div class="section-title"><i :class="section.icon"></i> {{ section.title }}</div>
-        <span v-if="section.key === 'treasure'" class="spirit-stone-tag" title="当前随身灵石">
-          <i class="fa-solid fa-gem"></i> 灵石 {{ formatNumber(store.本尊.灵石) }}
-        </span>
       </div>
       <div v-if="section.items.length" class="items-list">
         <div
@@ -34,6 +49,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { useDataStore } from '../store';
+import { getSpiritStoneTotal, SPIRIT_STONE_GRADES } from '../schema';
 import { focusStageElement } from '../affairs';
 
 const props = defineProps<{ focusName?: string; focusNonce?: number }>();
@@ -163,6 +179,44 @@ function formatNumber(value: number): string {
   }
 }
 
+.spirit-stone-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.spirit-stone-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  border-radius: 5px;
+
+  &:focus {
+    outline: 1px solid var(--gold);
+    outline-offset: 3px;
+  }
+}
+
+.spirit-stone-name {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.spirit-stone-count {
+  color: var(--gold);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+
+  small {
+    color: var(--text-secondary);
+    font-size: 11px;
+  }
+}
+
 .items-list {
   display: flex;
   flex-direction: column;
@@ -254,6 +308,9 @@ function formatNumber(value: number): string {
 }
 
 @media screen and (max-width: 480px) {
+  .spirit-stone-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .inventory-panel {
     gap: 18px;
   }

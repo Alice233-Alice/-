@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   CultivationStateSchema,
   SkillListSchema,
+  SpiritStoneLedgerSchema,
   computeRealmInfo,
   finiteNumber,
   migrateCultivatorInput,
@@ -246,9 +247,7 @@ export const CompanionSchema = z.preprocess(
       功法: z.string().prefault('无'),
       本命兵器: z.string().prefault('无'),
       神通列表: SkillListSchema,
-      灵石: finiteNumber(0)
-        .transform(v => Math.max(0, v))
-        .prefault(0),
+      灵石: SpiritStoneLedgerSchema,
       已活岁月: finiteNumber(0)
         .transform(v => Math.max(0, v))
         .prefault(0),
@@ -268,7 +267,7 @@ export const CompanionSchema = z.preprocess(
       功法: '无',
       本命兵器: '无',
       神通列表: {},
-      灵石: 0,
+      灵石: {},
       已活岁月: 0,
       修炼状态: {},
       好感度: 0,
