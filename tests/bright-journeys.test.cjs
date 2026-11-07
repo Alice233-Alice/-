@@ -283,6 +283,7 @@ test('清理未追踪的行旅会同步移除蓝图，保留其他行旅、游�
     state: {
       行旅: { 当前追踪: '乙', 旅程: { 甲: first, 乙: journeys.createJourney(proposals[1]) } },
       $行旅蓝图: { 甲: '甲的后台构思', 乙: '乙的后台构思' },
+      $开场剧情: { 开场标识: '本局开场', 底稿指纹: '稿甲', 构思: '作者的本局构思' },
       本尊: { 灵石: 321 },
     },
   });
@@ -296,6 +297,7 @@ test('清理未追踪的行旅会同步移除蓝图，保留其他行旅、游�
     assert.equal(after.stat_data.行旅.当前追踪, '乙');
     assert.deepEqual(after.stat_data.行旅.旅程.乙, before.stat_data.行旅.旅程.乙);
     assert.equal(after.stat_data.$行旅蓝图.乙, '乙的后台构思');
+    assert.equal(after.stat_data.$开场剧情.构思, '作者的本局构思');
     assert.deepEqual(
       lodash.omit(after.stat_data, ['行旅', '$行旅蓝图']),
       lodash.omit(before.stat_data, ['行旅', '$行旅蓝图']),
@@ -481,6 +483,9 @@ test('控制器在正文生成前注入当前行旅，寻途、交谈与暂歇�
     buildJourneyContext: journeys.buildJourneyContext,
     JOURNEY_PROMPT_ID: journeys.JOURNEY_PROMPT_ID,
     JOURNEY_GENERATION_PREFIX: journeys.JOURNEY_GENERATION_PREFIX,
+    OPENING_PLOT_PROMPT_ID: 'dhl-authored-opening',
+    OPENING_PLOT_GENERATION_PREFIX: 'dhl-opening-plot-',
+    syncOpeningPlotPrompt() {},
     injectPrompts: value => inserted.push(value),
     uninjectPrompts: value => removed.push(value),
     console,
@@ -508,5 +513,5 @@ test('控制器在正文生成前注入当前行旅，寻途、交谈与暂歇�
   state.行旅.旅程.甲.状态 = '暂歇';
   handlers.native('normal');
   assert.equal(inserted.length, 1);
-  assert.equal(removed.length, 5);
+  assert.equal(removed.filter(ids => ids.includes(journeys.JOURNEY_PROMPT_ID)).length, 5);
 });

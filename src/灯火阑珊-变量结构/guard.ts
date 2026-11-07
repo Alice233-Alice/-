@@ -37,6 +37,7 @@ const MVU_ROOT_KEYS = [
   '任务列表',
   '行旅',
   '$行旅蓝图',
+  '$开场剧情',
   '声望系统',
   '难度系统',
   '$可参与机遇',
@@ -182,6 +183,15 @@ function getReadonlyDerivedPathValue(path: string, variables: Mvu.MvuData): unkn
 }
 
 function rewriteReadonlyDerivedCommand(command: GuardMutableCommand, path: string, variables: Mvu.MvuData): boolean {
+  if (/^stat_data\.\$开场剧情(?:\.|\[|$)/u.test(path)) {
+    command.type = 'set';
+    command.args = [
+      'stat_data.$开场剧情',
+      JSON.stringify(getReadonlyDerivedPathValue('stat_data.$开场剧情', variables)),
+    ];
+    command.reason = '开场剧情构思由前端维护';
+    return true;
+  }
   if (!isReadonlyDerivedStatPath(path)) return false;
   if (/^stat_data\._近期任务结果(?:\.|$)/u.test(path)) {
     command.type = 'set';
