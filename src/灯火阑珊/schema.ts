@@ -23,7 +23,6 @@ import {
 } from './schema/common';
 import { ProtagonistSchema } from './schema/protagonist';
 import { JourneyPlansSchema, JourneysSchema } from './schema/journeys';
-import { OpeningPlotCacheSchema } from './schema/opening-plot';
 import { CURRENT_CULTIVATION_VERSION, CURRENT_SCHEMA_VERSION } from './schema/constants';
 import {
   DifficultySystemSchema,
@@ -578,7 +577,6 @@ export const Schema = z.preprocess(
 
       行旅: JourneysSchema,
       $行旅蓝图: JourneyPlansSchema,
-      $开场剧情: OpeningPlotCacheSchema,
 
       // 声望系统 - 健壮性与智能管理优化
       声望系统: ReputationSystemSchema,

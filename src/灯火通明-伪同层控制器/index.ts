@@ -32,16 +32,6 @@ import {
 } from '../灯火通明/message-content';
 import { ParsedDialogueGeneration, generateDialogueReply, parseDialogueGeneration } from './dialogue-engine';
 import { buildJourneyContext, JOURNEY_GENERATION_PREFIX, JOURNEY_PROMPT_ID } from '../灯火通明-测试版/journey';
-import {
-  buildOpeningPlotContext,
-  createOpeningPlotPlanner,
-  generateOpeningPlot,
-  OPENING_PLOT_GENERATION_PREFIX,
-  OPENING_PLOT_PROMPT_ID,
-  OpeningPlotCancelledError,
-  resolveOpeningPlotDraft,
-} from '../灯火通明-测试版/opening-plot';
-import { openingPlotDrafts } from '../灯火通明-测试版/opening-plot-drafts';
 
 type ReplyTarget = MessageEventSource & Pick<Window, 'postMessage'>;
 type WithoutEnvelope<T> = T extends unknown ? Omit<T, 'channel' | 'version'> : never;
@@ -109,7 +99,6 @@ type ActiveGeneration = {
   rawUserText: string;
   engine: DialogueEngineKind;
   generationId?: string;
-  openingPlotPreparing?: boolean;
   operationId?: string;
   chatId?: string;
   baselineLastMessageId?: number;
@@ -2784,8 +2773,7 @@ const beginGeneration = (request: Extract<PseudoLayerRequest, { type: 'generate'
   applyStageVisibility();
 
   const generation = activeGeneration;
-  void prepareOpeningPlotForGeneration(generation)
-    .then(() => prepareDialogueCarryoverPrompt(request.messageId))
+  void prepareDialogueCarryoverPrompt(request.messageId)
     .then(() => {
       if (activeGeneration !== generation || generation.cancelled) return;
       triggerNativeSend(prompt);
@@ -3800,10 +3788,6 @@ const handleMessage = (event: MessageEvent<unknown>) => {
     if (generation.cancelled || generation.state === 'saving') return;
     generation.cancelled = true;
     sendGenerationState(generation, 'stopping', source);
-    if (generation.openingPlotPreparing) {
-      openingPlotPlanner.cancel();
-      return;
-    }
     if (generation.engine === 'dedicated') {
       if (generation.generationId) stopGenerationById(generation.generationId);
       window.setTimeout(() => {
@@ -4024,9 +4008,8 @@ const installDuplicateControllerObserver = () => {
 };
 
 const disposeController = () => {
-  uninjectPrompts([JOURNEY_PROMPT_ID, OPENING_PLOT_PROMPT_ID]);
+  uninjectPrompts([JOURNEY_PROMPT_ID]);
   if (controllerDisposed) return;
-  openingPlotPlanner.cancel();
   const disposingGeneration = activeGeneration;
   controllerDisposed = true;
   if (generationHealthTimer !== null) window.clearInterval(generationHealthTimer);
@@ -4085,80 +4068,6 @@ const disposeController = () => {
   restoreNativeChatPosition();
 };
 
-const getOpeningPlotScope = () => {
-  if (controllerDisposed || detachedMode || activeInteraction.mode !== 'story') return null;
-  const hostId = getParkedMessageId();
-  const frame = hostId === undefined ? null : getFrameKeeper(hostId, false)?.querySelector<HTMLIFrameElement>('iframe');
-  if (!frame?.dataset.dhlFrontendRevision?.startsWith('bright-test-')) return null;
-  const first = getHistoryEntries(getStageEntries(), 'story')[0];
-  const messageId = latestStageId();
-  if (!first || messageId === undefined) return null;
-  const opening = getChatMessages(first.messageIds[0] ?? first.representativeMessageId)[0];
-  if (!opening) return null;
-  return {
-    chatId: getCurrentChatId(),
-    messageId,
-    openingMessage: parseMessageContent(opening.message).narrative,
-  };
-};
-
-const openingPlotPlanner = createOpeningPlotPlanner({
-  drafts: openingPlotDrafts,
-  scope: getOpeningPlotScope,
-  read: messageId => Mvu.getMvuData({ type: 'message', message_id: messageId }),
-  write: async (messageId, variables) => {
-    await Mvu.replaceMvuData(
-      { ...variables, stat_data: Schema.parse(variables.stat_data) },
-      { type: 'message', message_id: messageId },
-    );
-  },
-  generate: generateOpeningPlot,
-  stop: generationId => stopGenerationById(generationId),
-});
-
-const prepareOpeningPlotForGeneration = async (generation: ActiveGeneration) => {
-  const scope = getOpeningPlotScope();
-  if (!scope || !resolveOpeningPlotDraft(scope.openingMessage, openingPlotDrafts)) return;
-  generation.openingPlotPreparing = true;
-  try {
-    await waitGlobalInitialized('Mvu');
-    if (controllerDisposed || activeGeneration !== generation || generation.cancelled)
-      throw new OpeningPlotCancelledError();
-    await openingPlotPlanner.prepare(generation.rawUserText);
-  } catch (error) {
-    if (
-      error instanceof OpeningPlotCancelledError ||
-      controllerDisposed ||
-      activeGeneration !== generation ||
-      generation.cancelled
-    )
-      throw new OpeningPlotCancelledError();
-    console.warn('[灯火阑珊·开场剧情] 本次依作者底稿继续', error);
-    toastr.info('开篇构思暂未备妥，本次依原稿继续。', '灯火阑珊');
-  } finally {
-    generation.openingPlotPreparing = false;
-  }
-};
-
-const syncOpeningPlotPrompt = () => {
-  uninjectPrompts([OPENING_PLOT_PROMPT_ID]);
-  const scope = getOpeningPlotScope();
-  if (!scope || typeof Mvu === 'undefined') return;
-  const draft = resolveOpeningPlotDraft(scope.openingMessage, openingPlotDrafts);
-  if (!draft) return;
-  const variables = Mvu.getMvuData({ type: 'message', message_id: scope.messageId });
-  injectPrompts([
-    {
-      id: OPENING_PLOT_PROMPT_ID,
-      role: 'system',
-      position: 'in_chat',
-      depth: 0,
-      should_scan: false,
-      content: buildOpeningPlotContext(draft, variables.stat_data.$开场剧情),
-    },
-  ]);
-};
-
 const syncJourneyPrompt = () => {
   uninjectPrompts([JOURNEY_PROMPT_ID]);
   if (controllerDisposed || activeInteraction.mode === 'dialogue' || typeof Mvu === 'undefined') return;
@@ -4186,16 +4095,11 @@ installDuplicateControllerObserver();
 
 controllerEventStops.push(
   eventOn(tavern_events.GENERATION_AFTER_COMMANDS, type => {
-    if (type === 'quiet' || type === 'impersonate') uninjectPrompts([JOURNEY_PROMPT_ID, OPENING_PLOT_PROMPT_ID]);
-    else {
-      syncJourneyPrompt();
-      syncOpeningPlotPrompt();
-    }
+    if (type === 'quiet' || type === 'impersonate') uninjectPrompts([JOURNEY_PROMPT_ID]);
+    else syncJourneyPrompt();
   }),
   eventOn(iframe_events.GENERATION_STARTED, id => {
-    uninjectPrompts([OPENING_PLOT_PROMPT_ID]);
-    if (id.startsWith(JOURNEY_GENERATION_PREFIX) || id.startsWith(OPENING_PLOT_GENERATION_PREFIX))
-      uninjectPrompts([JOURNEY_PROMPT_ID]);
+    if (id.startsWith(JOURNEY_GENERATION_PREFIX)) uninjectPrompts([JOURNEY_PROMPT_ID]);
     else syncJourneyPrompt();
   }),
 );
@@ -4301,7 +4205,6 @@ controllerEventStops.push(
 
 controllerEventStops.push(
   eventOn(tavern_events.GENERATION_ENDED, messageId => {
-    if (activeGeneration?.openingPlotPreparing) return;
     if (detachedMode) {
       scheduleViewRefresh(200, true);
       return;
@@ -4336,7 +4239,6 @@ controllerEventStops.push(
 controllerEventStops.push(
   eventOn(tavern_events.GENERATION_STOPPED, () => {
     const generation = activeGeneration;
-    if (generation?.openingPlotPreparing) return;
     if (!generation || generation.engine !== 'native') return;
     settleStoppedNativeGeneration(generation);
   }),
@@ -4401,8 +4303,7 @@ void waitGlobalInitialized('Mvu')
 
 controllerEventStops.push(
   eventOn(tavern_events.CHAT_CHANGED, () => {
-    uninjectPrompts([JOURNEY_PROMPT_ID, OPENING_PLOT_PROMPT_ID]);
-    openingPlotPlanner.cancel();
+    uninjectPrompts([JOURNEY_PROMPT_ID]);
     clearDialogueCarryoverPrompt();
     if (activeGeneration?.engine === 'dedicated') {
       activeGeneration.cancelled = true;
