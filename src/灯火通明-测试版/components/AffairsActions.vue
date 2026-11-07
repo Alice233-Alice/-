@@ -8,36 +8,11 @@
     <header v-else class="section-heading">
       <h2><i class="fa-solid fa-compass"></i>{{ inline ? '接下来' : '此刻可为' }}</h2>
       <span class="count">{{ data.启用行动提示 ? `${affairs.actions.length} 项起念` : '自由起念' }}</span>
-      <details v-if="!inline" class="preferences">
-        <summary><i class="fa-solid fa-sliders"></i> 偏好</summary>
-        <div class="preferences-body">
-          <label
-            ><input
-              type="checkbox"
-              :checked="data.启用行动提示"
-              :disabled="affairs.interactionDisabled"
-              @change="data.toggleActionPrompt"
-            />显示行动提示</label
-          >
-          <label v-if="!pseudo.isDetachedMode"
-            ><input
-              v-model="inlineActionsEnabled"
-              type="checkbox"
-              @change="setInlineActionsEnabled(inlineActionsEnabled)"
-            />也显示在正文后</label
-          >
-          <label
-            >选择行动后<select
-              :value="submitMode"
-              @change="setSubmitMode(($event.target as HTMLSelectElement).value as ActionSubmitMode)"
-            >
-              <option value="confirm">先填入行动栏</option>
-              <option value="direct">直接推演</option>
-            </select></label
-          >
-        </div>
-      </details>
     </header>
+    <p v-if="!inline" class="submit-mode-note" :class="{ 'is-direct': submitMode === 'direct' }">
+      <i class="fa-solid" :class="submitMode === 'direct' ? 'fa-paper-plane' : 'fa-pen-nib'" aria-hidden="true"></i>
+      {{ submitMode === 'direct' ? '点选后直接推演' : '点选后先填入行动栏，改好再发' }}
+    </p>
     <p v-if="!inline && data.当前处境" class="situation">{{ data.当前处境 }}</p>
     <button
       v-if="!inline && affairs.trackedTask"
@@ -75,7 +50,10 @@
           :disabled="affairs.interactionDisabled"
           @click="affairs.selectAction(action)"
         >
-          <span class="action-icon"><i :class="getActionIcon(action.类型)"></i></span>
+          <span class="action-icon" aria-hidden="true"
+            ><i v-if="inline" :class="getActionIcon(action.类型)"></i
+            ><span v-else>{{ actionSeals[action.类型] || '行' }}</span></span
+          >
           <span class="action-copy"
             ><strong>{{ copy.title }}</strong
             ><span v-if="copy.description">{{ copy.description }}</span
@@ -83,7 +61,12 @@
             ><small v-if="copy.hint">{{ copy.hint }}</small></span
           >
           <span class="action-type">{{ action.类型 }}</span
-          ><i class="fa-solid" :class="submitMode === 'direct' ? 'fa-paper-plane' : 'fa-angle-right'"></i>
+          ><i
+            v-if="inline"
+            class="fa-solid"
+            :class="submitMode === 'direct' ? 'fa-paper-plane' : 'fa-angle-right'"
+            aria-hidden="true"
+          ></i>
         </button>
         <div v-if="action.关联任务ID || action.关联事件ID" class="action-sources">
           <button
@@ -105,7 +88,6 @@
       <p v-if="!affairs.actions.length" class="quiet">眼下暂无紧要动静，不妨四下走走，或自己定个去处。</p>
     </div>
     <div v-if="!inline" class="quick-actions">
-      <span>{{ submitMode === 'direct' ? '点选后直接推演' : '点选后先填入行动栏，改好再发' }}</span>
       <button
         type="button"
         :disabled="affairs.interactionDisabled"
@@ -124,6 +106,35 @@
         <i class="fa-solid fa-pen-nib"></i>自定起念
       </button>
     </div>
+    <details v-if="!inline" class="preferences">
+      <summary><i class="fa-solid fa-sliders"></i> 起念偏好</summary>
+      <div class="preferences-body">
+        <label
+          ><input
+            type="checkbox"
+            :checked="data.启用行动提示"
+            :disabled="affairs.interactionDisabled"
+            @change="data.toggleActionPrompt"
+          />显示行动提示</label
+        >
+        <label v-if="!pseudo.isDetachedMode"
+          ><input
+            v-model="inlineActionsEnabled"
+            type="checkbox"
+            @change="setInlineActionsEnabled(inlineActionsEnabled)"
+          />也显示在正文后</label
+        >
+        <label
+          >选择行动后<select
+            :value="submitMode"
+            @change="setSubmitMode(($event.target as HTMLSelectElement).value as ActionSubmitMode)"
+          >
+            <option value="confirm">先填入行动栏</option>
+            <option value="direct">直接推演</option>
+          </select></label
+        >
+      </div>
+    </details>
   </section>
 </template>
 <script setup lang="ts">
@@ -136,6 +147,7 @@ defineProps<{ inline?: boolean }>();
 const data = useDataStore();
 const pseudo = usePseudoLayerStore();
 const affairs = useAffairsStore();
+const actionSeals: Record<string, string> = { 探索: '探', 交涉: '谈', 战斗: '战', 修炼: '修', 整备: '备', 亲密: '契' };
 const actionCards = computed(() =>
   affairs.actions.map((action, index) => ({
     action,
@@ -163,104 +175,133 @@ const shouldShowInline = computed(
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  border-bottom: 1px solid var(--line-subtle);
+  margin-bottom: 12px;
   padding-bottom: 12px;
-  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line-subtle);
 }
 h2 {
-  margin: 0;
-  font-size: 18px;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Songti SC', STSong, serif;
+  margin: 0;
+  color: var(--text-accent);
+  font:
+    600 18px 'Noto Serif SC',
+    'Songti SC',
+    STSong,
+    serif;
+  letter-spacing: 0.06em;
 }
 h2 i {
   color: var(--gold);
-  font-size: 16px;
+  font-size: 15px;
 }
-.count,
-.quick-actions > span {
+.count {
+  margin-left: auto;
   color: var(--text-secondary);
   font-size: 12px;
 }
+.submit-mode-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.submit-mode-note.is-direct {
+  color: var(--gold);
+}
+.submit-mode-note i {
+  font-size: 11px;
+}
 .preferences {
-  position: relative;
-  margin-left: auto;
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--line-subtle) 70%, transparent);
   font-size: 12px;
 }
 summary {
   cursor: pointer;
   color: var(--text-secondary);
 }
+.preferences > summary {
+  color: var(--gold);
+}
 .preferences-body {
-  position: absolute;
-  z-index: 10;
-  right: 0;
-  top: 28px;
-  width: 230px;
-  max-width: calc(100vw - 64px);
-  padding: 16px;
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: var(--surface-raised);
-  box-shadow: 0 8px 24px var(--stage-shadow);
+  margin-top: 10px;
+  padding: 13px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--surface-inset) 55%, transparent);
+}
+.preferences-body label:last-child {
+  grid-column: 1 / -1;
 }
 label {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+input[type='checkbox'] {
+  accent-color: var(--gold);
 }
 select {
   min-width: 0;
-  color: var(--text-primary);
-  background: var(--surface-inset);
+  padding: 6px;
   border: 1px solid var(--line-subtle);
-  border-radius: 4px;
-  padding: 4px;
+  border-radius: 3px;
+  background: var(--surface-inset);
+  color: var(--text-primary);
+  font: inherit;
 }
 .situation {
   margin: 0 0 12px;
-  line-height: 1.8;
   color: var(--text-secondary);
   font-size: 13px;
+  line-height: 1.85;
 }
 .tracked-label {
-  border: 0;
-  background: transparent;
-  color: var(--gold);
-  font-size: 11px;
-  padding: 0;
-  margin-bottom: 12px;
-  text-align: left;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 13px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: left;
+  cursor: pointer;
 }
 .turn-changes {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   padding: 0;
   background: transparent;
 }
 .turn-changes summary {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: 12px;
 }
 .turn-changes button {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   width: 100%;
-  text-align: left;
-  background: transparent;
+  padding: 8px 0 0;
   border: 0;
+  background: transparent;
   color: var(--text-secondary);
-  padding: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: left;
   cursor: pointer;
-  font-size: 11px;
-  line-height: 1.6;
 }
 .turn-changes strong {
   color: var(--text-primary);
@@ -268,23 +309,25 @@ select {
 }
 .action-list {
   display: grid;
-  gap: 7px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
 }
 .action-card {
   --choice-color: var(--gold);
+  min-width: 0;
   background: transparent;
 }
 .type-探索 {
   --choice-color: var(--jade);
 }
 .type-交涉 {
-  --choice-color: #74aee8;
+  --choice-color: var(--gold);
 }
 .type-战斗 {
   --choice-color: var(--semantic-danger);
 }
 .type-修炼 {
-  --choice-color: #8dcfd1;
+  --choice-color: var(--semantic-info);
 }
 .type-整备 {
   --choice-color: var(--gold);
@@ -294,118 +337,141 @@ select {
 }
 .action-choice {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto 12px;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
   width: 100%;
-  padding: 9px 11px;
-  text-align: left;
-  border: 1px solid color-mix(in srgb, var(--choice-color) 20%, var(--line-subtle));
-  border-radius: 9px;
-  background: transparent;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--choice-color) 24%, var(--line-subtle));
+  border-radius: 5px;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--surface-inset) 65%, transparent), transparent);
   color: var(--text-primary);
+  text-align: left;
   cursor: pointer;
   transition:
-    border-color 0.18s ease,
-    background 0.18s ease;
+    border-color 180ms ease,
+    background 180ms ease;
 }
 .action-choice:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--choice-color) 45%, var(--line-subtle));
-  background: color-mix(in srgb, var(--choice-color) 4%, transparent);
+  border-color: color-mix(in srgb, var(--choice-color) 52%, var(--line-subtle));
+  background: color-mix(in srgb, var(--choice-color) 5%, var(--surface-inset));
 }
 .action-choice:focus-visible {
   outline: 2px solid var(--choice-color);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 .action-icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  aspect-ratio: 1;
-  border-radius: 50%;
+  width: 26px;
+  aspect-ratio: 0.82;
+  border: 1px solid color-mix(in srgb, var(--choice-color) 45%, transparent);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--choice-color) 5%, transparent);
+  background: color-mix(in srgb, var(--choice-color) 5%, transparent);
   color: var(--choice-color);
-  background: color-mix(in srgb, var(--choice-color) 14%, transparent);
-  font-size: 11px;
+  font:
+    500 16px 'Noto Serif SC',
+    'Songti SC',
+    STSong,
+    serif;
 }
 .action-copy {
   display: grid;
-  gap: 2px;
+  gap: 5px;
   min-width: 0;
-  line-height: 1.52;
+  line-height: 1.8;
   overflow-wrap: anywhere;
 }
 .action-copy strong {
-  font-size: 12px;
-  font-weight: 590;
+  color: var(--text-primary);
+  font:
+    600 15px 'Noto Serif SC',
+    'Songti SC',
+    STSong,
+    serif;
+  line-height: 1.65;
+  letter-spacing: 0.035em;
 }
 .action-copy > span {
-  font-size: 10px;
   color: var(--text-secondary);
+  font-size: 13px;
 }
 .action-copy > .action-event {
-  color: color-mix(in srgb, var(--choice-color) 60%, var(--text-secondary));
+  color: color-mix(in srgb, var(--choice-color) 65%, var(--text-primary));
 }
 .action-copy small {
-  font-size: 10px;
-  line-height: 1.4;
   color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
 }
 .action-type {
-  padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--choice-color) 23%, transparent);
+  border-radius: 2px;
   color: var(--choice-color);
-  background: color-mix(in srgb, var(--choice-color) 10%, transparent);
+  font-size: 11px;
+  line-height: 1.6;
   white-space: nowrap;
 }
 .action-choice > i {
   color: var(--choice-color);
-  font-size: 9px;
+  font-size: 10px;
 }
 .action-sources {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 4px 11px 0 50px;
+  gap: 9px;
+  padding: 6px 14px 0 52px;
 }
 .action-sources button {
+  padding: 3px 0;
   border: 0;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 10px;
-  cursor: pointer;
-  padding: 0;
+  font-size: 11px;
+  line-height: 1.6;
   text-align: left;
+  cursor: pointer;
 }
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-.quick-actions > span {
-  margin-right: auto;
+  gap: 9px;
+  margin-top: 14px;
 }
 .quick-actions button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 7px 10px;
   border: 1px solid var(--line-subtle);
-  border-radius: 6px;
-  color: var(--text-secondary);
+  border-radius: 3px;
   background: transparent;
-  padding: 5px 9px;
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
   cursor: pointer;
+}
+.quick-actions button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--gold) 40%, var(--line-subtle));
+  color: var(--gold);
+}
+button:focus-visible,
+summary:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 button:disabled {
   cursor: default;
   opacity: 0.5;
 }
 .quiet {
-  font-size: 12px;
   color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.9;
 }
 .inline {
   width: min(100%, var(--reading-measure));
@@ -430,40 +496,91 @@ button:disabled {
   align-items: center;
   gap: 7px;
   color: var(--gold);
-  font-family: 'Songti SC', STSong, serif;
-  font-size: 13px;
-  font-weight: 600;
+  font:
+    600 13px 'Noto Serif SC',
+    'Songti SC',
+    STSong,
+    serif;
   letter-spacing: 0.12em;
 }
 .heading-note {
-  font-size: 10px;
   color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.inline .action-list {
+  gap: 7px;
+}
+.inline .action-choice {
+  grid-template-columns: 20px minmax(0, 1fr) auto 12px;
+  gap: 9px;
+  padding: 9px 11px;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--choice-color) 16%, var(--line-subtle));
+}
+.inline .action-icon {
+  width: 20px;
+  aspect-ratio: 1;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: 11px;
+}
+.inline .action-copy {
+  gap: 3px;
+  line-height: 1.65;
+}
+.inline .action-copy strong {
+  font-size: 13px;
+}
+.inline .action-copy > span,
+.inline .action-copy small {
+  font-size: 12px;
+}
+.inline .action-type {
+  font-size: 10px;
+}
+.inline .action-sources {
+  padding-left: 40px;
 }
 @media (max-width: 760px) {
   .action-choice {
-    grid-template-columns: 28px minmax(0, 1fr) 12px;
-    gap: 8px;
-    padding: 9px;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 8px 10px;
+    padding: 12px;
   }
   .action-type {
     grid-column: 2;
     justify-self: start;
   }
-  .action-choice > i {
-    grid-column: 3;
+  .action-icon {
     grid-row: 1 / span 2;
   }
   .action-sources {
-    padding-left: 46px;
+    padding-left: 48px;
   }
-  .quick-actions > span {
-    width: 100%;
+  .preferences-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .inline .action-choice {
+    grid-template-columns: 20px minmax(0, 1fr) 12px;
+    padding: 9px;
+  }
+  .inline .action-choice > i {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+  .inline .action-sources {
+    padding-left: 39px;
   }
   .inline-heading {
     grid-template-columns: minmax(16px, 1fr) auto minmax(16px, 1fr);
+    gap: 7px;
   }
   .heading-note {
-    display: none;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    text-align: center;
   }
 }
 </style>
