@@ -203,7 +203,7 @@ const viewportMode = ref<ViewportMode>(getViewportMode());
 const readingMode = computed<ReadingMode>(() => themeStore.readingModes[viewportMode.value]);
 const activeView = ref<StageView>('gallery');
 // Prepare the atlas only on first entry; tab changes retain its textures and camera.
-const mapOpened = ref(reloadedView === 'map');
+const mapOpened = ref(activeView.value === 'map');
 const isImmersive = ref(readImmersivePreference(viewportMode.value));
 const showReadingSettings = ref(false);
 const showGreetingIndex = ref(false);

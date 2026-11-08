@@ -18,7 +18,10 @@
           <small>{{ dialogueKicker }}</small>
           <span class="speaker-name-line">
             <strong>{{ context?.targetName || '尚未择定' }}</strong>
-            <em v-if="relationLabel">{{ relationLabel }}</em>
+            <span v-if="favorValue !== null" class="speaker-favor-pill" :title="`好感度 ${favorValue}`">
+              <i class="fa-solid fa-heart"></i> {{ favorValue }}
+            </span>
+            <em v-if="relationLabel" class="speaker-mood-pill">{{ relationLabel }}</em>
           </span>
         </span>
       </div>
@@ -93,7 +96,19 @@
             <small>{{ context?.channel === 'transmission' ? '尺素越千山' : '灯影照知心' }}</small>
             <strong>{{ context?.targetName ? `与${context.targetName}的交谈尚未开始` : '请选择交谈对象' }}</strong>
             <p>{{ emptyVerse }}</p>
-            <span>{{ !pseudo.dialogueReadOnly ? '在下方写下想说的话。' : '此历史节点没有可显示的交谈记录。' }}</span>
+            <span>{{ !pseudo.dialogueReadOnly ? '点选下方话头，或直接写下想说的话。' : '此历史节点没有可显示的交谈记录。' }}</span>
+            <div v-if="!pseudo.dialogueReadOnly && context" class="dialogue-starter-pills" role="group" aria-label="快捷话头">
+              <button
+                v-for="starter in dialogueStarterTopics"
+                :key="starter.label"
+                type="button"
+                class="starter-pill"
+                @click="pickStarterTopic(starter.prompt)"
+              >
+                <i :class="starter.icon"></i>
+                <span>{{ starter.label }}</span>
+              </button>
+            </div>
             <button
               v-if="!pseudo.dialogueReadOnly && !context"
               type="button"
@@ -364,7 +379,42 @@ const companion = computed(() => {
 });
 const relation = computed(() => String(companion.value?.关系 ?? '').trim());
 const emotion = computed(() => String(companion.value?.关系上下文?.当前情绪 ?? '').trim());
+const favorValue = computed<number | null>(() => {
+  const raw = companion.value?.好感度;
+  const num = Number(raw);
+  return Number.isFinite(num) ? Math.round(num) : null;
+});
 const relationLabel = computed(() => [relation.value, emotion.value].filter(Boolean).join(' · '));
+const dialogueStarterTopics = computed(() => {
+  const name = context.value?.targetName || '对方';
+  const location = String(data.本尊?.行踪?.当前区域 || '此地').trim();
+  const isTransmission = context.value?.channel === 'transmission';
+  return [
+    {
+      label: '询问近况',
+      icon: 'fa-solid fa-feather-pointed',
+      prompt: isTransmission
+        ? `传音向${name}问候近来安好，询问她此刻身在何处、修行是否顺遂。`
+        : `温和看向${name}，询问她近来心境与修行可还顺遂。`,
+    },
+    {
+      label: '商议眼下处境',
+      icon: 'fa-solid fa-compass',
+      prompt: `与${name}商议眼下在「${location}」的处境与局势，听听她的看法与建议。`,
+    },
+    {
+      label: '闲话家常',
+      icon: 'fa-solid fa-mug-hot',
+      prompt: isTransmission
+        ? `借传音与${name}闲话几句近日见闻，约定日后相见之期。`
+        : `放下眼下繁务，与${name}闲话片刻风物与旧事。`,
+    },
+  ];
+});
+const pickStarterTopic = (prompt: string) => {
+  pseudo.dialogueDraftPrompt = prompt;
+  nextTick(() => inputRef.value?.focus());
+};
 const dialogueKicker = computed(() => {
   if (pseudo.dialogueReadOnly) return '旧正文 · 幕间回响';
   if (!pseudo.isDialogueActive) return '最近交谈';
@@ -801,8 +851,9 @@ watch(
 .speaker-name-line {
   min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
 }
 .speaker-name-line strong {
   overflow: hidden;
@@ -813,11 +864,28 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.speaker-name-line em {
+.speaker-favor-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--semantic-relation) 36%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--semantic-relation);
+  background: color-mix(in srgb, var(--semantic-relation) 10%, var(--surface-inset));
+  font-size: 10px;
+  font-weight: 600;
+}
+.speaker-name-line em.speaker-mood-pill {
   max-width: min(280px, 24vw);
+  padding: 2px 8px;
   overflow: hidden;
+  border: 1px solid var(--line-subtle);
+  border-radius: 999px;
   color: var(--text-secondary);
-  font-size: 9px;
+  background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  font-size: 10px;
   font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1042,6 +1110,46 @@ watch(
 }
 .dialogue-empty span {
   font-size: 10px;
+}
+
+.dialogue-starter-pills {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.starter-pill {
+  min-height: 30px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--jade) 36%, var(--line-subtle));
+  border-radius: 999px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--surface-inset) 84%, transparent);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+
+  i {
+    color: var(--jade);
+    font-size: 10px;
+  }
+
+  &:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--button-active);
+    transform: translateY(-1px);
+
+    i {
+      color: var(--gold);
+    }
+  }
 }
 
 .dialogue-turn {

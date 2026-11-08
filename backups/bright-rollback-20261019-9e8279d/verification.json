@@ -1,0 +1,27 @@
+﻿[
+    {
+        "path":  "dist/灯火通明/index.html",
+        "sha256":  "528FD61FC397428D25AC35909B7F6379769655C0341E1E7795896C1A6EB3C8F4",
+        "matchesRemote":  true
+    },
+    {
+        "path":  "dist/灯火通明/index.js.map",
+        "sha256":  "5F18FEA2F0381DC821C27C09355946E91C0B557D5CAC083AAF537E2C7DFC23A4",
+        "matchesRemote":  true
+    },
+    {
+        "path":  "dist/灯火通明/main.css.map",
+        "sha256":  "30584BF38E9DA99FED246C4BADFEE1DF3A6B33E4F75D8EEA9CC70CE50B36CDD0",
+        "matchesRemote":  true
+    },
+    {
+        "path":  "dist/灯火通明-伪同层控制器/index.js",
+        "sha256":  "EDD8E86499345A0577735E647947A9DF380EC0875BFBD34E3B2CB9EE00232401",
+        "matchesRemote":  true
+    },
+    {
+        "path":  "dist/灯火通明-伪同层控制器/index.js.map",
+        "sha256":  "09DDA50255294AF0B48BE647E67BCA412C576BFF706C97D1A9DD4A1BAAD1E767",
+        "matchesRemote":  true
+    }
+]

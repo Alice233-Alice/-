@@ -243,22 +243,25 @@ test('行动直接采用下一步，已有句末标点不重复，设定和进�
 test('行旅缺少下一步时依状态落笔，核实猜想只带真实关联线索', () => {
   const journey = journeys.createJourney(proposals[0]);
   journey.下一步 = '  ';
-  assert.equal(journeys.buildJourneyAction(journey), '盘算着「望潮书」一事，先在附近寻个由头探探风声。');
+  assert.equal(
+    journeys.buildJourneyAction(journey),
+    '惦记着「望潮书」一事，打算先在附近找个由头探探风声，看看从哪儿动身。',
+  );
   journey.状态 = '进行中';
   journey.进展 = '已经问清木片来自上游。；，';
   assert.equal(
     journeys.buildJourneyAction(journey),
-    '顺着「望潮书」眼下的眉目（已经问清木片来自上游），继续往下追查。',
+    '顺着「望潮书」目前查到的眉目（已经问清木片来自上游），继续往下追查。',
   );
   journey.进展 = '';
-  assert.equal(journeys.buildJourneyAction(journey), '先把「望潮书」手头的线索理一理，看看下一步从哪儿落脚。');
+  assert.equal(journeys.buildJourneyAction(journey), '先把「望潮书」手头已有的线索理一理，看看下一步从哪儿落脚。');
   journey.线索.潮痕 = { 内容: '木片上有旧潮痕', 依据: '当面查验', 时地: '渡口' };
   journey.猜想.来处 = { 内容: '木片来自上游。', 关联线索: ['潮痕', '失效线索'], 状态: '待核实', 依据: '' };
   const guess = journeys.buildJourneyAction(journey, '来处');
-  assert.match(guess, /木片来自上游。结合手头已知的线索（潮痕：木片上有旧潮痕）/u);
+  assert.match(guess, /木片来自上游。对照手头已有的线索（潮痕：木片上有旧潮痕）/u);
   assert.doesNotMatch(guess, /失效线索|。。/u);
   journey.猜想.来处.关联线索 = [];
-  assert.doesNotMatch(journeys.buildJourneyAction(journey, '来处'), /结合手头已知的线索/u);
+  assert.doesNotMatch(journeys.buildJourneyAction(journey, '来处'), /对照手头已有的线索/u);
 });
 
 test('任务与世闻兜底沿用具体下一步，缺少切口时自然探听或静观', () => {
@@ -973,7 +976,7 @@ test('选中楼层编辑、删除、换版本或新增楼层后，生成中的�
   }
 });
 
-test('晨课、受困与已有调查三组样稿完整进入创作依据，提示要求承接当前牵系与知情范围', async () => {
+test('晨课、受困与已有调查三组样稿完整进入创作依据，使用当前主提示和原有提案格式', async () => {
   for (const scene of [
     { text: '观月台晨课未完，白清弦指出行气疑处，答应课后解释旧剑谱。', state: '晨课尚未结束', clue: '课后旧谱之约' },
     {
@@ -1005,10 +1008,12 @@ test('晨课、受困与已有调查三组样稿完整进入创作依据，提�
       const text = h.requests[0].ordered_prompts.map(prompt => prompt.content).join('\n');
       assert.ok(text.includes(scene.text));
       assert.ok(text.includes(scene.state));
-      assert.match(text, /人物各自的动机|行动限制/u);
-      assert.match(text, /第一步须在眼前处境中做得成/u);
-      assert.match(text, /阶段人设依当前关系取用/u);
-      assert.match(text, /尚未揭开的秘密留在plan/u);
+      assert.ok(h.requests[0].ordered_prompts[0].content.startsWith(journeys.JOURNEY_PROPOSAL_PROMPT));
+      assert.deepEqual(
+        h.requests[0].ordered_prompts.map(prompt => prompt.role),
+        ['system', 'assistant', 'user'],
+      );
+      assert.deepEqual(Object.keys(h.store.proposals[0]).sort(), ['goal', 'lead', 'name', 'plan', 'step']);
     } finally {
       h.close();
     }
@@ -1250,7 +1255,7 @@ test('请求只承接当前行旅，已知与构思分明，限量带入近期�
     $行旅蓝图: { 甲: '当前幕后构思', 乙: '其他行旅秘事' },
   });
   const context = journeys.buildJourneyContext(state);
-  assert.match(context, /待启程仅表示意向/);
+  assert.match(context, /旅程ID：甲/);
   assert.match(context, /当前幕后构思/);
   assert.doesNotMatch(context, /其他行旅秘事|问剑山外|"线索0"|"纪事11"/);
   assert.match(context, /"线索8"|"纪事12"/);

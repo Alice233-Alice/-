@@ -9,6 +9,8 @@ export const nativeProfileMenu='webview/assets/profile-dropdown-items-31555d8c5b
 export const nativeModelsQuery='webview/assets/model-queries-643676f8d27a.js';
 export const nativeMessageBus='webview/assets/message-bus-4113ba7287d7.js';
 export const nativeHostServices='webview/assets/initialize-app-host-services.extension-f722db488e05.js';
+export const nativeConversationState='webview/assets/src-622b307a9baf.js';
+export const nativeConversationUi='webview/assets/local-conversation-thread-a37d62aef644.js';
 const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 
 function mapContributions(value){
@@ -65,6 +67,13 @@ export function patchNativeOfflineEvaluations(source){
   return replaceExactlyOnce(source,original,offline,'offline experiment evaluations');
 }
 
+/** The retained client uses the current core's revert API for edits of older turns. */
+export function patchNativeConversationState(source){
+  const patched=replaceExactlyOnce(source,'d=c.historyMode===`paginated`&&H(e.requestClient.getAppServerVersion(),`threadRevert`)','d=H(e.requestClient.getAppServerVersion(),`threadRevert`)','legacy edit protocol');
+  return replaceExactlyOnce(patched,'e.sessionId=a.sessionId,e.paginatedHistory={itemsBackwardsCursor:s}','e.historyMode=a.historyMode,e.sessionId=a.sessionId,e.paginatedHistory={itemsBackwardsCursor:s}','edited history contract');
+}
+export function patchNativeConversationUi(source){return replaceExactlyOnce(source,'V=mt(`1937538638`)','V=!0','earlier message editing');}
+
 /** Distinct Windows named pipe. Other native host code remains byte-for-byte retained. */
 export function patchNativeHost(source){
   const windows=String.raw`Qm.join("\\\\.\\pipe","codex-ipc")`;
@@ -90,9 +99,9 @@ function apeiriaExposeNativeConnection(connection){
   connection.registerInternalNotificationHandler(observe);
   connection.registerProvider('apeiria-model-lifecycle',{onFatalError(){activeTurns.clear()}});
   connection.apeiriaActiveTurns=activeTurns;
-  connection.apeiriaRefreshModels=function(){
+  connection.apeiriaRefreshModels=function(beforeStart){
     if(disposed)return Promise.reject(new Error('Apeiria native client is closed.'));
-    if(refreshTask)return refreshTask;
+    if(refreshTask)return beforeStart?refreshTask.then(()=>connection.apeiriaRefreshModels(beforeStart)):refreshTask;
     let resolveTask,rejectTask;
     const task=new Promise((resolve,reject)=>{resolveTask=resolve;rejectTask=reject});
     refreshTask=task;
@@ -102,19 +111,20 @@ function apeiriaExposeNativeConnection(connection){
       error?rejectTask(error):resolveTask();
     };
     failRefresh=finish;
-    const restartWhenIdle=()=>{
+    const restartWhenIdle=async()=>{
       if(disposed){finish(new Error('Apeiria native client is closed.'));return}
       if(activeTurns.size||connection.pendingRequests.size||(!connection.initialized&&!connection.fatalError)){
         idleTimer=setTimeout(restartWhenIdle,50);return;
       }
-      let awaitingInitialize=false;
+      let awaitingInitialize=false,preparationError=null;
       watcher=connection.registerProvider('apeiria-model-refresh',{
-        onInitialized(){if(awaitingInitialize)finish()},
+        onInitialized(){if(awaitingInitialize)finish(preparationError)},
         onFatalError(error){if(awaitingInitialize)finish(error)}
       });
       const handlers=[...connection.internalNotificationHandlers];
       awaitingInitialize=true;
       try{
+        if(beforeStart){connection.teardownProcess();try{await beforeStart()}catch(error){preparationError=error}}
         const result=connection.startCodexProcess();
         for(const handler of handlers)connection.internalNotificationHandlers.add(handler);
         if(!result?.success){finish(new Error(result?.errorMessage??'Failed to restart the independent app-server.'));return}
@@ -130,6 +140,27 @@ function apeiriaExposeNativeConnection(connection){
   };
   const dispose=connection.dispose;
   connection.dispose=function(...args){disposed=true;failRefresh?.(new Error('Apeiria native client is closed.'));return dispose.apply(this,args)};
+  const originalSend=connection.sendRequest.bind(connection);
+  let internalId=0;
+  const request=(method,params)=>new Promise((resolve,reject)=>{
+    const providerId='apeiria-edit-'+(++internalId);
+    let subscription,timer;
+    const finish=(error,value)=>{clearTimeout(timer);subscription?.dispose();error?reject(error):resolve(value)};
+    subscription=connection.registerProvider(providerId,{onResult(message){message.error?finish(new Error(message.error.message)):finish(null,message.result)},onFatalError(error){finish(error)}});
+    timer=setTimeout(()=>finish(new Error('Preparing the selected history edit timed out.')),30000);
+    originalSend(providerId,'request',method,params);
+  });
+  connection.sendRequest=function(providerId,requestId,method,params,...rest){
+    if(method!=='thread/revert')return originalSend(providerId,requestId,method,params,...rest);
+    (async()=>{
+      const state=await request('thread/read',{threadId:params.threadId,includeTurns:false});
+      if(state.thread.historyMode==='legacy'){
+        await connection.apeiriaRefreshModels(()=>globalThis.__apeiriaMigrateSelectedHistory(params.threadId));
+        await request('thread/resume',{threadId:params.threadId});
+      }
+      originalSend(providerId,requestId,method,params,...rest);
+    })().catch(error=>connection.providers.get(providerId)?.onResult?.({id:requestId,error:{code:-32000,message:String(error?.message||error)}}));
+  };
   globalThis.__apeiriaNativeConnection=connection;
 }
 `;
@@ -143,7 +174,9 @@ export function prepareNative(sourceRoot,targetRoot){
   const hostOriginal=fs.readFileSync(path.join(source,'out/extension.js'),'utf8');
   const modelsOriginal=fs.readFileSync(path.join(source,nativeModelsQuery),'utf8');
   const servicesOriginal=fs.readFileSync(path.join(source,nativeHostServices),'utf8');
+  const conversationOriginal=fs.readFileSync(path.join(source,nativeConversationState),'utf8'),conversationUiOriginal=fs.readFileSync(path.join(source,nativeConversationUi),'utf8');
   const profilePatched=patchNativeProfileMenu(profileOriginal),hostPatched=patchNativeHost(hostOriginal),modelsPatched=patchNativeModelQueries(modelsOriginal),servicesPatched=patchNativeOfflineEvaluations(servicesOriginal);
+  const conversationPatched=patchNativeConversationState(conversationOriginal),conversationUiPatched=patchNativeConversationUi(conversationUiOriginal);
   // Verify every planned source and patch before creating or modifying the destination.
   for(const relative of ['out','webview','resources','syntaxes','LICENSE.md','package.json',nativeMessageBus])if(!fs.existsSync(path.join(source,relative)))throw Error('Native source is incomplete: '+relative);
   fs.mkdirSync(target,{recursive:true});
@@ -162,6 +195,8 @@ export function prepareNative(sourceRoot,targetRoot){
     if(normalized===nativeProfileMenu)after=Buffer.from(profilePatched);
     else if(normalized===nativeModelsQuery)after=Buffer.from(modelsPatched);
     else if(normalized===nativeHostServices)after=Buffer.from(servicesPatched);
+    else if(normalized===nativeConversationState)after=Buffer.from(conversationPatched);
+    else if(normalized===nativeConversationUi)after=Buffer.from(conversationUiPatched);
     else if(normalized==='out/extension.js')after=Buffer.from(hostPatched);
     else if(normalized==='syntaxes/starlark.tmLanguage.json'){
       const grammar=JSON.parse(before.toString('utf8'));

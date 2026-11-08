@@ -85,6 +85,7 @@ export function sanitizeClientMessage(message:Json,descriptor:NativeDescriptor):
     const params={...(message.params||{})},config:Json={};
     for(const [key,value]of Object.entries(params.config||{}))if(!protectedKey(key))config[key]=value;
     config.model_catalog_json=descriptor.catalogPath;params.modelProvider='apeiria';params.config=config;
+    if(message.method==='thread/start')params.historyMode='paginated';
     return {...message,params};
   }
   return message;

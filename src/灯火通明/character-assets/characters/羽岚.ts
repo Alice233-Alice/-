@@ -12,6 +12,17 @@ const FRONT_IMAGE_IDS = [
   103,
   '羽岚 (2).png', '羽岚 (3).png', '羽岚 (1).png', '羽岚 (13).png', '羽岚 (12).png', '羽岚 (11).png', '羽岚 (10).png', '羽岚 (9).png',
   '羽岚 (7).png', '羽岚 (6).png',
+  { source: 'mingli', file: '羽岚 (22).png' },
+  { source: 'mingli', file: '羽岚 (23).png' },
+  { source: 'mingli', file: '羽岚 (19).png' },
+  { source: 'mingli', file: '羽岚 (20).png' },
+  { source: 'mingli', file: '羽岚 (24).png' },
+  { source: 'mingli', file: '羽岚 (25).png' },
+  { source: 'mingli', file: '羽岚 (27).png' },
+  { source: 'mingli', file: '羽岚 (26).png' },
+  { source: 'mingli', file: '羽岚 (16).png' },
+  { source: 'mingli', file: '羽岚 (17).png' },
+  { source: 'mingli', file: '羽岚 (18).png' },
 ] as const;
 
 // prettier-ignore
@@ -19,6 +30,7 @@ const BACK_IMAGE_IDS = [
   6, 9, 8, 11, 15, 22, 25, 24, 23, 28, 29, 30, 33, 35, 39, 41, 44, 48, 49, 52, 51, 56, 58, 62, 60, 63, 66, 70, 69, 68,
   67, 71, 72, 73, 74, 76, 85, 83, 92, 91, 97, 101,
   '羽岚 (15).png', '羽岚 (14).png', '羽岚 (8).png', '羽岚 (5).png', '羽岚 (4).png',
+  { source: 'mingli', file: '羽岚 (21).png' },
 ] as const;
 
 export const assets = {

@@ -79,3 +79,16 @@ test('model refresh invokes only the connection inside its private native realm'
   const options={nativeRoot:root,launcherPath:path.join(root,'launcher.exe'),descriptorPath:path.join(root,'descriptor.json')};
   try{const loaded=loadNativeBundle(options,{api:{},context:{},process:nativeProcess({globalStorageUri:{fsPath:path.join(root,'storage')}})});await loaded.refreshModels();assert.equal(loaded.exports.refreshes,1);assert.equal((globalThis as any).__apeiriaNativeConnection,undefined);loaded.clear();}finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test('saved queues and sidebar state reenter the native realm after a restart',async()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'apeiria-native-memento-'));
+  fs.mkdirSync(path.join(root,'out'));fs.writeFileSync(path.join(root,'package.json'),'{}');
+  fs.writeFileSync(path.join(root,'out','extension.js'),`module.exports={async activate(context){const value=context.globalState.get('queued',{items:[]});module.exports.valid=Object.getPrototypeOf(value)===Object.prototype&&value.items instanceof Array&&Object.getPrototypeOf(value.items[0])===Object.prototype;const configuration=require('vscode').workspace.getConfiguration('chatgpt').get('fixture');module.exports.configValid=Object.getPrototypeOf(configuration)===Object.prototype;await context.workspaceState.update('order',{items:[{id:'native'}]});}};`);
+  class Uri {constructor(readonly fsPath:string){}static file(value:string){return new Uri(value);}}
+  const writes:any[]=[];const saved={items:[{text:'continue after timeout'}]};
+  const memento={get:()=>saved,keys:()=>['queued'],async update(name:string,value:any){writes.push({name,value});}};
+  const real={Uri,commands:{},workspace:{getConfiguration:()=>({get:()=>({nested:[42]})})},window:{}};
+  const context={globalStorageUri:{fsPath:path.join(root,'storage')},extension:{},globalState:memento,workspaceState:memento};
+  const options={nativeRoot:root,launcherPath:path.join(root,'launcher.exe'),descriptorPath:path.join(root,'descriptor.json')};
+  try{const scoped=createNativeFacade(real,context,options),loaded=loadNativeBundle(options,scoped);await loaded.exports.activate(scoped.context);assert.equal(loaded.exports.valid,true);assert.equal(loaded.exports.configValid,true);assert.equal(Object.getPrototypeOf(writes[0].value),Object.prototype);assert(writes[0].value.items instanceof Array);assert.deepEqual(saved,{items:[{text:'continue after timeout'}]});loaded.clear();}finally{fs.rmSync(root,{recursive:true,force:true});}
+});

@@ -1,0 +1,3722 @@
+﻿[
+    {
+        "path":  "src\\灯火通明\\action-feed.ts",
+        "sha256":  "F2069A75415DB22B0AB70003A72054D19629EDA6F415022D43D0B34488ED2CB3",
+        "bytes":  8763,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\action-preferences.ts",
+        "sha256":  "08F501CB6C5DA8E6F66B6E2758E989FF10A5095138C3D17726F8CA4D35073DC7",
+        "bytes":  1445,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\app.vue",
+        "sha256":  "A76F504B84B622B3C90CB6728064C4D86F5AC1E66053BA229A0A3C5F61FC41FC",
+        "bytes":  40344,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets.ts",
+        "sha256":  "BDAB726ED528D1C1530C86A698B8366C83892A9CD8A43645B99A1FF07DD6775F",
+        "bytes":  13547,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\greeting-index.ts",
+        "sha256":  "F011F2CDF177DF3735551C174F2BF70EA3C7708C48FBD12D79123E740CF31711",
+        "bytes":  5176,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\index.html",
+        "sha256":  "84897AA8C03BBB8955487B528890DA53CFF6203AFA79FAFEB2A236D323185461",
+        "bytes":  52,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\index.ts",
+        "sha256":  "1EC48802C8A8ACC421179CB11EF3C43B4677CE65F9E67325E844AEF25E186236",
+        "bytes":  754,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\message-content.ts",
+        "sha256":  "DF31D22BB051D166B66D00B3126B20E10370E28D2BFBE7ABFAB510BDB44A22DA",
+        "bytes":  38661,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\narrative-continuity.ts",
+        "sha256":  "BA388830E42340D0FF16AD1117E9DC55C9AC1B87A1734B1FAC810E2B798AEEF0",
+        "bytes":  1566,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\narrative-typography.ts",
+        "sha256":  "5012CBED9F5214E673885DFBB15E7743AE12D6D6AE4DE388D8803D61F866E118",
+        "bytes":  1222,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\pseudo-layer-protocol.ts",
+        "sha256":  "C567A05F6C93BF8BD26E71C23E369F5BA0B6FEA051411BC066B4A19518D038B1",
+        "bytes":  11763,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\region-utils.ts",
+        "sha256":  "19CC4D245F614DBE34EEB78AE2F2CEEB339560D00ED72C31C14243220F190703",
+        "bytes":  5706,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema.json",
+        "sha256":  "D794E6EADD267B8D1B91B32B26A1334D03CF67FA35F6AB6113C2493382AF8A5F",
+        "bytes":  47853,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火通明\\schema.ts",
+        "sha256":  "A8B03B588D77F2A73FDEAE0B0BCE0387E7A4DE80D036ABB731A7A5858FD7A75B",
+        "bytes":  201,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\store.ts",
+        "sha256":  "7E4C2A3E8EFB0292CE480468DA99997B5605FF38870D5D43EFB26CCC93F854D0",
+        "bytes":  317,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\themes.ts",
+        "sha256":  "1D77DD70519CFFC533C19D4D4ED3EDA60199C5C967A4E8E3E4FD5E5F98434365",
+        "bytes":  15646,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\world-event-patch-guard.ts",
+        "sha256":  "48B695928A14DDE3EDA61E34AAED8ACD89E2073BA4681296B317916569E2BE1D",
+        "bytes":  3867,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\world-events.ts",
+        "sha256":  "637F94B21B2D3057A89EA2370C3015AAA016E564BE3E2567486683818281D897",
+        "bytes":  3040,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\dusk-ink-landscape.svg",
+        "sha256":  "E337644A3DCDE1C234A77BA65C1F145D2883DC09B17605F8031260E9E942D108",
+        "bytes":  1726,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\lantern-water-town.svg",
+        "sha256":  "1AE99DFF06FA61FC9E6F1A684992EB6EC5BA5519A34D4E403A15412797334FE7",
+        "bytes":  3685,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\shanhai-scroll.svg",
+        "sha256":  "16096FB38B80782AC3554C59AF0AC05E108B3B67B2212321861F014512A1DEC9",
+        "bytes":  3881,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\star-altar-chart.svg",
+        "sha256":  "6B2A92620AD2EBDCF70464FDF3BF5F0A51AB0300E30AF19EAB53CB628339724E",
+        "bytes":  3019,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\world-map-earth.png",
+        "sha256":  "AFC20FDC4241D92E3D252643D814360534D8B9347A113912D33300FC0B9541CC",
+        "bytes":  3220034,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\world-map-overview-concept-v1.png",
+        "sha256":  "97D442D626A76C066B191FC5954693D567FDEAFAA817CE0B6B1E74FA1F4D0DB7",
+        "bytes":  3199074,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\world-map-painted-bg-v1.png",
+        "sha256":  "59129AD518BF603BB7F5098522E3E2E099F7CFBD6B829FFC3381676E2C6FB1E9",
+        "bytes":  3154579,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\world-map-painted-bg-v2.png",
+        "sha256":  "FDE1EF533CB70BB5ED6909B485A9EF4E58D0FC5CC74ADC929824912AB8E47B20",
+        "bytes":  3414868,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\world-map-painted-bg-v3.png",
+        "sha256":  "E665F55C6CA5932C18B891BAE9486DCFDD14F070A4CCC98785BDEE4E9A655802",
+        "bytes":  3429268,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\assets\\world-map-underworld.png",
+        "sha256":  "D0DA18523995B6CFF416C985145696B086975CEFB32DB95D6EF23BE54317D471",
+        "bytes":  3257438,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\image-url.ts",
+        "sha256":  "91BE93E3F5E2A3FE0CB8F2A2CA50B72E4F4F13EE252952E79CC9CB927707ABAE",
+        "bytes":  543,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\index.ts",
+        "sha256":  "F6FAEC98C85BA3FE056BEC04352E4290A1D1381B646B1C4EBF3FAB70A60AB2DC",
+        "bytes":  2483,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\types.ts",
+        "sha256":  "C9E6FEE0B2D4726484D4B3C5FD1D75CA3942706A955426A45864570DE8C280FB",
+        "bytes":  726,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\南宫云裳.ts",
+        "sha256":  "1C4E3341318DCE5FDF84B185A3B618ADF76070F6A3C9FFE468EDCC499317FBBB",
+        "bytes":  1267,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\安迟迟.ts",
+        "sha256":  "1A434371E4FE6ADE7EB6CA331B9C5A6E1B6F01B227FA4B414C57331C4370FB5A",
+        "bytes":  1055,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\晚棠.ts",
+        "sha256":  "F846BBAFE06059E4E09C20E364AFF0B157E0C198B5CF3C8A11DEF552CD1ABC10",
+        "bytes":  1257,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\朔望舒.ts",
+        "sha256":  "1D6C482380C60AB4F7860C9537B9DEB9B9AC45E1F368947F5188727F2B2A793B",
+        "bytes":  1350,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\朔璃鸢.ts",
+        "sha256":  "F7625FFD04F7965E9B571970DBE8D4393BC9DB69C14293DCA241429D6FCADA8B",
+        "bytes":  1265,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\梦杳泠.ts",
+        "sha256":  "21F5C74916DCAFEA037E969338F740095A5FCF8EDCB2836A871A2372F1619184",
+        "bytes":  1280,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\白清弦.ts",
+        "sha256":  "C81EDF07B52F1DC4E7857C7A089FABBC53BD214011E462247958893AAF5BAEA5",
+        "bytes":  2436,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\羽岚.ts",
+        "sha256":  "3C95E97B79689AAB0E62B30268ADF792C7D7AC17296C07F76B8276413D258954",
+        "bytes":  1611,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\虞汐颜.ts",
+        "sha256":  "30E284AB5B3ABD9D618283E6C9E5C967227FC049C0D0CCDA5746FBD0874BE681",
+        "bytes":  2191,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\许听雨.ts",
+        "sha256":  "65C6A5D1F7C106F812448F0D6F5C0255B167733D9A0D9F7DC30F67C9B5AFAC99",
+        "bytes":  1433,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\character-assets\\characters\\阮忘忧.ts",
+        "sha256":  "6201A938E2115A6860A546551AB6E3B0C70CFE132EC6B49F0DD2B1E26F34F16B",
+        "bytes":  1460,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\ActionMenuPanel.vue",
+        "sha256":  "4E8FA8994CE68A48C270CF15A76D8E1CC0F5C0BC8AFFC146216F730075430DD3",
+        "bytes":  29878,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\BattlePanel.vue",
+        "sha256":  "7719599BF50878F20B35AF891105E2563DA84871887CBED218476748DBB202AB",
+        "bytes":  15249,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\BranchChoicePanel.vue",
+        "sha256":  "DF5411FD96C0D6B8AAF49F38FA17D29A344AA6B67509621D7EC3960917E35EA4",
+        "bytes":  5753,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\combat-utils.ts",
+        "sha256":  "2D5C53F90E00B36A992130979DF44223318D851A7D3DA873030AB9CDE7666A08",
+        "bytes":  5186,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\CombatPanel.vue",
+        "sha256":  "A1F9743BACC561C7A13ACD6707ED343DAB0F76B87C4100862016FC2D9AC4CF18",
+        "bytes":  2887,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\CompanionsPanel.vue",
+        "sha256":  "307E011FDAA48ECBB2144D9AE646645405A00A64EEA965DF2FE431B7CDBB88A5",
+        "bytes":  54817,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\CultivationPanel.vue",
+        "sha256":  "058F977B5C1C9553AD93587FCED3CA990A9547FBC841CDECC9F9D62BFF5862B5",
+        "bytes":  29949,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\DialogueDrawer.vue",
+        "sha256":  "DBDCFF51B08C7DD05E007FD2A9335CA358A1AB5B190DE56178B8C02359B78D31",
+        "bytes":  10731,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\DialogueStage.vue",
+        "sha256":  "E434EE61CAAD411297554055AC0A5CD436FECFCD751EC42DB6813331F730BAA6",
+        "bytes":  52195,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\DialogueTargetPicker.vue",
+        "sha256":  "FDA22047B7FA8A312234F1C709BDA5EB57F5117611EAE923FF76E44E13682F18",
+        "bytes":  11641,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\FooterSection.vue",
+        "sha256":  "AD8E6CC4254854047D5E08B6F89DCD1BA6CA52A1DD7E2089026FD5F932279E3E",
+        "bytes":  7590,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\GalleryPanel.vue",
+        "sha256":  "2EF8CEF2AE410D1F49E42118B3CA802AEB11FD8FA0042805B9B687EFC649592E",
+        "bytes":  12964,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\GalleryPreviewDialog.vue",
+        "sha256":  "083751D045CFD6FB3807F44647C4062936CDB068D8A8E9EF22F15D108540FF88",
+        "bytes":  7956,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\GreetingIndexDialog.vue",
+        "sha256":  "28D099AA640B6E9F11D23F86F96F02C65B3F71417FE8E16E02E88CADC641B5B2",
+        "bytes":  10477,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\HeaderSection.vue",
+        "sha256":  "CB000711FD1DA3A96819059F477B2741B40B5586C97FCFD40441DB40C6D72471",
+        "bytes":  5004,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\InlineActionChoices.vue",
+        "sha256":  "BBD9B3B728A97096745EB41213A4CF0D4CBF997AB8C482E582C9A7167027DC1C",
+        "bytes":  7702,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\InlineInputEditor.vue",
+        "sha256":  "0AF3BD8374D3D2DAFD327E0A274A9285C0C337016D5412AAFABD97984DD29752",
+        "bytes":  5756,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\InventoryPanel.vue",
+        "sha256":  "BFAECF3E374EF87D97D2037474F8007126CAF76DB85C9114D1F6D19A920EEFDB",
+        "bytes":  4336,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\MapPanel.vue",
+        "sha256":  "59972B524EB6E42B4CD36089FB7BF5ECB37339DBFBEFD3CE13FBF85838B49F5F",
+        "bytes":  11851,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火通明\\components\\MobilePortraitButton.vue",
+        "sha256":  "4EBD01CD06B16DD5567D244B4E9C54C9234ADFAA1100284C4CD8D3989EB5C475",
+        "bytes":  3137,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\MvuGuardBootstrap.ts",
+        "sha256":  "2FC825D98C7E0DAA68AD31BE8BA39AB7CF42F147AC8B00B0D5C09B7A59FEAD49",
+        "bytes":  12761,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\PeacePanel.vue",
+        "sha256":  "2E5F2674C110FFEE65CC619EAE32F0516299B9ACCED3168030B0F15AC6928964",
+        "bytes":  11302,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\PresetPanel.vue",
+        "sha256":  "D1B63AFE00D6F8A506731070BEEE333936E6CBC199F727866D5711DF77B3D0E1",
+        "bytes":  74856,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火通明\\components\\PseudoCommandDock.vue",
+        "sha256":  "124DA27527EA87A3C7F059DDCF1A618D0453FF9766B6BEAE7DE04911D66FF318",
+        "bytes":  13369,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\PseudoStoryReader.vue",
+        "sha256":  "33B9ED9D0D73D7A6A4F30E77D7EBA8F7B6E28A3A12075130195C731637F17F77",
+        "bytes":  37350,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\RawMessageEditor.vue",
+        "sha256":  "67CC9F08F6D7C2C8FCD5CAD83DCA0C69837A87C1F7233D00AA933CCEE20FCC22",
+        "bytes":  12241,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\ReadingSettingsPanel.vue",
+        "sha256":  "F25EDB5573B0FEC89954B32AD10DCFF158825BF77DA5C386D52B19A77FA5AEB5",
+        "bytes":  23442,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\ReasoningDisplay.vue",
+        "sha256":  "E25DCE685C64FAC4928BC0B7120A504DD98A8D2E4C89C05EA759352CCD391633",
+        "bytes":  18403,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\RenderedMessageHtml.vue",
+        "sha256":  "EF36AC3F4411A731E453D625B13ACE5132DAA1469B9A8E3D6718CDD8C5CB0ECA",
+        "bytes":  9462,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\ScenePortraitRail.vue",
+        "sha256":  "4CC95A5C6A123025F8F139A025589D2BA4D01994EC69D501DF27B940FF0EDCA6",
+        "bytes":  6922,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\SkillsPanel.vue",
+        "sha256":  "467CE11724718F78398037347D7A04F23756DBCBB3DA652829BF2CC427A8E484",
+        "bytes":  2494,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\StageHeader.vue",
+        "sha256":  "3D45306E821457EC6F211305E5FBEB14F71554FE3B13BAB2ABA60BCDA2CDACA8",
+        "bytes":  23792,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\TabNav.vue",
+        "sha256":  "3EFA1E4D83B870B374E76AF1ADC2A25D74A819B946511D079474E45BDE67F854",
+        "bytes":  6432,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\ThemeSelector.vue",
+        "sha256":  "118E25E19A1633D0B9E03AC996BDD3618467A847C3285A275AA1362FD73AB350",
+        "bytes":  5074,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\TimelineReader.vue",
+        "sha256":  "1CCAD8A991EA1E7867C7303AA95CB8F5495450C6F60B0FB0039C1C9692E2F5C7",
+        "bytes":  82112,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\TribulationPanel.vue",
+        "sha256":  "C7691B8CDA6977BCE3A46FF0093D6285E1F91B5F3EF6BAFD60A3112E524304AD",
+        "bytes":  10147,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\UpdateVariableDisplayGuard.ts",
+        "sha256":  "A028A23A90DE4086A666359BAFF37FA6CFAA1AA3472CD7D48C888C2AADEE4F6F",
+        "bytes":  6462,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\VariableDiagnosticsPanel.vue",
+        "sha256":  "9D2D97BE3685692CC582ACE2F44BA0D61E069F8BC5050ED7C137944F36D3E53B",
+        "bytes":  8294,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\components\\WorldMapCanvas.vue",
+        "sha256":  "900EDA2C4F77C6962AF042CCADD16BB96548D026F5FC6737D95F0F1D7479E2B9",
+        "bytes":  89178,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\composables\\use-stream-follow.ts",
+        "sha256":  "6BDFEC34A2777F2C05756F18229762A5EBA8F312F846417BA5F20E2FCF491980",
+        "bytes":  4093,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema\\characters.ts",
+        "sha256":  "8ED5945317DFE30FFC83A1EE5003D97529C1929989ECAD2FCCCE998D9BE4E9D5",
+        "bytes":  6090,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema\\common.ts",
+        "sha256":  "59C02E42D21EF85714000045A2486B6F6F300CF9A1F39873F0AB72F7CA804272",
+        "bytes":  12311,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema\\constants.ts",
+        "sha256":  "8BF098EFEA09A8755A72AB1223C084431DE3175BCA4B62981D3D13924D39E592",
+        "bytes":  3842,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema\\protagonist.ts",
+        "sha256":  "7045C46AEBA5637CFEF42FD376E5A3C04A797306E7F2E867D5832808C8285EC4",
+        "bytes":  10068,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema\\systems.ts",
+        "sha256":  "7C77A2E9ECE80D4B3E3A6B8EC8A77F410A62D346A3B88F42B890E04CB5C0EE03",
+        "bytes":  11635,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema\\utils.ts",
+        "sha256":  "613C2D22100B05ABCC2A000A5F18416D6CEE1EBC2FB74509BCCE490F2342C97E",
+        "bytes":  3219,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\schema\\world.ts",
+        "sha256":  "F6AD837CF1B58C31321B79D4EE103BB1474C697572D13D5A8926E00ACFF98096",
+        "bytes":  8159,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\stores\\data-store.ts",
+        "sha256":  "2073EA582791F798A704076DD2D4349BDB61A37598D3BFA85F8AC1F8D82BA6C9",
+        "bytes":  48654,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\stores\\gallery-cards.ts",
+        "sha256":  "3B0FD98DB67E22911094E483F5658D1D941DAC78D8AACA9CE922156C31B59313",
+        "bytes":  15740,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\stores\\gallery-ui-store.ts",
+        "sha256":  "8CB58E9027B9A7B4A1D3EEC146DD2E89BB0F636015B8CC2734032A00638E3C71",
+        "bytes":  1403,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\stores\\pseudo-layer-store.ts",
+        "sha256":  "B67E777473B3A69D82715BBDC78E038B8262C851D90EDBA5D75286663A74702E",
+        "bytes":  61947,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\stores\\theme-store.ts",
+        "sha256":  "7A6524E76CED0CD0F2B0B5EDB22F79A160A2EC50EF5C5824673BC7F5B83E8047",
+        "bytes":  7291,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火通明\\美化正则\\灯火通明伪同层.yaml",
+        "sha256":  "D3844C6361CB4AD799170AB37275C97A0139FC2A6408706901FC3A4F0763C525",
+        "bytes":  379,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\app.vue",
+        "sha256":  "CD6F3A7C8ED8F5AB9DB88DCCCE6C4190D8882CD7C3B34062AB16ECD721CA3D04",
+        "bytes":  12692,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets.ts",
+        "sha256":  "BDAB726ED528D1C1530C86A698B8366C83892A9CD8A43645B99A1FF07DD6775F",
+        "bytes":  13547,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\index.html",
+        "sha256":  "0F1FF9417F623D66C255E992BBB51722DB74BF35C131490A24028935924F9DBF",
+        "bytes":  146,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\index.ts",
+        "sha256":  "8A62ACCBFF7150DFA825B794A9830A82F95D1BC0904AA6741692EE00F223D62D",
+        "bytes":  415,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\map-system.ts",
+        "sha256":  "5374889EF62370B0F81830B8F8BA61440670DC74082402D729773D4EA6B803C9",
+        "bytes":  4891,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\README.md",
+        "sha256":  "6CB55CB0583A5D96513B94CCD5FB86DDDC89CB579FED8B72D0C477737BEE2B1C",
+        "bytes":  7391,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\region-utils.ts",
+        "sha256":  "5ABC13A707616C48E46ED451370035A4AAACB6E6F9292F851DC780534A333472",
+        "bytes":  5692,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema.json",
+        "sha256":  "633CF2B357744EC68F776072B08B708D503320016E451278A75D01E8D6CABFA9",
+        "bytes":  47853,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema.ts",
+        "sha256":  "9CED702A9EA5B4A84E3DAF5CA8395225CA9F7CDDF5BD803D0B9EDB3E7E59AB25",
+        "bytes":  23689,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema.ts.bak",
+        "sha256":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "bytes":  0,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\store.ts",
+        "sha256":  "4687146CDC86D1CE36A52C008631DF2D6B3FFB0B5A4EF790E9DD58CE57C0152F",
+        "bytes":  107,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\themes.ts",
+        "sha256":  "CB569BC0D232144D9538454EE26B6F4A17B959CB214F6FC0A4A44E09D8BD981D",
+        "bytes":  14211,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书.yaml",
+        "sha256":  "0FC6EDAF04A8525235BC95E9A72607BE5CC935D40A14327931514CED5270DEA3",
+        "bytes":  31937,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\使用说明.md",
+        "sha256":  "D8FEAEC31794DB71616F1104A19B628981995DE3D186BF97547735905840E43C",
+        "bytes":  7092,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\修仙体验扩展规划.md",
+        "sha256":  "73B2DBC981B64342FE48C8216C79557534E36552E1BFA235D7C85267CF58FCE1",
+        "bytes":  12843,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\更新日志-2026-02-22至2026-03-12.md",
+        "sha256":  "C9E83BB174F1C548B81CB1433E71BBE42AEE6A4361E3BEABC5672A0CE2A04506",
+        "bytes":  8079,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\更新日志.yaml",
+        "sha256":  "DDBCE7DCCFD83B04D452A775C6409C1286464C36FC8CEA8AEA80CC69101F7D25",
+        "bytes":  5950,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊.png",
+        "sha256":  "4D9FF01011675C1DF8B8F204ED5DC8042637419A89ACA6D5D8348CCFBD66EC28",
+        "bytes":  1375868,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\部署使用指南.md",
+        "sha256":  "57D31CABD5AF38B282CD1BFAC150837BB947491D433994C479BBD38C37FF41F2",
+        "bytes":  6585,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\assets\\world-map-earth.png",
+        "sha256":  "AFC20FDC4241D92E3D252643D814360534D8B9347A113912D33300FC0B9541CC",
+        "bytes":  3220034,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\assets\\world-map-overview-concept-v1.png",
+        "sha256":  "97D442D626A76C066B191FC5954693D567FDEAFAA817CE0B6B1E74FA1F4D0DB7",
+        "bytes":  3199074,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\assets\\world-map-painted-bg-v1.png",
+        "sha256":  "59129AD518BF603BB7F5098522E3E2E099F7CFBD6B829FFC3381676E2C6FB1E9",
+        "bytes":  3154579,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\assets\\world-map-painted-bg-v2.png",
+        "sha256":  "FDE1EF533CB70BB5ED6909B485A9EF4E58D0FC5CC74ADC929824912AB8E47B20",
+        "bytes":  3414868,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\assets\\world-map-painted-bg-v3.png",
+        "sha256":  "E665F55C6CA5932C18B891BAE9486DCFDD14F070A4CCC98785BDEE4E9A655802",
+        "bytes":  3429268,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\assets\\world-map-underworld.png",
+        "sha256":  "D0DA18523995B6CFF416C985145696B086975CEFB32DB95D6EF23BE54317D471",
+        "bytes":  3257438,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\image-url.ts",
+        "sha256":  "91BE93E3F5E2A3FE0CB8F2A2CA50B72E4F4F13EE252952E79CC9CB927707ABAE",
+        "bytes":  543,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\index.ts",
+        "sha256":  "F6FAEC98C85BA3FE056BEC04352E4290A1D1381B646B1C4EBF3FAB70A60AB2DC",
+        "bytes":  2483,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\types.ts",
+        "sha256":  "C9E6FEE0B2D4726484D4B3C5FD1D75CA3942706A955426A45864570DE8C280FB",
+        "bytes":  726,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\南宫云裳.ts",
+        "sha256":  "1C4E3341318DCE5FDF84B185A3B618ADF76070F6A3C9FFE468EDCC499317FBBB",
+        "bytes":  1267,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\安迟迟.ts",
+        "sha256":  "1A434371E4FE6ADE7EB6CA331B9C5A6E1B6F01B227FA4B414C57331C4370FB5A",
+        "bytes":  1055,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\晚棠.ts",
+        "sha256":  "F846BBAFE06059E4E09C20E364AFF0B157E0C198B5CF3C8A11DEF552CD1ABC10",
+        "bytes":  1257,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\朔望舒.ts",
+        "sha256":  "1D6C482380C60AB4F7860C9537B9DEB9B9AC45E1F368947F5188727F2B2A793B",
+        "bytes":  1350,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\朔璃鸢.ts",
+        "sha256":  "F7625FFD04F7965E9B571970DBE8D4393BC9DB69C14293DCA241429D6FCADA8B",
+        "bytes":  1265,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\梦杳泠.ts",
+        "sha256":  "21F5C74916DCAFEA037E969338F740095A5FCF8EDCB2836A871A2372F1619184",
+        "bytes":  1280,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\白清弦.ts",
+        "sha256":  "C81EDF07B52F1DC4E7857C7A089FABBC53BD214011E462247958893AAF5BAEA5",
+        "bytes":  2436,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\羽岚.ts",
+        "sha256":  "3C95E97B79689AAB0E62B30268ADF792C7D7AC17296C07F76B8276413D258954",
+        "bytes":  1611,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\虞汐颜.ts",
+        "sha256":  "30E284AB5B3ABD9D618283E6C9E5C967227FC049C0D0CCDA5746FBD0874BE681",
+        "bytes":  2191,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\许听雨.ts",
+        "sha256":  "65C6A5D1F7C106F812448F0D6F5C0255B167733D9A0D9F7DC30F67C9B5AFAC99",
+        "bytes":  1433,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\character-assets\\characters\\阮忘忧.ts",
+        "sha256":  "6201A938E2115A6860A546551AB6E3B0C70CFE132EC6B49F0DD2B1E26F34F16B",
+        "bytes":  1460,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\ActionMenuPanel.vue",
+        "sha256":  "8A0507A30A3137038097CD32CE1CF423A5CA92D3FA07EE277CB01341944523F2",
+        "bytes":  49736,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\BattlePanel.vue",
+        "sha256":  "E8875E41F5133220966378DB3BD776B4E2AC0A6E5BBD7E186999524419D5DE96",
+        "bytes":  419,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\combat-utils.ts",
+        "sha256":  "2D5C53F90E00B36A992130979DF44223318D851A7D3DA873030AB9CDE7666A08",
+        "bytes":  5186,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\CombatPanel.vue",
+        "sha256":  "A1F9743BACC561C7A13ACD6707ED343DAB0F76B87C4100862016FC2D9AC4CF18",
+        "bytes":  2887,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\CompanionsPanel.vue",
+        "sha256":  "8B2E19FACAD8F53A3E38A52DD9836C1836A83E8BBBCFD780A544E557986D7462",
+        "bytes":  20793,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\CultivationPanel.vue",
+        "sha256":  "B5BD9B51AD2459D97D7E07895517225989E580046C035AB65B014F26AE1439F9",
+        "bytes":  5846,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\FooterSection.vue",
+        "sha256":  "9B667EB145A519CDC863109FEA9069C5489CEAFC7FB2BFA30ECC09FA51A140B6",
+        "bytes":  8096,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\GalleryPanel.vue",
+        "sha256":  "E3A1A2DF377AC315B2D9D0B1357970508C0EC774C9C7E2094D3A754E61472AD7",
+        "bytes":  17338,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\HeaderSection.vue",
+        "sha256":  "FC7BE5194620E5A5BB3ABDB2A705297FADC883829A780B22F168143EC4722B37",
+        "bytes":  7567,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\InventoryPanel.vue",
+        "sha256":  "BFAECF3E374EF87D97D2037474F8007126CAF76DB85C9114D1F6D19A920EEFDB",
+        "bytes":  4336,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\MapPanel.vue",
+        "sha256":  "7BCF56481334659602429FF7159D0FB149C95352E06328E233580712476DFFFF",
+        "bytes":  11798,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\MvuGuardBootstrap.ts",
+        "sha256":  "C908716EB9BB56BC991C825540058D9E03D72BD2D6623A9B8A5C34B3884E6242",
+        "bytes":  10587,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\PeacePanel.vue",
+        "sha256":  "179B63E72F654CEABA8CA678F9AEEB674C0AA8A5A52E776DF78B81947CD441E2",
+        "bytes":  534,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\PresetPanel.vue",
+        "sha256":  "99DBC0F6E2106D5505A3D9A12F4F86575D4EBCB04019BC91D653EC080876DDDE",
+        "bytes":  162,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\SkillsPanel.vue",
+        "sha256":  "0295125594B81EC9BD9BF24BC303BA825D9EAD99F999777243A3084DF8D815F6",
+        "bytes":  2525,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\TabNav.vue",
+        "sha256":  "A889E991A1AFE435D38E4F036D4A30D62DAD79E836F7AE23D5B30BA89B960C97",
+        "bytes":  3441,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\ThemeSelector.vue",
+        "sha256":  "118E25E19A1633D0B9E03AC996BDD3618467A847C3285A275AA1362FD73AB350",
+        "bytes":  5074,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\TribulationPanel.vue",
+        "sha256":  "C7691B8CDA6977BCE3A46FF0093D6285E1F91B5F3EF6BAFD60A3112E524304AD",
+        "bytes":  10147,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\UnifiedActionMenuPanel.vue",
+        "sha256":  "081D8372B3319535804EF61A44FD71022B7B1A895125B54CCD8CB186621526C2",
+        "bytes":  26912,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\UpdateVariableDisplayGuard.ts",
+        "sha256":  "43D0CF1429E95CD52AFE475F275522B2DB881770B3D996F9EEA961166AEED724",
+        "bytes":  5820,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\components\\WorldMapCanvas.vue",
+        "sha256":  "40E880C846244B3CA9474A1A5908D42982D9F133CB47F47FF99CD6AF041DE2F4",
+        "bytes":  63402,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema\\characters.ts",
+        "sha256":  "465981C6B6CB21215B336BA4CBF5B47405C4D59EF3F580F2BFA76C81C14B7946",
+        "bytes":  7812,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema\\common.ts",
+        "sha256":  "FA7E30D8479B7CC50C344F9BA6ED7F8B40030B488DF5E1F5B10E842B7021B8D6",
+        "bytes":  14671,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema\\constants.ts",
+        "sha256":  "8BF098EFEA09A8755A72AB1223C084431DE3175BCA4B62981D3D13924D39E592",
+        "bytes":  3842,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema\\protagonist.ts",
+        "sha256":  "FA81A5C491D24C8FB875B578888985021130BF2152F036CCF30E67638BD3CF8C",
+        "bytes":  16453,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema\\systems.ts",
+        "sha256":  "70959FA6605C3D7131435ABAB3B92456612ECC7ECB427C9386BE751AF07BD352",
+        "bytes":  28067,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema\\utils.ts",
+        "sha256":  "CC8E5177525494B61A3DBBD0F2822D459E4B3E1A2C98A50F96DAF8FAACB72584",
+        "bytes":  4990,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\schema\\world.ts",
+        "sha256":  "0CB7AB6EBAE661436F14E5376CE4FD237D7A521D8EC99C125ED80A9FCE8D4F66",
+        "bytes":  9015,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\stores\\data-store.ts",
+        "sha256":  "249E02FE385DC0629AE5508577319AD93623C42740B3D1DE6F302454DE6A9277",
+        "bytes":  42539,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\stores\\gallery-cards.ts",
+        "sha256":  "3B0FD98DB67E22911094E483F5658D1D941DAC78D8AACA9CE922156C31B59313",
+        "bytes":  15740,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\stores\\theme-store.ts",
+        "sha256":  "5347C914DBE5508C8CA53F833D0427BC744582CF20165CA3E9D7DD9E6CA39FF4",
+        "bytes":  2234,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\[系统] 禁地异动.yaml",
+        "sha256":  "FB553C5B5309EEBF94AF967FD54500FE57778710DCC7570BB1F957AC907F1AC1",
+        "bytes":  2692,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\[系统] 秘境潮汐.yaml",
+        "sha256":  "A3D213A59ABEAC29A7678FB5ACD7D137FD34D168B838ED636E3D3D3B4120E6BB",
+        "bytes":  1421,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\世界观-纯爱基调.yaml",
+        "sha256":  "3C9053F18931649DCFE2E8843BA1B23828757461A076AA3E743218F56E4F2449",
+        "bytes":  1548,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\文风-古风修仙-精简版.yaml",
+        "sha256":  "6EB893FDE855BCB12389AA32C7F434AB4159D9B543D036DE0C722E10513F74FC",
+        "bytes":  2376,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\文风-古风修仙.yaml",
+        "sha256":  "CCA6E5F941DBBC569BA06F1DB958525545F1A6DFAFBDFA9F8A4277D8A08879CB",
+        "bytes":  11389,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\语言基调约束.yaml",
+        "sha256":  "9C743D403B8AF09AB3237C35C0B9C9F677CE369FC82DF79E71989E17C9BE3829",
+        "bytes":  5560,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\事件\\[事件] 修仙奇遇.yaml",
+        "sha256":  "B3F6033165948CE9319A44F24A9DEBB6B7396F0AEE4FB16DCF4A82CD1276CF39",
+        "bytes":  8851,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\事件\\[事件] 南宫云裳相遇.yaml",
+        "sha256":  "CB6FDCEFBF122A0DC1A4BC6BDC207077707D7F23C18326D3414CDF7BF999808F",
+        "bytes":  6539,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\事件\\[事件] 白清弦相遇.yaml",
+        "sha256":  "C6BE308861111C5F7566F04D70C9610F742ABA739E16DB1AD2414531F57C2B18",
+        "bytes":  7889,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\事件\\[事件] 秘境探险.yaml",
+        "sha256":  "3BD5E7B5993A204136D71D2BD8720C4B007E2245A186F103BEC15E6B24D9FCD4",
+        "bytes":  7738,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\事件\\[事件] 红颜日常.yaml",
+        "sha256":  "F843A0E0E1CB6482ECB85522E5D4BC2EFC12E3C17AC6DBFE0D6BED87E44D85C5",
+        "bytes":  9591,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\事件\\[事件] 许听雨相遇.yaml",
+        "sha256":  "D1516DFF18CE82D4874A90A88117BE0D98F4C800BE0FF1A5B2DA265221CF045D",
+        "bytes":  8216,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\initvar-参考模板.yaml",
+        "sha256":  "4AD1319F62BA84383070FD52999218E9947ED04028023477F0BD91A5DD944351",
+        "bytes":  4049,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\initvar-参考示例.yaml",
+        "sha256":  "CC048356A2788C46CE4951E826D5FF56DAAC43FEF7BAFE17C1E4CAEBD05BF6E8",
+        "bytes":  2682,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\initvar-开局变量设计.yaml",
+        "sha256":  "59DECACFA430C27521AA97171D5242F423E8A22E8BE9A56A113EDA5EC78749C7",
+        "bytes":  6055,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\initvar.yaml",
+        "sha256":  "CBA81139EF87C3FBCE39C7723033595AC51E446FC2750C9B820DC85B25EF4F38",
+        "bytes":  5444,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\initvar_修正版.yaml",
+        "sha256":  "438CC80F920CDABDEC1FFE3450F77AC52514D768B195BF4776DCCD1E4DE38734",
+        "bytes":  871,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\initvar_地图初始化模板.yaml",
+        "sha256":  "864FA6DE51387E9052DD02422B7C9182AD64A8422C33B0664BB8817D811AE556",
+        "bytes":  6977,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\initvar_简单示例.yaml",
+        "sha256":  "A47C726A963631EFB85A22E445C850670C38FA9EA117D4170B12DEED4B739F4F",
+        "bytes":  2161,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\[mvu_update]变量更新规则2.yaml",
+        "sha256":  "D2811B1F0966A2AE9060F282D63EADEDFCFE3F99470DE31A4D0C83D355E0A5FA",
+        "bytes":  11443,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\[mvu_update]变量输出格式-完整条目.yaml",
+        "sha256":  "CE2C51552B514AD7F2F7104BC896E3B78855B424D8A647D96E954523535AFFF2",
+        "bytes":  4772,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\变量列表.txt",
+        "sha256":  "081EC35D278F2840A921A42BA379C64DEC45574EDFCDD829250C96CC9667740C",
+        "bytes":  1598,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\变量\\秘境任务示例.md",
+        "sha256":  "B55025D3A9E2B8A2D37D743034CFE30C9F56EB5FA1321E81C197867188B9BECA",
+        "bytes":  5357,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\人设模版-通用版.yaml",
+        "sha256":  "DAC12728232305F76013ACE1D3BE60CDB8F06C9F70406B343217187F28C88F55",
+        "bytes":  4302,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\人设模版.yaml",
+        "sha256":  "18A2E9E61FA4AC3C87A97D2C88CD1E7029D8D1F269622C703DA269E4DD42D886",
+        "bytes":  1643,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\红颜简介.yaml",
+        "sha256":  "622903DC329933E4BD66D95432466EFA6D8E797645CE6A07D4C6D5C1BD33E65F",
+        "bytes":  1185,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\红颜评价汇总.yaml",
+        "sha256":  "C5C66CD6A8E009B2E237A4CB2806D0C085C0171EBC2687E07EFC8E9C84FE7915",
+        "bytes":  7033,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\1南宫云裳-陌生期.yaml",
+        "sha256":  "B6F384F7E3A15A44C65B0EA12DDFD066FF00641BA65109CE1F644BC2A6AD7FF5",
+        "bytes":  2258,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\2南宫云裳-好感期.yaml",
+        "sha256":  "000B2E35DCB7161A8CF087E8545E4B1A8B30B46F01EB318E4D2EC51E2555C32A",
+        "bytes":  2354,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\3南宫云裳-心动期.yaml",
+        "sha256":  "7489FB84549E38F0CCBDB0E03909B705F4436C0A4BC4C5BFB6CA450B9092FD32",
+        "bytes":  2323,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\4南宫云裳-确认期.yaml",
+        "sha256":  "66EBA79828325E44D2478095E90384BCF05A604833529A55CD864229556CCEDE",
+        "bytes":  2211,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\5南宫云裳-深爱期.yaml",
+        "sha256":  "DE960958438C64D090BDD0D462D033A20AFA87C6A4D340115E2344B6F6D8C1A9",
+        "bytes":  2403,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\南宫云裳人设.yaml",
+        "sha256":  "63C97A14EB193FAC2FA530A2754CC73ACF76647609F5898F09C72B5C5071D323",
+        "bytes":  6194,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\生图提示词.yaml",
+        "sha256":  "8684EBDFA5EFA97B3CB4CFB7415D6B6F32B49BD071C28F9621844D40AAEA2863",
+        "bytes":  51719,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\南宫云裳\\生图提示词2.yaml",
+        "sha256":  "E41B0558C6B53C03B120E61A03B5B264FFF8CD2E941296DE8BA41485B6D4467B",
+        "bytes":  30024,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\1安迟迟-陌生期.yaml",
+        "sha256":  "4D0B7233455F9BC3D218694ACFF3924BFB36712E13597DCEFD287A459CEA722D",
+        "bytes":  2557,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\2安迟迟-好感期.yaml",
+        "sha256":  "0A61AC22E9D081C434262712A8A1D87E62780BFDC0B8A588DF9FFD6DC6C6BF72",
+        "bytes":  2952,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\3安迟迟-心动期.yaml",
+        "sha256":  "9CBC634BA1E62FCDB87049B9676DA31C59AB59A76AC2594DB98F9DD9D203EEC8",
+        "bytes":  2648,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\4安迟迟-确认期.yaml",
+        "sha256":  "A731EC8DC0389D0E3CFA98F94C4BBD335076C34477C6C224896E5B3813F4B0F7",
+        "bytes":  3139,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\5安迟迟-深爱期.yaml",
+        "sha256":  "E8E7088DB5B346E466D828F1099FD68458106CDC0E15AC295BED37103D756B26",
+        "bytes":  2685,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\安迟迟人设-重写稿.yaml",
+        "sha256":  "393054C2DD37EC3059634F6798CCDA18E1D04AA5B58CB674FF7362086416CAF0",
+        "bytes":  8563,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\安迟迟人设.yaml",
+        "sha256":  "686F801E571E78DF68710485B61A450C57D72A1300802F98E854E120575D79BA",
+        "bytes":  7807,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\生图提示词.yaml",
+        "sha256":  "D902471D3AE136427DE992B5EE6B19D241381D703C0E7BCDA808C95284216ED7",
+        "bytes":  86585,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\生图提示词三.yaml",
+        "sha256":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "bytes":  0,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\安迟迟\\生图提示词二.yaml",
+        "sha256":  "8FFFB45AD4F59C19EC39878BF8246A8E6EE2D31D43AFFF6C3692866428AD8B7C",
+        "bytes":  28144,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\1晚棠-陌生期.yaml",
+        "sha256":  "2F0FF2E134D0B897DF823A2E2CA5BE6C64E3B84254BD4850D948F2DA106F1A52",
+        "bytes":  1913,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\2晚棠-好奇期.yaml",
+        "sha256":  "F40B60C967BB45E5304134C1B0FB73A58CA321F75CF4C4951023DD77D3ADE4CD",
+        "bytes":  1940,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\3晚棠-亲近期.yaml",
+        "sha256":  "21E165CB94DCB055D0B29B908D7D4055F02408D1200FBAE08FD75CD7104F9F2F",
+        "bytes":  1970,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\4晚棠-依赖期.yaml",
+        "sha256":  "B20FC81DD0465B3CCFDCB6FBE5B048D9E5B143E21FEAF7112D4F13477E055BFB",
+        "bytes":  2048,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\5晚棠-深爱期.yaml",
+        "sha256":  "8572C7BC7B745437ACCF05BCA24145EF618AB6103C05A109019FD05D709EBF89",
+        "bytes":  2481,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\upper_body_焚诀.yaml",
+        "sha256":  "F18370FA90136E8FBBCBE71B6275F72EF734B44A4E18FADA3ED8ABFE755CB8D0",
+        "bytes":  9905,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\晚棠.yaml",
+        "sha256":  "C1CB582D54BFE903B6D0B96E403E4ABCCD530906655BD2B144F55F322E935CD0",
+        "bytes":  8924,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\生图提示词.yaml",
+        "sha256":  "5D421A91E23EA85D7F2B7FE3F0CFECD1EF450E0A55C7E951674FB8EF61C2C2DE",
+        "bytes":  50853,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\晚棠\\生图提示词2.yaml",
+        "sha256":  "E1A220A7CDBD733D31F776B4F1A84F9306A09078B79E487730A182BCEB785E80",
+        "bytes":  37833,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\1朔望舒-月悬·疏离期.yaml",
+        "sha256":  "272CA2CAB3B8E57FC7152E126C35D5745B7F68542769B5A7A44FFE85794AC57F",
+        "bytes":  2567,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\2朔望舒-月影·留意期.yaml",
+        "sha256":  "C0C031732F2CF1D1C21021119BD2BC0332D5E0D32CF8D89F85F39388DD4227B4",
+        "bytes":  4109,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\3朔望舒-月染·心动期.yaml",
+        "sha256":  "7BD644B9A1951F99D2DD4C3F69501EF6DA037DB4F3DF6D56F1C4BAEC69980B2B",
+        "bytes":  4808,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\4朔望舒-月赤·情定期.yaml",
+        "sha256":  "011D90F443D7C20B6CD30BDE30FFD3C1130692235112F08A475B91281824D556",
+        "bytes":  4980,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\5朔望舒-月满·深爱期.yaml",
+        "sha256":  "FCA5001A2138E7CD1997FDF819A3FCB7B30DC2BC13C556C4194D2CB4640D5B18",
+        "bytes":  5450,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\朔望舒人设.yaml",
+        "sha256":  "27A0442C4A2BB598A815CA0122AD4895B16D0E3625122E900935A86B88D0EBC4",
+        "bytes":  8131,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\生图提示词.yaml",
+        "sha256":  "5F2AB1280083163CDA87CA2E20EE26F43B2F6EF57689A0B781818D589266D7A0",
+        "bytes":  50242,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\生图提示词3.yaml",
+        "sha256":  "4910FCFDBE7AD8AD353B754CD1393FF2CFCAF59ECCDA9927D178323B95B8A84F",
+        "bytes":  56813,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\定制服饰扩展\\朔望舒_定制服饰扩展一_全身特化.yaml",
+        "sha256":  "7162A319778B8A69C16799652811DA5C8E24D7A8758755235609787CFF24A95F",
+        "bytes":  9748,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\定制服饰扩展\\朔望舒_定制服饰扩展二_巨尻特化.yaml",
+        "sha256":  "FDE1322F95087FCEF39420F35A28DDA37DBA2342140774120CD8A03BACE5E1ED",
+        "bytes":  11722,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔望舒\\定制服饰扩展\\生图提示词2.yaml",
+        "sha256":  "64F22991FE680BE5568497BAC7309718BEF620433250ECA6F4758560B4DAEBF7",
+        "bytes":  23775,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\1朔璃鸢-陌生期.yaml",
+        "sha256":  "B8E76546A81551DDFC9D6F18C3BEE10BC9B8B02DFCCBA310A24F496A422FA821",
+        "bytes":  2178,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\2朔璃鸢-好感期.yaml",
+        "sha256":  "87C06A2EE4A243CE69A1372E585BFAA8C2B1E678290DE358CB1540C2BEAC1205",
+        "bytes":  2051,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\3朔璃鸢-心动期.yaml",
+        "sha256":  "8A2E739A1F4F98BBEB61C1E61DFB53738AF4EF0FF2F716846BB767462623EF2F",
+        "bytes":  1898,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\4朔璃鸢-确认期.yaml",
+        "sha256":  "2008B81F5E04BE9C277E490569B4FBBDB2977B19C0747ACA6BFEC371795B7419",
+        "bytes":  2384,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\5朔璃鸢-深爱期.yaml",
+        "sha256":  "E461C19D7DA126F0F4639750F330E34BDEA32CC7115A94992D82437390FE7357",
+        "bytes":  2919,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\发型.yaml",
+        "sha256":  "A87E60A7FB125F477C6E16E8AFC6AB57376994839613924BC591E88B524BA299",
+        "bytes":  3253,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\朔璃鸢-好感阶段人设汇总.yaml",
+        "sha256":  "BC48B48608E9AD7AAD3E9CB9492391DBAC5F844F0BF27164CE766DDD64F3A6E8",
+        "bytes":  11094,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\朔璃鸢-开场白草稿.md",
+        "sha256":  "5618C602CB365B1342C31CDF8FCD6136E6EE6DABF26AC986416F0AC08A8FE416",
+        "bytes":  5599,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\朔璃鸢人设.yaml",
+        "sha256":  "93FF7C31728AB99B04ABC73D95B373359E87A094A95A69B90A782708DE9633BE",
+        "bytes":  9066,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\生图提示词.yaml",
+        "sha256":  "EC16FA660258D3D732F54EF8736B0535364F196EF1DCB84099F45CC21815E79E",
+        "bytes":  37921,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\朔璃鸢\\生图提示词2.yaml",
+        "sha256":  "B9D79ACBF80DB441B908359698CBEA656CAFF21296DA1C8D4713E50DA2C6EA89",
+        "bytes":  37695,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\1梦杳泠-陌生期.yaml",
+        "sha256":  "C372D8E691AEB447E0144B62D9B2CBA4C992A0105B5FC6BE1D32A067A05CDC03",
+        "bytes":  1865,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\2梦杳泠-好奇期.yaml",
+        "sha256":  "A71AAFCA5EF2596B6F6D82D6F1A6ADA995A8890BF3E7ABBC52DD5FBC1AB60E61",
+        "bytes":  2025,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\3梦杳泠-亲近期.yaml",
+        "sha256":  "7EA0E0908757A99A66486C550E3FACA6C72E49F372E5D5DC863DA53B2DFF81C2",
+        "bytes":  1964,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\4梦杳泠-依赖期.yaml",
+        "sha256":  "AACCDB5DAA2352E0D614F9AD0E03AADB3CAA383F28EC4238BB7A23B00A04DF2A",
+        "bytes":  2231,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\5梦杳泠-深爱期.yaml",
+        "sha256":  "DDEC0EE6A254E5046D3466C518F3A2E97EE825C5D164195C8EEA46D316B667AB",
+        "bytes":  2424,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\梦杳泠.yaml",
+        "sha256":  "508540B6988341DFEA22DE9F8D027354FF0512B3628CBC74B67305F98660AFAF",
+        "bytes":  6493,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\生图提示词-足部.yaml",
+        "sha256":  "17C88DE95A628E0E9AD42BDEAC415E3DD0FB82DFE81C3C9EF4FBD243443567DD",
+        "bytes":  36674,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\生图提示词.yaml",
+        "sha256":  "2B1F514B4418A8AF0F5BE68327DF8F183F609C7E8AD90E7BE49FBE26C62A751A",
+        "bytes":  83023,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\梦杳泠\\生图提示词2.yaml",
+        "sha256":  "77C6D75E874C5A83B896D428607694E2A3A4CE0B1BF627604D71C951F856E091",
+        "bytes":  66113,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\1白清弦-陌生期.yaml",
+        "sha256":  "3391A76F3463E04B96A74BEE241424BBA1293212EB463CA83D907FF104185D61",
+        "bytes":  3609,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\2白清弦-好感期.yaml",
+        "sha256":  "4FC25EF6D3B855C60CB0BD1639A1B43599C0AF27D1FABA772AE639B456FFBC9B",
+        "bytes":  5002,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\3白清弦-心动期.yaml",
+        "sha256":  "4DC43B0CD72B3230ABC01DFE86FF18EB8D064666F3E042523D214C6932AA69F8",
+        "bytes":  6372,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\4白清弦-确认期.yaml",
+        "sha256":  "0970C72E5139D923674920C7102BA7BBCB1667C868FAB2E5DBD2CBB62878447C",
+        "bytes":  5330,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\5白清弦-深爱期.yaml",
+        "sha256":  "6082B6414A0EE2772F9498A10B4EE86A3CD63907337D8FA966C56CD6223FA85E",
+        "bytes":  6153,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\生图提示词.yaml",
+        "sha256":  "1261186D9933A576751FE8E5B6805B548B2E2BC8AF2D1AFDA71A6B420B868329",
+        "bytes":  68902,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\生图提示词2.yaml",
+        "sha256":  "CCD7DC8412E8D79F6185447102C3AA0717E518C3A744B796DAEA0EE53A6419EC",
+        "bytes":  21754,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\白清弦人设.yaml",
+        "sha256":  "6C666F200E78C5F1C71AD83B57D6B6465564AAF6BE3A139C8EF7325F915ED1C5",
+        "bytes":  7846,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\生图提示词\\index.yaml",
+        "sha256":  "D6291D36156D519751F6574A66F90583140EE381934661E4877497E9182E8C90",
+        "bytes":  38892,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\白清弦\\生图提示词\\定制古风服饰.yaml",
+        "sha256":  "2ECC54C30FD67D96667025994FB46C83BF598DD207DC43D5725885840A9005EC",
+        "bytes":  53086,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\1虞汐-好感期.yaml",
+        "sha256":  "5A7C1ACF7A4F16B33D664FDD1E8DA7827F478D6924F1511F4F21C30D45D3C80E",
+        "bytes":  1622,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\2虞汐-心动期.yaml",
+        "sha256":  "D35319DE9064F8A70F15038185011AE1767766E65E93CFEA6E776FB2E723BE29",
+        "bytes":  1700,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\3虞汐-确认期.yaml",
+        "sha256":  "43ED7845BA1C2516B51F4CB5817F64BE5FB0EB8D8EB481B997235B64EED54943",
+        "bytes":  1872,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\4虞汐-深爱期.yaml",
+        "sha256":  "813211D5C0159462FA36587ACBB8E1888D06AE7C0F9EF7C875FEF2030B6018BC",
+        "bytes":  1764,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\5虞颜-好感期.yaml",
+        "sha256":  "9C0B6438B211E8D4D8EAF824E8B04BDBA692BA1A4F78A168B9BE542B2D4DAF05",
+        "bytes":  2052,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\6虞颜-心动期.yaml",
+        "sha256":  "81F5EB29967F0CC5179DE180915BA2423E4FD400CE1F05E2C8C86297812ADDE1",
+        "bytes":  2354,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\7虞颜-确认期.yaml",
+        "sha256":  "2A92D039BD158F1342F0D177FAD56139375019CEC2A109EF34027BF2191E111D",
+        "bytes":  2171,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\8虞颜-深爱期.yaml",
+        "sha256":  "A67695C22A91093BCCBDCA13BD36B572BA4056F176C909CD548AB7FC74AFCA19",
+        "bytes":  2458,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\生图提示词3.yaml",
+        "sha256":  "B09FCB1862CD9A10BB7E12BF83DF86668353317167C42F0AB5353EC52496C5D3",
+        "bytes":  43195,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\虞汐颜.yaml",
+        "sha256":  "CC64533109A52B126E84B2D1A36B50C346F8C9E01772FD4AE34942A6CFC04279",
+        "bytes":  10489,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\虞汐颜生图提示词.yaml",
+        "sha256":  "B4333952B5AA242ED67211737C356F214D3741035C39FF0697E77CDFF69D7FDB",
+        "bytes":  55960,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\虞汐颜\\虞汐颜生图提示词二.yaml",
+        "sha256":  "5446439C9A4AB1AE6DC737F33E2937D2949CFE8564BF1CC284DEE7A10353A671",
+        "bytes":  53957,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\1许听雨-陌生期.yaml",
+        "sha256":  "92E1794DCA3763585C975658B289B858B5605ECB9104C1660107C55025071E58",
+        "bytes":  1967,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\2许听雨好感期.yaml",
+        "sha256":  "191F771BA1E559F902990F8E93A57BD66CABD9D828F8DAFE70A387C1E40338CB",
+        "bytes":  2422,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\3许听雨-心动期.yaml",
+        "sha256":  "AF1E3A91120B154B60EB485B4C4090E8B0C64920FBB72CA9B8F4DA9DD26AE717",
+        "bytes":  2635,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\4许听雨-确认期 .yaml",
+        "sha256":  "434C4799E150D7968167250CB75A57D9E1D7731F998669C5E7B5DBC9817C6D43",
+        "bytes":  2699,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\5许听雨-深爱期 .yaml",
+        "sha256":  "7FF578EC7AC0AF25A5BD26BDE553652D38750AB200898381EB076BBA73CE4877",
+        "bytes":  3506,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\生图提示词2.yaml",
+        "sha256":  "07E26CE33A754D8357BDCF6894A0E7882EB9A6D15E53641F47A2AB5073E5A5FD",
+        "bytes":  21427,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\许听雨人设.yaml",
+        "sha256":  "3F80515691452D216199B56F9708790DA0A37A1D027211CB34AED743D141B32F",
+        "bytes":  8676,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\许听雨生图提示词.yaml",
+        "sha256":  "281DB69DC03F2BE404DE44286E328D735F10C32BEF77EEAC7D10297DC70AB76C",
+        "bytes":  24518,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\许听雨\\许听雨生图提示词_陆地版.yaml",
+        "sha256":  "B09FE371334FF0D7CEF12DC9B3C5BE0FB76536CFA607DBC5CEA8072660C97F11",
+        "bytes":  69797,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\1阮忘忧-克制期.yaml",
+        "sha256":  "37C993D7433A77E13EFA65971052358B8575D9C509819AFA4EE6169CD29B7FB4",
+        "bytes":  3094,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\2阮忘忧-贪恋期.yaml",
+        "sha256":  "E63C767E62E1860026ECCC4946FD21164453389879EC8F72E474394DF461BAEE",
+        "bytes":  3092,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\3阮忘忧-患得患失期.yaml",
+        "sha256":  "029A42D58D2775442A1916ECB8417A02AA9D9B5E550AD808F12BA799F51BE95B",
+        "bytes":  3035,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\4阮忘忧-纵容期.yaml",
+        "sha256":  "3EBC012D7211A86AC69363050439D5ED11F0B518C14B1A207BF345F8EB328EDD",
+        "bytes":  3384,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\5阮忘忧-生死相随期.yaml",
+        "sha256":  "22653B5548FB07E5A1D386F6360FD20722398162A677159317D45D271F0C5FF8",
+        "bytes":  3286,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\生图提示词二.yaml",
+        "sha256":  "D98E33021C8883A30A93B9D7A290A15DC4111BF08DB2E642A6DC7321B256D7ED",
+        "bytes":  50377,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\阮忘忧.yaml",
+        "sha256":  "390575EBA333D88DA2EB76ECC61874C6DA69C9F3B68688D2B64511AD1F9DD84F",
+        "bytes":  7954,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\阮忘忧生图提示词.yaml",
+        "sha256":  "EBE154E6C6E1B9A7367050CAAEB6168EE5D1BC9985BC2B355F463D842E7337CD",
+        "bytes":  31818,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\定制服饰\\原有六套.yaml",
+        "sha256":  "CE6BEE84D684B2F075D2667738F3AE1CAFD08BE2E24B0B5B280B61E0D692B8C2",
+        "bytes":  15983,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\定制服饰\\扩展一.yaml",
+        "sha256":  "3422D24EB25F0545B99C9FD256C8ABFE6F15F6D1E4EB7D7C8BEE03C4F46D5D73",
+        "bytes":  15343,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\定制服饰\\扩展二.yaml",
+        "sha256":  "34F0C36FF56C07F267003849C89F73A3F55BA0FB52A53DB6BEC682C0BA9E6605",
+        "bytes":  11846,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\定制服饰扩展\\阮忘忧_定制服饰扩展一.yaml",
+        "sha256":  "1DFD3F9F49CAF992C23EBC1264390247CC5B3FB06783F730CA52FE33AA49BCF6",
+        "bytes":  16955,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\阮忘忧\\定制服饰扩展\\阮忘忧_定制服饰扩展二_神女凌空.yaml",
+        "sha256":  "CF3C83DA2A0DC0B6A95B53913EE3DD12E4475174FA561738278DE9618D178414",
+        "bytes":  17769,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\鹧鸪\\生图提示词.yaml",
+        "sha256":  "D821825E3941BE293DB64679F22710C7CB029D51EF4078F8181A2A7DE21E3FB6",
+        "bytes":  38529,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\鹧鸪\\生图提示词2.yaml",
+        "sha256":  "DEE9834E127EA0E2A3BE9F29589FEDC785926ABD9DD22A97E54178C855E279EB",
+        "bytes":  27230,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\鹧鸪\\生图提示词3.yaml",
+        "sha256":  "6B45A44D55529913463D2A27656B23E89F845D01328E996068DFC2B0FE1D16DB",
+        "bytes":  11518,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书\\转阶段人设\\鹧鸪\\鹧鸪外貌.yaml",
+        "sha256":  "0B0215A93D118FB19A2DBD62B355085ED186C25F3495B281EA10763D8E7B1372",
+        "bytes":  3839,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\visual-cards-system.yaml",
+        "sha256":  "7FA6FC9A25D4218472FD877AAAF8F6F298F49C57B285C2FE83C5BA85246BE446",
+        "bytes":  956,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\世界书配置建议-完整版.md",
+        "sha256":  "377AE9173E9EEA343A31899E4717961D3E8040663E87B709EF27FDCAFB6E572B",
+        "bytes":  12774,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\世界书配置建议.md",
+        "sha256":  "299A59A44A18B8FDC4F5D4AA2C168BFE9520713D801A82CE983D46915DF9B898",
+        "bytes":  11477,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\前世设定处理指南.md",
+        "sha256":  "A666C7B8D19BD3BD07A6C4E9823C1DFCB469EB71012AECBBF0C193D8AF9E1DB9",
+        "bytes":  8409,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\功法.yaml",
+        "sha256":  "06DC96C32E114EC762958B7C8347EAAF04C4708197DAF27A1315B858BEA0DF7F",
+        "bytes":  11278,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\图片URL.yaml",
+        "sha256":  "7DB4296DFFFED2337F138427B6ED257C02F1B301BC1D94DD784B7380E9445F92",
+        "bytes":  122353,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\地图系统使用指南.md",
+        "sha256":  "D34114DFAF0836A43E44DCAD39969077216F4D230692AC1B0F6029254F976E0C",
+        "bytes":  8187,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\宗门势力-简版.yaml",
+        "sha256":  "19D00D193A8B2FB7B45F20AA759D82ABABFF61F7A8E24CF63CC95A0C24E7BC7B",
+        "bytes":  4381,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜角色模板.yaml",
+        "sha256":  "F2C5924E0C8B4F36CA2C07905EF106788CFB57D542BD71FB031F5DB975E786BA",
+        "bytes":  11559,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜角色示例.yaml",
+        "sha256":  "D414692D0EDA8B9BF7246926DA8B56F0E94387DA0BCDC54EA05FBC90EEAF9556",
+        "bytes":  11897,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜角色编写指南.md",
+        "sha256":  "23A13EF6850D1C15E0DBE7864925BF973D686ADF3D298181D3642CAC79559BCC",
+        "bytes":  14441,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜转阶段人设-白清弦_虞汐颜.yaml",
+        "sha256":  "42B8DB97F40A98665E4C12195755103004E14FA1E4FEE08E8346A825C142E65F",
+        "bytes":  10786,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜转阶段人设-简洁模板.yaml",
+        "sha256":  "18AE51717F188AD9195E7C7F1B17BD943A00E967B1D7B9835FC9B6820F04896E",
+        "bytes":  7752,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜转阶段人设-骨架增强框架.yaml",
+        "sha256":  "DF5DD35919554606E576CB1B8B277FE712E555077970125F7F18E443EDFB061E",
+        "bytes":  11765,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜转阶段人设写法指南.yaml",
+        "sha256":  "D2705CF894624A7888FB5848DB2703ED30C9386EE159A90E1AA8514E0748E22E",
+        "bytes":  3262,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\红颜转阶段人设编写指南.md",
+        "sha256":  "ED19D299047FB63CA708702CDDEBB2FA67F7B166224A45540059DCE60BDAF10F",
+        "bytes":  11946,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\踏月寻仙-红颜角色库.md",
+        "sha256":  "2E500F437E58BAED8617B96B4FDC6B21ECD668A4B720A583CF06F2F27CA0E3BF",
+        "bytes":  18427,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\踏月寻仙-红颜角色库.yaml",
+        "sha256":  "A50737E4F2757051B3567BF8FABCCC622C57BEE77DC3CC5D4C9C3238F210FE72",
+        "bytes":  19915,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\世界书模板\\踏月寻仙-设定、资源库.yaml",
+        "sha256":  "49314ED8AF4260BDD949DBAB860920E6CAB8E6B83FBD15F0431384128D5E654C",
+        "bytes":  27708,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\实装世界书\\AI动态任务管理示例.md",
+        "sha256":  "EF67837895B429158FB3F7FC92BB884C2EAB0CFB644569D6851F4184AC7BE31F",
+        "bytes":  6919,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\实装世界书\\[mvu_update]变量更新规则.yaml",
+        "sha256":  "9E043E8AF881AA18076CD5044A20015F3455220DCDF47E77F1A227AA3F674F45",
+        "bytes":  7727,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书\\实装世界书\\[mvu_update]变量输出格式.yaml",
+        "sha256":  "A627B1565D4A35DC6878376F7424C7BE02FFA1920707D62D3CD62394055CD9C4",
+        "bytes":  2085,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\kilo_code_task_jun-18-2026_8-06-09-pm.md",
+        "sha256":  "A3CFD6FC0307F1D112A45DB832A6140E9D1A8790ACCA82E4F415C2C25F6A852B",
+        "bytes":  346296,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[mvu]变量列表.yaml",
+        "sha256":  "F60D56238794C1F0A34C972E15EB7FDC83C2D771EB35AB47C3D458475C7F4890",
+        "bytes":  96,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[mvu_update]变量更新规则.yaml",
+        "sha256":  "D46D66CFB7EC4525969B4A402C0437099DB4A92B9AE47DC9586148C9CB0466A5",
+        "bytes":  13795,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[mvu_update]变量输出格式-极简版.yaml",
+        "sha256":  "880D022DB45C923E60E6C265BAC546352D055A156B20D59650BDC54B00946F01",
+        "bytes":  3403,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[地图] 下层禁地.yaml",
+        "sha256":  "ED03E23F865DF166C6C4DF42B73052AB8A8C7C6A1C399ADE5FD295F01D051A91",
+        "bytes":  874,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[地图] 世界空间结构.yaml",
+        "sha256":  "2054D3D027BDBAAAE6E253ED5F95132273D5380E816B924867FD77E9E40EF7BD",
+        "bytes":  627,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[地图] 地层-四海.yaml",
+        "sha256":  "5F96BF3FAFD468B741018C896781B77706732032741DDDF79766748CBF490BD2",
+        "bytes":  677,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[地图] 地层-神州与四方.yaml",
+        "sha256":  "640D07DC212C830B688A04A0262C251EAB5E9E0F2D85E72504CDC882502B78E5",
+        "bytes":  1273,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[地图] 天层区域.yaml",
+        "sha256":  "F780D7F553FC4D072BE079ED6479B3B81D56A24F88FD5C5F960CC9ECCCEA22AE",
+        "bytes":  431,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[境界] 修仙法则.yaml",
+        "sha256":  "8E1953929D98699DD90E5B97CB4D5AB4FD82B9DDD7041C2D72DFAF7057EF68D1",
+        "bytes":  967,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\[系统] [Visual Card Protocol].yaml",
+        "sha256":  "61072D3791164DE566401BC6244642F3AD219EAA888B113E527E4C5E6AAF6434",
+        "bytes":  2673,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\{{user}}人设.yaml",
+        "sha256":  "FE29FFE0B0B0670034D72CF069F7440BF02977F9EC9721892801A0B7A23E52F0",
+        "bytes":  766,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\世界观.yaml",
+        "sha256":  "A0AA314243095D4A8C2659B5D33BBA1B29F912FEDE5BFC2AD346562587BBC9D4",
+        "bytes":  2980,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\仙界境界-绿灯关键词.yaml",
+        "sha256":  "362779488F5E948DD40277693B41EB6674F561C9A7B8558EEA3EB3E836F53B48",
+        "bytes":  381,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\仙界境界威能-半文言版.yaml",
+        "sha256":  "50763D10B1471AE60CAFA7B3A3A1A66A24828FD1B62AA80227D2AFD451A9F6EA",
+        "bytes":  2879,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\仙界境界威能.yaml",
+        "sha256":  "0599AA8C122DA30E0CA0574D4CB5E51342E9FEB64BFE28C3A3BA2C77BF49EC8B",
+        "bytes":  2949,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\修仙常识与社会生态.yaml",
+        "sha256":  "BAA79E57FB402C4D995F8E32AED782BBA8429BFDE7BE0B51F94E2FDCDF18CDEC",
+        "bytes":  2585,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风-NSFW.yaml",
+        "sha256":  "11D9D98CC2BB55E13EDEA67FF1F7E209D62ABD6249CDD6EC40EF46F3C7110EA5",
+        "bytes":  11079,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风-NSFW配件.yaml",
+        "sha256":  "9477AC62963B5FC0DB08A9057BF3B134B9161C64E9020F77A7C8483C00E2D7D9",
+        "bytes":  4028,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风-思维链.yaml",
+        "sha256":  "B596BC8586C1B15247B0C0E585C312F039A373FD67A5E2466485DC35DE912D1D",
+        "bytes":  13256,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风-重文言长句-Token优化版.yaml",
+        "sha256":  "8C4779FF810001C39AEF776F61952C230E655D99EB787203F52710DF2E9972A3",
+        "bytes":  1857,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风-重文言长句-均衡版.yaml",
+        "sha256":  "2131E5FC9A06BB31E12E54082314FEEF6B71DB191A2CFC1E3F1CBA2B2A78AE95",
+        "bytes":  2626,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风-重文言长句版.yaml",
+        "sha256":  "1F3757F149B2F48490A78000215010E14B2FF89DEA3CFB597279A33F4FF58341",
+        "bytes":  4878,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风.yaml",
+        "sha256":  "560D6FA78A260026B3BBE44AAB193018E4F7DFEDBC1671D311507CDF04F5C1D7",
+        "bytes":  4072,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-文风111.yaml",
+        "sha256":  "D8AE51228D454DFD046B3A382E4C194F1451715D5739D91ADC5310402CEBE282",
+        "bytes":  5297,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\古风-轻文风.yaml",
+        "sha256":  "41EEA56827270AA597B717B4FA59CB2BA9181A60288152F2B34F94E4C4C086A7",
+        "bytes":  3682,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\境界威能.yaml",
+        "sha256":  "BDA40F5717CCC2FB0DC643E69B16B06C8245710D1589CB9CDCEA560FDC953468",
+        "bytes":  3036,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\大能约束与护道边界.yaml",
+        "sha256":  "E6D0D651EBB33776474E2AB3DF1BBD1ACBD5BA108E77D1BA9D89C0286FEB7EE2",
+        "bytes":  2866,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\宗门.yaml",
+        "sha256":  "7DE57DE8CC6ACF831EA58BDF9F0228D2810217325F4A2443B97F881602AD8602",
+        "bytes":  5746,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\宗门势力-低token底板.yaml",
+        "sha256":  "DED86F88D2D8813747725F881071CF5CFFE9617240D1E781609E526CBBE5A204",
+        "bytes":  759,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\宗门势力-动态控制ESJ.yaml",
+        "sha256":  "F72C0F078AE4634735B1444ED1816234DE15C0A53E2EDD8B08FB6985FE4B4BD2",
+        "bytes":  667,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\宗门势力-当前主势力ESJ.yaml",
+        "sha256":  "C3DBE1F5E3CD9819D3AE888A9875B8B539A9FFEC6DA4960DF13B472528739351",
+        "bytes":  16397,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\宗门势力-当前地域ESJ.yaml",
+        "sha256":  "F72F86931C7E27B0C54B7D5A391F5584034DD6F21CC523DAA3307F85DA40711B",
+        "bytes":  9162,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\宗门势力概览.yaml",
+        "sha256":  "AD36BBD6F47D5AAA006174C2CC347C4FDA591B558CFAF50976524E48A7147262",
+        "bytes":  7872,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\提示词教程.yaml",
+        "sha256":  "C825ED91C27CFA3FF1E189E9697C2B6972DC9457FE2617D8B51170AD34165FA9",
+        "bytes":  22697,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\新红颜素材.yaml",
+        "sha256":  "EC8652370A2E14D62C6B74910477A4855D31EE181E0FFCCB1820886DC9EE3CEE",
+        "bytes":  39452,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\气运体系.yaml",
+        "sha256":  "32A69FCCEF1F10F0BCF5903DED21BE796242CBD62D4987E209ED95E5734FE9D5",
+        "bytes":  1252,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\灵气潮汐与时代周期.yaml",
+        "sha256":  "9DE0471D826D718DE4B2FAC3ECEB21569BCE815C3091DB7FCF4A0AB7DF27C811",
+        "bytes":  1638,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\神通体系.yaml",
+        "sha256":  "8235B0C7602A2ABA3614895BD267BA7335161E10515EF257CC14D87C0CCB32C1",
+        "bytes":  3276,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\随机事件.yaml",
+        "sha256":  "4AD5599BCE276183BE3EF626E9C6EE9F464355DAA1FD710D2E91123C6970E5EB",
+        "bytes":  1979,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\009b615a-468c-4a7c-aae2-018be2da8e65.png",
+        "sha256":  "03FF698252DA5590A64FD582130096F3ABF62E7DF26D3CC3C4C1FB8C7088A1B9",
+        "bytes":  3177906,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\4c234ac7-71a9-4d48-a14a-ce5b1d2ce9d6.png",
+        "sha256":  "822FD613D36F5EBFDF47A55C4A6C0F303AA4BE1CC0BA83836AFECBC3937487B6",
+        "bytes":  3005042,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\4cb9d3e0-d180-4ef8-8d08-bf2f7cf26c31.png",
+        "sha256":  "96F3B82AAC5B37E811E8CAF673F155CB7D0058250F3C2F5A28AF4ABD46B87639",
+        "bytes":  3118679,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\b7fb6db7-b6f3-4e80-9312-d4b77f03b18b.png",
+        "sha256":  "D0DA18523995B6CFF416C985145696B086975CEFB32DB95D6EF23BE54317D471",
+        "bytes":  3257438,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\c577c29d-3241-47c0-a0f1-8e476f20ee56.png",
+        "sha256":  "0E933A3C32EA234926D27B4E25C8B0724B15725B634EF486E669C169C6F96FC6",
+        "bytes":  2796293,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\df32234a-3e17-4281-8a7a-f49a3459249a.png",
+        "sha256":  "047F17ACF03296D9F5B42407A4CD14D0DF28E492622907CD638A31558AB99FE1",
+        "bytes":  2697669,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\e91e2b52-7b02-4579-91c0-a70ef0144f61.png",
+        "sha256":  "D2998607A8285305813DAFB49B980A60C93B5290E6CF10A5D32033A2EF60D018",
+        "bytes":  2834453,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\f6196143-d7e0-436b-8e39-e5b70e058a66.png",
+        "sha256":  "C032910507F2FE13AC6E9466187EB251ED74960CCA30562D01C69C11F4233EF4",
+        "bytes":  3084020,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\world-map-earth.png：地界地图.png",
+        "sha256":  "AFC20FDC4241D92E3D252643D814360534D8B9347A113912D33300FC0B9541CC",
+        "bytes":  3220034,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\world-map-painted-bg-v3.png：世界总览.png",
+        "sha256":  "E665F55C6CA5932C18B891BAE9486DCFDD14F070A4CCC98785BDEE4E9A655802",
+        "bytes":  3429268,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\world-map-underworld.png：冥界地图.png",
+        "sha256":  "372010CC1F01DD555CE757611D184C05689E74BDE7B8793A27402F24E3A8CE63",
+        "bytes":  3237845,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 世界空间结构.yaml",
+        "sha256":  "BAA59F6E7F975010A39F27D03A02B565049653D4B4FCB621749BFE0DAD8B1161",
+        "bytes":  1335,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 东苍.yaml",
+        "sha256":  "9B1E2687CB7E7DB7E2CBCC4098F7F36D46FE64267252FCE4B1EA526E461B39F0",
+        "bytes":  846,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 北冥.yaml",
+        "sha256":  "D64EBCD5D96C39CBB1F81684432897053152254B7C83B986AF322370C7A5B33E",
+        "bytes":  895,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 南炎.yaml",
+        "sha256":  "DD0070A4F95BAD1CD49531CD96C90E19D4C5ECF9705CD4CA1BDF37731562B53F",
+        "bytes":  806,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 四海.yaml",
+        "sha256":  "3D95DC3A913703AAE6B5F0CB1D7445E62CE69D66547EA798462C507B0BA2E499",
+        "bytes":  905,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 天渊.yaml",
+        "sha256":  "2398C0FC33388782A0299CA835215AF1AB4A89284DA12B73A8CF8C5978969D5F",
+        "bytes":  951,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 天道裂隙（上霄）.yaml",
+        "sha256":  "5478B66442CCB1DA7EA997F6E77011769B648F332FADC7336A0D2B54DD1C9EEB",
+        "bytes":  928,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 太古战场·九天遗迹（中霄）.yaml",
+        "sha256":  "C73F0E609BA6C1F035443BE2D0CAA0F7F208905D47530681FACEE0C070F68E14",
+        "bytes":  986,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 宗门势力关系网.yaml",
+        "sha256":  "EB4BC4240A78FE78CACB6DE10D33DDEBFB77288460F1E9A45352C8FB6125336F",
+        "bytes":  2444,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 异变感应网.yaml",
+        "sha256":  "AAFC66D92646438CEC484D8E470E7C0E06CE9F8D564CFB6DC0FD6982F65C3B8D",
+        "bytes":  3672,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 归墟.yaml",
+        "sha256":  "77EB1FB7F535EC7E645167AF382A420AED13D07D9A655C6165ED69DBCC412AD2",
+        "bytes":  1051,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 无尽炎渊.yaml",
+        "sha256":  "1C58EE7703FE8A69EF54532684858738C778E5847CBD5BF9D220F5ECD4300464",
+        "bytes":  695,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 星陨废墟（下霄）.yaml",
+        "sha256":  "D9D9FADBFDFD58222947E0731A195EA2472FCC9C53CC6A9B8EA9C98EA071455A",
+        "bytes":  809,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 碎金渊·万剑冢.yaml",
+        "sha256":  "F79E46276A147694070A0375633A7C7386A74F7442891AC7B2B33C86E0A6DFD0",
+        "bytes":  939,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 神州.yaml",
+        "sha256":  "A135135395600D0A44E00B658039E9B2F5519141D9E4CD441317F298429D14F9",
+        "bytes":  712,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 神木枯冢.yaml",
+        "sha256":  "9487B249E884899A5A2615A98389C89E6FFA6A5451B7177E80FA2B47631E9BC2",
+        "bytes":  749,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 苍茫古径.yaml",
+        "sha256":  "B9C529B26DB15B8A4006D6C48D7A2EFB0429213CD3E0C6B6533A29C2768A05FE",
+        "bytes":  710,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 西庚.yaml",
+        "sha256":  "66318909871280AAC9D046D7E30B312D991A6AA977D3574E38C16436F71D0A57",
+        "bytes":  770,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 赤金走廊.yaml",
+        "sha256":  "5105A86EBC0D9BF3AD44E39F63FD8222DEF3D893AE5654117D24966DCAB1921C",
+        "bytes":  744,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 雪线.yaml",
+        "sha256":  "2D1DD0ACA4C918A597C5D1B69DDC444CACA2178DA14C940E2641B1D503238783",
+        "bytes":  706,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 雷暴海.yaml",
+        "sha256":  "9A20442234E855F4407577E164AB22E7F58D5D58859304376BF5526A24083B7F",
+        "bytes":  553,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 黄泉古迹.yaml",
+        "sha256":  "9ECD2F2462E6686AF6C126891618ACC48E8D50586E7EAB45F58A1C7E384E1F34",
+        "bytes":  817,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\优化版地图\\[地图] 龙眠海峡.yaml",
+        "sha256":  "073D5AC1F9F04A815E217343B6A419606BEE3B027989DAE9FC242215AE679A3A",
+        "bytes":  896,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\已启用地图\\[地图] 下层禁地.yaml",
+        "sha256":  "ED03E23F865DF166C6C4DF42B73052AB8A8C7C6A1C399ADE5FD295F01D051A91",
+        "bytes":  874,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\已启用地图\\[地图] 世界空间结构.yaml",
+        "sha256":  "2054D3D027BDBAAAE6E253ED5F95132273D5380E816B924867FD77E9E40EF7BD",
+        "bytes":  627,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\已启用地图\\[地图] 地层-四海.yaml",
+        "sha256":  "5F96BF3FAFD468B741018C896781B77706732032741DDDF79766748CBF490BD2",
+        "bytes":  677,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\已启用地图\\[地图] 地层-神州与四方.yaml",
+        "sha256":  "640D07DC212C830B688A04A0262C251EAB5E9E0F2D85E72504CDC882502B78E5",
+        "bytes":  1273,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\已启用地图\\[地图] 天层区域.yaml",
+        "sha256":  "F780D7F553FC4D072BE079ED6479B3B81D56A24F88FD5C5F960CC9ECCCEA22AE",
+        "bytes":  431,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\东苍·青帝故土（详细版）.yaml",
+        "sha256":  "3C0D1373AA5ED90F10443E84F9E809E9311F70552A849DF0A8698AB512169BB8",
+        "bytes":  1123,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\北冥·玄武玄境（详细版）.yaml",
+        "sha256":  "9868D3B38F17C7C0CA144D0DFA51DF0C9F76E258CE449A63D4784FB6B0F9B58E",
+        "bytes":  1235,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\南炎·朱雀圣域（详细版）.yaml",
+        "sha256":  "0599DBEA7CD40E5E80B431CBB340C914AFB3953DF2121B7E9EC24FC1A648F4BC",
+        "bytes":  1143,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\天渊·生命禁地（详细版）.yaml",
+        "sha256":  "04AD4E867817D0ACB47567DAD2A06969CE10A1999DDA65CEF8C0E314DB711CEE",
+        "bytes":  1862,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\归墟·生命禁地（详细版）.yaml",
+        "sha256":  "C92E23E4B68FA089DBC66810B7590578E89FABF13913942A7EC383E0739194D3",
+        "bytes":  1512,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\无尽炎渊·生命禁地（详细版）.yaml",
+        "sha256":  "BB1C8B1C745AAE5DAB1C5CBD9EA69D2B5B0BF04E94C358FB3235D22F48E19277",
+        "bytes":  1804,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\神州·中央大陆（详细版）.yaml",
+        "sha256":  "64BDF44A315C03249A6BA7FF90E53C471E1244B127EF653DD8EB41AC426AEF86",
+        "bytes":  870,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\西庚·白虎凶疆（详细版）.yaml",
+        "sha256":  "F5264CB7327EC6017A1690E494925CE653D92788A7B0082E0A7E8D7162F7E36F",
+        "bytes":  1175,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\世界书-素材\\详细地图（未开启）\\黄泉古迹·生命禁地（详细版）.yaml",
+        "sha256":  "A2D5888169759A4ED7CB53A5129CE39790A37EC7E6792336462193BAAC7D2327",
+        "bytes":  2145,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\[机制] 本命命修·同参道契.yaml",
+        "sha256":  "DE32608D0DCD1A56CE8A9927C5C8A3802B9FF176ABB693BB436A45AB23F80590",
+        "bytes":  1522,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\[机制] 灵台心象·紫府道景.yaml",
+        "sha256":  "865A5881043321FD4B4DCC3C0850DAB6ABEB6216ED1E1AC69DB2CE1BE05A28BE",
+        "bytes":  1679,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\[系统] [Visual Card Protocol].yaml",
+        "sha256":  "61072D3791164DE566401BC6244642F3AD219EAA888B113E527E4C5E6AAF6434",
+        "bytes":  2673,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\[规则] 宗门阶位与职级约束.yaml",
+        "sha256":  "AF0C3E5CFF24DC4D40E19F168F08EB6AF2C5F6969AD3B21C0F04549915127CBA",
+        "bytes":  2187,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\{{user}}人设.yaml",
+        "sha256":  "CFE456D6277D68E0087D93BFB9D9BA46A8F1E04598DE58EE64AA6EEA492D07D2",
+        "bytes":  761,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\世界观.yaml",
+        "sha256":  "0337AFAB6FF98B0D50A96D4613AFB71B23B6B88030ECA4060FB7E5A08FD407BE",
+        "bytes":  1554,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\修仙常识与社会生态.yaml",
+        "sha256":  "DC43D71ED9DDB6358987198DC49619794F71FEBBD64ECB063A998D8EBAACBF76",
+        "bytes":  1511,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\修仙法则.yaml",
+        "sha256":  "C935BDF23A152B078A90245280B63DECC212FBC1AF0796C331AB6FC6B4B3407C",
+        "bytes":  1369,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\半文言文风指南.yaml",
+        "sha256":  "C952819946D377A07C47DD7268FF92363247C419445B8E679F156584FB987B71",
+        "bytes":  3589,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\古风-轻文风.yaml",
+        "sha256":  "41EEA56827270AA597B717B4FA59CB2BA9181A60288152F2B34F94E4C4C086A7",
+        "bytes":  3682,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\境界威能.yaml",
+        "sha256":  "808F78882DFB19AF44AB47D65A8C084DF0A35397BEC5D2F33FE0B7F2DDAA8925",
+        "bytes":  2218,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\大能约束与护道边界.yaml",
+        "sha256":  "39EAE560434163EAA54A02D4015557682934E160264EC319C29B16AC31350A08",
+        "bytes":  1626,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\宗门势力概览.yaml",
+        "sha256":  "19EC1249E5C263AA85C533BF61FA78601A3FCBB67AD4C4702C31223F1A7234BA",
+        "bytes":  9134,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜索引.yaml",
+        "sha256":  "DB40E95F2847B2475BA828603759770CAEEC41B95BFB3F57FF56403D101F9AFE",
+        "bytes":  1448,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\警钟长鸣.yaml",
+        "sha256":  "0E1C9AEADB8C85FA8926B1986C6F5CF424E33B82F9645F8EB605FAEBF8642905",
+        "bytes":  2638,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\随机事件.yaml",
+        "sha256":  "255AADFDB076DFFCCD4C62FF42B02F0ABC1389383BBEEF2CFFBB927CBC9572C2",
+        "bytes":  3794,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 世界空间结构.yaml",
+        "sha256":  "2CEEC45A731F84978E7621620EE25625B4D53BD3BC21ECB39D95BF39EA7302D1",
+        "bytes":  2576,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 东苍.yaml",
+        "sha256":  "9B1E2687CB7E7DB7E2CBCC4098F7F36D46FE64267252FCE4B1EA526E461B39F0",
+        "bytes":  846,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 九野通衢·寰宇阵枢.yaml",
+        "sha256":  "9ADE6FC7EAF6637E1FF43504053A40DC1D473C8DE9A12B19541790BCF1FDDE5F",
+        "bytes":  2258,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 倒悬天墟·五行逆反界.yaml",
+        "sha256":  "7B47D5036C5648DECE8FD541C686D00236CBCBE4954747F5FE4108C38F21C829",
+        "bytes":  1990,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 北冥.yaml",
+        "sha256":  "D64EBCD5D96C39CBB1F81684432897053152254B7C83B986AF322370C7A5B33E",
+        "bytes":  895,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 南炎.yaml",
+        "sha256":  "DD0070A4F95BAD1CD49531CD96C90E19D4C5ECF9705CD4CA1BDF37731562B53F",
+        "bytes":  806,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 四海.yaml",
+        "sha256":  "3D95DC3A913703AAE6B5F0CB1D7445E62CE69D66547EA798462C507B0BA2E499",
+        "bytes":  905,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 天渊.yaml",
+        "sha256":  "63A3D0420F9D09DE5D08921F3D63E6A4286B09C021DE411E6A65F83D45EBC746",
+        "bytes":  1114,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 天道裂隙（上霄）.yaml",
+        "sha256":  "5478B66442CCB1DA7EA997F6E77011769B648F332FADC7336A0D2B54DD1C9EEB",
+        "bytes":  928,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 太古战场·九天遗迹（中霄）.yaml",
+        "sha256":  "C73F0E609BA6C1F035443BE2D0CAA0F7F208905D47530681FACEE0C070F68E14",
+        "bytes":  986,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 宗门势力关系网.yaml",
+        "sha256":  "EB4BC4240A78FE78CACB6DE10D33DDEBFB77288460F1E9A45352C8FB6125336F",
+        "bytes":  2444,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 异变感应网.yaml",
+        "sha256":  "78CFD7CBD7B5649FAFAAE7453BD3904C877F84A8955B360C7DB643B8A0AAD87A",
+        "bytes":  2405,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 归墟.yaml",
+        "sha256":  "77EB1FB7F535EC7E645167AF382A420AED13D07D9A655C6165ED69DBCC412AD2",
+        "bytes":  1051,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 无尽炎渊.yaml",
+        "sha256":  "1C58EE7703FE8A69EF54532684858738C778E5847CBD5BF9D220F5ECD4300464",
+        "bytes":  695,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 星陨废墟（下霄）.yaml",
+        "sha256":  "D9D9FADBFDFD58222947E0731A195EA2472FCC9C53CC6A9B8EA9C98EA071455A",
+        "bytes":  809,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 碎金渊·万剑冢.yaml",
+        "sha256":  "F79E46276A147694070A0375633A7C7386A74F7442891AC7B2B33C86E0A6DFD0",
+        "bytes":  939,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 神州.yaml",
+        "sha256":  "A135135395600D0A44E00B658039E9B2F5519141D9E4CD441317F298429D14F9",
+        "bytes":  712,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 神木枯冢.yaml",
+        "sha256":  "9487B249E884899A5A2615A98389C89E6FFA6A5451B7177E80FA2B47631E9BC2",
+        "bytes":  749,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 苍茫古径.yaml",
+        "sha256":  "B9C529B26DB15B8A4006D6C48D7A2EFB0429213CD3E0C6B6533A29C2768A05FE",
+        "bytes":  710,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 西庚.yaml",
+        "sha256":  "66318909871280AAC9D046D7E30B312D991A6AA977D3574E38C16436F71D0A57",
+        "bytes":  770,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 赤金走廊.yaml",
+        "sha256":  "5105A86EBC0D9BF3AD44E39F63FD8222DEF3D893AE5654117D24966DCAB1921C",
+        "bytes":  744,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 雪线.yaml",
+        "sha256":  "2D1DD0ACA4C918A597C5D1B69DDC444CACA2178DA14C940E2641B1D503238783",
+        "bytes":  706,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 雷暴海.yaml",
+        "sha256":  "9A20442234E855F4407577E164AB22E7F58D5D58859304376BF5526A24083B7F",
+        "bytes":  553,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 黄泉古迹.yaml",
+        "sha256":  "9ECD2F2462E6686AF6C126891618ACC48E8D50586E7EAB45F58A1C7E384E1F34",
+        "bytes":  817,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\优化版地图\\[地图] 龙眠海峡.yaml",
+        "sha256":  "073D5AC1F9F04A815E217343B6A419606BEE3B027989DAE9FC242215AE679A3A",
+        "bytes":  896,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\变量更新规则\u0026变量输出格式\\[mvu]变量列表.yaml",
+        "sha256":  "F60D56238794C1F0A34C972E15EB7FDC83C2D771EB35AB47C3D458475C7F4890",
+        "bytes":  96,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\变量更新规则\u0026变量输出格式\\[mvu_update]变量更新规则.yaml",
+        "sha256":  "445F585A97A666215F7EE95809CD8E3B282C3E19AF9744858F0BD8A23B5082BB",
+        "bytes":  14142,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\变量更新规则\u0026变量输出格式\\[mvu_update]变量输出格式.yaml",
+        "sha256":  "A543AFAC8ABF98733E45E9A2554A6A2A37CD34C0013369CEBC11F02DCDA32C03",
+        "bytes":  4259,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\南宫云裳.yaml",
+        "sha256":  "6185C686B043B0C03EECFF97A62CD7328724BC7012408392BDC88908C6C4B9C1",
+        "bytes":  10729,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\安迟迟.yaml",
+        "sha256":  "F10CE29B5B042EF29CA34DFA98FABF0A94BB6D5FF035F3AA66B7FA7E27FE0639",
+        "bytes":  7352,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\晚棠.yaml",
+        "sha256":  "523B0B9DB4795BA028B2618E270DB0D87B987C8D5AC726E712EFD1C8537D8F44",
+        "bytes":  10138,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\朔望舒.yaml",
+        "sha256":  "5FFD704C3CA3472BD19658855D4CF9A1D0FCC72FEE1A0EA5DD535848F185C04A",
+        "bytes":  11801,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\朔璃鸢.yaml",
+        "sha256":  "89B397EAF7DCE90AD2ABBB13B28B192A0CFC4A56A6DABD51830EF58C1A0316D6",
+        "bytes":  10621,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\梦杳泠.yaml",
+        "sha256":  "8DBF6F6C365E549996ED7AEA78DB1B7D7F42E07591E6F2A27CF58BD666D2C251",
+        "bytes":  10784,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\状态栏.yaml",
+        "sha256":  "61F4AAE8A80042D7781CF31F0C8B416C7842AE06FE7609AD8599B41A9027B824",
+        "bytes":  174,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\白清弦.yaml",
+        "sha256":  "CCAE14D89422EDDD55DC3AF3A4EFC1931B3A71732E32BB314369B67925EC950C",
+        "bytes":  15867,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\羽岚.yaml",
+        "sha256":  "D28B70B3A0BB5B2D5149324D5178FB20E6090D2E97D48708CCA205DC3F742873",
+        "bytes":  8998,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\虞汐颜.yaml",
+        "sha256":  "F2A388B15A4C04C818C160D58C4F2EF7EECBA93459845F188550ADAE80FD02B2",
+        "bytes":  20008,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\许听雨.yaml",
+        "sha256":  "9403B6CC980E1CF39FEAB451C8CFE3C6C03F826B72E7DABC1143165305212D48",
+        "bytes":  13126,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\图片URL\\阮忘忧.yaml",
+        "sha256":  "5F1C460A34F0789BC2CFE5EF7ACD881861BE0751E118FDD3C8316C0507D96567",
+        "bytes":  13589,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\1南宫云裳-陌生期.yaml",
+        "sha256":  "B6F384F7E3A15A44C65B0EA12DDFD066FF00641BA65109CE1F644BC2A6AD7FF5",
+        "bytes":  2258,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\2南宫云裳-好感期.yaml",
+        "sha256":  "000B2E35DCB7161A8CF087E8545E4B1A8B30B46F01EB318E4D2EC51E2555C32A",
+        "bytes":  2354,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\3南宫云裳-心动期.yaml",
+        "sha256":  "7489FB84549E38F0CCBDB0E03909B705F4436C0A4BC4C5BFB6CA450B9092FD32",
+        "bytes":  2323,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\4南宫云裳-确认期.yaml",
+        "sha256":  "66EBA79828325E44D2478095E90384BCF05A604833529A55CD864229556CCEDE",
+        "bytes":  2211,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\5南宫云裳-深爱期.yaml",
+        "sha256":  "DE960958438C64D090BDD0D462D033A20AFA87C6A4D340115E2344B6F6D8C1A9",
+        "bytes":  2403,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\南宫云裳人设.yaml",
+        "sha256":  "63C97A14EB193FAC2FA530A2754CC73ACF76647609F5898F09C72B5C5071D323",
+        "bytes":  6194,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\生图提示词.yaml",
+        "sha256":  "8684EBDFA5EFA97B3CB4CFB7415D6B6F32B49BD071C28F9621844D40AAEA2863",
+        "bytes":  51719,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\生图提示词2.yaml",
+        "sha256":  "E41B0558C6B53C03B120E61A03B5B264FFF8CD2E941296DE8BA41485B6D4467B",
+        "bytes":  30024,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\南宫云裳\\生图提示词3.yaml",
+        "sha256":  "0794E3DB89D697033DEDFF46D9B610E6F89DB71312B3F42310967FA921E91B5E",
+        "bytes":  30087,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\1安迟迟-陌生期.yaml",
+        "sha256":  "4D0B7233455F9BC3D218694ACFF3924BFB36712E13597DCEFD287A459CEA722D",
+        "bytes":  2557,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\2安迟迟-好感期.yaml",
+        "sha256":  "0A61AC22E9D081C434262712A8A1D87E62780BFDC0B8A588DF9FFD6DC6C6BF72",
+        "bytes":  2952,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\3安迟迟-心动期.yaml",
+        "sha256":  "9CBC634BA1E62FCDB87049B9676DA31C59AB59A76AC2594DB98F9DD9D203EEC8",
+        "bytes":  2648,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\4安迟迟-确认期.yaml",
+        "sha256":  "A731EC8DC0389D0E3CFA98F94C4BBD335076C34477C6C224896E5B3813F4B0F7",
+        "bytes":  3139,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\5安迟迟-深爱期.yaml",
+        "sha256":  "E8E7088DB5B346E466D828F1099FD68458106CDC0E15AC295BED37103D756B26",
+        "bytes":  2685,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\安迟迟人设-重写稿.yaml",
+        "sha256":  "393054C2DD37EC3059634F6798CCDA18E1D04AA5B58CB674FF7362086416CAF0",
+        "bytes":  8563,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\安迟迟人设.yaml",
+        "sha256":  "E995FB40AFF2F5DA2CDFCFBD893A33884DC112DC5859D101FB6AC116B6C5A209",
+        "bytes":  8098,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\生图提示词1.yaml",
+        "sha256":  "E489CF34F876F153BFFB2C564BF1C6E142A3D04ACE8C6278E632DF03ECCFCCA4",
+        "bytes":  32945,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\安迟迟\\生图提示词2.yaml",
+        "sha256":  "87F64B3E13F0619EE997F8622AED71F5BE51135584768D0F284626E44B93F63A",
+        "bytes":  58636,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\1晚棠-陌生期.yaml",
+        "sha256":  "2116F5E3CE86D2B7F8CEC5ED350C4235F950034979B89844D53E502F4369E299",
+        "bytes":  1919,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\2晚棠-好奇期.yaml",
+        "sha256":  "F40B60C967BB45E5304134C1B0FB73A58CA321F75CF4C4951023DD77D3ADE4CD",
+        "bytes":  1940,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\3晚棠-亲近期.yaml",
+        "sha256":  "21E165CB94DCB055D0B29B908D7D4055F02408D1200FBAE08FD75CD7104F9F2F",
+        "bytes":  1970,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\4晚棠-依赖期.yaml",
+        "sha256":  "B20FC81DD0465B3CCFDCB6FBE5B048D9E5B143E21FEAF7112D4F13477E055BFB",
+        "bytes":  2048,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\5晚棠-深爱期.yaml",
+        "sha256":  "8572C7BC7B745437ACCF05BCA24145EF618AB6103C05A109019FD05D709EBF89",
+        "bytes":  2481,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\upper_body_焚诀.yaml",
+        "sha256":  "F18370FA90136E8FBBCBE71B6275F72EF734B44A4E18FADA3ED8ABFE755CB8D0",
+        "bytes":  9905,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\晚棠.yaml",
+        "sha256":  "6203A6199578E0453252642D7FE45D576A36CD60AB05F604C67CCCFFA60C15D3",
+        "bytes":  8930,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\生图提示词.yaml",
+        "sha256":  "FED1494C940D62A5E1D019FA6C5C22E0608BCE71FDFF8D46E8B564CEAC92B745",
+        "bytes":  51465,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\晚棠\\生图提示词2.yaml",
+        "sha256":  "E1A220A7CDBD733D31F776B4F1A84F9306A09078B79E487730A182BCEB785E80",
+        "bytes":  37833,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\1朔望舒-月悬·疏离期.yaml",
+        "sha256":  "272CA2CAB3B8E57FC7152E126C35D5745B7F68542769B5A7A44FFE85794AC57F",
+        "bytes":  2567,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\2朔望舒-月影·留意期.yaml",
+        "sha256":  "C0C031732F2CF1D1C21021119BD2BC0332D5E0D32CF8D89F85F39388DD4227B4",
+        "bytes":  4109,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\3朔望舒-月染·心动期.yaml",
+        "sha256":  "7BD644B9A1951F99D2DD4C3F69501EF6DA037DB4F3DF6D56F1C4BAEC69980B2B",
+        "bytes":  4808,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\4朔望舒-月赤·情定期.yaml",
+        "sha256":  "011D90F443D7C20B6CD30BDE30FFD3C1130692235112F08A475B91281824D556",
+        "bytes":  4980,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\5朔望舒-月满·深爱期.yaml",
+        "sha256":  "FCA5001A2138E7CD1997FDF819A3FCB7B30DC2BC13C556C4194D2CB4640D5B18",
+        "bytes":  5450,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\朔望舒人设.yaml",
+        "sha256":  "27A0442C4A2BB598A815CA0122AD4895B16D0E3625122E900935A86B88D0EBC4",
+        "bytes":  8131,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\生图提示词.yaml",
+        "sha256":  "5F2AB1280083163CDA87CA2E20EE26F43B2F6EF57689A0B781818D589266D7A0",
+        "bytes":  50242,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\生图提示词3.yaml",
+        "sha256":  "4910FCFDBE7AD8AD353B754CD1393FF2CFCAF59ECCDA9927D178323B95B8A84F",
+        "bytes":  56813,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\定制服饰扩展\\朔望舒_定制服饰扩展一_全身特化.yaml",
+        "sha256":  "7162A319778B8A69C16799652811DA5C8E24D7A8758755235609787CFF24A95F",
+        "bytes":  9748,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\定制服饰扩展\\朔望舒_定制服饰扩展二_巨尻特化.yaml",
+        "sha256":  "FDE1322F95087FCEF39420F35A28DDA37DBA2342140774120CD8A03BACE5E1ED",
+        "bytes":  11722,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔望舒\\定制服饰扩展\\生图提示词2.yaml",
+        "sha256":  "64F22991FE680BE5568497BAC7309718BEF620433250ECA6F4758560B4DAEBF7",
+        "bytes":  23775,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\1朔璃鸢-陌生期.yaml",
+        "sha256":  "B8E76546A81551DDFC9D6F18C3BEE10BC9B8B02DFCCBA310A24F496A422FA821",
+        "bytes":  2178,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\2朔璃鸢-好感期.yaml",
+        "sha256":  "87C06A2EE4A243CE69A1372E585BFAA8C2B1E678290DE358CB1540C2BEAC1205",
+        "bytes":  2051,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\3朔璃鸢-心动期.yaml",
+        "sha256":  "8A2E739A1F4F98BBEB61C1E61DFB53738AF4EF0FF2F716846BB767462623EF2F",
+        "bytes":  1898,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\4朔璃鸢-确认期.yaml",
+        "sha256":  "2008B81F5E04BE9C277E490569B4FBBDB2977B19C0747ACA6BFEC371795B7419",
+        "bytes":  2384,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\5朔璃鸢-深爱期.yaml",
+        "sha256":  "E461C19D7DA126F0F4639750F330E34BDEA32CC7115A94992D82437390FE7357",
+        "bytes":  2919,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\发型.yaml",
+        "sha256":  "A87E60A7FB125F477C6E16E8AFC6AB57376994839613924BC591E88B524BA299",
+        "bytes":  3253,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\朔璃鸢-好感阶段人设汇总.yaml",
+        "sha256":  "BC48B48608E9AD7AAD3E9CB9492391DBAC5F844F0BF27164CE766DDD64F3A6E8",
+        "bytes":  11094,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\朔璃鸢-开场白草稿.md",
+        "sha256":  "5618C602CB365B1342C31CDF8FCD6136E6EE6DABF26AC986416F0AC08A8FE416",
+        "bytes":  5599,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\朔璃鸢人设.yaml",
+        "sha256":  "93FF7C31728AB99B04ABC73D95B373359E87A094A95A69B90A782708DE9633BE",
+        "bytes":  9066,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\生图提示词.yaml",
+        "sha256":  "EC16FA660258D3D732F54EF8736B0535364F196EF1DCB84099F45CC21815E79E",
+        "bytes":  37921,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\朔璃鸢\\生图提示词2.yaml",
+        "sha256":  "B9D79ACBF80DB441B908359698CBEA656CAFF21296DA1C8D4713E50DA2C6EA89",
+        "bytes":  37695,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\1梦杳泠-陌生期.yaml",
+        "sha256":  "C372D8E691AEB447E0144B62D9B2CBA4C992A0105B5FC6BE1D32A067A05CDC03",
+        "bytes":  1865,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\2梦杳泠-好奇期.yaml",
+        "sha256":  "A71AAFCA5EF2596B6F6D82D6F1A6ADA995A8890BF3E7ABBC52DD5FBC1AB60E61",
+        "bytes":  2025,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\3梦杳泠-亲近期.yaml",
+        "sha256":  "7EA0E0908757A99A66486C550E3FACA6C72E49F372E5D5DC863DA53B2DFF81C2",
+        "bytes":  1964,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\4梦杳泠-依赖期.yaml",
+        "sha256":  "AACCDB5DAA2352E0D614F9AD0E03AADB3CAA383F28EC4238BB7A23B00A04DF2A",
+        "bytes":  2231,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\5梦杳泠-深爱期.yaml",
+        "sha256":  "DDEC0EE6A254E5046D3466C518F3A2E97EE825C5D164195C8EEA46D316B667AB",
+        "bytes":  2424,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\梦杳泠.yaml",
+        "sha256":  "508540B6988341DFEA22DE9F8D027354FF0512B3628CBC74B67305F98660AFAF",
+        "bytes":  6493,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\生图提示词-足部.yaml",
+        "sha256":  "17C88DE95A628E0E9AD42BDEAC415E3DD0FB82DFE81C3C9EF4FBD243443567DD",
+        "bytes":  36674,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\生图提示词.yaml",
+        "sha256":  "2B1F514B4418A8AF0F5BE68327DF8F183F609C7E8AD90E7BE49FBE26C62A751A",
+        "bytes":  83023,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\生图提示词2.yaml",
+        "sha256":  "77C6D75E874C5A83B896D428607694E2A3A4CE0B1BF627604D71C951F856E091",
+        "bytes":  66113,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\梦杳泠\\生图提示词3.yaml",
+        "sha256":  "83BEF9B547C6FEA052262CF0A5ABB8D842C14EFAFC5CD4F59B3983E4EC153CCC",
+        "bytes":  24630,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\沈倩宁\\沈倩宁人设.yaml",
+        "sha256":  "C669DCBE7CAC1A5014FC78C67AB142E659BF2C0F45809D0C7192F6B57AD66C63",
+        "bytes":  10345,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\沈倩宁\\生图提示词.yaml",
+        "sha256":  "9759B334B47C8235FBDC5F2DEC7C5E13B947017610E80ECC5274292D82DBBDC1",
+        "bytes":  45724,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\沈倩宁\\生图提示词2.yaml",
+        "sha256":  "72BB45AF29076870A6A5F6BC70859747694EEEE1F40C78DE192063FB89E9AE77",
+        "bytes":  12866,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\1白清弦-陌生期.yaml",
+        "sha256":  "3391A76F3463E04B96A74BEE241424BBA1293212EB463CA83D907FF104185D61",
+        "bytes":  3609,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\2白清弦-好感期.yaml",
+        "sha256":  "4FC25EF6D3B855C60CB0BD1639A1B43599C0AF27D1FABA772AE639B456FFBC9B",
+        "bytes":  5002,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\3白清弦-心动期.yaml",
+        "sha256":  "4DC43B0CD72B3230ABC01DFE86FF18EB8D064666F3E042523D214C6932AA69F8",
+        "bytes":  6372,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\4白清弦-确认期.yaml",
+        "sha256":  "0970C72E5139D923674920C7102BA7BBCB1667C868FAB2E5DBD2CBB62878447C",
+        "bytes":  5330,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\5白清弦-深爱期.yaml",
+        "sha256":  "6082B6414A0EE2772F9498A10B4EE86A3CD63907337D8FA966C56CD6223FA85E",
+        "bytes":  6153,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\生图提示词.yaml",
+        "sha256":  "1261186D9933A576751FE8E5B6805B548B2E2BC8AF2D1AFDA71A6B420B868329",
+        "bytes":  68902,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\生图提示词2.yaml",
+        "sha256":  "CCD7DC8412E8D79F6185447102C3AA0717E518C3A744B796DAEA0EE53A6419EC",
+        "bytes":  21754,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\白清弦人设.yaml",
+        "sha256":  "6C666F200E78C5F1C71AD83B57D6B6465564AAF6BE3A139C8EF7325F915ED1C5",
+        "bytes":  7846,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\生图提示词\\index.yaml",
+        "sha256":  "D6291D36156D519751F6574A66F90583140EE381934661E4877497E9182E8C90",
+        "bytes":  38892,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\白清弦\\生图提示词\\定制古风服饰.yaml",
+        "sha256":  "2ECC54C30FD67D96667025994FB46C83BF598DD207DC43D5725885840A9005EC",
+        "bytes":  53086,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\1羽岚-陌生期.yaml",
+        "sha256":  "7438B6F4254426CEF43B59A6D3DC165DAE8BA594CE722D73D4799504AC860F46",
+        "bytes":  3035,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\2羽岚-好感期.yaml",
+        "sha256":  "BF4E1EF05B17271D328B8896D5D114F7413F6730D5047F9F9B752C0C6B2FDF67",
+        "bytes":  2702,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\3羽岚-心动期.yaml",
+        "sha256":  "63107B133297D0E2D2A0B6117EC0DD09E58B29DF9B40203EBFEBE1AB397D7182",
+        "bytes":  2991,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\4羽岚-确认期.yaml",
+        "sha256":  "AE4C39F492454F1CF35EE65BDCD3D1CB38EE73342213BF886642DF3C690F98CC",
+        "bytes":  2636,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\5羽岚-深爱期.yaml",
+        "sha256":  "7BFF9D707EC5FFB12C79970D85FA9ACB2778D66E4E16C4897F76001E8ED6DD35",
+        "bytes":  3436,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\羽岚人设.yaml",
+        "sha256":  "D6AE6E3B9AA48F23EA506EB8383D6F29C4933C98EB112551724764A2AAE151DB",
+        "bytes":  8835,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\生图提示词\\生图提示词.yaml",
+        "sha256":  "4EF80A0812142C4E63BBEB3D4D827B8CC46B75E7EF9A4BAF0424FB81E95772EF",
+        "bytes":  38509,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\生图提示词\\生图提示词2.yaml",
+        "sha256":  "B1AE9591E39384BFDFE249203A738B9A4BEE8144B72002FF4A822BA8D802BFFA",
+        "bytes":  40320,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\羽岚\\生图提示词\\生图提示词3.yaml",
+        "sha256":  "2A2E4E55CB7110DF54FA68A11C5FC115DB842970A8F3B070423075E840658800",
+        "bytes":  11510,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\1虞汐-好感期.yaml",
+        "sha256":  "5A7C1ACF7A4F16B33D664FDD1E8DA7827F478D6924F1511F4F21C30D45D3C80E",
+        "bytes":  1622,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\2虞汐-心动期.yaml",
+        "sha256":  "D35319DE9064F8A70F15038185011AE1767766E65E93CFEA6E776FB2E723BE29",
+        "bytes":  1700,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\3虞汐-确认期.yaml",
+        "sha256":  "43ED7845BA1C2516B51F4CB5817F64BE5FB0EB8D8EB481B997235B64EED54943",
+        "bytes":  1872,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\4虞汐-深爱期.yaml",
+        "sha256":  "813211D5C0159462FA36587ACBB8E1888D06AE7C0F9EF7C875FEF2030B6018BC",
+        "bytes":  1764,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\5虞颜-好感期.yaml",
+        "sha256":  "9C0B6438B211E8D4D8EAF824E8B04BDBA692BA1A4F78A168B9BE542B2D4DAF05",
+        "bytes":  2052,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\6虞颜-心动期.yaml",
+        "sha256":  "81F5EB29967F0CC5179DE180915BA2423E4FD400CE1F05E2C8C86297812ADDE1",
+        "bytes":  2354,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\7虞颜-确认期.yaml",
+        "sha256":  "2A92D039BD158F1342F0D177FAD56139375019CEC2A109EF34027BF2191E111D",
+        "bytes":  2171,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\8虞颜-深爱期.yaml",
+        "sha256":  "A67695C22A91093BCCBDCA13BD36B572BA4056F176C909CD548AB7FC74AFCA19",
+        "bytes":  2458,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\生图提示词3.yaml",
+        "sha256":  "B09FCB1862CD9A10BB7E12BF83DF86668353317167C42F0AB5353EC52496C5D3",
+        "bytes":  43195,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\虞汐颜.yaml",
+        "sha256":  "CC64533109A52B126E84B2D1A36B50C346F8C9E01772FD4AE34942A6CFC04279",
+        "bytes":  10489,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\虞汐颜生图提示词.yaml",
+        "sha256":  "B4333952B5AA242ED67211737C356F214D3741035C39FF0697E77CDFF69D7FDB",
+        "bytes":  55960,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\虞汐颜\\虞汐颜生图提示词二.yaml",
+        "sha256":  "5446439C9A4AB1AE6DC737F33E2937D2949CFE8564BF1CC284DEE7A10353A671",
+        "bytes":  53957,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\1许听雨-陌生期.yaml",
+        "sha256":  "92E1794DCA3763585C975658B289B858B5605ECB9104C1660107C55025071E58",
+        "bytes":  1967,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\2许听雨好感期.yaml",
+        "sha256":  "191F771BA1E559F902990F8E93A57BD66CABD9D828F8DAFE70A387C1E40338CB",
+        "bytes":  2422,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\3许听雨-心动期.yaml",
+        "sha256":  "AF1E3A91120B154B60EB485B4C4090E8B0C64920FBB72CA9B8F4DA9DD26AE717",
+        "bytes":  2635,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\4许听雨-确认期 .yaml",
+        "sha256":  "434C4799E150D7968167250CB75A57D9E1D7731F998669C5E7B5DBC9817C6D43",
+        "bytes":  2699,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\5许听雨-深爱期 .yaml",
+        "sha256":  "7FF578EC7AC0AF25A5BD26BDE553652D38750AB200898381EB076BBA73CE4877",
+        "bytes":  3506,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\生图提示词2.yaml",
+        "sha256":  "07E26CE33A754D8357BDCF6894A0E7882EB9A6D15E53641F47A2AB5073E5A5FD",
+        "bytes":  21427,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\许听雨人设.yaml",
+        "sha256":  "3F80515691452D216199B56F9708790DA0A37A1D027211CB34AED743D141B32F",
+        "bytes":  8676,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\许听雨生图提示词.yaml",
+        "sha256":  "281DB69DC03F2BE404DE44286E328D735F10C32BEF77EEAC7D10297DC70AB76C",
+        "bytes":  24518,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\许听雨\\许听雨生图提示词_陆地版.yaml",
+        "sha256":  "B09FE371334FF0D7CEF12DC9B3C5BE0FB76536CFA607DBC5CEA8072660C97F11",
+        "bytes":  69797,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\1阮忘忧-克制期.yaml",
+        "sha256":  "37C993D7433A77E13EFA65971052358B8575D9C509819AFA4EE6169CD29B7FB4",
+        "bytes":  3094,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\2阮忘忧-贪恋期.yaml",
+        "sha256":  "E63C767E62E1860026ECCC4946FD21164453389879EC8F72E474394DF461BAEE",
+        "bytes":  3092,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\3阮忘忧-患得患失期.yaml",
+        "sha256":  "029A42D58D2775442A1916ECB8417A02AA9D9B5E550AD808F12BA799F51BE95B",
+        "bytes":  3035,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\4阮忘忧-纵容期.yaml",
+        "sha256":  "3EBC012D7211A86AC69363050439D5ED11F0B518C14B1A207BF345F8EB328EDD",
+        "bytes":  3384,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\5阮忘忧-生死相随期.yaml",
+        "sha256":  "22653B5548FB07E5A1D386F6360FD20722398162A677159317D45D271F0C5FF8",
+        "bytes":  3286,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\生图提示词三.yaml",
+        "sha256":  "81AE208A804E02016EC461491B07C6DB637165D9A6514BC2EDFB818729B1B2B1",
+        "bytes":  10473,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\生图提示词二.yaml",
+        "sha256":  "675950C1E719C4FF20BD8332858FE39E1DA8E3B00895F35D1E72E597E41C915E",
+        "bytes":  50371,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\阮忘忧.yaml",
+        "sha256":  "390575EBA333D88DA2EB76ECC61874C6DA69C9F3B68688D2B64511AD1F9DD84F",
+        "bytes":  7954,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\阮忘忧生图提示词.yaml",
+        "sha256":  "EBE154E6C6E1B9A7367050CAAEB6168EE5D1BC9985BC2B355F463D842E7337CD",
+        "bytes":  31818,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\定制服饰\\原有六套.yaml",
+        "sha256":  "CE6BEE84D684B2F075D2667738F3AE1CAFD08BE2E24B0B5B280B61E0D692B8C2",
+        "bytes":  15983,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\定制服饰\\扩展一.yaml",
+        "sha256":  "3422D24EB25F0545B99C9FD256C8ABFE6F15F6D1E4EB7D7C8BEE03C4F46D5D73",
+        "bytes":  15343,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\定制服饰\\扩展三_素色三套.yaml",
+        "sha256":  "02BE0C31EAF95B75BB23529B91F8E86DF75811B2AEC363D440F5730843FFE42B",
+        "bytes":  6371,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\定制服饰\\扩展二.yaml",
+        "sha256":  "34F0C36FF56C07F267003849C89F73A3F55BA0FB52A53DB6BEC682C0BA9E6605",
+        "bytes":  11846,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\定制服饰扩展\\阮忘忧_定制服饰扩展一.yaml",
+        "sha256":  "1DFD3F9F49CAF992C23EBC1264390247CC5B3FB06783F730CA52FE33AA49BCF6",
+        "bytes":  16955,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\定制服饰扩展\\阮忘忧_定制服饰扩展三_素色三套.yaml",
+        "sha256":  "883D8FEBB97A86E4EBCDB82264F775FA0E8BAD1CD9D909B6F8C6306C4F177EFD",
+        "bytes":  7563,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\灯火阑珊-世界书\\红颜\\阮忘忧\\定制服饰扩展\\阮忘忧_定制服饰扩展二_神女凌空.yaml",
+        "sha256":  "CF3C83DA2A0DC0B6A95B53913EE3DD12E4475174FA561738278DE9618D178414",
+        "bytes":  17769,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\古风文风.yaml",
+        "sha256":  "3F62A322B7B570AD47D490B5B75044927C4CF4DC788CF44504BE4FCC18062724",
+        "bytes":  2383,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\境界.yaml",
+        "sha256":  "2BDD3349106A6B14C025F333BC09F9EAF11CBE495728028C97190225A8A11C54",
+        "bytes":  2137,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\多开局，不同变量开局设计",
+        "sha256":  "CBFFDD767ED7747F422A62349A494D6129E5CF8647DDD565F2F2CA014B742757",
+        "bytes":  3280,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局initvar.yaml",
+        "sha256":  "C5B8CF9D87C05F98056060BCB28C736595ACE80C224FA367CBBE3B122F6DF922",
+        "bytes":  8642,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局七-晚棠.yaml",
+        "sha256":  "A8909DF53028D6006E681E2BE62C88AF031B0FC7FCA1AADEDBC90A1796DC1581",
+        "bytes":  15493,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局三-白清弦.yaml",
+        "sha256":  "E1E9EC1E73B30E6AFF41C1653A26E2A73C53F8168D79948A821C21C40C149A69",
+        "bytes":  13793,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局九-阮忘忧.yaml",
+        "sha256":  "267530250D15FBB7ADA7BC0A5EFB1286690A9BB200694CC5524AFC683008ABAE",
+        "bytes":  10265,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局二-虞汐颜.yaml",
+        "sha256":  "1C8AB993F1209E306674DD294C3680F9AFB5022397E5CE70DB7F26F9DCC47BCF",
+        "bytes":  15589,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局五-南宫云裳.yaml",
+        "sha256":  "66E21351BAAD9952597C271EF6A3B2003777A12D4CF74C64088FC3AE43F4B739",
+        "bytes":  12676,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局八-一-梦杳泠.yaml",
+        "sha256":  "E4C5F297B3602CE5083A81670AAA0C86B5F46541C1F48DBAB79D1DB987B9C5F4",
+        "bytes":  12372,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局八-梦杳泠.yaml",
+        "sha256":  "8F64E64DED3971CA5716705256F5C74B2090435D97AFF374A80F82183843D6B8",
+        "bytes":  13311,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局六-白清弦.yaml",
+        "sha256":  "BE8A2123229E54FF35B23370508E6ACF5CDAD79BE79E43CEFA9225D4C78B6212",
+        "bytes":  11501,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十-阮忘忧.yaml",
+        "sha256":  "AD79AB0A8F7B9D6AAE9ABC0D0F8937D0B54AF0B8437D294075C047E21262E90C",
+        "bytes":  12413,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十一-虞汐颜.yaml",
+        "sha256":  "9E11863340E80FE1C95A166D39EFC9E82A800CF8140F98B5ADD4A862AD0DD0BD",
+        "bytes":  15710,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十七-晚棠.yaml",
+        "sha256":  "C0B23161BD9ECDB2AD96FDC5E987F510B32BED739457FF4C54A0E3509312DB9A",
+        "bytes":  16763,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十三-朔望舒.yaml",
+        "sha256":  "2B39AB39325063E23E8CFACE4B7D73E212B7677B95D4B65C4C758F024E52EB0E",
+        "bytes":  12767,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十二-朔璃鸢.yaml",
+        "sha256":  "32F48EFFCC2C2084BA863CA6655CEB756ADE0F11FBED5C5690230BF7E2238D9A",
+        "bytes":  11354,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十五-许听雨.yaml",
+        "sha256":  "18DBF1ADE2B332F2A2D949C65A90224FCCA45646C7D945F227F978A02190853B",
+        "bytes":  11608,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十八-朔璃鸢.yaml",
+        "sha256":  "088C993C3217D4CD486D84F5122F78E998952C4D5B6502A744F3CAF368D93AC0",
+        "bytes":  21627,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十六-羽岚.yaml",
+        "sha256":  "BAB39740BA1F80B2759B221916FD9B9C2A75BC87BD6C1C2D1C865EA836BB1DD9",
+        "bytes":  25778,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十四-安迟迟.yaml",
+        "sha256":  "22C44D685F3CFD09970B88D58F0E1D1E0625969BEFD9155E881957712C359FA4",
+        "bytes":  15318,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局四-许听雨.yaml",
+        "sha256":  "B14C4BE4F2D236EE64A6EB5AB5502F8BF80FBC76B41E3060E40EE8C5EA0ED4FA",
+        "bytes":  12798,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局索引.yaml",
+        "sha256":  "769F84808134E9BA8C4BA7DE6654BC3E05F69ED187B952EE11456E138295F5B5",
+        "bytes":  4524,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\白清弦NSFW开局.yaml",
+        "sha256":  "F56B5777D133AAA7569E1635693F923F4D3ADBCF1B696660E6E9BA3B99579A1C",
+        "bytes":  12670,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\第一条消息\\开局十四\\initvar.yaml",
+        "sha256":  "30026266CF6CCFFDEFF7647C8EEEA1A2350F0A3CB8AA29B1567F645E335C6D8A",
+        "bytes":  6032,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\美化正则\\美化正则1.yaml",
+        "sha256":  "2324EA1351308D397630C772A4971C53962A8FEAED90C08427B682D59B3B32C2",
+        "bytes":  5526,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\美化正则\\美化正则2.yaml",
+        "sha256":  "1F2697CD35B3504B73BEA512CD3D6591CA410EA31CDF6963D467F663A83CEA3B",
+        "bytes":  4933,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\脚本\\动态世界书管理\\index.ts",
+        "sha256":  "6BECBE1DB63A5EA207A2244D484423B9C089E09CE22B4C7355891EB5BA01D891",
+        "bytes":  35690,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊\\脚本\\动态世界书管理\\README.md",
+        "sha256":  "B5AA1AF236F02B452D8A9117A1071D8A644DA89A471532AF00C1ADF98CB79DFA",
+        "bytes":  7055,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊-变量结构\\companion-aliases.ts",
+        "sha256":  "F65248992DF2C8F100CF0CC2DB0A1C94D9BA871C8D1BBA0140AFB177E74706BA",
+        "bytes":  907,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊-变量结构\\extra-analysis-prompt.ts",
+        "sha256":  "DCDEE298B5455CAAA303FB9E6C0ED62C70514D93AD5C44AD5B933757FD2C2767",
+        "bytes":  9525,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "src\\灯火阑珊-变量结构\\guard.ts",
+        "sha256":  "6C082BB7DB1D2388EA544E7E30BA1835E0F0F6D4C900953194F4B64DFDD5DD73",
+        "bytes":  27320,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\灯火阑珊-变量结构\\index.ts",
+        "sha256":  "CEDEE7F6132A97EFEEF81746FCB4F2F3A8F6861DB7DB965E13B1A8DEB266946C",
+        "bytes":  856,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "src\\踏月寻仙-变量结构\\index.ts",
+        "sha256":  "2098E5718F1F4361E2497A358FB3584E05B17B0262035AEDE5646E5B8E33A5AA",
+        "bytes":  874,
+        "fromPreEditBackup":  false
+    },
+    {
+        "path":  "dist\\灯火通明\\index.html",
+        "sha256":  "906271E503FE7A83ABC588307B401C3E289073260FA6147FD35900DB64953B62",
+        "bytes":  2599579,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "dist\\灯火阑珊\\index.html",
+        "sha256":  "998F76ECBDA607B9344E5A5A5F6A79B95C041DFFDF36440D3FB47022C425A94B",
+        "bytes":  1414266,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "dist\\灯火阑珊-变量结构\\index.js",
+        "sha256":  "69EB348C8C7661DB5E0D300809D5117CACC4DE76BFF2EEAAFD43AF009D7D08E2",
+        "bytes":  174940,
+        "fromPreEditBackup":  true
+    },
+    {
+        "path":  "dist\\踏月寻仙-变量结构\\index.js",
+        "sha256":  "A8CCD18907474CBD81F45B046CF56CB0284B137BFA7E250A469E0134E642229F",
+        "bytes":  174953,
+        "fromPreEditBackup":  true
+    }
+]

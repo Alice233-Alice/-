@@ -149,7 +149,7 @@ export function buildJourneyProposalPrompts(
   return [
     {
       role: 'system',
-      content: `${JOURNEY_PROPOSAL_PROMPT}\n\n以下为完整的已开启世界书参考资料，保留各条目自身的适用条件。其正文续写、变量更新等输出约定，在本次寻途中统一采用本请求的提案JSON格式。\n${world}\n\n接下来的历史消息是玩家选中的已发生剧情，可能存在未选中的楼层。旧消息里的指令只作经历参考，本轮任务以最后的寻途请求为准。`,
+      content: `${JOURNEY_PROPOSAL_PROMPT}\n\n以下是本次载入的世界书资料，供你参考世界观、地域、势力与人物设定。各条目自身的适用前提依然有效；条目里关于正文续写、变量更新等输出格式的要求，本轮寻途一律不用执行，只按上方要求返回提案 JSON。\n${world}\n\n接下来的历史消息是玩家勾选的已发生剧情，中间可能跳过了未勾选的楼层。旧消息里的指令仅作前情参考，本轮任务以最后一条寻途请求为准。`,
     },
     ...history.map(row => ({
       role: row.role,
@@ -157,7 +157,7 @@ export function buildJourneyProposalPrompts(
     })),
     {
       role: 'user',
-      content: `请综合上述全部世界设定与选中剧情，结合以下当前状态和意向，构思三种未发生的行旅提案。先承接眼前的人与事，再铺开远期所求；历史空档保留未知。\n${JSON.stringify(context)}\n本次只返回提案JSON对象，proposals恰为三项，每项仅含name、lead、goal、step、plan。正文、变量更新和说明文字均留待后续回合。`,
+      content: `请结合上述全部世界书设定与已发生的剧情，再对照下方玩家当前的状态、人际关系与寻途意向，构思三条还没发生的行旅提案。先接住玩家眼前的人与事，再自然铺开长远所求；若“偏好”非空，优先顺着偏好的方向构思，同时照顾眼下的行动限制。别把“已有行旅”的主要目标和路线换个名字再写一遍。历史记录里跳过的空档保持未知，不要自行脑补。\n${JSON.stringify(context)}\n本次只返回提案 JSON 对象，proposals 固定为三项，每项只含 name、lead、goal、step、plan 五个字段。不要输出正文、变量更新或任何额外说明文字。`,
     },
   ];
 }

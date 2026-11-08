@@ -54,8 +54,13 @@
           </button>
         </header>
         <p class="task-goal">{{ task.目标 }}</p>
-        <p v-if="task.进度" class="task-progress"><span>进展</span>{{ task.进度 }}</p>
-        <p class="task-next"><span>下一步</span>{{ task.下一步 || '先理一理手头线索，看看从何处着手。' }}</p>
+        <p v-if="task.进度" class="task-progress">
+          <span class="ledger-field-label">进展</span><span class="ledger-field-copy">{{ task.进度 }}</span>
+        </p>
+        <p class="task-next">
+          <span class="ledger-field-label">下一步</span
+          ><span class="ledger-field-copy">{{ task.下一步 || '先理一理手头线索，看看从何处着手。' }}</span>
+        </p>
         <footer>
           <AffairsLinks v-bind="taskReferences[id]" />
           <button
@@ -90,8 +95,12 @@
         </header>
         <p v-if="event.来源" class="event-origin">闻自 · {{ event.来源 }}</p>
         <p>{{ event.事件 }}</p>
-        <p v-if="event.最近变化" class="event-change"><span>近况</span>{{ event.最近变化 }}</p>
-        <p v-if="event.下一步 && event.isActive" class="task-next"><span>切入</span>{{ event.下一步 }}</p>
+        <p v-if="event.最近变化" class="event-change">
+          <span class="ledger-field-label">近况</span><span class="ledger-field-copy">{{ event.最近变化 }}</span>
+        </p>
+        <p v-if="event.下一步 && event.isActive" class="task-next">
+          <span class="ledger-field-label">切入</span><span class="ledger-field-copy">{{ event.下一步 }}</span>
+        </p>
         <div v-if="event.可见影响.length" class="effects">
           <span v-for="effect in event.可见影响" :key="effect">{{ effect }}</span>
         </div>
@@ -116,7 +125,7 @@
         </footer>
       </article>
       <div v-if="!events.length" class="calm-state">
-        <p>近来还没听到什么新鲜事，四下走走，或许便有消息。</p>
+        <p>近来暂无确切新闻入册。沿着眼前的人与事，或许能听见新的消息。</p>
         <button type="button" class="intent-button" :disabled="affairs.interactionDisabled" @click="askForNews">
           打听近闻
         </button>
@@ -330,111 +339,156 @@ watch(
   color: var(--gold);
   font-size: 11px;
 }
+
 .ledger-section {
-  margin-bottom: 20px;
+  margin-bottom: 28px;
 }
 h2 {
-  font-size: 18px;
-  margin: 0 0 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line-subtle);
   display: flex;
-  gap: 10px;
   align-items: center;
-  font-family: 'Songti SC', STSong, serif;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-subtle);
+  color: var(--text-accent);
+  font:
+    600 18px 'Noto Serif SC',
+    'Songti SC',
+    STSong,
+    serif;
+  letter-spacing: 0.06em;
 }
 h2 i {
   color: var(--gold);
-  font-size: 16px;
+  font-size: 15px;
 }
 h2 > span {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 400;
   margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 .ledger-card {
-  padding: 9px 2px 10px;
-  margin-bottom: 5px;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--line-subtle);
-  border-radius: 0;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid color-mix(in srgb, var(--line-subtle) 80%, transparent);
+  border-radius: 6px;
+  background: linear-gradient(115deg, color-mix(in srgb, var(--surface-inset) 62%, transparent), transparent 85%);
   overflow-wrap: anywhere;
+}
+.ledger-card.tracked {
+  border-left: 2px solid color-mix(in srgb, var(--gold) 65%, var(--line-subtle));
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--gold) 4%, var(--surface-inset)),
+    color-mix(in srgb, var(--surface-inset) 40%, transparent)
+  );
 }
 .ledger-card.tracked h3 {
   color: var(--gold);
 }
 .ledger-card:focus {
-  outline: 1px solid var(--gold);
+  outline: 2px solid var(--gold);
   outline-offset: 3px;
 }
 .ledger-card header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 5px;
+  gap: 9px;
+  margin-bottom: 10px;
 }
 h3 {
-  font-size: 15px;
-  font-weight: 600;
+  flex: 1 1 150px;
+  min-width: 0;
   margin: 0;
-  flex: 1;
+  font:
+    600 16px 'Noto Serif SC',
+    'Songti SC',
+    STSong,
+    serif;
+  line-height: 1.6;
+  letter-spacing: 0.035em;
 }
 .type-label {
-  font-size: 11px;
-  color: var(--gold);
+  flex: none;
   padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  border-radius: 2px;
+  color: var(--gold);
+  font-size: 11px;
   white-space: nowrap;
 }
 .ledger-card p {
-  margin: 4px 0;
+  margin: 7px 0;
   font-size: 13px;
-  line-height: 1.65;
+  line-height: 1.85;
   color: var(--text-secondary);
 }
-.task-progress > span,
-.task-next > span,
-.event-change > span {
+.ledger-card .task-goal {
+  color: var(--text-primary);
+}
+.task-progress,
+.task-next,
+.event-change {
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr);
+  gap: 10px;
+}
+.ledger-field-label {
   color: var(--gold);
-  margin-right: 12px;
   font-size: 12px;
+  padding-top: 1px;
+  white-space: nowrap;
+}
+.ledger-field-copy {
+  min-width: 0;
 }
 .ledger-card .task-next {
+  margin-top: 12px;
+  padding-left: 11px;
+  border-left: 2px solid color-mix(in srgb, var(--gold) 35%, transparent);
   color: var(--text-primary);
 }
 .track-button {
-  display: flex;
+  display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 6px;
-  border: 0;
-  padding: 4px 0 4px 8px;
+  margin-left: auto;
+  padding: 5px 8px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 3px;
   color: var(--text-secondary);
   background: transparent;
   font-size: 11px;
+  line-height: 1.5;
   cursor: pointer;
 }
 .track-button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
   color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
 }
 footer {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 5px;
+  gap: 10px;
+  margin-top: 12px;
 }
 footer :deep(.affairs-links) {
   margin-top: 0;
 }
 footer > button,
 .result-link {
+  padding: 5px 0;
   border: 0;
-  padding: 0;
   background: transparent;
   color: var(--gold);
   font-size: 12px;
+  line-height: 1.6;
   text-align: left;
   cursor: pointer;
 }
@@ -442,17 +496,28 @@ footer > button,
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 5px 0;
   border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
-  border-radius: 0;
-  padding: 4px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
   background: transparent;
   color: var(--gold);
   font-size: 12px;
+  line-height: 1.6;
   cursor: pointer;
 }
 footer > .intent-button {
   margin-left: auto;
+}
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+button:hover:not(:disabled) {
+  color: var(--text-accent);
+}
+.event-card {
+  border-left-color: color-mix(in srgb, var(--jade) 40%, var(--line-subtle));
 }
 .event-card h3 {
   color: var(--jade);
@@ -476,12 +541,19 @@ small {
   font-size: 11px;
   color: var(--jade);
 }
+.result-card {
+  padding: 12px 14px;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  background: transparent;
+}
 .result-card h3 {
   color: var(--text-primary);
+  font-size: 15px;
 }
 .result-card .result-link {
   display: block;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 .empty-hint,
 .calm-state {
@@ -490,14 +562,29 @@ small {
   color: var(--text-secondary);
   padding: 12px 0;
 }
+.ledger-section > .empty-hint,
+.calm-state {
+  margin: 8px 0;
+  padding: 14px 16px;
+  border-left: 1px solid var(--line-subtle);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 2%, transparent), transparent);
+}
+.calm-state p {
+  margin: 0 0 8px;
+}
 .reputation-section {
-  color: var(--text-secondary);
-  font-size: 13px;
+  margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--line-subtle);
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 summary {
   cursor: pointer;
+}
+.reputation-section > summary {
+  color: var(--text-primary);
+  font-family: 'Noto Serif SC', 'Songti SC', STSong, serif;
 }
 .reputation-row {
   display: flex;
@@ -521,13 +608,19 @@ button:disabled {
     padding: 14px;
   }
   .ledger-card {
-    padding: 9px 0;
+    padding: 14px 12px;
   }
   .ledger-card header {
     gap: 8px;
   }
-  .track-button {
-    padding-left: 0;
+  .ledger-card h3 {
+    flex-basis: 100%;
+  }
+  .result-card {
+    padding: 10px 12px;
+  }
+  footer > .intent-button {
+    margin-left: 0;
   }
 }
 </style>

@@ -50,7 +50,7 @@ test('旧任务和正式版共用结构兼容，结果归档幂等且不结算�
   assert.deepEqual(Object.keys(data.任务列表), ['旧约']);
   assert.deepEqual(Object.keys(data._近期任务结果), ['往事3', '往事4', '往事5', '往事6', '往事7']);
   assert.equal(data._近期任务结果.往事7.状态, '已放弃');
-  assert.equal(data.本尊.灵石, 15);
+  assert.equal(data.本尊.灵石.下品灵石, 15);
   assert.deepEqual(Schema.parse(data), data);
 });
 
@@ -76,7 +76,7 @@ test('抱雪峰任务经过实际命令守卫更新节点、关联信息并归�
   assert.deepEqual(ended.errors, []);
   assert.equal(ended.finalData.任务列表.断剑重续, undefined);
   assert.equal(ended.finalData._近期任务结果.断剑重续.结果, '调理阶段完成，已约定铸剑。');
-  assert.equal(ended.finalData.本尊.灵石, 15);
+  assert.equal(ended.finalData.本尊.灵石.下品灵石, 15);
   assert.ok(describeAffairsChanges(updated.finalData, ended.finalData).some((change: any) => change.kind === 'result' && change.id === '断剑重续'));
 });
 

@@ -1,125 +1,78 @@
-# 阿姊生图提示词
-# 核心特征：江南水乡温润骨相、漆黑过腰青丝、桃木簪低鬟、秋水杏眼、不点而朱樱唇、冷白玉肤、素色凡绢襦裙、贴肉红绳白玉平安坠
-# 设计理念：凡俗居家的温婉阿姊，不染灵药仙气，唯余草木冷香与半分幽愁自持
-# 编写原则：精简聚焦，以黑、白、素色为主，取半身特写氛围，避免堆砌过多标签分散模型注意力
-# 眼瞳防染色：以 (pure black eyes:1.4) 锁定瞳色，红唇等暖色标签尽量后置并隔开；若仍泛红，可继续加重负面 (red eyes:1.5)
-# 背景说明：白底与黑底并列，按需取其一；换纯色背景后建议一并保留 simple background
-# 发色守护：以 (pure black hair:1.2) 锁定纯黑发，不写任何挑染标签；负面保留 (white streaks:1.5), (white highlights:1.4) 等，防模型自行添白
-# 去撞脸要点：银饰撤离头发（桃木簪替老银簪），衣色以秋香绿腰封破纯白；负面压白清弦的白玉银簪与眉心红钿、朔璃鸢的红发带与白高光
-# 场景辑说明：烟雨姑苏、溪畔浣纱、春夜纳凉、雪夜围炉四组，每组上 sfw 下 nsfw，共用发式与负面提示词；配色沿用月白、秋香绿、浅绛
-# 新订六式见文末：雪夜围炉（补齐原场景组）、厨下晨炊、灯下缝衣、上元提灯、晨起梳妆、篱下拈梅；均 upper body、SFW/NSFW 双配，设计注记随条附于段首
-# 道具与夜灯避忌：手炉、蒸碗、针线、纸灯、木梳、白梅若崩手，删手持词退成空手版；夜灯只用 warm dim lighting / warm lantern light，禁 candle 系词
-#
-# ==========================================
-# 分层骨架（她的排法：身份层一整条连缀到底，神态分底色与当刻两次落）
-#   恒定层·她的脸 —— 以下一段跨条逐字复用，写新条时整段照抄，一个字别换：
-#     masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face,
-#     (pure black hair:1.2), {发式：low bun / half updo}, loose hair strands, (plain wooden hairpin:1.3),
-#     (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes,
-#     red lips, pale skin, collarbone, gigantic breasts
-#   变量层·这一式的戏 —— 恒定层之后依次接：
-#     ① 服饰槽   {本式衣装}，固定件收尾：thin red cord with white jade pendant, jade bracelet
-#     ② 道具动静 {本式手持物：油纸伞、浣纱篮、团扇、手炉、蒸碗、针线、纸灯、木梳、梅枝}，崩手即删词退空手版
-#     ③ 神态底色 gentle expression, soft gaze, faint smile
-#     ④ 视线定格 serene expression, looking at viewer
-#     ⑤ 背景光照 (pure white/black background:1.4), simple background, {soft lighting / soft daylight / warm lantern light / warm firelight / warm dim lighting}
-#     ⑥ 收尾     cinematic
-#   NSFW 换法：最前换 nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin；服饰换 half-slipped (衣装), open clothes；
-#             神态换 half-lidded eyes, heavy blush；恒定层的发眸肤色与背景光照一律不动。
-#   神态是两段落的：前半 gentle / soft / faint 是底色，后半 serene 是当刻，两段都留，别合并成一堆气质词。
-#   与檀织烟那套的分别就在这：檀织烟是锚点聚成一段、神态甩到末尾；阿姊是脸先连缀写尽，神态分两处落笔。
-# ==========================================
+# 阿姊生图提示词 · 纯黑底精炼辑
+# 共用骨架：1girl, solo, upper body, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2)
+# 背景后缀：black background, simple background, soft warm lighting
 
-半身特写_sfw_白底:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (white hanfu:1.3), (plain silk hanfu:1.2), crossed collar, wide sleeves, (pale olive-green silk sash:1.3), (silk sachets hanging from sash:1.1), translucent white gauze outer robe, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure white background:1.4), simple background, soft lighting, cinematic
+阿姊_半身特写_sfw:
+  1girl, solo, upper body, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), (sheer light blue hanfu:1.3), white floral moxiong, white flower embroidery, crossed collar, wide waist sash, head tilt, dimples, gentle smile, looking at viewer, black background, simple background, soft warm lighting
 
-半身特写_sfw_黑底:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (white hanfu:1.3), (plain silk hanfu:1.2), crossed collar, wide sleeves, (pale olive-green silk sash:1.3), (silk sachets hanging from sash:1.1), translucent white gauze outer robe, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure black background:1.4), simple background, soft lighting, cinematic
-
-半身特写_nsfw_白底:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (white hanfu:1.3), open clothes, (pale olive-green silk sash:1.3), (silk sachets hanging from sash:1.1), translucent white gauze outer robe, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure white background:1.4), simple background, soft lighting, cinematic
-
-半身特写_nsfw_黑底:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (white hanfu:1.3), open clothes, (pale olive-green silk sash:1.3), (silk sachets hanging from sash:1.1), translucent white gauze outer robe, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure black background:1.4), simple background, soft lighting, cinematic
-
-烟雨姑苏_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), rain-wet hair strands, (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (moon-white hanfu:1.3), (plain silk hanfu:1.2), crossed collar, wide sleeves, (pale olive-green silk sash:1.3), wet clothes clinging to body, holding oil-paper umbrella, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure black background:1.4), simple background, rain drops, soft lighting, cinematic
-
-烟雨姑苏_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), rain-wet hair strands, (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (moon-white hanfu:1.3), open clothes, (wet see-through thin silk clinging to body:1.3), skin visible through fabric, (pale olive-green silk sash:1.3), closed oil-paper umbrella at her side, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure black background:1.4), simple background, rain drops, soft lighting, cinematic
-
-溪畔浣纱_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (autumn-green hanfu:1.3), (plain silk ruqun:1.2), crossed collar, (sleeves rolled up:1.2), bare arms, (skirt hem tucked at waist:1.2), bare feet, standing in shallow water, water ripples, (wicker basket with wet silk at her feet:1.1), thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure white background:1.4), simple background, soft daylight, cinematic
-
-溪畔浣纱_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (autumn-green hanfu:1.3), open clothes, (wet see-through thin silk clinging to body:1.3), skin visible through fabric, wet skin, water drops, bare feet, sitting on a river stone, water ripples, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure white background:1.4), simple background, soft daylight, cinematic
-
-春夜纳凉_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (pale crimson thin summer robe:1.2), (sheer silk, loose fit:1.1), (plain clothes, solid color:1.2), open collar, holding a round fan, sitting on a bamboo mat, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure black background:1.4), simple background, warm lantern light, cinematic
-
-春夜纳凉_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, (pale crimson thin summer robe:1.2), (plain clothes, solid color:1.2), robe half undone, slipped off one shoulder, bare shoulders, (round fan held in front of her chest:1.3), faint sweat, sitting on a bamboo mat, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure black background:1.4), simple background, warm lantern light, cinematic
+阿姊_半身特写_nsfw:
+  nsfw, 1girl, solo, upper body, nude, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-slipped (sheer light blue hanfu:1.3), pulled down white floral moxiong, off shoulder, head tilt, blush, shy gaze, looking at viewer, black background, simple background, soft warm lighting
 
 # ==========================================
-# 新订古风六式：均 upper body，SFW/NSFW 双配，上 sfw 下 nsfw
-# 共用锚点不变：发色纯黑、桃木簪、纯黑瞳、红绳白玉平安坠、青白玉镯、gigantic breasts 单标签
-# 配色仍限月白、秋香绿、浅绛；不添金银饰，不染灵药仙气
-# 道具避忌：手炉、蒸碗、针线、纸灯、木梳、白梅若崩手，删对应手持词退成空手版
-# 夜灯只用 warm dim lighting / warm lantern light 承载，勿添 candle 系词
+# 定制古风款式（纯黑底·极简版）
 # ==========================================
 
-# 一式 · 雪夜围炉（补原四场景组之缺）
-# 意象：窗外落雪，她拥浅绛披风坐暖光里，手心拢一只小暖炉。
-# 夜雪用 falling snow、火光用 warm firelight 承载，不铺火盆实物；想要炭盆可给当条加 (small charcoal brazier:1.1)。
-雪夜围炉_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (moon-white hanfu:1.3), (plain silk ruqun:1.2), crossed collar, wide sleeves, (pale crimson cloak over her shoulders:1.3), holding a hand warmer, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure black background:1.4), simple background, falling snow, warm firelight, cinematic
+# 一式 · 执卷考校（假正经才女 · 手持古籍）
+阿姊_执卷考校_sfw:
+  1girl, solo, upper body, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), (white and light blue hanfu:1.3), white floral moxiong, crossed collar, wide sleeves, holding book, head tilt, teasing smile, looking at viewer, black background, simple background, soft warm lighting
 
-雪夜围炉_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (moon-white hanfu:1.3), (plain silk ruqun:1.2), open clothes, (pale crimson cloak slipped off one shoulder:1.2), bare shoulders, holding a hand warmer, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure black background:1.4), simple background, falling snow, warm firelight, cinematic
+阿姊_执卷考校_nsfw:
+  nsfw, 1girl, solo, upper body, nude, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-slipped (white and light blue hanfu:1.3), open clothes, holding book against stomach, blush, flustered, looking at viewer, black background, simple background, soft warm lighting
 
-# 二式 · 厨下晨炊
-# 意象：晨光里挽袖下厨，捧一碗热气，氤氲掩不住眉目温软。
-# 围裙若出成现代样式，删 (plain cloth apron:1.1)，劳作感由挽袖承担。
-厨下晨炊_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (autumn-green short jacket:1.3), (moon-white ruqun:1.2), crossed collar, (sleeves rolled up:1.2), (plain cloth apron:1.1), holding a steaming bowl, steam, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure white background:1.4), simple background, soft morning light, cinematic
+# 二式 · 碧水扎染（图一：薄荷绿扎染纱裙）
+阿姊_碧水扎染_sfw:
+  1girl, solo, cowboy shot, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), (mint green and white hanfu:1.4), (tie-dye dress:1.2), puff sleeves, green waist belt, layered skirt, hands raised, dimples, gentle smile, looking at viewer, black background, simple background, soft rim lighting
 
-厨下晨炊_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (autumn-green short jacket:1.3), open clothes, (moon-white ruqun:1.2), sleeves rolled up, holding a steaming bowl, steam, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure white background:1.4), simple background, soft morning light, cinematic
+阿姊_碧水扎染_nsfw:
+  nsfw, 1girl, solo, cowboy shot, nude, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-slipped (mint green and white hanfu:1.4), open clothes, loose green waist belt, blush, shy gaze, looking at viewer, black background, simple background, soft rim lighting
 
-# 三式 · 灯下缝衣
-# 意象：夜灯一盏，膝上白绢未成衣，针脚细密如她心事。
-# 针线若崩手，删 sewing 与手持词，退成抱绢静坐版。
-灯下缝衣_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (moon-white plain robe:1.3), (pale crimson sash:1.2), loose collar, sewing, holding a needle and thread, (white cloth in her lap:1.2), thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure black background:1.4), simple background, warm dim lighting, cinematic
+# 三式 · 红梅齐胸（图二：白底绣梅浅绿齐胸襦裙）
+阿姊_红梅齐胸_sfw:
+  1girl, solo, cowboy shot, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), (white and light green qixiong ruqun:1.4), (hanfu:1.2), red floral embroidery, green ribbon bow, wide sleeves, hands clasped, gentle smile, looking at viewer, black background, simple background, soft warm lighting
 
-灯下缝衣_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (moon-white plain robe:1.3), open clothes, (pale crimson sash:1.2), (white cloth in her lap:1.2), thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure black background:1.4), simple background, warm dim lighting, cinematic
+阿姊_红梅齐胸_nsfw:
+  nsfw, 1girl, solo, cowboy shot, nude, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-slipped (white and light green qixiong ruqun:1.4), open clothes, untied green ribbon, blush, shy gaze, looking at viewer, black background, simple background, soft warm lighting
 
-# 四式 · 上元提灯
-# 意象：雪夜灯市，她提一盏纸灯回望，灯影在眼里温成一汪。
-# 灯用纸灯，不碰 candle 系词；纸灯崩手可删词退空手版。
-上元提灯_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (autumn-green hanfu:1.3), (plain silk ruqun:1.2), crossed collar, wide sleeves, (moon-white pibo:1.2), holding a paper lantern, (warm lantern light:1.2), falling snow, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure black background:1.4), simple background, cinematic
+# 四式 · 绯霞流袖（图三：桃色半透大袖衫 · 绯绦玄裙）
+阿姊_绯霞流袖_sfw:
+  1girl, solo, cowboy shot, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), (translucent peach hanfu robe:1.4), crimson trim, wide sleeves, (red trailing ribbons:1.3), pale peach inner robe, crossed collar, black high-waist skirt, red waist sash, arms outstretched, gentle smile, looking at viewer, black background, simple background, warm rim lighting
 
-上元提灯_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (autumn-green hanfu:1.3), (plain silk ruqun:1.2), open clothes, (moon-white pibo:1.2), holding a paper lantern, (warm lantern light:1.2), falling snow, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure black background:1.4), simple background, cinematic
+阿姊_绯霞流袖_nsfw:
+  nsfw, 1girl, solo, cowboy shot, nude, black hair, long hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-slipped (translucent peach hanfu robe:1.4), open pale peach inner robe, crimson trim, (red trailing ribbons:1.3), loose red waist sash, black high-waist skirt, blush, shy gaze, looking at viewer, black background, simple background, warm rim lighting
 
-# 五式 · 晨起梳妆（半束发，与其余低鬟区分）
-# 意象：晨起半束青丝，执桃木梳，衣带未系，静里透一点慵。
-# 此式发式换 (half updo) 并留 long hair 铺陈，与其余五式低鬟拉开差别。
-晨起梳妆_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), (half updo:1.2), long hair, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (moon-white inner robe:1.3), (autumn-green thin outer robe:1.2), loose collar, untied sash, holding a wooden comb, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure white background:1.4), simple background, soft morning light, cinematic
+# ==========================================
+# 第二部分：「添盏式」零道具凑脸透视特辑（自由构图 · 纯黑底）
+# 核心机制：去掉 upper body/cowboy shot 裁切锁与一切手持物，纯靠前倾/俯仰/背手触发自然浅透视，令脸部贴近镜头焦点
+# ==========================================
 
-晨起梳妆_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), (half updo:1.2), long hair, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (moon-white inner robe:1.3), open clothes, (autumn-green thin outer robe slipped off one shoulder:1.2), bare shoulders, holding a wooden comb, thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure white background:1.4), simple background, soft morning light, cinematic
+# 五式 · 添盏原式（大袖披帛 · 微倾浅笑）
+阿姊_添盏原式_sfw:
+  1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), polite composed smile, teasing gaze, looking at viewer, (light blue and white wide-sleeve robe with pibo:1.3), wide sleeves, leaning forward slightly, soft warm lighting, black background, simple background
 
-# 六式 · 篱下拈梅
-# 意象：篱边白梅初绽，她拈一枝在指间，暗香与她衣上草木气相亲。
-# 白梅若糊作头饰，删 (white plum blossoms:1.2)，留持枝姿势。
-篱下拈梅_sfw:
-  masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, gigantic breasts, (pale crimson outer jacket:1.2), (moon-white ruqun:1.2), crossed collar, wide sleeves, holding a white plum branch, (white plum blossoms:1.2), thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, serene expression, looking at viewer, (pure white background:1.4), simple background, falling petals, soft lighting, cinematic
+阿姊_添盏原式_nsfw:
+  nsfw, nude, blush, sweating, 1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, damp hair strands on neck, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-closed eyes, elegant facade crumbling, shy affectionate gaze, looking at viewer, undone (light blue and white wide-sleeve robe with pibo:1.3), off shoulder, leaning forward slightly, soft warm lighting, black background, simple background
 
-篱下拈梅_nsfw:
-  nsfw, nude, gigantic breasts, exposed nipples, blush, glistening skin, masterpiece, best quality, absurdres, 1girl, solo, mature female, upper body, soft face, (pure black hair:1.2), low bun, loose hair strands, (plain wooden hairpin:1.3), (pure black eyes:1.4), (detailed eyes:1.2), beautiful detailed eyes, red lips, pale skin, collarbone, half-slipped (pale crimson outer jacket:1.2), open clothes, (moon-white ruqun:1.2), bare shoulders, holding a white plum branch, (white plum blossoms:1.2), thin red cord with white jade pendant, jade bracelet, gentle expression, soft gaze, faint smile, half-lidded eyes, heavy blush, looking at viewer, (pure white background:1.4), simple background, falling petals, soft lighting, cinematic
+# 六式 · 背手审视（双手背腰 · 俯身歪头凑脸）
+阿姊_背手审视_sfw:
+  1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), playful teasing smile, head tilt, looking at viewer, (sheer light blue and white hanfu:1.3), white floral moxiong, wide sleeves, leaning forward, arms behind back, foreshortening, soft warm lighting, black background, simple background
 
-负面提示词: (angry:1.3), sharp eyes, fierce expression, furrowed brow, glaring, (heavy makeup:1.3), (red eyeshadow:1.5), (eyeshadow:1.4), (red eyes:1.5), (red pupils:1.5), (pink eyes:1.4), (glowing eyes:1.3), (red eyeliner:1.5), (eyeliner:1.2), (red forehead mark:1.3), forehead mark, (silver hairpin:1.2), (silver hair ornament:1.2), (white hairdress:1.2), elaborate hair ornament, (hair tassel:1.3), (red tassel:1.3), (red hair ornament:1.3), (red hair ribbon:1.2), (ornate hairpin:1.2), (hair ribbon:1.2), (white streaks:1.5), (silver streaks:1.4), (frosty white streaks:1.4), (white highlights:1.4), (white hair:1.3), (silver hair:1.2), (grey hair:1.2), (floral embroidery:1.2), (red sash:1.2), (earrings:1.2), (grey eyes:1.3), colored sclera, red sclera, (mature face:1.2), wrinkles, bad anatomy, bad hands, extra fingers, asymmetric eyes, dull eyes, text, watermark, signature, worst quality, low quality, deformed face, (room background:1.2), complex background, (indoor scenery:1.2), (modern clothing:1.3), (western clothing:1.2), (kimono:1.2)
+阿姊_背手审视_nsfw:
+  nsfw, nude, blush, sweating, 1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, damp hair strands on neck, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-closed eyes, shy flustered smile, head tilt, looking at viewer, half-slipped (sheer light blue and white hanfu:1.3), pulled down moxiong, off shoulder, leaning forward, arms behind back, foreshortening, soft warm lighting, black background, simple background
+
+# 七式 · 弯腰仰眸（微高机位 · 弯腰抬眸贴脸）
+阿姊_弯腰仰眸_sfw:
+  1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), gentle affectionate smile, looking up at viewer, (mint green and white wide-sleeve hanfu:1.3), crossed collar, from above, leaning forward, foreshortening, soft warm lighting, black background, simple background
+
+阿姊_弯腰仰眸_nsfw:
+  nsfw, nude, blush, sweating, 1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, damp hair strands on neck, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), misty eyes, parted lips, looking up at viewer, undone (mint green and white wide-sleeve hanfu:1.3), open collar, off shoulder, from above, leaning forward, foreshortening, soft warm lighting, black background, simple background
+
+# 八式 · 侧肩回睇（旋身半侧 · 贴肩回眸近景）
+阿姊_侧肩回睇_sfw:
+  1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, sidelocks, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts:1.2), polite composed smile, head tilt, looking back at viewer over shoulder, (light blue silk hanfu with white pibo:1.3), wide sleeves, from side, leaning toward viewer, soft warm lighting, black background, simple background
+
+阿姊_侧肩回睇_nsfw:
+  nsfw, nude, blush, sweating, 1girl, solo, black hair, long glossy hair, (single side braid:1.3), parted bangs, damp hair strands on neck, jade leaf hairpin, pearl earrings, (grey eyes:1.2), red eyeshadow, fair skin, (flat chest, small breasts, small nipples:1.2), half-closed eyes, shy gaze, head tilt, looking back at viewer over shoulder, half-slipped (light blue silk hanfu with white pibo:1.3), bare shoulders, bare back, from side, leaning toward viewer, soft warm lighting, black background, simple background
+
+负面提示词:
+  (worst quality, low quality, normal quality, caucasian:1), (large breasts, medium breasts, huge breasts, gigantic breasts, plump breasts, cleavage:1.4), (ribs, visible ribs, skinny, bony, skeletal, emaciated:1.3), lowres, bad anatomy, (bad hands, missing fingers, extra digits:1.2), signature, watermarks, ugly, imperfect eyes, unnatural face, unnatural body, error, extra limb, missing limbs, milf, muscular, colored skin, modern clothes, sci-fi, complex background, detailed background
+---

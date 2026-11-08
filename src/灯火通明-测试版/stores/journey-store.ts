@@ -1,8 +1,9 @@
-import { computed, onScopeDispose, ref } from 'vue';
+import { computed, onScopeDispose, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import { klona } from 'klona';
 import { useActionPreferences } from '../action-preferences';
 import { CloudStorySchema, cloudJourneyId, createStorySnapshot, type CloudStory } from '../cloud-stories';
+import { fingerprintJourneyHistory, JOURNEY_DRAFT_KEY, readJourneyDraft, type JourneyDraft } from '../journey-draft';
 import {
   buildJourneyProposalPrompts,
   collectJourneyWorldbookBindings,
@@ -59,6 +60,10 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
   let contextChatId: string | undefined;
   let contextRevision = 0;
   let pendingContext: { origin: string; promise: Promise<boolean> } | undefined;
+  let restoringDraft = false;
+  let restoredHistoryFingerprint: string | undefined;
+  let lastSavedDraft = '';
+  let hasSavedDraft = false;
   const chatId = () => String(SillyTavern.getCurrentChatId() ?? '');
   const atLatest = computed(() => (pseudo.isDetachedMode ? pseudo.isNativeLatest : pseudo.isStoryHistoryLatest));
   const disabled = computed(() => !atLatest.value || pseudo.isGenerating || seeking.value || saving.value);
@@ -97,38 +102,122 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     error.value = cause instanceof Error ? cause.message : String(cause);
   };
 
-  const refreshHistory = () => {
+  const saveDraft = () => {
     const origin = chatId();
-    if (contextChatId !== origin) {
-      contextChatId = origin;
-      contextRevision += 1;
-      pendingContext = undefined;
-      contextLoading.value = false;
-      contextError.value = '';
-      worldReady.value = false;
-      worldbooks.value = [];
-      historyMode.value = 'all';
-      rangeStart.value = 0;
-    }
-    historyReady.value = false;
-    const rows = readJourneyHistory(getChatMessages('0-{{lastMessageId}}', { include_swipes: false }));
-    historyRows.value = rows;
-    historyLastMessageId.value = getLastMessageId();
-    if (historyMode.value === 'all') {
-      selectedMessageIds.value = rows.filter(row => row.defaultSelected).map(row => row.id);
-      rangeEnd.value = Math.max(0, historyLastMessageId.value);
-    } else {
-      const existing = new Set(rows.map(row => row.id));
-      selectedMessageIds.value = selectedMessageIds.value.filter(id => existing.has(id));
-    }
-    historyReady.value = true;
+    if (restoringDraft || !atLatest.value || !origin || contextChatId !== origin) return;
     if (
-      proposals.value.length &&
-      (proposalChatId !== origin ||
-        proposalLastMessageId !== historyLastMessageId.value ||
-        proposalHistorySignature !== historySignature.value)
+      !hasSavedDraft &&
+      !preference.value &&
+      !inspiration.value &&
+      !panelOpen.value &&
+      !proposals.value.length &&
+      historyMode.value === 'all'
     )
-      proposalsInvalidated.value = true;
+      return;
+    const draft: JourneyDraft = {
+      version: 1,
+      chatId: origin,
+      preference: preference.value,
+      inspiration: inspiration.value,
+      panelOpen: panelOpen.value,
+      history: {
+        mode: historyMode.value,
+        selectedMessageIds: [...selectedMessageIds.value],
+        rangeStart: Number.isInteger(rangeStart.value) && rangeStart.value >= 0 ? rangeStart.value : 0,
+        rangeEnd: Number.isInteger(rangeEnd.value) && rangeEnd.value >= 0 ? rangeEnd.value : 0,
+      },
+      proposals: klona(proposals.value),
+      source: proposals.value.length
+        ? {
+            messageId: proposalMessageId,
+            lastMessageId: proposalLastMessageId,
+            historyFingerprint: fingerprintJourneyHistory(proposalHistorySignature),
+            invalidated: proposalsInvalidated.value,
+          }
+        : null,
+    };
+    const serialized = JSON.stringify(draft);
+    if (serialized === lastSavedDraft) return;
+    try {
+      // Replace only this frontend key; keep the chat's other variables and MVU snapshots intact.
+      updateVariablesWith(variables => ({ ...variables, [JOURNEY_DRAFT_KEY]: draft }), { type: 'chat' });
+      lastSavedDraft = serialized;
+      hasSavedDraft = true;
+    } catch (cause) {
+      console.warn('[寻途] 聊天草稿保存失败', cause);
+      error.value = '寻途草稿暂未保存成功，请保留当前界面后重试。';
+    }
+  };
+
+  const restoreDraft = (origin: string) => {
+    let draft: JourneyDraft | undefined;
+    try {
+      draft = readJourneyDraft(getVariables({ type: 'chat' })[JOURNEY_DRAFT_KEY], origin);
+    } catch (cause) {
+      console.warn('[寻途] 聊天草稿读取失败', cause);
+    }
+    preference.value = draft?.preference ?? '';
+    inspiration.value = draft?.inspiration ?? '';
+    panelOpen.value = draft?.panelOpen ?? panelOpen.value;
+    historyMode.value = draft?.history.mode ?? 'all';
+    selectedMessageIds.value = draft?.history.selectedMessageIds ?? [];
+    rangeStart.value = draft?.history.rangeStart ?? 0;
+    rangeEnd.value = draft?.history.rangeEnd ?? 0;
+    proposals.value = draft?.proposals ?? [];
+    proposalsInvalidated.value = draft?.source?.invalidated ?? false;
+    proposalChatId = draft?.source ? origin : '';
+    proposalMessageId = draft?.source?.messageId ?? -1;
+    proposalLastMessageId = draft?.source?.lastMessageId ?? -1;
+    proposalHistorySignature = '';
+    restoredHistoryFingerprint = draft?.source?.historyFingerprint;
+    lastSavedDraft = draft ? JSON.stringify(draft) : '';
+    hasSavedDraft = Boolean(draft);
+  };
+
+  const refreshHistory = () => {
+    const previousRestore = restoringDraft;
+    restoringDraft = true;
+    try {
+      const origin = chatId();
+      if (contextChatId !== origin) {
+        contextChatId = origin;
+        contextRevision += 1;
+        pendingContext = undefined;
+        contextLoading.value = false;
+        contextError.value = '';
+        worldReady.value = false;
+        worldbooks.value = [];
+        restoreDraft(origin);
+      }
+      historyReady.value = false;
+      const rows = readJourneyHistory(getChatMessages('0-{{lastMessageId}}', { include_swipes: false }));
+      historyRows.value = rows;
+      historyLastMessageId.value = getLastMessageId();
+      if (historyMode.value === 'all') {
+        selectedMessageIds.value = rows.filter(row => row.defaultSelected).map(row => row.id);
+        rangeEnd.value = Math.max(0, historyLastMessageId.value);
+      } else {
+        const existing = new Set(rows.map(row => row.id));
+        selectedMessageIds.value = selectedMessageIds.value.filter(id => existing.has(id));
+      }
+      historyReady.value = true;
+      if (restoredHistoryFingerprint !== undefined) {
+        if (restoredHistoryFingerprint !== fingerprintJourneyHistory(historySignature.value))
+          proposalsInvalidated.value = true;
+        proposalHistorySignature = historySignature.value;
+        restoredHistoryFingerprint = undefined;
+      }
+      if (
+        proposals.value.length &&
+        (proposalChatId !== origin ||
+          proposalLastMessageId !== historyLastMessageId.value ||
+          proposalHistorySignature !== historySignature.value)
+      )
+        proposalsInvalidated.value = true;
+    } finally {
+      restoringDraft = previousRestore;
+    }
+    saveDraft();
   };
   const refreshContext = async (): Promise<boolean> => {
     try {
@@ -417,6 +506,26 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     });
   };
   const verifyGuess = (id: string) => (current.value ? perform(current.value, id) : false);
+  try {
+    refreshHistory();
+  } catch (cause) {
+    contextError.value = `剧情历史读取失败：${cause instanceof Error ? cause.message : String(cause)}`;
+  }
+  watch(
+    [
+      preference,
+      inspiration,
+      panelOpen,
+      historyMode,
+      rangeStart,
+      rangeEnd,
+      selectedMessageIds,
+      proposals,
+      proposalsInvalidated,
+    ],
+    saveDraft,
+    { deep: true, flush: 'sync' },
+  );
   const historyListeners = [
     tavern_events.MESSAGE_SENT,
     tavern_events.MESSAGE_RECEIVED,

@@ -62,6 +62,18 @@ function harness() {
     defineStore: pinia.defineStore,
     console,
     exports: {},
+    MutationObserver: class {
+      observe() {}
+      disconnect() {}
+    },
+    tavern_events: {
+      MESSAGE_SENT: 'sent',
+      MESSAGE_RECEIVED: 'received',
+      MESSAGE_DELETED: 'deleted',
+      MESSAGE_SWIPED: 'swiped',
+      MORE_MESSAGES_LOADED: 'more',
+    },
+    eventOn: () => ({ stop() {} }),
     getCurrentMessageId: () => 0,
     getLastMessageId: () => Math.max(...messages.keys()),
     getChatMessages: (range: number | string) =>
@@ -72,8 +84,11 @@ function harness() {
         : [...messages.values()].filter(m => m.message_id <= Number(range.split('-').at(-1))),
     window: {
       ...clock,
-      frameElement: { dataset: { dhlMessageId: '0' }, closest: () => null },
-      parent: { postMessage: (message: any) => sent.push(message) },
+      frameElement: {
+        dataset: { dhlMessageId: '0' },
+        closest: (selector: string) => (selector === '#dhl-pseudo-stage-root' ? {} : null),
+      },
+      parent: { postMessage: (message: any) => sent.push(message), document: { body: {}, querySelector: () => null } },
       addEventListener: (_: string, fn: any) => {
         listener = fn;
       },
@@ -1045,11 +1060,18 @@ test('只识别灯火舞台，预设的思考卡片和其他 app 不占用舞台
   const frame = (isStage: boolean) => ({
     contentDocument: {
       querySelector: (selector: string) =>
-        selector === '#app' ? { childElementCount: 1 } : isStage && selector === '#app > .cultivation-status' ? element : null,
+        selector === '#app'
+          ? { childElementCount: 1 }
+          : isStage && selector === '#app > .cultivation-status'
+            ? element
+            : null,
     },
   });
   const host: any = {};
-  vm.runInNewContext(controllerDeclarations(['hasMountedPseudoApp']) + '\nglobalThis.isStage = hasMountedPseudoApp;', host);
+  vm.runInNewContext(
+    controllerDeclarations(['hasMountedPseudoApp']) + '\nglobalThis.isStage = hasMountedPseudoApp;',
+    host,
+  );
   assert.equal(host.isStage(frame(false)), false);
   assert.equal(host.isStage(frame(true)), true);
   assert.equal(host.isStage(null), false);
@@ -1058,15 +1080,19 @@ test('只识别灯火舞台，预设的思考卡片和其他 app 不占用舞台
   const cat = { dataset: {}, getAttribute: (name: string) => (name === 'src' ? 'blob:preset-thought' : null) };
   const parkHost: any = {
     hasMountedPseudoApp: () => false,
+    isPseudoFrontendLoader: () => false,
     getMessageElement: () => ({ getAttribute: () => 'false' }),
-    getFrameKeeper: () => { keeperAccesses += 1; return null; },
+    getFrameKeeper: () => {
+      keeperAccesses += 1;
+      return null;
+    },
   };
   vm.runInNewContext(controllerDeclarations(['parkFrame']) + '\nglobalThis.park = parkFrame;', parkHost);
   assert.equal(parkHost.park(12, cat), false);
   assert.equal(keeperAccesses, 0);
 });
 
-test('思考卡片排在前面时仍选中真正舞台，延迟挂载后可以再次选取', () => {
+test('未挂载的 iframe 也交给候选识别，延迟挂载后可以再次检查', () => {
   const cat = {};
   const stage = {};
   const choices = {};
@@ -1078,12 +1104,15 @@ test('思考卡片排在前面时仍选中真正舞台，延迟挂载后可以�
     hasMountedPseudoApp: (frame: any) => mounted && frame === stage,
     parkCandidateFrame: (frame: any) => selected.push(frame),
   };
-  vm.runInNewContext(controllerDeclarations(['parkLatestStageFrame']) + '\nglobalThis.park = parkLatestStageFrame;', host);
+  vm.runInNewContext(
+    controllerDeclarations(['parkLatestStageFrame']) + '\nglobalThis.park = parkLatestStageFrame;',
+    host,
+  );
   host.park();
-  assert.equal(selected.length, 0);
+  assert.deepEqual(selected, [cat, stage, choices]);
   mounted = true;
   host.park();
-  assert.deepEqual(selected, [stage]);
+  assert.deepEqual(selected, [cat, stage, choices, cat, stage, choices]);
 });
 
 test('慢速启动期间重复候选通知不会反复销毁 iframe', () => {
@@ -1107,7 +1136,11 @@ test('慢速启动期间重复候选通知不会反复销毁 iframe', () => {
   vm.runInNewContext(controllerDeclarations(['parkFrame']) + '\nglobalThis.park = parkFrame;', host);
   for (let i = 0; i < 20; i += 1) {
     assert.equal(
-      host.park(12, { dataset: {}, closest: () => null, getAttribute: (name: string) => (name === 'src' ? 'blob:pending' : null) }),
+      host.park(12, {
+        dataset: {},
+        closest: () => null,
+        getAttribute: (name: string) => (name === 'src' ? 'blob:pending' : null),
+      }),
       false,
     );
   }
@@ -1117,23 +1150,40 @@ test('慢速启动期间重复候选通知不会反复销毁 iframe', () => {
 
 test('自有舞台保留加载源，释放原生渲染块的尺寸和定位约束', () => {
   const originalAttributes = new Map([
-    ['id', 'native-stage'], ['src', 'blob:stage'], ['loading', 'lazy'],
-    ['style', 'width:2400px;height:1200px;position:absolute'], ['width', '2400'], ['height', '1200'],
+    ['id', 'native-stage'],
+    ['src', 'blob:stage'],
+    ['loading', 'lazy'],
+    ['style', 'width:2400px;height:1200px;position:absolute'],
+    ['width', '2400'],
+    ['height', '1200'],
   ]);
   const copiedAttributes = new Map(originalAttributes);
   const marked = new Set<string>();
-  const copied = { dataset: {}, removeAttribute: (name: string) => copiedAttributes.delete(name), addEventListener: () => {} };
+  const copied = {
+    dataset: {},
+    removeAttribute: (name: string) => copiedAttributes.delete(name),
+    addEventListener: () => {},
+  };
   const frame = {
-    dataset: {}, getAttribute: (name: string) => originalAttributes.get(name),
-    closest: () => ({ classList: { add: (name: string) => marked.add(name) } }), cloneNode: () => copied,
+    dataset: {},
+    getAttribute: (name: string) => originalAttributes.get(name),
+    closest: () => ({ classList: { add: (name: string) => marked.add(name) } }),
+    cloneNode: () => copied,
   };
   let appended: any;
   const host: any = {
-    NATIVE_STAGE_CLASS: 'native-stage', PARKED_FRAME_CLASS: 'parked',
+    NATIVE_STAGE_CLASS: 'native-stage',
+    PARKED_FRAME_CLASS: 'parked',
     hasMountedPseudoApp: () => true,
     getMessageElement: () => ({ getAttribute: () => 'false', classList: { add: () => {} } }),
-    getFrameKeeper: () => ({ querySelector: () => null, append: (value: any) => { appended = value; } }),
-    frameLoadStartedAt: new WeakMap(), rememberFrame: () => {},
+    getFrameKeeper: () => ({
+      querySelector: () => null,
+      append: (value: any) => {
+        appended = value;
+      },
+    }),
+    frameLoadStartedAt: new WeakMap(),
+    rememberFrame: () => {},
   };
   vm.runInNewContext(controllerDeclarations(['parkFrame']) + '\nglobalThis.park = parkFrame;', host);
   assert.equal(host.park(12, frame), true);
@@ -1153,6 +1203,7 @@ test('舞台接管后卸载原生楼层应用，关闭控制器时恢复，重�
   const host: any = {
     exports: {},
     console: { info: () => {} },
+    document: { querySelectorAll: () => [] },
     $: (fn: () => void) => fn(),
     window: {
       frameElement: { dataset: {} },
@@ -1189,6 +1240,7 @@ test('舞台接管后卸载原生楼层应用，关闭控制器时恢复，重�
           }),
         };
       if (id === './app.vue') return {};
+      if (id === './frontend-revision') return require('../src/灯火通明-测试版/frontend-revision');
       throw Error(`Unexpected dependency: ${id}`);
     },
   };

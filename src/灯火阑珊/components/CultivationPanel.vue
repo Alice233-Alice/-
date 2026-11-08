@@ -46,8 +46,8 @@
         <div class="stat-value">{{ store.本尊.本命兵器 }}</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">灵石</div>
-        <div class="stat-value gold">{{ store.本尊.灵石 }}</div>
+        <div class="stat-label">灵石（折合下品）</div>
+        <div class="stat-value gold">{{ getSpiritStoneTotal(store.本尊.灵石).toLocaleString('zh-CN') }}</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">寿元</div>
@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { getRealmColor, getRootColor } from '../schema';
+import { getRealmColor, getRootColor, getSpiritStoneTotal } from '../schema';
 import { useDataStore } from '../store';
 
 const store = useDataStore();

@@ -11,6 +11,7 @@ const output = path.join(root, 'test-output', 'native-vscode');
 const configureFixtureMode = process.argv.includes('--configure-fixture');
 const resaveFixtureMode = process.argv.includes('--resave-fixture');
 const requireNoStatsigErrors = process.argv.includes('--no-statsig-errors');
+const historyEditMode = process.argv.includes('--history-edit');
 const fixtureMode = process.argv.includes('--fixture') || configureFixtureMode || resaveFixtureMode;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const report = { passed: false, endpoint, fixtureMode, configureFixtureMode, resaveFixtureMode, startedAt: new Date().toISOString(), checks: [], errors: [], runtimeErrors: [], consoleErrors: [], targets: [], documents: [], interactions: [] };
@@ -404,6 +405,33 @@ async function sendFixture(document, prompt = 'Apeiria native UI smoke test') {
   throw Error(`Native UI did not display the local fixture reply: ${expectedReply}`);
 }
 
+async function editLegacyFixture(document) {
+  check('legacy conversation is listed by the native client', (await clickText(document, 'Legacy history fixture')).clicked);
+  for(let i=0;i<60;i++){document=await refreshDocument(document);if(document.text.includes('HISTORY_NETWORK_FAILURE'))break;await delay(300);}
+  check('legacy conversation displays the failed earlier question',document.text.includes('HISTORY_NETWORK_FAILURE'));
+  const location=await evaluate(sessionOf(document),`(()=>{const nodes=[...document.querySelectorAll('*')].filter(e=>e.textContent==='HISTORY_NETWORK_FAILURE');const e=nodes.at(-1);if(!e)return null;const b=e.getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};})()`,document.contextId);
+  await cdp.send('Input.dispatchMouseEvent',{type:'mouseMoved',...location},document.sessionId);await delay(300);
+  const edit=await evaluate(sessionOf(document),`(()=>{const buttons=[...document.querySelectorAll('button')].filter(e=>/edit|编辑/i.test([e.getAttribute('aria-label'),e.title,e.getAttribute('data-testid'),e.textContent].join(' ')));const question=[...document.querySelectorAll('*')].find(e=>e.textContent==='HISTORY_NETWORK_FAILURE');for(let parent=question;parent;parent=parent.parentElement){const button=buttons.find(e=>parent.contains(e));if(button){button.click();return {clicked:true,label:button.getAttribute('aria-label')};}}return {clicked:false,buttons:buttons.map(e=>({label:e.getAttribute('aria-label'),text:e.textContent}))};})()`,document.contextId);
+  report.historyEditButton=edit;check('an earlier failed user message has an edit action',edit.clicked);await delay(350);
+  const field=await evaluate(sessionOf(document),`(()=>{const nodes=[...document.querySelectorAll('textarea,input,[contenteditable="true"]')];const e=nodes.find(e=>(e.value||e.textContent).includes('HISTORY_NETWORK_FAILURE'));if(!e)return false;e.focus();return true;})()`,document.contextId);check('the native inline editor contains the earlier question',field);
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'a',code:'KeyA',modifiers:2},document.sessionId);await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',modifiers:2},document.sessionId);
+  await cdp.send('Input.insertText',{text:'Edited legacy question after network failure'},document.sessionId);await delay(200);
+  const sent=await evaluate(sessionOf(document),`(()=>{const e=[...document.querySelectorAll('textarea,input,[contenteditable="true"]')].find(e=>(e.value||e.textContent).includes('Edited legacy question'));for(let parent=e;parent;parent=parent.parentElement){const buttons=[...parent.querySelectorAll('button')];if(buttons.some(b=>/cancel|取消/i.test(b.textContent))){const send=buttons.find(b=>/^(send|发送)$/i.test(b.textContent.trim()));if(send){send.click();return true;}}}return false;})()`,document.contextId);check('the original inline Send action submits the edit',sent);
+  for(let i=0;i<120;i++){await delay(300);document=await refreshDocument(document);if(document.text.includes('Failed to edit message'))throw Error('The original UI rejected the history edit.');const requests=JSON.parse(await fs.readFile(path.join(output,'fixture-requests.json'),'utf8'));if(requests.some(r=>r.lastUserText?.includes('Edited legacy question'))&&document.text.includes('Edited legacy question'))break;}
+  report.editedConversation=document;
+  check('edited prompt appears in the same conversation',document.text.includes('Edited legacy question'));
+  check('the earlier successful prompt is preserved',document.text.includes('Keep this earlier history'));
+  check('the superseded failed prompt is removed',!document.text.includes('HISTORY_NETWORK_FAILURE'));
+  check('later continuation turns are truncated by the native edit operation',!document.text.includes('Continue after network failure'));
+  const requests=JSON.parse(await fs.readFile(path.join(output,'fixture-requests.json'),'utf8'));
+  check('edited history generates a new local model response',requests.some(r=>r.lastUserText?.includes('Edited legacy question')));
+  check('history editing sends no official authorization',requests.every(r=>!r.authorizationPresent));
+  const profile=JSON.parse(await fs.readFile(path.join(output,'profile.json'),'utf8')),fixture=JSON.parse(await fs.readFile(path.join(output,'history-fixture.json'),'utf8'));
+  const backups=await fs.readdir(path.join(profile.profileDirectory,'User/globalStorage/ayanami-local.apeiria-code/engine-home/history-backups'));
+  check('only the explicitly edited thread has a migration backup',backups.length===1&&backups[0].startsWith(fixture.threadId));
+  return document;
+}
+
 try {
   await fs.mkdir(output, { recursive: true });
   if (resaveFixtureMode) {
@@ -457,6 +485,14 @@ try {
   try { report.runnerReady = JSON.parse(await fs.readFile(path.join(output, 'render-ready.json'), 'utf8')); } catch {}
   check('native sidebar has no prototype Vue shell', !native.oldVueShell);
   check('native webview loads bundled React assets', native.scripts.some(src => /assets\/.*\.js/.test(src)) || native.rootChildren > 0);
+  if(historyEditMode){
+    native=await editLegacyFixture(native);
+    const workbench=[...sessions.values()].find(session=>/workbench.*\.html/i.test(session.targetInfo.url));
+    const screenshot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},workbench?.sessionId||native.sessionId);
+    await fs.writeFile(path.join(output,'native-history-edit.png'),Buffer.from(screenshot.data,'base64'));
+    check('native history editing has no uncaught runtime exception',!report.runtimeErrors.some(error=>error.sessionId===native.sessionId));
+    report.passed=true;
+  } else {
   if (fixtureMode && !resaveFixtureMode && native.text.includes('Apeiria native UI fixture reply')) {
     check('previous fixture conversation can be left through New chat', (await clickText(native, 'New chat')).clicked);
     native = await refreshDocument(native);
@@ -497,6 +533,7 @@ try {
   report.nativeConsoleErrors = report.consoleErrors.filter(error => error.sessionId === native.sessionId);
   if (requireNoStatsigErrors) check('native webview has no Statsig console error', !report.nativeConsoleErrors.some(error => /Statsig|ab\.chatgpt\.com/i.test(error.text)));
   report.passed = true;
+  }
 } catch (error) {
   report.errors.push(error.stack || String(error));
   process.exitCode = 1;

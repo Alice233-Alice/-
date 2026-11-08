@@ -1,0 +1,39 @@
+{
+  "backup": "b734a8c603780b6c572c9c86ad66424349a2a155",
+  "unitTests": {
+    "passed": 32,
+    "failed": 0
+  },
+  "liveReloadTests": {
+    "passed": 10,
+    "failed": 0
+  },
+  "typeScriptDiagnostics": 0,
+  "eslintErrors": 0,
+  "desktopInteractions": {
+    "passed": 19,
+    "width": 1480,
+    "height": 872
+  },
+  "mobileInteractions": {
+    "passed": 19,
+    "width": 390,
+    "height": 844,
+    "horizontalOverflow": false,
+    "minControlHeight": 44
+  },
+  "tavernLocalCapture": {
+    "revision": "bright-test-2686855-3d6bf6f7",
+    "loadedEntries": 49,
+    "loadedCharacters": 2,
+    "otherEntries": 47,
+    "allLoadedContentsComplete": true,
+    "excludedGreenCharacters": 79,
+    "forbiddenCharacterMarkers": 0,
+    "historyComplete": true,
+    "requestCharacters": 40578,
+    "modelNetworkUsed": false
+  },
+  "realModelEvaluated": false,
+  "characterReferencePolicy": "已启用的[角色]条目仅在蓝灯constant时载入；其他条目按enabled完整载入"
+}

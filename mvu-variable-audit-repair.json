@@ -1,0 +1,39 @@
+{
+  "backupCommit": "598f368",
+  "beforeFile": "mvu-variable-audit-before.json",
+  "originalReplay": {
+    "baseline": 24,
+    "staleSnapshot": 18,
+    "delta": 3,
+    "result": 27
+  },
+  "capReplay": {
+    "baseline": 24,
+    "deltas": [
+      7,
+      7
+    ],
+    "result": 32,
+    "storedDataUnchanged": true
+  },
+  "repairResult": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Script ran on page and returned:\n```json\n{\"repaired\":[{\"id\":2,\"favor\":24,\"snapshot\":24,\"inventory\":[\"九幽镇魂古印\",\"坠星古涧残图\",\"青木灵液\",\"青竹小坠\"]},{\"id\":3,\"favor\":24,\"snapshot\":24,\"inventory\":[\"九幽镇魂古印\",\"坠星古涧残图\",\"青木灵液\",\"青竹小坠\"]},{\"id\":4,\"favor\":27,\"snapshot\":27,\"inventory\":[\"九幽镇魂古印\",\"坠星古涧残图\",\"青木灵液\",\"青竹小坠\"]}],\"messagesUnchanged\":true}\n```"
+      }
+    ]
+  },
+  "latestObservation": {
+    "messageId": 4,
+    "analysis": "苓沅于偏院客舍服药调息，青木灵液耗一瓶，修为微增。婵织烟传音告知玄冥于坠星古涧布阵炼化心髓，赠水榭后门引路之机。行踪转入客舍，任务进度更新。",
+    "patchCount": 12,
+    "favorPatches": [],
+    "savedFavor": 24,
+    "snapshot": 24,
+    "displayedFavor": 24,
+    "pendant": 1,
+    "inFlight": false
+  },
+  "note": "工作期间页面完成了新的额外解析，新结果未包含好感度命令，最终保留新结果24。原始加三结果的回放值为27。"
+}

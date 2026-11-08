@@ -101,8 +101,8 @@ onScopeDispose(() => controller?.abort());
 button {
   padding: 10px 13px;
   border: 1px solid var(--line-subtle);
-  border-radius: 5px;
-  background: var(--button-bg);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--gold) 4%, transparent);
   color: var(--gold);
   font: inherit;
   font-size: 12px;
@@ -114,6 +114,10 @@ button:disabled {
 }
 button:hover:not(:disabled) {
   background: var(--button-hover);
+}
+button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 .cloud-note,
 .cloud-error {
@@ -137,7 +141,7 @@ button:hover:not(:disabled) {
   padding: 18px 14px;
   border: 1px solid var(--line-subtle);
   border-radius: 5px;
-  background: var(--surface);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--surface-inset) 65%, transparent), transparent);
   overflow-wrap: anywhere;
 }
 .story-genres,
@@ -151,9 +155,11 @@ button:hover:not(:disabled) {
 }
 .cloud-story h3 {
   font:
-    600 19px 'Noto Serif SC',
+    600 17px 'Noto Serif SC',
     STSong,
     serif;
+  letter-spacing: 0.035em;
+  line-height: 1.6;
 }
 .cloud-story p {
   color: var(--text-secondary);

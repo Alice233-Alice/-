@@ -1,5 +1,5 @@
 export const PSEUDO_LAYER_CHANNEL = 'denghuolanshan:pseudo-layer';
-export const PSEUDO_LAYER_VERSION = 14;
+export const PSEUDO_LAYER_VERSION = 15;
 export const PSEUDO_LAYER_MIN_COMPATIBLE_VERSION = 4;
 export const PSEUDO_LAYER_SUPPORTED_VERSIONS = Array.from(
   { length: PSEUDO_LAYER_VERSION - PSEUDO_LAYER_MIN_COMPATIBLE_VERSION + 1 },
@@ -12,6 +12,8 @@ export const PSEUDO_LAYER_REASONING_ISOLATION_VERSION = 11;
 export const PSEUDO_LAYER_PENDING_INPUT_RECOVERY_VERSION = 12;
 export const PSEUDO_LAYER_REASONING_EDITING_VERSION = 13;
 export const PSEUDO_LAYER_DIALOGUE_DRAWER_VERSION = 14;
+export const PSEUDO_LAYER_DETACHED_VERSION = 15;
+export const PSEUDO_LAYER_DETACHED_STORAGE_KEY = 'denghuolanshan:pseudo-layer:detached';
 
 export const isSupportedPseudoLayerVersion = (value: unknown): value is number =>
   typeof value === 'number' &&
@@ -179,6 +181,7 @@ export type PseudoLayerView = {
   nextMessageId?: number;
   isLatest: boolean;
   nativeInputCollapsed: boolean;
+  detached: boolean;
   pendingInput?: PseudoLayerPendingInput;
   tokenCount?: number;
   stage: PseudoLayerStage;
@@ -293,6 +296,7 @@ export type PseudoLayerRequest =
       interaction: DialogueContext;
     }
   | { channel: typeof PSEUDO_LAYER_CHANNEL; version: number; type: 'end_interaction' }
+  | { channel: typeof PSEUDO_LAYER_CHANNEL; version: number; type: 'set_detached'; detached: boolean }
   | { channel: typeof PSEUDO_LAYER_CHANNEL; version: number; type: 'toggle_native_input' };
 
 export type PseudoLayerResponse =
@@ -301,6 +305,7 @@ export type PseudoLayerResponse =
       version: number;
       type: 'ready';
       busy: boolean;
+      detached?: boolean;
       requestId?: string;
       operation?: PseudoLayerGenerationOperation;
     }
@@ -405,6 +410,7 @@ const REQUEST_TYPES = new Set([
   'return_latest',
   'set_interaction',
   'end_interaction',
+  'set_detached',
   'toggle_native_input',
 ]);
 const RESPONSE_TYPES = new Set([

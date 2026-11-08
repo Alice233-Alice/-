@@ -96,8 +96,15 @@
             <small>{{ context?.channel === 'transmission' ? '尺素越千山' : '灯影照知心' }}</small>
             <strong>{{ context?.targetName ? `与${context.targetName}的交谈尚未开始` : '请选择交谈对象' }}</strong>
             <p>{{ emptyVerse }}</p>
-            <span>{{ !pseudo.dialogueReadOnly ? '点选下方话头，或直接写下想说的话。' : '此历史节点没有可显示的交谈记录。' }}</span>
-            <div v-if="!pseudo.dialogueReadOnly && context" class="dialogue-starter-pills" role="group" aria-label="快捷话头">
+            <span>{{
+              !pseudo.dialogueReadOnly ? '点选下方话头，或直接写下想说的话。' : '此历史节点没有可显示的交谈记录。'
+            }}</span>
+            <div
+              v-if="!pseudo.dialogueReadOnly && context"
+              class="dialogue-starter-pills"
+              role="group"
+              aria-label="快捷话头"
+            >
               <button
                 v-for="starter in dialogueStarterTopics"
                 :key="starter.label"
@@ -394,20 +401,20 @@ const dialogueStarterTopics = computed(() => {
       label: '询问近况',
       icon: 'fa-solid fa-feather-pointed',
       prompt: isTransmission
-        ? `传音向${name}问候近来安好，询问她此刻身在何处、修行是否顺遂。`
-        : `温和看向${name}，询问她近来心境与修行可还顺遂。`,
+        ? `传音问候${name}，随口问问她近来在哪儿落脚，修行与心绪如何。`
+        : `看向${name}，随口问问她近日修行与心绪如何。`,
     },
     {
       label: '商议眼下处境',
       icon: 'fa-solid fa-compass',
-      prompt: `与${name}商议眼下在「${location}」的处境与局势，听听她的看法与建议。`,
+      prompt: `和${name}聊聊眼下在「${location}」的局面，听听她怎么看。`,
     },
     {
       label: '闲话家常',
       icon: 'fa-solid fa-mug-hot',
       prompt: isTransmission
-        ? `借传音与${name}闲话几句近日见闻，约定日后相见之期。`
-        : `放下眼下繁务，与${name}闲话片刻风物与旧事。`,
+        ? `借着传音，与${name}闲聊几句近日见闻，也说说彼此还记着的旧事。`
+        : `暂时放下手头诸事，与${name}闲坐片刻，聊聊近日见闻与旧事。`,
     },
   ];
 });

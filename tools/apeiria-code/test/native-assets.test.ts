@@ -9,7 +9,7 @@ import {transformSync} from 'esbuild';
 import {isolateNativeName,restoreNativeName} from '../src/native-names.ts';
 
 const utility='../scripts/prepare-native.mjs';
-const {nativeContributions,patchNativeHost,patchNativeProfileMenu,patchNativeModelQueries,patchNativeOfflineEvaluations,prepareNative,supportedNativeVersion,nativeProfileMenu,nativeModelsQuery,nativeMessageBus,nativeHostServices}=await import(utility);
+const {nativeContributions,patchNativeHost,patchNativeProfileMenu,patchNativeModelQueries,patchNativeOfflineEvaluations,patchNativeConversationState,patchNativeConversationUi,prepareNative,supportedNativeVersion,nativeProfileMenu,nativeModelsQuery,nativeMessageBus,nativeHostServices,nativeConversationState,nativeConversationUi}=await import(utility);
 const originalStatsigOptions='function jT(e){let t={...GT,enableLiveValuesAutoRefresh:!0,...e===!0&&!Pr()?{}:{disableStorage:!0,loggingEnabled:`disabled`}};return t.networkConfig={...GT.networkConfig,preventAllNetworkTraffic:!1,networkOverrideFunc:(e,n)=>cT(e,n,t.loggingEnabled!==`disabled`)},t}';
 const hash=(bytes:string|Buffer)=>crypto.createHash('sha256').update(bytes).digest('hex');
 function write(root:string,relative:string,text:string){const file=path.join(root,relative);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text);}
@@ -52,6 +52,8 @@ test('native preparation retains runtime and licensing, namespaces IPC and adds 
   write(source,nativeProfileMenu,'const menu={children:[q,Zn,null,tr,Xn,rr,Y,X,null,null,null,sr,cr]};const compact={children:[qn,K,null,te,null]};');
   write(source,nativeModelsQuery,'const query=()=>{let g=u!=null,y=v?.daybreakPreferences;return p;};');write(source,nativeMessageBus,'export const originalBus=true;');
   write(source,nativeHostServices,originalStatsigOptions);
+  write(source,nativeConversationState,'d=c.historyMode===`paginated`&&H(e.requestClient.getAppServerVersion(),`threadRevert`);e.sessionId=a.sessionId,e.paginatedHistory={itemsBackwardsCursor:s}');
+  write(source,nativeConversationUi,'const V=mt(`1937538638`);');
   write(source,'webview/assets/unchanged-page.js','export const originalFeature=true;');
   write(source,'webview/assets/debug.js.map','debugging text');write(source,'resources/icon.svg','<svg/>');
   write(source,'syntaxes/starlark.tmLanguage.json',JSON.stringify({scopeName:'source.codex-rules',patterns:[]}));
@@ -70,7 +72,7 @@ test('native preparation retains runtime and licensing, namespaces IPC and adds 
   assert.deepEqual(provenance.enabledApiProposals,['chatSessionsProvider','languageModelProxy']);
   assert.match(provenance.license,/not covered/);
   for(const entry of result.files)assert.equal(hash(fs.readFileSync(path.join(target,entry.path))),entry.sha256);
-  assert.equal(result.files.filter((f:any)=>f.modified).length,5);
+  assert.equal(result.files.filter((f:any)=>f.modified).length,7);
 });
 
 test('native experiment SDK explicitly uses offline defaults with no initialization, refresh, log or exception traffic',()=>{
@@ -104,6 +106,8 @@ test('private native restart waits for all turns and requests and retains origin
     registerProvider(id:string,provider:any){assert(!this.providers.has(id));this.providers.set(id,provider);if(this.initialized)provider.onInitialized?.();return {dispose:()=>this.providers.delete(id)};}
     startCodexProcess(){this.starts++;this.initialized=false;this.internalNotificationHandlers.clear();setTimeout(()=>{this.initialized=true;for(const provider of this.providers.values())provider.onInitialized?.();initializations.push(this.starts);},5);return {success:true};}
     dispose(){}
+    sendRequest(){}
+    teardownProcess(){this.initialized=false;this.internalNotificationHandlers.clear();}
   }
   const original=String.raw`const pipe=Qm.join("\\\\.\\pipe","codex-ipc");const socket=Qm.join(Zqe.tmpdir(),"codex-ipc",t?"ipc":"ipc");let v=new H1(t.extensionUri,u);e.push(v);`;
   const realm=vm.createContext({Qm:{join:()=>''},Zqe:{tmpdir:()=>''},t:{extensionUri:{}},u:{},e:[],H1:Connection,setTimeout,clearTimeout});
@@ -138,9 +142,11 @@ test('validated installed native profile and host still parse after the scoped p
   const profile=patchNativeProfileMenu(fs.readFileSync(path.join(original,nativeProfileMenu),'utf8'));
   const models=patchNativeModelQueries(fs.readFileSync(path.join(original,nativeModelsQuery),'utf8'));
   const services=patchNativeOfflineEvaluations(fs.readFileSync(path.join(original,nativeHostServices),'utf8'));
+  const conversation=patchNativeConversationState(fs.readFileSync(path.join(original,nativeConversationState),'utf8')),conversationUi=patchNativeConversationUi(fs.readFileSync(path.join(original,nativeConversationUi),'utf8'));
   assert.doesNotThrow(()=>transformSync(host,{loader:'js',format:'cjs',logLevel:'silent'}));
   assert.doesNotThrow(()=>transformSync(profile,{loader:'js',format:'esm',logLevel:'silent'}));
   assert.doesNotThrow(()=>transformSync(models,{loader:'js',format:'esm',logLevel:'silent'}));
   assert.doesNotThrow(()=>transformSync(services,{loader:'js',format:'esm',logLevel:'silent'}));
+  assert.doesNotThrow(()=>transformSync(conversation,{loader:'js',format:'esm',logLevel:'silent'}));assert.doesNotThrow(()=>transformSync(conversationUi,{loader:'js',format:'esm',logLevel:'silent'}));
   assert.equal(host.split('apeiria-code-ipc').length-1,2);
 });

@@ -127,6 +127,7 @@ const loading = ref(false);
 const error = ref('');
 const connectionsOpen = ref(false);
 let controller: AtlasController | undefined;
+let loadingRequest: AbortController | undefined;
 let root: ShadowRoot | undefined;
 let revision = 0;
 let pendingRealm: AtlasRealm | undefined;
@@ -138,13 +139,16 @@ async function openRealm(target: AtlasTarget, focus = false) {
     return;
   }
   const request = ++revision;
+  loadingRequest?.abort();
+  const abort = new AbortController();
+  loadingRequest = abort;
   realm.value = target.realm;
   loading.value = true;
   error.value = '';
   controller?.dispose();
   controller = undefined;
   try {
-    const asset = await loadAtlas(target.realm);
+    const asset = await loadAtlas(target.realm, abort.signal);
     if (request !== revision || !root) return;
     if (!props.active) {
       pendingOpen = { target, focus };
@@ -163,7 +167,10 @@ async function openRealm(target: AtlasTarget, focus = false) {
     console.error('[山海藏图] 展卷失败', cause);
     error.value = '地图暂未展开，请重试';
   } finally {
-    if (request === revision) loading.value = false;
+    if (request === revision) {
+      loadingRequest = undefined;
+      loading.value = false;
+    }
   }
 }
 function focusLocation() {
@@ -213,6 +220,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   ++revision;
+  loadingRequest?.abort();
   controller?.dispose();
   controller = undefined;
   root = undefined;

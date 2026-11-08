@@ -1,10 +1,10 @@
 <template>
   <div v-if="links.length" class="affairs-links" aria-label="相关人物地点与物品">
     <template v-for="link in links" :key="`${link.kind}:${link.id}`">
-      <button v-if="link.known" type="button" @click="affairs.navigate(link.kind, link.id)">
+      <button v-if="link.known" :data-kind="link.kind" type="button" @click="affairs.navigate(link.kind, link.id)">
         <i :class="link.icon"></i>{{ link.label }}
       </button>
-      <span v-else><i :class="link.icon"></i>{{ link.label }}</span>
+      <span v-else :data-kind="link.kind"><i :class="link.icon"></i>{{ link.label }}</span>
     </template>
   </div>
 </template>
@@ -51,37 +51,54 @@ const links = computed(() => [
   }),
 ]);
 </script>
-<style scoped>
+<style scoped lang="scss">
 .affairs-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px 8px;
   margin-top: 12px;
 }
 button,
 span {
+  --link-tone: var(--gold);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 3px;
   font-size: 12px;
-  border-radius: 16px;
-  line-height: 1.5;
+  line-height: 1.6;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+[data-kind='person'] {
+  --link-tone: var(--semantic-relation);
+}
+[data-kind='place'] {
+  --link-tone: var(--jade);
 }
 button {
-  border: 1px solid var(--line-subtle);
-  color: var(--gold);
-  background: var(--surface-inset);
+  border: 1px solid color-mix(in srgb, var(--link-tone) 25%, var(--line-subtle));
+  background: color-mix(in srgb, var(--link-tone) 4%, transparent);
+  color: color-mix(in srgb, var(--link-tone) 65%, var(--text-primary));
   cursor: pointer;
 }
 button:hover {
-  border-color: var(--gold);
+  border-color: var(--link-tone);
+}
+button:focus-visible {
+  outline: 2px solid var(--link-tone);
+  outline-offset: 3px;
 }
 span {
+  padding-inline: 2px;
   color: var(--text-secondary);
-  opacity: 0.8;
 }
 i {
+  flex: none;
+  color: var(--link-tone);
   font-size: 10px;
 }
 </style>

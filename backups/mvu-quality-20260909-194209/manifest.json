@@ -1,0 +1,62 @@
+﻿[
+    {
+        "path":  "src/灯火阑珊/schema/systems.ts",
+        "sha256":  "70959FA6605C3D7131435ABAB3B92456612ECC7ECB427C9386BE751AF07BD352"
+    },
+    {
+        "path":  "src/灯火阑珊-变量结构/extra-analysis-prompt.ts",
+        "sha256":  "DCDEE298B5455CAAA303FB9E6C0ED62C70514D93AD5C44AD5B933757FD2C2767"
+    },
+    {
+        "path":  "src/灯火阑珊/灯火阑珊-世界书/变量更新规则\u0026变量输出格式/[mvu_update]变量更新规则.yaml",
+        "sha256":  "445F585A97A666215F7EE95809CD8E3B282C3E19AF9744858F0BD8A23B5082BB"
+    },
+    {
+        "path":  "src/灯火阑珊/灯火阑珊-世界书/变量更新规则\u0026变量输出格式/[mvu_update]变量输出格式.yaml",
+        "sha256":  "A543AFAC8ABF98733E45E9A2554A6A2A37CD34C0013369CEBC11F02DCDA32C03"
+    },
+    {
+        "path":  "src/灯火通明/components/MapPanel.vue",
+        "sha256":  "59972B524EB6E42B4CD36089FB7BF5ECB37339DBFBEFD3CE13FBF85838B49F5F"
+    },
+    {
+        "path":  "src/灯火阑珊/components/MapPanel.vue",
+        "sha256":  "7BCF56481334659602429FF7159D0FB149C95352E06328E233580712476DFFFF"
+    },
+    {
+        "path":  "src/灯火通明/components/PresetPanel.vue",
+        "sha256":  "D1B63AFE00D6F8A506731070BEEE333936E6CBC199F727866D5711DF77B3D0E1"
+    },
+    {
+        "path":  "tests/lantern-schema.test.ts",
+        "sha256":  "EBE857648D658A666009F9F3DA3C7EBE9F72874D7D96D1D2FEB3F799372FE395"
+    },
+    {
+        "path":  "src/灯火阑珊/schema.json",
+        "sha256":  "633CF2B357744EC68F776072B08B708D503320016E451278A75D01E8D6CABFA9"
+    },
+    {
+        "path":  "src/灯火通明/schema.json",
+        "sha256":  "D794E6EADD267B8D1B91B32B26A1334D03CF67FA35F6AB6113C2493382AF8A5F"
+    },
+    {
+        "path":  "src/踏月寻仙-测试版/schema.json",
+        "sha256":  "AC8FA64AB14C66AB065F7429836F659FC4B359CEBA9EA1B0D1304AC55532F477"
+    },
+    {
+        "path":  "dist/灯火阑珊-变量结构/index.js",
+        "sha256":  "69EB348C8C7661DB5E0D300809D5117CACC4DE76BFF2EEAAFD43AF009D7D08E2"
+    },
+    {
+        "path":  "dist/踏月寻仙-变量结构/index.js",
+        "sha256":  "A8CCD18907474CBD81F45B046CF56CB0284B137BFA7E250A469E0134E642229F"
+    },
+    {
+        "path":  "dist/灯火通明/index.html",
+        "sha256":  "906271E503FE7A83ABC588307B401C3E289073260FA6147FD35900DB64953B62"
+    },
+    {
+        "path":  "dist/灯火阑珊/index.html",
+        "sha256":  "998F76ECBDA607B9344E5A5A5F6A79B95C041DFFDF36440D3FB47022C425A94B"
+    }
+]

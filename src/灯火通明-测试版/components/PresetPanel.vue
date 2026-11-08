@@ -78,11 +78,11 @@
           <i class="fa-solid fa-coins"></i>
           <span>资源财富</span>
         </div>
-        <div class="form-row">
-          <label>灵石</label>
-          <input v-model.number="formData.灵石" type="number" min="0" />
+        <div v-for="grade in SPIRIT_STONE_GRADES" :key="grade" class="form-row">
+          <label>{{ grade }}</label>
+          <input v-model.number="formData.灵石[grade]" type="number" min="0" step="1" :aria-label="grade" />
         </div>
-        <div class="inline-hint">普通灵石统一记在这里；若误填到储物戒中，应用时会自动并入账册。</div>
+        <div class="inline-hint">四品分别记录实际枚数，百进制折算用于汇总；兑换依剧情结算。</div>
       </div>
 
       <!-- 身份信息 -->
@@ -356,7 +356,17 @@
                   <label>{{ field }}</label>
                   <input v-model="companion[field]" type="text" :aria-label="name + field" />
                 </div>
-                <div v-for="field in ['灵石', '已活岁月'] as const" :key="field" class="form-row">
+                <div v-for="grade in SPIRIT_STONE_GRADES" :key="grade" class="form-row">
+                  <label>{{ grade }}</label>
+                  <input
+                    v-model.number="companion.灵石[grade]"
+                    type="number"
+                    min="0"
+                    step="1"
+                    :aria-label="name + grade"
+                  />
+                </div>
+                <div v-for="field in ['已活岁月'] as const" :key="field" class="form-row">
                   <label>{{ field }}</label>
                   <input
                     v-model.number="companion[field]"
@@ -675,6 +685,11 @@ import {
   CompanionSchema,
   ProtagonistSchema,
   extractSpiritStoneFromInventory,
+  addSpiritStoneLedgers,
+  normalizeSpiritStoneLedger,
+  isSpiritStoneCurrencyItem,
+  SPIRIT_STONE_GRADES,
+  type SpiritStoneLedger,
   REALM_NAMES,
   REALM_STAGES,
   Schema,
@@ -746,7 +761,7 @@ interface CompanionData {
   功法: string;
   本命兵器: string;
   神通列表: Record<string, SkillData>;
-  灵石: number;
+  灵石: SpiritStoneLedger;
   已活岁月: number;
   尝试突破: boolean;
   修炼状态: SchemaType['本尊']['修炼状态'];
@@ -802,7 +817,7 @@ const formData = ref({
   体质: '',
   功法: '',
   本命兵器: '',
-  灵石: 0,
+  灵石: normalizeSpiritStoneLedger(),
   姓名: '',
   宗门: '',
   出身: '',
@@ -873,7 +888,7 @@ const createCompanionDataFromLibraryEntry = (charData: CharacterLibraryData): Co
     功法: charData.法,
     本命兵器: charData.器,
     神通列表,
-    灵石: 0,
+    灵石: normalizeSpiritStoneLedger(),
     已活岁月: Number(charData.龄.match(/实(?:历)?\s*(\d+)/u)?.[1] ?? 0),
     尝试突破: false,
     修炼状态: CompanionSchema.parse({ 等级: charData.级 }).修炼状态,
@@ -1021,7 +1036,7 @@ const loadCurrentData = () => {
         名称: item.名称 || name,
         描述: item.描述 || '',
         品阶: item.品阶 || '',
-        数量: item.数量 || 1,
+        数量: item.数量 ?? 1,
       };
     }
   }
@@ -1034,10 +1049,11 @@ const loadCurrentData = () => {
         名称: item.名称 || name,
         描述: item.描述 || '',
         品阶: item.品阶 || '',
-        数量: item.数量 || 1,
+        数量: item.数量 ?? 1,
       };
     }
   }
+  const normalizedTreasures = normalizeInventorySpiritStone(法宝);
   const normalizedBackpack = normalizeInventorySpiritStone(背包);
 
   // 加载杂物袋
@@ -1048,7 +1064,7 @@ const loadCurrentData = () => {
         名称: item.名称 || name,
         描述: item.描述 || '',
         品阶: item.品阶 || '',
-        数量: item.数量 || 1,
+        数量: item.数量 ?? 1,
       };
     }
   }
@@ -1096,7 +1112,7 @@ const loadCurrentData = () => {
         功法: companion.功法 ?? '',
         本命兵器: companion.本命兵器 ?? '',
         神通列表,
-        灵石: companion.灵石 ?? 0,
+        灵石: normalizeSpiritStoneLedger(companion.灵石),
         已活岁月: companion.已活岁月 ?? 0,
         尝试突破: companion.尝试突破 ?? false,
         修炼状态: CompanionSchema.parse(companion).修炼状态,
@@ -1113,7 +1129,12 @@ const loadCurrentData = () => {
     体质: store.本尊.体质 ?? '',
     功法: store.本尊.功法 ?? '',
     本命兵器: store.本尊.本命兵器 ?? '',
-    灵石: (store.本尊.灵石 ?? 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone,
+    灵石: addSpiritStoneLedgers(
+      store.本尊.灵石,
+      normalizedTreasures.spiritStone,
+      normalizedBackpack.spiritStone,
+      normalizedMiscBag.spiritStone,
+    ),
     姓名: store.本尊.身份?.姓名 ?? '',
     宗门: store.本尊.身份?.宗门 ?? '',
     出身: store.本尊.身份?.出身 ?? '',
@@ -1140,7 +1161,7 @@ const loadCurrentData = () => {
     },
     任务列表,
     神通列表,
-    法宝,
+    法宝: normalizedTreasures.inventory,
     背包: normalizedBackpack.inventory,
     杂物袋: normalizedMiscBag.inventory,
     红颜,
@@ -1275,10 +1296,15 @@ const applyPreset = async () => {
   const messageId = getCurrentMessageId();
   const customOpeningContent = isCustomOpeningEditable.value ? normalizeCustomOpeningContent() : '';
   const currentMessageContent = customOpeningContent || getCurrentFloorMessageContent();
+  const normalizedTreasures = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.法宝));
   const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
   const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
-  const normalizedSpiritStone =
-    Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone;
+  const normalizedSpiritStone = addSpiritStoneLedgers(
+    formData.value.灵石,
+    normalizedTreasures.spiritStone,
+    normalizedBackpack.spiritStone,
+    normalizedMiscBag.spiritStone,
+  );
   const patchData = {
     本尊: {
       等级: formData.value.等级,
@@ -1312,7 +1338,7 @@ const applyPreset = async () => {
         触发原因: formData.value.渡劫状态.触发原因,
       },
       神通列表: convertSkillsToMvu(),
-      法宝: convertItemsToMvu(formData.value.法宝),
+      法宝: normalizedTreasures.inventory,
       背包: normalizedBackpack.inventory,
       杂物袋: normalizedMiscBag.inventory,
     },
@@ -1387,7 +1413,7 @@ const applyPreset = async () => {
         _.set(vars, 'stat_data.本尊.当前敌人', {});
         _.set(vars, 'stat_data.本尊.渡劫状态', _.cloneDeep(formData.value.渡劫状态));
         _.set(vars, 'stat_data.本尊.神通列表', convertSkillsToMvu());
-        _.set(vars, 'stat_data.本尊.法宝', convertItemsToMvu(formData.value.法宝));
+        _.set(vars, 'stat_data.本尊.法宝', normalizedTreasures.inventory);
         _.set(vars, 'stat_data.本尊.背包', normalizedBackpack.inventory);
         _.set(vars, 'stat_data.本尊.杂物袋', normalizedMiscBag.inventory);
         _.set(vars, 'stat_data.红颜', convertCompanionsToMvu());
@@ -1421,7 +1447,7 @@ const resetToDefault = () => {
     体质: defaultData.本尊.体质 ?? '',
     功法: defaultData.本尊.功法 ?? '',
     本命兵器: defaultData.本尊.本命兵器 ?? '',
-    灵石: defaultData.本尊.灵石 ?? 0,
+    灵石: normalizeSpiritStoneLedger(defaultData.本尊.灵石),
     姓名: defaultData.本尊.身份?.姓名 ?? '',
     宗门: defaultData.本尊.身份?.宗门 ?? '',
     出身: defaultData.本尊.身份?.出身 ?? '',
@@ -1454,12 +1480,17 @@ const resetToDefault = () => {
 
 // 导出预设
 const exportPreset = () => {
+  const normalizedTreasures = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.法宝));
   const normalizedBackpack = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.背包));
   const normalizedMiscBag = normalizeInventorySpiritStone(convertItemsToMvu(formData.value.杂物袋));
-  const normalizedSpiritStone =
-    Math.max(0, Number(formData.value.灵石) || 0) + normalizedBackpack.spiritStone + normalizedMiscBag.spiritStone;
+  const normalizedSpiritStone = addSpiritStoneLedgers(
+    formData.value.灵石,
+    normalizedTreasures.spiritStone,
+    normalizedBackpack.spiritStone,
+    normalizedMiscBag.spiritStone,
+  );
   const exportData = {
-    version: '1.6',
+    version: '1.7',
     exportTime: new Date().toISOString(),
     preset: {
       基础属性: {
@@ -1490,7 +1521,7 @@ const exportPreset = () => {
       },
       任务列表: convertQuestsToMvu(),
       神通列表: convertSkillsToMvu(),
-      法宝: convertItemsToMvu(formData.value.法宝),
+      法宝: normalizedTreasures.inventory,
       背包: normalizedBackpack.inventory,
       杂物袋: normalizedMiscBag.inventory,
       红颜: convertCompanionsToMvu(),
@@ -1528,6 +1559,16 @@ const importPreset = (event: Event) => {
       }
 
       const preset = data.preset;
+      const importsSpiritStone =
+        Object.hasOwn(preset.基础属性 ?? {}, '灵石') ||
+        ['法宝', '背包', '杂物袋'].some(container =>
+          Object.entries(preset[container] ?? {}).some(([key, item]) =>
+            isSpiritStoneCurrencyItem(key, item as ItemData),
+          ),
+        );
+      if (importsSpiritStone) {
+        formData.value.灵石 = normalizeSpiritStoneLedger(preset.基础属性?.灵石);
+      }
 
       // 加载基础属性
       if (preset.基础属性) {
@@ -1540,7 +1581,7 @@ const importPreset = (event: Event) => {
         formData.value.体质 = preset.基础属性.体质 ?? formData.value.体质;
         formData.value.功法 = preset.基础属性.功法 ?? formData.value.功法;
         formData.value.本命兵器 = preset.基础属性.本命兵器 ?? formData.value.本命兵器;
-        formData.value.灵石 = preset.基础属性.灵石 ?? formData.value.灵石;
+        formData.value.灵石 = normalizeSpiritStoneLedger(preset.基础属性.灵石 ?? formData.value.灵石);
         formData.value.已活岁月 = preset.基础属性.已活岁月 ?? formData.value.已活岁月;
       }
 
@@ -1615,9 +1656,15 @@ const importPreset = (event: Event) => {
             名称: item.名称 || name,
             描述: item.描述 || '',
             品阶: item.品阶 || '',
-            数量: item.数量 || 1,
+            数量: item.数量 ?? 1,
           };
         }
+      }
+
+      if (preset.法宝) {
+        const normalizedTreasures = normalizeInventorySpiritStone(formData.value.法宝);
+        formData.value.法宝 = normalizedTreasures.inventory;
+        formData.value.灵石 = addSpiritStoneLedgers(formData.value.灵石, normalizedTreasures.spiritStone);
       }
 
       // 加载背包
@@ -1628,12 +1675,12 @@ const importPreset = (event: Event) => {
             名称: item.名称 || name,
             描述: item.描述 || '',
             品阶: item.品阶 || '',
-            数量: item.数量 || 1,
+            数量: item.数量 ?? 1,
           };
         }
         const normalizedBackpack = normalizeInventorySpiritStone(formData.value.背包);
         formData.value.背包 = normalizedBackpack.inventory;
-        formData.value.灵石 += normalizedBackpack.spiritStone;
+        formData.value.灵石 = addSpiritStoneLedgers(formData.value.灵石, normalizedBackpack.spiritStone);
       }
 
       // 加载杂物袋
@@ -1644,12 +1691,12 @@ const importPreset = (event: Event) => {
             名称: item.名称 || name,
             描述: item.描述 || '',
             品阶: item.品阶 || '',
-            数量: item.数量 || 1,
+            数量: item.数量 ?? 1,
           };
         }
         const normalizedMiscBag = normalizeInventorySpiritStone(formData.value.杂物袋);
         formData.value.杂物袋 = normalizedMiscBag.inventory;
-        formData.value.灵石 += normalizedMiscBag.spiritStone;
+        formData.value.灵石 = addSpiritStoneLedgers(formData.value.灵石, normalizedMiscBag.spiritStone);
       }
 
       // 加载红颜
@@ -1686,7 +1733,7 @@ const importPreset = (event: Event) => {
             功法: companion.功法 ?? '',
             本命兵器: companion.本命兵器 ?? '',
             神通列表,
-            灵石: companion.灵石 ?? 0,
+            灵石: normalizeSpiritStoneLedger(companion.灵石),
             已活岁月: companion.已活岁月 ?? 0,
             尝试突破: companion.尝试突破 ?? false,
             修炼状态: CompanionSchema.parse(companion).修炼状态,

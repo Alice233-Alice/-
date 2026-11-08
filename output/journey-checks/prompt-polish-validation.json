@@ -1,0 +1,60 @@
+{
+  "backup": "77b819e3a81195c0de5d667ade5a1b8f673dc029",
+  "worldbookBackup": "output/journey-checks/prompt-polish-worldbook-before-1794153069384.json",
+  "preparedWorldbookChanges": "output/journey-checks/prompt-polish-worldbook-after-1794153069384.json",
+  "unitTests": {
+    "passed": 37,
+    "failed": 0
+  },
+  "typeScriptDiagnostics": 0,
+  "eslintErrors": 0,
+  "yamlValid": true,
+  "unrelatedRuleSectionsPreserved": true,
+  "liveEntries": [
+    {
+      "name": "[mvu_update]变量更新规则",
+      "contentMatches": true,
+      "enabled": true,
+      "strategy": "constant"
+    },
+    {
+      "name": "[机制] 寻途与行旅",
+      "contentMatches": true,
+      "enabled": true,
+      "strategy": "constant"
+    },
+    {
+      "name": "[mvu_update]行旅更新规则",
+      "contentMatches": true,
+      "enabled": false,
+      "strategy": "constant"
+    }
+  ],
+  "frontend": {
+    "ready": true,
+    "revision": "bright-test-2695186-5777f0ad",
+    "newProposalPromptLoaded": true,
+    "actionPurposeLoaded": true,
+    "preferencePriorityLoaded": true,
+    "currentDraftPreserved": true,
+    "realModelUsed": false
+  },
+  "technicalContractsPreserved": {
+    "proposalCount": 3,
+    "fields": [
+      "name",
+      "lead",
+      "goal",
+      "step",
+      "plan"
+    ],
+    "maxCharacters": {
+      "name": 24,
+      "lead": 220,
+      "goal": 160,
+      "step": 220,
+      "plan": 2400
+    }
+  },
+  "realModelEvaluated": false
+}

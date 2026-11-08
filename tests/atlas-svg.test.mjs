@@ -1,6 +1,8 @@
+/* eslint-disable import-x/no-nodejs-modules */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { gunzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { optimize } from 'svgo';
 import { capitalDefinitions } from '../output/svg-atlas-preview/capitals.mjs';
@@ -103,10 +105,11 @@ for (const [realm, filename] of [
 ]) {
   test(`${realm} 导出资源可解压，静态引用和详情面板的动态图形完整`, () => {
     const svg = fs.readFileSync(new URL(`../output/svg-atlas-preview/${filename}`, import.meta.url), 'utf8');
-    const source = fs.readFileSync(new URL(`../src/灯火通明/atlas/generated/${realm}.ts`, import.meta.url), 'utf8');
-    const packed = source.match(/'([A-Za-z0-9+/=]{100,})'/)?.[1];
-    assert.ok(packed, '存在压缩资源');
-    const { markup, data } = JSON.parse(gunzipSync(Buffer.from(packed, 'base64')).toString('utf8'));
+    const manifest = JSON.parse(fs.readFileSync(new URL('../assets/atlas/manifest.json', import.meta.url), 'utf8'));
+    const resource = manifest.realms[realm];
+    const packed = fs.readFileSync(new URL(`../assets/atlas/${resource.file}`, import.meta.url));
+    assert.equal('sha256-' + createHash('sha256').update(packed).digest('base64'), resource.integrity);
+    const { markup, data } = JSON.parse(gunzipSync(packed).toString('utf8'));
     const prepared = prepareAtlasSymbols(svg);
     assert.ok(markup.includes(prepared.markup), '前端打包的是本次生成的交互 SVG');
     assert.deepEqual(data.symbols, prepared.symbols, '延后解码的城池、宗门完整打包');

@@ -199,7 +199,7 @@ async function main() {
     h.emit('MESSAGE_RECEIVED', 2);
     await h.tick();
     assert.equal(h.store.本尊.行踪.当前区域, '老槐驿');
-    assert.equal(h.store.本尊.灵石, 777);
+    assert.equal(h.store.本尊.灵石.下品灵石, 777);
     assert.equal(h.store.本尊.背包.古道灵茶.数量, 3);
     assert.deepEqual(h.records.get(2), {});
     assert.equal(h.writes.length, 0);
@@ -208,7 +208,7 @@ async function main() {
     h.emit('MESSAGE_UPDATED', 2);
     await h.tick();
     assert.equal(h.store.本尊.行踪.当前区域, '苍茫古径');
-    assert.equal(h.store.本尊.灵石, opening.本尊.灵石);
+    assert.deepEqual(h.store.本尊.灵石, opening.本尊.灵石);
     h.store.viewMessage(1); // Missing historical floor falls back to floor 0.
     assert.equal(h.store.本尊.行踪.当前区域, '苍茫古径');
     h.store.viewMessage(2);
@@ -227,10 +227,37 @@ async function main() {
   );
   try {
     assert.equal(inherited.store.本尊.行踪.当前区域, '老槐驿');
-    assert.equal(inherited.store.本尊.灵石, 777);
+    assert.equal(inherited.store.本尊.灵石.下品灵石, 777);
     assert.deepEqual(inherited.records.get(3), {});
   } finally {
     inherited.close();
+  }
+  for (const sourcePath of [
+    'src/灯火通明/stores/data-store.ts',
+    'src/灯火通明-测试版/stores/data-store.ts',
+  ]) {
+    const history = { 本尊: { 灵石: 20, 背包: { 上品灵石: { 数量: 4 } } } };
+    const latest = { 本尊: { 灵石: 200, 背包: { 上品灵石: { 数量: 18 } } } };
+    const currency = await harness(2, new Map([[0, { stat_data: history }], [2, { stat_data: latest }]]), undefined, sourcePath);
+    try {
+      await currency.flush();
+      assert.deepEqual(currency.store.本尊.灵石, { 下品灵石: 200, 中品灵石: 0, 上品灵石: 18, 极品灵石: 0 });
+      assert.deepEqual(currency.records.get(2).stat_data.本尊.背包, {});
+      assert.deepEqual(currency.records.get(0).stat_data, history);
+      const writes = currency.writes.length;
+      currency.poll();
+      currency.store.refresh();
+      await currency.flush();
+      assert.equal(currency.writes.length, writes, '重复读取已规范化灵石不会再次写入或加钱');
+      currency.store.viewMessage(0);
+      assert.equal(currency.store.本尊.灵石.下品灵石, 20);
+      assert.equal(currency.store.本尊.灵石.上品灵石, 4);
+      assert.deepEqual(currency.records.get(0).stat_data, history, '回看历史只读该层快照');
+      currency.store.viewMessage(2);
+      assert.equal(currency.store.本尊.灵石.上品灵石, 18);
+    } finally {
+      currency.close();
+    }
   }
   console.log(
     'Data store: opening 19 after three other locations, re-roll fallback, fresh variables, history and previous-floor inheritance passed.',

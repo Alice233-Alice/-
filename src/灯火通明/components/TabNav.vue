@@ -20,7 +20,12 @@
       >
         <i :class="tab.icon"></i>
         <span class="tab-label">{{ tab.label }}</span>
-        <span v-if="tab.badge" class="tab-badge" :aria-label="`${tab.badge} 项进行中`">
+        <span
+          v-if="tab.badge"
+          class="tab-badge"
+          :class="{ 'is-actions': tab.id === 'actions' }"
+          :aria-label="`${tab.badge} 项待览`"
+        >
           {{ tab.badge > 99 ? '99+' : tab.badge }}
         </span>
       </button>
@@ -132,6 +137,12 @@ onUnmounted(() => resizeObserver?.disconnect());
   font-size: 9px;
   font-weight: 650;
   line-height: 1;
+
+  &.is-actions {
+    border-color: color-mix(in srgb, var(--jade) 52%, transparent);
+    color: var(--jade);
+    background: color-mix(in srgb, var(--jade) 14%, var(--tab-bg));
+  }
 }
 
 .tab-nav {

@@ -1,6 +1,7 @@
 import { readPlayerInput } from '../player-input';
 import {
   PSEUDO_LAYER_CHANNEL,
+  PSEUDO_LAYER_DETACHED_VERSION,
   PSEUDO_LAYER_DIALOGUE_DRAWER_VERSION,
   PSEUDO_LAYER_MESSAGE_EDITING_VERSION,
   PSEUDO_LAYER_PENDING_INPUT_RECOVERY_VERSION,
@@ -79,6 +80,7 @@ const EMPTY_VIEW: PseudoLayerView = {
   total: 0,
   isLatest: true,
   nativeInputCollapsed: false,
+  detached: false,
   stage: { kind: 'story' },
   histories: {
     story: { ...EMPTY_HISTORY },
@@ -143,6 +145,7 @@ const normalizePseudoLayerView = (value: PseudoLayerView): PseudoLayerView => {
     ...(legacyHistory.nextMessageId !== undefined ? { nextMessageId: legacyHistory.nextMessageId } : {}),
     isLatest: legacyHistory.isLatest,
     nativeInputCollapsed: Boolean(raw.nativeInputCollapsed),
+    detached: Boolean(raw.detached),
     ...(pendingInput ? { pendingInput } : {}),
     ...(Number.isFinite(tokenCount) ? { tokenCount } : {}),
     stage,
@@ -241,6 +244,23 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const controllerReady = ref(false);
   const controllerProtocolVersion = ref<number | null>(null);
   const view = ref<PseudoLayerView>({ ...EMPTY_VIEW });
+  const isPseudoStage = ref(Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root')));
+  const isDetachedMode = computed(() => !controllerReady.value || view.value.detached || !isPseudoStage.value);
+  const nativeLatestMessageId = ref(-1);
+  const isNativeLatest = computed(() => messageId >= 0 && messageId === nativeLatestMessageId.value);
+  const nativeMessageListeners: EventOnReturn[] = [];
+  let hostObserver: MutationObserver | null = null;
+  const refreshHostState = () => {
+    isPseudoStage.value = Boolean(window.frameElement?.closest('#dhl-pseudo-stage-root'));
+    for (let id = getLastMessageId(); id >= 0; id -= 1) {
+      const message = getChatMessages(id)[0];
+      if (message?.role === 'assistant' && !message.is_hidden) {
+        nativeLatestMessageId.value = id;
+        return;
+      }
+    }
+    nativeLatestMessageId.value = -1;
+  };
   const selectedTitle = ref('');
   const draftPrompt = ref('');
   const dialogueDraftPrompt = ref('');
@@ -370,8 +390,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const isUpdatingMessage = computed(() => editRequestId.value !== '');
   const isSelected = computed(() => view.value.hostMessageId === messageId);
   const isLatest = computed(() => view.value.isLatest && isSelected.value);
-  const isStoryHistoryLatest = computed(
-    () => isSelected.value && (view.value.histories.story.total === 0 || view.value.histories.story.isLatest),
+  const isStoryHistoryLatest = computed(() =>
+    isDetachedMode.value
+      ? isNativeLatest.value
+      : isSelected.value && (view.value.histories.story.total === 0 || view.value.histories.story.isLatest),
   );
   const isDialogueHistoryLatest = computed(
     () => isSelected.value && (view.value.histories.dialogue.total === 0 || view.value.histories.dialogue.isLatest),
@@ -421,7 +443,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   );
   const canSubmitBase = computed(
     () =>
-      controllerReady.value &&
+      !isDetachedMode.value &&
       draftPrompt.value.trim().length > 0 &&
       !isGenerating.value &&
       !isDeleting.value &&
@@ -430,7 +452,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const canSubmitStory = computed(() => canSubmitBase.value && isStoryHistoryLatest.value);
   const canSubmitDialogue = computed(
     () =>
-      controllerReady.value &&
+      !isDetachedMode.value &&
       dialogueDraftPrompt.value.trim().length > 0 &&
       isDialogueWritable.value &&
       !isGenerating.value &&
@@ -899,6 +921,8 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     lastControllerReplyAt = Date.now();
     controllerReady.value = true;
     if (response.type === 'ready') {
+      if (typeof response.detached === 'boolean') view.value = { ...view.value, detached: response.detached };
+      if (isDetachedMode.value) return;
       if (response.busy && response.requestId) {
         if (!acceptsRequest(response.requestId)) return;
         generationAcknowledged = true;
@@ -948,6 +972,11 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
           view.value.revision !== normalizedView.revision ||
           !floorMessage.value);
       view.value = normalizedView;
+      if (isDetachedMode.value) {
+        dialogueDrawerOpen.value = false;
+        refreshHostState();
+        return;
+      }
       if (normalizedView.hostMessageId !== messageId) return;
       if (isRerolling.value && rerollTargetMessageId.value < 0) {
         rerollTargetMessageId.value = normalizedView.latestMessageId;
@@ -1162,7 +1191,21 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const start = () => {
     if (started) return;
     started = true;
-    refreshFloor();
+    refreshHostState();
+    if (!isDetachedMode.value) refreshFloor();
+    hostObserver = new MutationObserver(refreshHostState);
+    hostObserver.observe(window.parent.document.body, { attributes: true, attributeFilter: ['class'] });
+    const chat = window.parent.document.querySelector('#chat');
+    if (chat) hostObserver.observe(chat, { childList: true });
+    [
+      tavern_events.MESSAGE_SENT,
+      tavern_events.MESSAGE_RECEIVED,
+      tavern_events.MESSAGE_DELETED,
+      tavern_events.MESSAGE_SWIPED,
+      tavern_events.MORE_MESSAGES_LOADED,
+    ].forEach(event => {
+      nativeMessageListeners.push(eventOn(event, refreshHostState));
+    });
     window.addEventListener('message', handleMessage);
     sendHello();
     [250, 1000, 2500].forEach(delay => {
@@ -1185,6 +1228,9 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const dispose = () => {
     if (!started) return;
     started = false;
+    hostObserver?.disconnect();
+    hostObserver = null;
+    nativeMessageListeners.splice(0).forEach(listener => listener.stop());
     window.removeEventListener('message', handleMessage);
     if (helloTimer !== null) window.clearInterval(helloTimer);
     if (timelineTimeout !== null) window.clearTimeout(timelineTimeout);
@@ -1208,6 +1254,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     }
   };
   const selectDraft = (title: string, prompt: string) => {
+    if (isDetachedMode.value) {
+      fillNativeInput(prompt);
+      return;
+    }
     if (isGenerating.value || !isStoryHistoryLatest.value) return;
     selectedTitle.value = title;
     draftPrompt.value = prompt;
@@ -1221,6 +1271,14 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     generationError.value = '';
   };
   function beginDialogue(target: DialogueTarget | DialogueContext, sessionId?: string) {
+    if (isDetachedMode.value) {
+      const name = target.targetName.trim();
+      if (!name) return;
+      fillNativeInput(
+        target.channel === 'transmission' ? `以传讯向${name}问候，询问近况。` : `与${name}交谈，询问近况。`,
+      );
+      return;
+    }
     if (isGenerating.value) return;
     const targetAnchor = 'anchorStoryMessageId' in target ? target.anchorStoryMessageId : undefined;
     const interaction: DialogueContext = {
@@ -1315,6 +1373,10 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   const submit = (mode?: InteractionMode, useLatestAnchor = false) => {
     const requestedMode = mode ?? 'story';
     const prompt = requestedMode === 'dialogue' ? dialogueDraftPrompt.value.trim() : draftPrompt.value.trim();
+    if (isDetachedMode.value) {
+      if (fillNativeInput(prompt, true)) clearDraft();
+      return;
+    }
     const maySubmit = useLatestAnchor
       ? requestedMode === 'dialogue'
         ? canSubmitLatestDialogue.value
@@ -1558,8 +1620,68 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
   };
   const toggleNativeInput = () =>
     post({ channel: PSEUDO_LAYER_CHANNEL, version: PSEUDO_LAYER_VERSION, type: 'toggle_native_input' });
+  const setDetached = (detached: boolean) => {
+    if (!controllerReady.value) {
+      toastr.info('请在酒馆助手中启用「灯火通明-伪同层控制器」脚本。');
+      return;
+    }
+    if ((controllerProtocolVersion.value ?? 0) < PSEUDO_LAYER_DETACHED_VERSION) {
+      toastr.info('请更新并重新启用伪同层控制器后切换模式。');
+      return;
+    }
+    if (isGenerating.value || isDeleting.value || isUpdatingMessage.value) {
+      toastr.info('请等待当前生成或楼层操作结束后再切换模式。');
+      return;
+    }
+    post({ channel: PSEUDO_LAYER_CHANNEL, version: PSEUDO_LAYER_VERSION, type: 'set_detached', detached });
+  };
+  // 原生楼层与舞台共享同一行动入口，历史快照只允许填入起念。
+  function fillNativeInput(prompt: string, direct = false) {
+    refreshHostState();
+    if (direct && !isNativeLatest.value) {
+      toastr.info('请先回到最新楼层再发送行动。');
+      return false;
+    }
+    const parentDocument = window.parent.document;
+    const input = parentDocument.querySelector<HTMLTextAreaElement>('#send_textarea');
+    const sendButton = parentDocument.querySelector<HTMLButtonElement>('#send_but');
+    if (!input || (direct && !sendButton)) {
+      toastr.info('请先打开酒馆聊天，再使用行动起念。');
+      return false;
+    }
+    if (
+      direct &&
+      (!prompt.trim() ||
+        input.disabled ||
+        sendButton?.disabled ||
+        parentDocument.querySelector('#mes_stop')?.getClientRects().length)
+    ) {
+      toastr.info('请等待当前生成结束，再发送行动。');
+      return false;
+    }
+    input.value = prompt;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.focus();
+    if (direct) sendButton!.click();
+    else toastr.success('已填入酒馆输入框');
+    return true;
+  }
+  const performAction = (title: string, prompt: string, direct = false) => {
+    if (isDetachedMode.value) return fillNativeInput(prompt, direct);
+    if (isGenerating.value || !isStoryHistoryLatest.value) {
+      toastr.info('请先返回最新正文并等待推演结束，再选择行动。');
+      return false;
+    }
+    selectDraft(title, prompt);
+    if (direct && canSubmitStory.value) submit('story');
+    return true;
+  };
   return {
     messageId,
+    isPseudoStage,
+    isDetachedMode,
+    isNativeLatest,
     controllerReady,
     controllerProtocolVersion,
     controllerCompatibilityMode,
@@ -1684,5 +1806,7 @@ export const usePseudoLayerStore = defineStore('pseudo_layer', () => {
     returnHistoryLatest,
     recoverPendingInput,
     toggleNativeInput,
+    setDetached,
+    performAction,
   };
 });

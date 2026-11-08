@@ -41,6 +41,9 @@
               <i class="fa-solid fa-chevron-right"></i>
             </button>
           </template>
+          <button type="button" aria-label="翻转正背面" title="翻转正背面" @click="store.toggleCardFlip(index)">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
           <button type="button" aria-label="放大查看立绘" title="查看大图" @click="openPreview(index)">
             <i class="fa-solid fa-magnifying-glass-plus"></i>
           </button>

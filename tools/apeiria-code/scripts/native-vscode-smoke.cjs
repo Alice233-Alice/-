@@ -63,7 +63,7 @@ if(require.main===module)(async()=>{
   const {spawn}=require('node:child_process');
   const root=path.resolve(__dirname,'..'),testRoot=path.join(root,'test-output','native-vscode');
   for(const name of ['user-data','extensions','workspace','codex-home'])fs.mkdirSync(path.join(testRoot,name),{recursive:true});
-  const profileDirectory=path.join(testRoot,process.argv.includes('--empty')?'user-data-empty-'+Date.now():'user-data');fs.mkdirSync(profileDirectory,{recursive:true});
+  const profileDirectory=path.join(testRoot,process.argv.includes('--empty')||process.argv.includes('--legacy-fixture')?'user-data-empty-'+Date.now():'user-data');fs.mkdirSync(profileDirectory,{recursive:true});
   for(const name of ['render-ready.json','render-finish.json']){const file=path.join(testRoot,name);if(fs.existsSync(file))fs.unlinkSync(file);}
   const installed=process.argv.includes('--installed'),coexist=process.argv.includes('--coexist'),noProposals=process.argv.includes('--no-proposals');
   const reportName=coexist?'report-coexist.json':installed?(noProposals?'report-installed-no-proposals.json':'report-installed.json'):(noProposals?'report-no-proposals.json':'report.json');
@@ -89,9 +89,11 @@ if(require.main===module)(async()=>{
         if(req.method!=='POST'||req.url!=='/v1/responses'){res.writeHead(404);res.end();return;}
         let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>8000000)throw Error('Fixture request too large.');}
         const body=JSON.parse(raw);
+        const lastUser=body.input?.filter(item=>item.role==='user').at(-1),lastUserText=JSON.stringify(lastUser?.content||'');
         assert.ok(['fixture-native-a','fixture-native-b'].includes(body.model),'known fixture model');
         assert.equal(req.headers.authorization,undefined,'no official or local bridge authorization reaches fixture upstream');
-        requests.push({model:body.model,inputItems:body.input?.length,instructionLength:body.instructions?.length||0,tools:body.tools?.length||0,toolTypes:(body.tools||[]).map(tool=>({type:tool.type,name:tool.name,tools:tool.tools?.map(item=>({type:item.type,name:item.name}))})),authorizationPresent:!!req.headers.authorization});writeRequests();
+        requests.push({model:body.model,inputItems:body.input?.length,instructionLength:body.instructions?.length||0,tools:body.tools?.length||0,toolTypes:(body.tools||[]).map(tool=>({type:tool.type,name:tool.name,tools:tool.tools?.map(item=>({type:item.type,name:item.name}))})),authorizationPresent:!!req.headers.authorization,...(process.argv.includes('--legacy-fixture')?{lastUserText}:{} )});writeRequests();
+        if(process.argv.includes('--legacy-fixture')&&lastUserText.includes('HISTORY_NETWORK_FAILURE')){res.writeHead(503,{'content-type':'application/json'});res.end('{"error":{"message":"Simulated history network interruption"}}');return;}
         res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-cache'});
         const emitter=new ResponseEmitter(body.model,event=>res.write('event: '+event.type+'\ndata: '+JSON.stringify(event)+'\n\n'));
         emitter.start();emitter.text('Apeiria native UI fixture reply');emitter.finish({input_tokens:42,output_tokens:8,total_tokens:50});res.end();
@@ -106,6 +108,12 @@ if(require.main===module)(async()=>{
     const fixtureProvider={id:'native-smoke',label:'Native Fixture',type:'responses',enabled:true,baseUrl:'http://127.0.0.1:'+fixtureServer.address().port+'/v1',models:['fixture-native-a','fixture-native-b'],modelMetadata:{'fixture-native-a':{displayName:'Fixture Native A',contextWindow:64000,maxOutputTokens:4096,imageInput:true},'fixture-native-b':{displayName:'Fixture Native B',contextWindow:64000,maxOutputTokens:4096,imageInput:true}},reasoning:{'fixture-native-a':'default','fixture-native-b':'default'}};
     fs.writeFileSync(path.join(testRoot,'fixture-config.json'),JSON.stringify(fixtureProvider));
     fs.writeFileSync(path.join(providerDirectory,'providers.json'),JSON.stringify({version:1,providers:process.argv.includes('--empty')?[]:[fixtureProvider]}));
+    if(process.argv.includes('--legacy-fixture')){
+      const seedSource=require('esbuild').buildSync({entryPoints:[path.join(root,'scripts/native-history-ui-seed.ts')],bundle:true,platform:'node',format:'cjs',write:false}).outputFiles[0].text;
+      const seedModule={exports:{}};new Function('require','module','exports',seedSource)(require,seedModule,seedModule.exports);
+      const seeded=await seedModule.exports.seedLegacyUi(root,providerDirectory,path.join(testRoot,'workspace'));
+      fs.writeFileSync(path.join(testRoot,'history-fixture.json'),JSON.stringify(seeded));
+    }
     writeRequests();console.log('Local native fixture listening on loopback.');
   }else if(process.argv.includes('--empty')){
     const providerFile=path.join(userDirectory,'globalStorage',ID,'providers.json');

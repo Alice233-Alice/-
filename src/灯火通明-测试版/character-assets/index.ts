@@ -1,31 +1,18 @@
 import type { CharacterAssets, CharacterImagePools } from './types';
 
-import { assets as character1Assets } from './characters/白清弦';
-import { assets as character2Assets } from './characters/虞汐颜';
-import { assets as character3Assets } from './characters/许听雨';
-import { assets as character4Assets } from './characters/南宫云裳';
-import { assets as character5Assets } from './characters/朔璃鸢';
-import { assets as character6Assets } from './characters/晚棠';
-import { assets as character7Assets } from './characters/梦杳泠';
-import { assets as character8Assets } from './characters/安迟迟';
-import { assets as character9Assets } from './characters/阮忘忧';
-import { assets as character10Assets } from './characters/朔望舒';
-import { assets as character11Assets } from './characters/羽岚';
-import { assets as character12Assets } from './characters/沈倩宁';
+import { assets as character1Assets, imagePool as character0ImagePool } from './characters/白清弦';
+import { assets as character2Assets, imagePool as character1ImagePool } from './characters/虞汐颜';
+import { assets as character3Assets, imagePool as character2ImagePool } from './characters/许听雨';
+import { assets as character4Assets, imagePool as character3ImagePool } from './characters/南宫云裳';
+import { assets as character5Assets, imagePool as character4ImagePool } from './characters/朔璃鸢';
+import { assets as character6Assets, imagePool as character5ImagePool } from './characters/晚棠';
+import { assets as character7Assets, imagePool as character6ImagePool } from './characters/梦杳泠';
+import { assets as character8Assets, imagePool as character7ImagePool } from './characters/安迟迟';
+import { assets as character9Assets, imagePool as character8ImagePool } from './characters/阮忘忧';
+import { assets as character10Assets, imagePool as character9ImagePool } from './characters/朔望舒';
+import { assets as character11Assets, imagePool as character10ImagePool } from './characters/羽岚';
+import { assets as character12Assets, imagePool as character11ImagePool } from './characters/沈倩宁';
 import { assets as character13Assets, imagePool as character12ImagePool } from './characters/婵织烟';
-
-import { imagePool as character0ImagePool } from './characters/白清弦';
-import { imagePool as character1ImagePool } from './characters/虞汐颜';
-import { imagePool as character2ImagePool } from './characters/许听雨';
-import { imagePool as character3ImagePool } from './characters/南宫云裳';
-import { imagePool as character4ImagePool } from './characters/朔璃鸢';
-import { imagePool as character5ImagePool } from './characters/晚棠';
-import { imagePool as character6ImagePool } from './characters/梦杳泠';
-import { imagePool as character7ImagePool } from './characters/安迟迟';
-import { imagePool as character8ImagePool } from './characters/阮忘忧';
-import { imagePool as character9ImagePool } from './characters/朔望舒';
-import { imagePool as character10ImagePool } from './characters/羽岚';
-import { imagePool as character11ImagePool } from './characters/沈倩宁';
 
 export const CHARACTER_ASSETS: CharacterAssets = {
   白清弦: character1Assets,

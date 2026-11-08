@@ -1,0 +1,16 @@
+﻿{
+    "commit":  "9e8279ddc82aa36cd29ec9a51926d7e5e01fecc8",
+    "repository":  "https://github.com/Alice233-Alice/Apeiria",
+    "backupFileCount":  122,
+    "backupScope":  [
+                        "src/灯火通明",
+                        "src/灯火通明-伪同层控制器",
+                        "dist/灯火通明",
+                        "dist/灯火通明-伪同层控制器"
+                    ],
+    "restoreScope":  [
+                         "dist/灯火通明",
+                         "dist/灯火通明-伪同层控制器"
+                     ],
+    "sourceStatus":  "Unchanged. Remote src.zip does not contain these two source projects."
+}

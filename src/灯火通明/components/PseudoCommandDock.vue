@@ -2,7 +2,7 @@
   <section class="command-dock" :class="{ expanded: isExpanded, historical: !isWorkspaceLatest }">
     <div v-if="isWorkspaceLatest" class="command-shell">
       <div v-if="pseudo.selectedTitle" class="selected-intent">
-        <i class="fa-solid fa-compass"></i>
+        <span class="intent-tag"><i class="fa-solid fa-compass"></i> 起念</span>
         <strong>{{ pseudo.selectedTitle }}</strong>
         <button type="button" title="清除所选行动" :disabled="pseudo.isGenerating" @click="pseudo.clearDraft">
           <i class="fa-solid fa-xmark"></i>
@@ -339,25 +339,54 @@ textarea {
   height: 78px;
 }
 .selected-intent {
-  min-height: 30px;
-  margin: 0 37px 6px;
+  min-height: 28px;
+  margin: 0 0 6px;
+  padding: 4px 10px;
   display: flex;
   align-items: center;
   gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--gold) 32%, var(--line-subtle));
+  border-radius: 6px;
   color: var(--text-accent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--gold) 10%, transparent), transparent 45%),
+    color-mix(in srgb, var(--surface-inset) 82%, transparent);
   font-size: 11px;
 }
-.selected-intent > i {
+.intent-tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
   color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  font-size: 10px;
+  font-weight: 600;
 }
 .selected-intent strong {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .selected-intent button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
   border: 0;
+  border-radius: 4px;
   color: var(--text-secondary);
   background: transparent;
   cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--gold);
+    background: var(--button-hover);
+  }
 }
 .dialogue-intent > i {
   color: var(--jade);

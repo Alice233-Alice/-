@@ -50,10 +50,9 @@
           :disabled="affairs.interactionDisabled"
           @click="affairs.selectAction(action)"
         >
-          <span class="action-icon" aria-hidden="true"
-            ><i v-if="inline" :class="getActionIcon(action.类型)"></i
-            ><span v-else>{{ actionSeals[action.类型] || '行' }}</span></span
-          >
+          <span v-if="inline" class="action-icon" aria-hidden="true"
+            ><i :class="getActionIcon(action.类型)"></i
+          ></span>
           <span class="action-copy"
             ><strong>{{ copy.title }}</strong
             ><span v-if="copy.description">{{ copy.description }}</span
@@ -147,7 +146,6 @@ defineProps<{ inline?: boolean }>();
 const data = useDataStore();
 const pseudo = usePseudoLayerStore();
 const affairs = useAffairsStore();
-const actionSeals: Record<string, string> = { 探索: '探', 交涉: '谈', 战斗: '战', 修炼: '修', 整备: '备', 亲密: '契' };
 const actionCards = computed(() =>
   affairs.actions.map((action, index) => ({
     action,
@@ -337,13 +335,13 @@ select {
 }
 .action-choice {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: flex-start;
+  gap: 16px;
   width: 100%;
-  padding: 14px;
+  padding: 14px 18px;
   border: 1px solid color-mix(in srgb, var(--choice-color) 24%, var(--line-subtle));
-  border-radius: 5px;
+  border-radius: 6px;
   background: linear-gradient(110deg, color-mix(in srgb, var(--surface-inset) 65%, transparent), transparent);
   color: var(--text-primary);
   text-align: left;
@@ -422,7 +420,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 9px;
-  padding: 6px 14px 0 52px;
+  padding: 6px 18px 0;
 }
 .action-sources button {
   padding: 3px 0;
@@ -545,19 +543,15 @@ button:disabled {
 }
 @media (max-width: 760px) {
   .action-choice {
-    grid-template-columns: 26px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px 10px;
-    padding: 12px;
+    padding: 12px 14px;
   }
   .action-type {
-    grid-column: 2;
-    justify-self: start;
-  }
-  .action-icon {
-    grid-row: 1 / span 2;
+    justify-self: end;
   }
   .action-sources {
-    padding-left: 48px;
+    padding-left: 14px;
   }
   .preferences-body {
     grid-template-columns: minmax(0, 1fr);

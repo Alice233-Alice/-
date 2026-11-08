@@ -1,0 +1,48 @@
+{
+  "backup": "349ccb0923ca84144dd9c3dd343ff9ff4e33544e",
+  "unitTests": {
+    "passed": 37,
+    "failed": 0
+  },
+  "typeScriptDiagnostics": 0,
+  "eslintErrors": 0,
+  "modeSwitch": {
+    "pseudo": {
+      "candidateCount": 3,
+      "savedCandidates": 3
+    },
+    "native": {
+      "ready": true,
+      "mode": "native",
+      "candidateCount": 3,
+      "preferenceMatches": true,
+      "inspirationMatches": true,
+      "selectionMatches": true,
+      "blueprintMatches": true,
+      "stale": false,
+      "renderedCards": 3,
+      "controllerReady": true
+    },
+    "returned": {
+      "ready": true,
+      "mode": "pseudo-return",
+      "candidateCount": 3,
+      "preferenceMatches": true,
+      "inspirationMatches": true,
+      "selectionMatches": true,
+      "blueprintMatches": true,
+      "stale": false,
+      "renderedCards": 3,
+      "mvuUnchanged": true
+    },
+    "cleanup": {
+      "mode": "pseudo",
+      "preferenceRestored": true,
+      "testCandidatesRemoved": true,
+      "draftRestored": true,
+      "mvuUnchanged": true
+    },
+    "revision": "bright-test-2694161-f948a94a",
+    "realModelUsed": false
+  }
+}

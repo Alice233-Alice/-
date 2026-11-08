@@ -6,6 +6,7 @@ const ts = require('typescript');
 const { test } = require('node:test');
 require('ts-node').register({ project: 'tsconfig.schema-test.json', transpileOnly: true, files: true });
 const { getFrontendRevision } = require('../src/灯火通明-测试版/frontend-revision');
+const { saveReadingPosition } = require('../src/灯火通明-测试版/reading-position');
 
 test('编译代码与样式决定版本，普通运行态样式保持独立', () => {
   const styles = [{ textContent: '.cultivation-status { color: red; }' }, { textContent: '.runtime { color: blue; }' }];
@@ -58,6 +59,8 @@ function harness(revision = 'old') {
     getParkedMessageId: () => 1,
     getFrameKeeper: () => ({ querySelector: () => kept }),
     frameLoadStartedAt: new WeakMap(),
+    saveReadingPosition,
+    getCurrentChatId: () => 'test-chat',
     queueFrameCandidate: (frame, delay) => queued.push({ frame, delay }),
     scheduleViewRefresh() {},
     Date,
@@ -122,7 +125,8 @@ test('srcdoc 与 blob 模板可以连续切换', () => {
 const startupNames = ['isPseudoFrontendLoader', 'eagerLoadFrontendFrame', 'parkCandidateFrame', 'parkLatestStageFrame'];
 const startupSource = source.statements.filter(
   node =>
-    ts.isVariableStatement(node) && node.declarationList.declarations.some(item => startupNames.includes(item.name.text)),
+    ts.isVariableStatement(node) &&
+    node.declarationList.declarations.some(item => startupNames.includes(item.name.text)),
 );
 assert.equal(startupSource.length, startupNames.length);
 const startupCompiled = ts.transpileModule(startupSource.map(node => node.getText(source)).join('\n'), {
@@ -171,7 +175,9 @@ function startupHarness() {
 
 test('长索引页首次进卡，尚未挂载的界面加载器立即脱离懒加载等待', () => {
   const h = startupHarness();
-  const frame = h.addFrame("<body><script>$('body').load('http://127.0.0.1:5502/dist/灯火通明-测试版/index.html?_=' + Date.now())</script></body>");
+  const frame = h.addFrame(
+    "<body><script>$('body').load('http://127.0.0.1:5502/dist/灯火通明-测试版/index.html?_=' + Date.now())</script></body>",
+  );
   h.host.scan();
   assert.equal(frame.loading, 'eager');
   assert.deepEqual(h.attempted, [frame]);
@@ -207,19 +213,29 @@ test('已确认加载器可在原生前端挂载前创建舞台，启动中重�
   const frame = h.addFrame(loader);
   let owned;
   let clones = 0;
-  const keeper = { querySelector: () => owned, append: value => { owned = value; } };
-  frame.getAttribute = name => name === 'src' ? 'blob:frontend-loader' : null;
-  frame.closest = selector => selector === '.TH-render' ? {
-    querySelector: () => ({ textContent: loader }),
-    classList: { add() {} },
-  } : null;
+  const keeper = {
+    querySelector: () => owned,
+    append: value => {
+      owned = value;
+    },
+  };
+  frame.getAttribute = name => (name === 'src' ? 'blob:frontend-loader' : null);
+  frame.closest = selector =>
+    selector === '.TH-render'
+      ? {
+          querySelector: () => ({ textContent: loader }),
+          classList: { add() {} },
+        }
+      : null;
   frame.cloneNode = () => {
     clones++;
     return {
       dataset: {},
       loading: 'lazy',
       contentWindow: {},
-      removeAttribute(name) { if (name === 'loading') this.loading = 'auto'; },
+      removeAttribute(name) {
+        if (name === 'loading') this.loading = 'auto';
+      },
       addEventListener() {},
     };
   };
@@ -234,8 +250,9 @@ test('已确认加载器可在原生前端挂载前创建舞台，启动中重�
     registrations: new Map(),
     asReplyTarget: value => value,
   });
-  const declaration = source.statements.find(node =>
-    ts.isVariableStatement(node) && node.declarationList.declarations.some(item => item.name.text === 'parkFrame'),
+  const declaration = source.statements.find(
+    node =>
+      ts.isVariableStatement(node) && node.declarationList.declarations.some(item => item.name.text === 'parkFrame'),
   );
   const parkCompiled = ts.transpileModule(declaration.getText(source), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },

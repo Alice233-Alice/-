@@ -32,14 +32,14 @@ const firstFrame: Record<string, unknown> = {};
 (globalThis as any).window = firstFrame;
 const stopFirst = installMvuCommandCompatibility();
 const stopDuplicate = installMvuCommandCompatibility();
-assert.equal(subscriptions.length, 1, '同一 iframe 重复安装只保留一份监听');
+assert.equal(subscriptions.length, 2, '同一 iframe 重复安装只保留命令兼容与好感结算各一份监听');
 
 (globalThis as any).window = {};
 const stopSecond = installMvuCommandCompatibility();
 assert.deepEqual(
   subscriptions.map(subscription => subscription.event),
-  ['command_parsed', 'command_parsed'],
-  '兼容层不得注册变量结算后的改写监听',
+  ['command_parsed', 'variable_update_ended', 'command_parsed', 'variable_update_ended'],
+  '每个 iframe 分别注册命令兼容与好感结算',
 );
 
 const variables = {
@@ -57,7 +57,8 @@ const commands = [
   { type: 'add', args: ['stat_data.红颜.白清弦.修为', '-40'] },
 ];
 const originalCommands = lodash.cloneDeep(commands);
-for (const subscription of subscriptions) subscription.callback(variables, commands, '');
+const commandSubscriptions = subscriptions.filter(subscription => subscription.event === 'command_parsed');
+for (const subscription of commandSubscriptions) subscription.callback(variables, commands, '');
 assert.deepEqual(variables, originalVariables, '命令兼容不得写回变量或读取旧快照覆盖新结果');
 assert.deepEqual(commands, originalCommands, '重复运行不得篡改正常修为增量、跨级或跌境命令');
 
@@ -75,10 +76,10 @@ assert.equal(parsed.红颜.白清弦.修为, 160);
 assert.deepEqual(Schema.parse(parsed), parsed);
 
 const legacyCommands = [{ type: 'add', args: ['/本尊/灵石/下品灵石', '20'] }];
-subscriptions[0].callback(variables, legacyCommands, '');
+commandSubscriptions[0].callback(variables, legacyCommands, '');
 const compatibleCommands = lodash.cloneDeep(legacyCommands);
-subscriptions[1].callback(variables, legacyCommands, '');
-assert.equal(legacyCommands[0].args[0], 'stat_data.本尊.灵石');
+commandSubscriptions[1].callback(variables, legacyCommands, '');
+assert.equal(legacyCommands[0].args[0], 'stat_data.本尊.灵石.下品灵石');
 assert.deepEqual(legacyCommands, compatibleCommands, '旧字段兼容经过两遍后结果相同');
 assert.deepEqual(variables, originalVariables);
 

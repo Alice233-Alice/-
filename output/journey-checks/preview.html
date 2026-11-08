@@ -1,0 +1,1508 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>寻途与行旅 · 测试版交互样稿</title><style>html{color-scheme:dark}*{box-sizing:border-box}body{--bg-primary:linear-gradient(180deg, rgba(7, 23, 32, 0.98), rgba(4, 15, 22, 0.992));--bg-secondary:rgba(16, 37, 45, 0.94);--border:rgba(213, 180, 121, 0.28);--border-active:rgba(242, 194, 111, 0.72);--text-primary:#f3eee5;--text-secondary:#b7b8b3;--text-accent:#e0d3c1;--dialogue-text:#7fd2c1;--accent:#e3b96f;--accent-glow:rgba(227, 185, 111, 0.25);--button-bg:rgba(186, 129, 69, 0.1);--button-hover:rgba(215, 161, 87, 0.18);--button-active:linear-gradient(180deg, rgba(117, 70, 42, 0.62), rgba(50, 40, 36, 0.76));--progress-bg:rgba(4, 14, 19, 0.76);--header-bg:linear-gradient(90deg, rgba(4, 18, 27, 0.985), rgba(16, 35, 43, 0.965), rgba(37, 27, 25, 0.985));--tab-bg:rgba(4, 17, 25, 0.975);--tab-active:linear-gradient(180deg, rgba(126, 78, 42, 0.4), rgba(14, 27, 32, 0.16));--footer-bg:rgba(3, 14, 21, 0.98);--canvas:#030d14;--surface:rgba(8, 26, 34, 0.94);--surface-raised:rgba(20, 39, 43, 0.98);--surface-inset:rgba(2, 12, 18, 0.88);--reading-surface:linear-gradient(180deg, rgba(5, 25, 35, 0.8), rgba(3, 18, 27, 0.9));--line-subtle:rgba(220, 191, 141, 0.14);--line-strong:rgba(225, 184, 111, 0.42);--gold:#e6bd76;--gold-soft:#c8a66f;--jade:#68c5b2;--jade-soft:#8ebbb1;--crimson:#aa5960;--danger:#df7468;--success:#72c6a5;--warning:#dda85e;--info:#77aeca;--relation:#d8899d;--shadow:rgba(0, 4, 8, 0.58);--focus-ring:rgba(231, 187, 109, 0.3);--semantic-danger:var(--danger);margin:0;background:#102326;color:var(--text-primary);font:14px/1.7 system-ui,sans-serif}main{max-width:1180px;margin:auto;padding:24px 18px}body>header{padding:14px 18px;color:var(--text-secondary);background:var(--surface-inset);font-size:12px}#action{white-space:pre-wrap;min-height:50px;color:var(--gold);padding:16px;border:1px solid var(--line-subtle)}.fa-solid{display:inline-block;width:1em}.journey-panel:focus{outline:none}.journey-reference[data-v-preview-journeycontextpicker] {
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line-subtle);
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+p[data-v-preview-journeycontextpicker] {
+  margin: 0;
+}
+.reference-counts[data-v-preview-journeycontextpicker],
+.reference-range[data-v-preview-journeycontextpicker],
+.history-selector[data-v-preview-journeycontextpicker],
+.history-pages[data-v-preview-journeycontextpicker],
+.reference-details > summary[data-v-preview-journeycontextpicker] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.reference-counts[data-v-preview-journeycontextpicker] {
+  line-height: 1.8;
+}
+.reference-counts i[data-v-preview-journeycontextpicker] {
+  margin-right: 6px;
+}
+.reference-details[data-v-preview-journeycontextpicker] {
+  margin-top: 12px;
+}
+.reference-details > summary[data-v-preview-journeycontextpicker] {
+  justify-content: space-between;
+  padding: 8px 0;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.reference-details > summary i[data-v-preview-journeycontextpicker] {
+  margin-right: 8px;
+  color: var(--gold-soft);
+}
+.reference-mode[data-v-preview-journeycontextpicker] {
+  color: var(--gold-soft);
+  font-size: 11px;
+}
+.reference-hint[data-v-preview-journeycontextpicker] {
+  margin: 8px 0 12px;
+  line-height: 1.8;
+}
+.reference-error[data-v-preview-journeycontextpicker] {
+  margin-top: 8px;
+  line-height: 1.8;
+  color: var(--semantic-danger, var(--danger));
+}
+.reference-range[data-v-preview-journeycontextpicker] {
+  margin: 12px 0;
+  gap: 8px;
+}
+.reference-range label[data-v-preview-journeycontextpicker] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+button[data-v-preview-journeycontextpicker],
+input[data-v-preview-journeycontextpicker] {
+  color: inherit;
+  font: inherit;
+}
+.reference-range input[data-v-preview-journeycontextpicker] {
+  box-sizing: border-box;
+  width: 5.5em;
+  padding: 7px 5px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+button[data-v-preview-journeycontextpicker] {
+  padding: 7px 10px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+button[data-v-preview-journeycontextpicker]:hover:not(:disabled) {
+  background: var(--button-hover);
+  color: var(--gold);
+}
+button[data-v-preview-journeycontextpicker]:disabled,
+input[data-v-preview-journeycontextpicker]:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+button[data-v-preview-journeycontextpicker]:focus-visible,
+input[data-v-preview-journeycontextpicker]:focus-visible,
+summary[data-v-preview-journeycontextpicker]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.history-list[data-v-preview-journeycontextpicker] {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.history-row[data-v-preview-journeycontextpicker] {
+  padding: 11px 10px;
+  border-top: 1px solid var(--line-subtle);
+}
+.history-row.row-selected[data-v-preview-journeycontextpicker] {
+  background: color-mix(in srgb, var(--gold) 3%, transparent);
+}
+.history-selector[data-v-preview-journeycontextpicker] {
+  gap: 7px 10px;
+  cursor: pointer;
+  line-height: 1.8;
+}
+.history-selector input[data-v-preview-journeycontextpicker] {
+  margin: 0;
+  accent-color: var(--gold);
+}
+.history-name[data-v-preview-journeycontextpicker] {
+  color: var(--text-primary);
+}
+.history-selector small[data-v-preview-journeycontextpicker] {
+  color: var(--gold-soft);
+  font-size: 10px;
+}
+.history-content[data-v-preview-journeycontextpicker] {
+  margin: 6px 0 0 24px;
+  line-height: 1.8;
+}
+.history-content > summary[data-v-preview-journeycontextpicker] {
+  cursor: pointer;
+}
+.history-content p[data-v-preview-journeycontextpicker] {
+  margin-top: 10px;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+.history-pages[data-v-preview-journeycontextpicker] {
+  justify-content: center;
+  margin-top: 14px;
+}
+@media (max-width: 440px) {
+.reference-counts[data-v-preview-journeycontextpicker] {
+    display: grid;
+    gap: 2px;
+}
+.history-row[data-v-preview-journeycontextpicker] {
+    padding: 10px 6px;
+}
+.history-content[data-v-preview-journeycontextpicker] {
+    margin-left: 0;
+}
+}
+@media (pointer: coarse) {
+button[data-v-preview-journeycontextpicker],
+  .reference-range input[data-v-preview-journeycontextpicker],
+  .history-selector[data-v-preview-journeycontextpicker],
+  .reference-details > summary[data-v-preview-journeycontextpicker],
+  .history-content > summary[data-v-preview-journeycontextpicker] {
+    min-height: 44px;
+}
+.reference-range input[data-v-preview-journeycontextpicker] {
+    font-size: 16px;
+}
+}
+.journey-panel[data-v-preview-journeypanel] {
+  margin: 0 0 28px;
+  padding: 4px 0 24px;
+  border-bottom: 1px solid var(--line-subtle);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.journey-heading[data-v-preview-journeypanel] {
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.journey-picker[data-v-preview-journeypanel] {
+  margin-top: 16px;
+}
+.picker-tabs[data-v-preview-journeypanel] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.picker-tabs button[data-v-preview-journeypanel] {
+  padding: 10px 4px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+  cursor: pointer;
+}
+.picker-tabs button[aria-pressed=true][data-v-preview-journeypanel] {
+  color: var(--gold);
+  border-bottom-color: var(--gold-soft);
+}
+.journey-heading[data-v-preview-journeypanel],
+.current-heading[data-v-preview-journeypanel],
+.seeking-controls[data-v-preview-journeypanel],
+.saved-journey-row[data-v-preview-journeypanel] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+h2[data-v-preview-journeypanel],
+h3[data-v-preview-journeypanel],
+p[data-v-preview-journeypanel] {
+  margin: 0;
+}
+h2[data-v-preview-journeypanel] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  font: 600 18px "Noto Serif SC", STSong, serif;
+}
+h2 i[data-v-preview-journeypanel],
+.eyebrow[data-v-preview-journeypanel],
+.field-caption[data-v-preview-journeypanel],
+.journey-field-label[data-v-preview-journeypanel] {
+  color: var(--gold-soft);
+}
+h3[data-v-preview-journeypanel] {
+  font: 600 17px "Noto Serif SC", STSong, serif;
+  line-height: 1.6;
+  letter-spacing: 0.035em;
+}
+.eyebrow[data-v-preview-journeypanel] {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+.journey-intro[data-v-preview-journeypanel],
+.journal-empty[data-v-preview-journeypanel] {
+  margin-top: 14px;
+  color: var(--text-secondary);
+  line-height: 1.9;
+  font-size: 13px;
+}
+button[data-v-preview-journeypanel],
+select[data-v-preview-journeypanel],
+textarea[data-v-preview-journeypanel] {
+  font: inherit;
+  color: inherit;
+}
+button[data-v-preview-journeypanel] {
+  cursor: pointer;
+}
+button[data-v-preview-journeypanel]:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.quiet-button[data-v-preview-journeypanel],
+.journey-button[data-v-preview-journeypanel] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 3px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.journey-button[data-v-preview-journeypanel] {
+  border-color: color-mix(in srgb, var(--gold) 40%, var(--line-subtle));
+  background: color-mix(in srgb, var(--gold) 4%, transparent);
+  color: var(--gold);
+}
+button[data-v-preview-journeypanel]:hover:not(:disabled) {
+  background: var(--button-hover);
+}
+button[data-v-preview-journeypanel]:focus-visible,
+summary[data-v-preview-journeypanel]:focus-visible,
+textarea[data-v-preview-journeypanel]:focus-visible,
+select[data-v-preview-journeypanel]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.seeking-surface[data-v-preview-journeypanel] {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface-inset) 65%, transparent);
+}
+.field-label[data-v-preview-journeypanel] {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+textarea[data-v-preview-journeypanel] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-primary);
+  resize: vertical;
+  line-height: 1.8;
+}
+.seeking-controls[data-v-preview-journeypanel] {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.seeking-controls label[data-v-preview-journeypanel] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+select[data-v-preview-journeypanel] {
+  padding: 7px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 4px;
+  background: var(--surface-raised);
+}
+.seeking-note[data-v-preview-journeypanel],
+.journey-error[data-v-preview-journeypanel] {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.seeking-note[data-v-preview-journeypanel] {
+  color: var(--text-secondary);
+}
+.journey-error[data-v-preview-journeypanel] {
+  color: var(--semantic-danger);
+}
+.proposal-grid[data-v-preview-journeypanel] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.proposal[data-v-preview-journeypanel] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 14px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 5px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--surface-inset) 65%, transparent), transparent);
+  overflow-wrap: anywhere;
+}
+.proposal .eyebrow[data-v-preview-journeypanel] {
+  font-size: 11px;
+}
+.proposal p[data-v-preview-journeypanel] {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-secondary);
+}
+.proposal .proposal-goal[data-v-preview-journeypanel] {
+  color: var(--text-primary);
+}
+.proposal-goal span[data-v-preview-journeypanel],
+.field-caption[data-v-preview-journeypanel] {
+  margin-right: 8px;
+  font-size: 12px;
+}
+.proposal > button[data-v-preview-journeypanel] {
+  margin-top: auto;
+}
+.current-journey[data-v-preview-journeypanel] {
+  margin-top: 20px;
+  padding: 22px 18px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--gold) 4%, var(--surface-inset)), color-mix(in srgb, var(--surface-inset) 55%, transparent));
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, var(--line-subtle));
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 8%, transparent);
+}
+.current-heading h3[data-v-preview-journeypanel] {
+  margin-top: 7px;
+  color: var(--gold);
+  font-size: 21px;
+}
+.journey-state[data-v-preview-journeypanel],
+.guess-state[data-v-preview-journeypanel] {
+  font-size: 12px;
+  color: var(--gold);
+}
+.journey-state[data-v-preview-journeypanel] {
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--gold) 25%, transparent);
+  border-radius: 2px;
+}
+.longing[data-v-preview-journeypanel] {
+  margin-top: 16px;
+  line-height: 1.9;
+  font-size: 14px;
+}
+.origin[data-v-preview-journeypanel] {
+  margin-top: 12px;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.9;
+}
+summary[data-v-preview-journeypanel] {
+  cursor: pointer;
+}
+.origin p[data-v-preview-journeypanel] {
+  margin-top: 7px;
+}
+.journey-progress[data-v-preview-journeypanel],
+.journey-next[data-v-preview-journeypanel] {
+  display: grid;
+  grid-template-columns: 4em minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.journey-field-label[data-v-preview-journeypanel] {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.journey-field-copy[data-v-preview-journeypanel] {
+  min-width: 0;
+}
+.journey-next[data-v-preview-journeypanel] {
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--gold) 35%, transparent);
+}
+.journey-progress[data-v-preview-journeypanel] {
+  color: var(--text-secondary);
+}
+.journey-controls[data-v-preview-journeypanel],
+.journey-links[data-v-preview-journeypanel],
+.clue-tags[data-v-preview-journeypanel] {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.journey-controls[data-v-preview-journeypanel] {
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line-subtle) 60%, transparent);
+}
+.journey-links button[data-v-preview-journeypanel] {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  font-size: 12px;
+}
+.journal[data-v-preview-journeypanel] {
+  margin-top: 22px;
+  border-top: 1px solid var(--line-subtle);
+}
+.journal-tabs[data-v-preview-journeypanel] {
+  display: flex;
+  gap: 22px;
+  padding-top: 10px;
+}
+.journal-tabs button[data-v-preview-journeypanel] {
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+}
+.journal-tabs button[aria-pressed=true][data-v-preview-journeypanel] {
+  color: var(--gold);
+  border-bottom-color: var(--gold-soft);
+}
+.journal-tabs button > span[data-v-preview-journeypanel] {
+  margin-left: 7px;
+  font-size: 11px;
+}
+.journal-entry[data-v-preview-journeypanel] {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line-subtle);
+  font-size: 13px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.journal-entry p[data-v-preview-journeypanel] {
+  margin-top: 6px;
+}
+.journal-entry details[data-v-preview-journeypanel],
+.journal-entry small[data-v-preview-journeypanel],
+.entry-source[data-v-preview-journeypanel] {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.clue-selector[data-v-preview-journeypanel] {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+input[type=checkbox][data-v-preview-journeypanel] {
+  accent-color: var(--gold);
+}
+.guess-form[data-v-preview-journeypanel] {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.guess-form > button[data-v-preview-journeypanel] {
+  justify-self: start;
+}
+.clue-tags[data-v-preview-journeypanel] {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.clue-tags > span[data-v-preview-journeypanel] {
+  border-bottom: 1px dotted var(--line-strong);
+}
+.journal-entry > button[data-v-preview-journeypanel] {
+  margin-top: 10px;
+}
+.saved-journeys[data-v-preview-journeypanel] {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.saved-journeys > summary[data-v-preview-journeypanel] {
+  padding: 8px 0;
+  color: var(--text-primary);
+  font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+}
+.saved-journey[data-v-preview-journeypanel] {
+  margin-top: 12px;
+  padding: 12px;
+  border-left: 1px solid var(--line-subtle);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--surface-inset) 40%, transparent), transparent);
+}
+.saved-journey strong[data-v-preview-journeypanel] {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+  font-size: 14px;
+}
+.saved-journey small[data-v-preview-journeypanel] {
+  margin-left: 10px;
+}
+.saved-hint[data-v-preview-journeypanel] {
+  margin-top: 12px;
+  line-height: 1.8;
+}
+.saved-journey-actions[data-v-preview-journeypanel] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.clear-record[data-v-preview-journeypanel] {
+  color: var(--semantic-danger);
+}
+.cleanup-confirm[data-v-preview-journeypanel] {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--semantic-danger) 35%, var(--line-subtle));
+  border-radius: 5px;
+  background: var(--surface-inset);
+  line-height: 1.9;
+}
+.cleanup-confirm p + p[data-v-preview-journeypanel] {
+  margin-top: 6px;
+}
+@media (max-width: 850px) {
+.proposal-grid[data-v-preview-journeypanel] {
+    grid-template-columns: 1fr;
+}
+}
+@media (pointer: coarse) {
+textarea[data-v-preview-journeypanel] {
+    font-size: 16px;
+}
+button[data-v-preview-journeypanel],
+  select[data-v-preview-journeypanel],
+  .clue-selector[data-v-preview-journeypanel] {
+    min-height: 44px;
+}
+}
+@media (max-width: 440px) {
+.current-journey[data-v-preview-journeypanel],
+  .seeking-surface[data-v-preview-journeypanel] {
+    padding: 16px 12px;
+}
+.journey-heading[data-v-preview-journeypanel] {
+    align-items: flex-start;
+}
+}
+.journey-trail[data-v-preview-journeytrail] {
+  margin: 20px 0;
+  padding: 12px 0;
+  border-block: 1px solid var(--line-subtle);
+}
+.trail-heading[data-v-preview-journeytrail] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold);
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+.trail-heading > small[data-v-preview-journeytrail] {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.trail-heading > i[data-v-preview-journeytrail]:last-child {
+  margin-left: auto;
+}
+p[data-v-preview-journeytrail] {
+  margin: 7px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.8;
+}</style><header>本地交互样稿，使用测试版实际组件与主题。样例资料仅在本页内变化。</header><main><div id="trail"></div><div id="panel"></div><pre id="action">点选「循此起念」或「循此核实」，查看行动文本。</pre></main><script src="./vue.runtime.js"></script><script>const {reactive,createApp}=Vue;
+    const state=reactive({archive:{当前追踪:'样稿甲',旅程:{样稿甲:{"名称":"潮声寄远","缘起":"渡口守人提起，旧潮线上近日又见失传的舟纹；来处仍待查证。","所求":"追索渡舟旧约，探访远海各方，并寻找一处能够自在停舟的居所。","篇章":"第一章 · 渡口问潮","进展":"守人确认残木随昨夜潮水从上游漂来，曾答应替你留意同类木片。","下一步":"沿河访问上游船户，或先比对木片上的舟纹。","状态":"进行中","关联任务":["渡口访舟"],"关联世闻":["旧渡重开"],"线索":{"残木舟纹":{"内容":"残木上的三道舟纹与渡口旧碑一角相近。是否出自同一处仍待核实。","依据":"你当面比对了木片与旧碑。","时地":"第七日清晨 · 柳渡"},"涨水来向":{"内容":"守人亲见残木从上游漂来；这是守人的见闻。","依据":"渡口守人的口述。","时地":"第七日清晨 · 柳渡"}},"纪事":{"留木之约":{"内容":"你将半枚木片留在渡口，请守人留意同类舟纹。","依据":"守人收下木片，答应下次涨水时查看。","时地":"第七日清晨 · 柳渡"}},"猜想":{"旧舟来处":{"内容":"旧碑与残木可能同出上游旧舟坊。","关联线索":["残木舟纹","涨水来向"],"状态":"待核实","依据":""}}},样稿乙:{"名称":"山外问剑","缘起":"有人愿以一卷旧剑帖换取沿途剑痕的拓印，交易条件尚可商议。","所求":"走访不同门派，在切磋与抉择中寻得自己的剑道。","篇章":"缘起","进展":"","下一步":"向当面的来客问清交换条件。","状态":"待启程","关联任务":[],"关联世闻":[],"线索":{},"纪事":{},"猜想":{}}}},get currentId(){return this.archive.当前追踪},get current(){return this.archive.旅程[this.currentId]},disabled:false,seeking:false,saving:false,error:'',panelOpen:false,preference:'',inspiration:'',proposals:[],proposalsStale:false,
+      seek(){this.proposals=[{"name":"潮声寄远","lead":"渡口守人提起，旧潮线上近日又见失传的舟纹；来处仍待查证。","goal":"追索渡舟旧约，探访远海各方，并寻找一处能够自在停舟的居所。","step":"从眼前渡口问询旧舟纹的出处。","plan":"只供后台的未发生构思。"},{"name":"山外问剑","lead":"有人愿以一卷旧剑帖换取沿途剑痕的拓印，交易条件尚可商议。","goal":"走访不同门派，在切磋与抉择中寻得自己的剑道。","step":"向当面的来客问清交换条件。","plan":"只供后台的另一份构思。"},{"name":"草木长生","lead":"山下药园托人求助，灵苗近来的枯荣规律值得一看。","goal":"从药园起步，建立能与同行之人长久经营的修行资粮。","step":"先询问药园所在与灵苗异状的发生时辰。","plan":"只供后台的第三份构思。"}]},cancel(){this.seeking=false},choose(p){this.proposals=[];this.panelOpen=false;showAction(p.step)},track(id){this.archive.当前追踪=id},pause(){this.current.状态='暂歇'},resume(){this.current.状态='进行中';showAction(this.current.下一步)},untrack(){this.archive.当前追踪=''},addGuess(content,clues){this.current.猜想['手记'+Date.now()]={内容:content,关联线索:clues,状态:'待核实',依据:''};return Promise.resolve(true)},verifyGuess(id){showAction('核实：'+this.current.猜想[id].内容)}});
+    state.removeJourney=async id=>{delete state.archive.旅程[id];if(state.currentId===id)state.archive.当前追踪='';return true};
+    Object.assign(state,{historyRows:[],selectedMessageIds:[],historyMode:'all',rangeStart:0,rangeEnd:2,historyLastMessageId:2,worldbooks:[{name:'本地样稿设定'}],worldEntryCount:1,contextReady:true,contextLoading:false,contextError:'',refreshContext:async()=>true});
+    Object.defineProperty(state,'selectedHistory',{get(){return this.historyRows.filter(row=>this.selectedMessageIds.includes(row.id))}});
+    Object.defineProperty(state,'referenceCharacters',{get(){return this.selectedHistory.reduce((sum,row)=>sum+row.content.length,0)}});
+    state.selectAllHistory=()=>{state.historyMode='all';state.rangeStart=0;state.rangeEnd=state.historyLastMessageId;state.selectedMessageIds=state.historyRows.filter(row=>row.defaultSelected).map(row=>row.id)};
+    state.applyHistoryRange=()=>{state.historyMode='manual';state.selectedMessageIds=state.historyRows.filter(row=>row.id>=state.rangeStart&&row.id<=state.rangeEnd&&row.defaultSelected).map(row=>row.id)};
+    state.toggleHistoryMessage=id=>{state.historyMode='manual';state.selectedMessageIds=state.selectedMessageIds.includes(id)?state.selectedMessageIds.filter(value=>value!==id):[...state.selectedMessageIds,id].sort((a,b)=>a-b);state.proposalsStale=state.proposals.length>0};
+    const scenes=[{"title":"晨课开局","texts":["观月台晨课未完，白清弦指出你行气时的一处疑处。","先把这一周天练稳，再请教师尊旧剑谱。","白清弦答应待晨课结束后，与你细说旧谱的来历。"]},{"title":"受困原地","texts":["黄泉古迹出口暂封，晚棠守着搁浅木舟上的青灯。","与晚棠一起查看舟首禁制，先找能够立足的办法。","灯焰照出了半道旧纹，附近石阶仍被雾气遮住。"]},{"title":"已有调查","texts":["你已经比对渡口旧碑与残木舟纹，确认两者有相似之处。","向守人问清昨夜涨水的来向。","守人亲见残木从上游漂来，船坊尚待访问。"]}];
+    function selectScene(index){state.historyRows=scenes[index].texts.map((content,id)=>({id,content,role:id%2?'user':'assistant',name:'旁白',kind:'正文',hidden:false,defaultSelected:true}));state.proposals=[];state.proposalsStale=false;state.panelOpen=true;state.selectAllHistory()}
+    selectScene(0);
+    function showAction(text){document.getElementById('action').textContent=text}
+    const affairs={navigate:(kind,id)=>showAction('前往 '+kind+'：'+id)};
+    const data={任务列表:{渡口访舟:{名称:'渡口访舟'}},世界图志:{旧渡重开:{}},rawData:{_近期任务结果:{}}};
+    function dependency(id){if(id==='vue')return Vue;if(id.endsWith('JourneyContextPicker.vue'))return JourneyContextPicker.exports;if(id.endsWith('CloudStoriesPanel.vue'))return {default:{render:()=>Vue.h('p','云端故事请在酒馆内翻阅。')}};if(id.includes('journey-store'))return {useJourneyStore:()=>state};if(id.includes('affairs-store'))return {useAffairsStore:()=>affairs};return {useDataStore:()=>data}}
+    const JourneyContextPicker = {exports:{}}; ((exports,require)=>{"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const vue_1 = require("vue");
+const vue_2 = require("vue");
+const _hoisted_1 = {
+    class: "journey-reference",
+    "aria-label": "寻途剧情参考"
+};
+const _hoisted_2 = {
+    class: "reference-counts",
+    "aria-live": "polite"
+};
+const _hoisted_3 = { key: 0 };
+const _hoisted_4 = { key: 2 };
+const _hoisted_5 = {
+    key: 0,
+    class: "reference-error",
+    role: "alert"
+};
+const _hoisted_6 = { class: "reference-details" };
+const _hoisted_7 = { class: "reference-mode" };
+const _hoisted_8 = { class: "reference-range" };
+const _hoisted_9 = ["max", "disabled"];
+const _hoisted_10 = ["max", "disabled"];
+const _hoisted_11 = ["disabled"];
+const _hoisted_12 = ["disabled"];
+const _hoisted_13 = ["disabled"];
+const _hoisted_14 = {
+    key: 0,
+    class: "reference-hint"
+};
+const _hoisted_15 = {
+    class: "history-list",
+    "aria-label": "可载入的历史楼层"
+};
+const _hoisted_16 = { class: "history-selector" };
+const _hoisted_17 = ["checked", "disabled", "aria-label", "onChange"];
+const _hoisted_18 = { class: "history-name" };
+const _hoisted_19 = { key: 0 };
+const _hoisted_20 = { class: "history-content" };
+const _hoisted_21 = {
+    key: 1,
+    class: "reference-hint"
+};
+const _hoisted_22 = {
+    key: 2,
+    class: "history-pages",
+    "aria-label": "历史楼层分页"
+};
+const _hoisted_23 = ["disabled"];
+const _hoisted_24 = ["disabled"];
+const vue_3 = require("vue");
+const journey_store_1 = require("../stores/journey-store");
+exports.default = (0, vue_1.defineComponent)({
+    __name: 'JourneyContextPicker',
+    setup(__props) {
+        const journeys = (0, journey_store_1.useJourneyStore)();
+        const page = (0, vue_3.ref)(0);
+        const pageCount = (0, vue_3.computed)(() => Math.max(1, Math.ceil(journeys.historyRows.length / 20)));
+        const pageRows = (0, vue_3.computed)(() => journeys.historyRows.slice(page.value * 20, (page.value + 1) * 20));
+        (0, vue_3.watch)(pageCount, count => {
+            page.value = Math.min(page.value, count - 1);
+        });
+        const applyRange = () => {
+            journeys.applyHistoryRange();
+            const index = journeys.historyRows.findIndex(row => row.id >= journeys.rangeStart);
+            page.value = index < 0 ? 0 : Math.floor(index / 20);
+        };
+        const selectAll = () => {
+            journeys.selectAllHistory();
+            page.value = 0;
+        };
+        (0, vue_3.onMounted)(() => {
+            void journeys.refreshContext();
+        });
+        return (_ctx, _cache) => {
+            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("section", _hoisted_1, [
+                (0, vue_2.createElementVNode)("p", _hoisted_2, [
+                    ((0, vue_2.unref)(journeys).contextLoading)
+                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("span", _hoisted_3, [...(_cache[5] || (_cache[5] = [
+                                (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-circle-notch fa-spin" }, null, -1 /* CACHED */),
+                                (0, vue_2.createTextVNode)("正在读取设定与剧情", -1 /* CACHED */)
+                            ]))]))
+                        : ((0, vue_2.unref)(journeys).contextReady)
+                            ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)(vue_2.Fragment, { key: 1 }, [
+                                (0, vue_2.createElementVNode)("span", null, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).worldbooks.length) + " 本世界书 · " + (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).worldEntryCount) + " 条载入设定", 1 /* TEXT */),
+                                (0, vue_2.createElementVNode)("span", null, "已选 " + (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).selectedHistory.length) + " 楼 · 待发送 " + (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).referenceCharacters.toLocaleString()) + " 字符", 1 /* TEXT */)
+                            ], 64 /* STABLE_FRAGMENT */))
+                            : ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("span", _hoisted_4, "设定与剧情尚待载入"))
+                ]),
+                ((0, vue_2.unref)(journeys).contextError)
+                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_5, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).contextError), 1 /* TEXT */))
+                    : (0, vue_2.createCommentVNode)("v-if", true),
+                (0, vue_2.createElementVNode)("details", _hoisted_6, [
+                    (0, vue_2.createElementVNode)("summary", null, [
+                        _cache[6] || (_cache[6] = (0, vue_2.createElementVNode)("span", null, [
+                            (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-book-open" }),
+                            (0, vue_2.createTextVNode)("剧情参考")
+                        ], -1 /* CACHED */)),
+                        (0, vue_2.createElementVNode)("span", _hoisted_7, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).historyMode === 'all' ? '全部历史' : '手动选择'), 1 /* TEXT */)
+                    ]),
+                    _cache[11] || (_cache[11] = (0, vue_2.createElementVNode)("p", { class: "reference-hint" }, "红颜人设仅随蓝灯载入，其余设定按开启状态载入。", -1 /* CACHED */)),
+                    _cache[12] || (_cache[12] = (0, vue_2.createElementVNode)("p", { class: "reference-hint" }, "按区间载入，再逐楼取舍。已归档的幕间交谈一并承接，普通隐藏楼层可自行勾选。", -1 /* CACHED */)),
+                    (0, vue_2.createElementVNode)("div", _hoisted_8, [
+                        (0, vue_2.createElementVNode)("label", null, [
+                            _cache[7] || (_cache[7] = (0, vue_2.createTextVNode)("从第 ", -1 /* CACHED */)),
+                            (0, vue_2.withDirectives)((0, vue_2.createElementVNode)("input", {
+                                "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => (((0, vue_2.unref)(journeys).rangeStart) = $event)),
+                                type: "number",
+                                min: "0",
+                                max: (0, vue_2.unref)(journeys).historyLastMessageId,
+                                disabled: (0, vue_2.unref)(journeys).seeking || (0, vue_2.unref)(journeys).contextLoading,
+                                "aria-label": "寻途开始楼层"
+                            }, null, 8 /* PROPS */, _hoisted_9), [
+                                [
+                                    vue_2.vModelText,
+                                    (0, vue_2.unref)(journeys).rangeStart,
+                                    void 0,
+                                    { number: true }
+                                ]
+                            ]),
+                            _cache[8] || (_cache[8] = (0, vue_2.createTextVNode)(" 楼", -1 /* CACHED */))
+                        ]),
+                        (0, vue_2.createElementVNode)("label", null, [
+                            _cache[9] || (_cache[9] = (0, vue_2.createTextVNode)("至第 ", -1 /* CACHED */)),
+                            (0, vue_2.withDirectives)((0, vue_2.createElementVNode)("input", {
+                                "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => (((0, vue_2.unref)(journeys).rangeEnd) = $event)),
+                                type: "number",
+                                min: "0",
+                                max: (0, vue_2.unref)(journeys).historyLastMessageId,
+                                disabled: (0, vue_2.unref)(journeys).seeking || (0, vue_2.unref)(journeys).contextLoading,
+                                "aria-label": "寻途结束楼层"
+                            }, null, 8 /* PROPS */, _hoisted_10), [
+                                [
+                                    vue_2.vModelText,
+                                    (0, vue_2.unref)(journeys).rangeEnd,
+                                    void 0,
+                                    { number: true }
+                                ]
+                            ]),
+                            _cache[10] || (_cache[10] = (0, vue_2.createTextVNode)(" 楼", -1 /* CACHED */))
+                        ]),
+                        (0, vue_2.createElementVNode)("button", {
+                            type: "button",
+                            disabled: (0, vue_2.unref)(journeys).seeking || (0, vue_2.unref)(journeys).contextLoading,
+                            onClick: applyRange
+                        }, " 应用区间 ", 8 /* PROPS */, _hoisted_11),
+                        (0, vue_2.createElementVNode)("button", {
+                            type: "button",
+                            disabled: (0, vue_2.unref)(journeys).seeking || (0, vue_2.unref)(journeys).contextLoading,
+                            onClick: selectAll
+                        }, " 全部历史 ", 8 /* PROPS */, _hoisted_12),
+                        (0, vue_2.createElementVNode)("button", {
+                            type: "button",
+                            disabled: (0, vue_2.unref)(journeys).seeking || (0, vue_2.unref)(journeys).contextLoading,
+                            onClick: _cache[2] || (_cache[2] =
+                                //@ts-ignore
+                                (...args) => ((0, vue_2.unref)(journeys).refreshContext && (0, vue_2.unref)(journeys).refreshContext(...args)))
+                        }, " 重新读取 ", 8 /* PROPS */, _hoisted_13)
+                    ]),
+                    ((0, vue_2.unref)(journeys).contextReady && !(0, vue_2.unref)(journeys).selectedHistory.length)
+                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_14, " 请至少勾选一条剧情或玩家输入。 "))
+                        : (0, vue_2.createCommentVNode)("v-if", true),
+                    (0, vue_2.createElementVNode)("ol", _hoisted_15, [
+                        ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(pageRows.value, (row) => {
+                            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("li", {
+                                key: row.id,
+                                class: (0, vue_2.normalizeClass)(["history-row", { 'row-selected': (0, vue_2.unref)(journeys).selectedMessageIds.includes(row.id) }])
+                            }, [
+                                (0, vue_2.createElementVNode)("label", _hoisted_16, [
+                                    (0, vue_2.createElementVNode)("input", {
+                                        type: "checkbox",
+                                        checked: (0, vue_2.unref)(journeys).selectedMessageIds.includes(row.id),
+                                        disabled: (0, vue_2.unref)(journeys).seeking,
+                                        "aria-label": `载入第${row.id}楼`,
+                                        onChange: ($event) => ((0, vue_2.unref)(journeys).toggleHistoryMessage(row.id))
+                                    }, null, 40 /* PROPS, NEED_HYDRATION */, _hoisted_17),
+                                    (0, vue_2.createElementVNode)("span", null, "第 " + (0, vue_2.toDisplayString)(row.id) + " 楼", 1 /* TEXT */),
+                                    (0, vue_2.createElementVNode)("span", _hoisted_18, (0, vue_2.toDisplayString)(row.role === 'user' ? '玩家' : row.name), 1 /* TEXT */),
+                                    (0, vue_2.createElementVNode)("small", null, (0, vue_2.toDisplayString)(row.kind), 1 /* TEXT */),
+                                    (row.hidden)
+                                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("small", _hoisted_19, (0, vue_2.toDisplayString)(row.kind === '交谈' ? '已归档' : '已隐藏'), 1 /* TEXT */))
+                                        : (0, vue_2.createCommentVNode)("v-if", true)
+                                ]),
+                                (0, vue_2.createElementVNode)("details", _hoisted_20, [
+                                    (0, vue_2.createElementVNode)("summary", null, (0, vue_2.toDisplayString)(row.content.replace(/\s+/gu, ' ').slice(0, 96)) + (0, vue_2.toDisplayString)(row.content.length > 96 ? '…' : ''), 1 /* TEXT */),
+                                    (0, vue_2.createElementVNode)("p", null, (0, vue_2.toDisplayString)(row.content), 1 /* TEXT */)
+                                ])
+                            ], 2 /* CLASS */));
+                        }), 128 /* KEYED_FRAGMENT */))
+                    ]),
+                    (!(0, vue_2.unref)(journeys).historyRows.length && !(0, vue_2.unref)(journeys).contextLoading)
+                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_21, " 当前没有可载入的剧情楼层。 "))
+                        : (0, vue_2.createCommentVNode)("v-if", true),
+                    (pageCount.value > 1)
+                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("nav", _hoisted_22, [
+                            (0, vue_2.createElementVNode)("button", {
+                                type: "button",
+                                disabled: page.value === 0,
+                                onClick: _cache[3] || (_cache[3] = ($event) => (page.value -= 1))
+                            }, "上一页", 8 /* PROPS */, _hoisted_23),
+                            (0, vue_2.createElementVNode)("span", null, "第 " + (0, vue_2.toDisplayString)(page.value + 1) + " / " + (0, vue_2.toDisplayString)(pageCount.value) + " 页", 1 /* TEXT */),
+                            (0, vue_2.createElementVNode)("button", {
+                                type: "button",
+                                disabled: page.value + 1 >= pageCount.value,
+                                onClick: _cache[4] || (_cache[4] = ($event) => (page.value += 1))
+                            }, "下一页", 8 /* PROPS */, _hoisted_24)
+                        ]))
+                        : (0, vue_2.createCommentVNode)("v-if", true)
+                ])
+            ]));
+        };
+    }
+});
+})(JourneyContextPicker.exports,dependency);JourneyContextPicker.exports.default.__scopeId="data-v-preview-journeycontextpicker";
+const JourneyPanel = {exports:{}}; ((exports,require)=>{"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const vue_1 = require("vue");
+const vue_2 = require("vue");
+const _hoisted_1 = ["data-affairs-id"];
+const _hoisted_2 = { class: "journey-heading" };
+const _hoisted_3 = ["disabled"];
+const _hoisted_4 = {
+    key: 0,
+    class: "journey-intro"
+};
+const _hoisted_5 = {
+    key: 1,
+    class: "journey-error",
+    role: "alert"
+};
+const _hoisted_6 = {
+    key: 2,
+    class: "journey-picker"
+};
+const _hoisted_7 = {
+    class: "picker-tabs",
+    "aria-label": "寻途方式"
+};
+const _hoisted_8 = ["aria-pressed"];
+const _hoisted_9 = ["aria-pressed"];
+const _hoisted_10 = {
+    key: 0,
+    class: "seeking-surface"
+};
+const _hoisted_11 = { class: "field-label" };
+const _hoisted_12 = ["disabled"];
+const _hoisted_13 = { class: "seeking-controls" };
+const _hoisted_14 = ["disabled"];
+const _hoisted_15 = ["value"];
+const _hoisted_16 = ["disabled"];
+const _hoisted_17 = {
+    key: 0,
+    class: "seeking-note",
+    role: "status"
+};
+const _hoisted_18 = {
+    key: 1,
+    class: "seeking-note"
+};
+const _hoisted_19 = {
+    key: 2,
+    class: "proposal-grid"
+};
+const _hoisted_20 = { class: "proposal-goal" };
+const _hoisted_21 = ["disabled", "onClick"];
+const _hoisted_22 = {
+    key: 3,
+    class: "current-journey"
+};
+const _hoisted_23 = { class: "current-heading" };
+const _hoisted_24 = { class: "eyebrow" };
+const _hoisted_25 = { class: "journey-state" };
+const _hoisted_26 = { class: "longing" };
+const _hoisted_27 = { class: "origin" };
+const _hoisted_28 = {
+    key: 0,
+    class: "journey-progress"
+};
+const _hoisted_29 = { class: "journey-field-copy" };
+const _hoisted_30 = {
+    key: 1,
+    class: "journey-next"
+};
+const _hoisted_31 = { class: "journey-field-copy" };
+const _hoisted_32 = { class: "journey-links" };
+const _hoisted_33 = ["onClick"];
+const _hoisted_34 = ["onClick"];
+const _hoisted_35 = { class: "journey-controls" };
+const _hoisted_36 = ["disabled"];
+const _hoisted_37 = ["disabled"];
+const _hoisted_38 = ["disabled"];
+const _hoisted_39 = { class: "journal" };
+const _hoisted_40 = {
+    class: "journal-tabs",
+    "aria-label": "行旅手札"
+};
+const _hoisted_41 = ["aria-pressed", "onClick"];
+const _hoisted_42 = {
+    key: 0,
+    class: "journal-entries"
+};
+const _hoisted_43 = { class: "clue-selector" };
+const _hoisted_44 = ["value"];
+const _hoisted_45 = { key: 0 };
+const _hoisted_46 = {
+    key: 0,
+    class: "journal-empty"
+};
+const _hoisted_47 = {
+    key: 1,
+    class: "journal-entries"
+};
+const _hoisted_48 = {
+    key: 0,
+    class: "entry-source"
+};
+const _hoisted_49 = {
+    key: 0,
+    class: "journal-empty"
+};
+const _hoisted_50 = {
+    key: 2,
+    class: "journal-entries"
+};
+const _hoisted_51 = { class: "field-label" };
+const _hoisted_52 = ["disabled"];
+const _hoisted_53 = {
+    key: 0,
+    class: "field-caption"
+};
+const _hoisted_54 = ["disabled"];
+const _hoisted_55 = { class: "guess-state" };
+const _hoisted_56 = {
+    key: 0,
+    class: "clue-tags"
+};
+const _hoisted_57 = {
+    key: 1,
+    class: "entry-source"
+};
+const _hoisted_58 = ["disabled", "onClick"];
+const _hoisted_59 = ["open"];
+const _hoisted_60 = { class: "saved-journey-row" };
+const _hoisted_61 = { class: "saved-journey-actions" };
+const _hoisted_62 = ["disabled", "onClick"];
+const _hoisted_63 = ["disabled", "aria-expanded", "onClick"];
+const _hoisted_64 = { class: "journey-controls" };
+const _hoisted_65 = ["disabled", "onClick"];
+const _hoisted_66 = ["disabled"];
+const vue_3 = require("vue");
+const CloudStoriesPanel_vue_1 = __importDefault(require("./CloudStoriesPanel.vue"));
+const JourneyContextPicker_vue_1 = __importDefault(require("./JourneyContextPicker.vue"));
+const journey_store_1 = require("../stores/journey-store");
+const affairs_store_1 = require("../stores/affairs-store");
+const store_1 = require("../store");
+exports.default = (0, vue_1.defineComponent)({
+    __name: 'JourneyPanel',
+    setup(__props) {
+        const journeys = (0, journey_store_1.useJourneyStore)();
+        const pickerTab = (0, vue_3.ref)('free');
+        const affairs = (0, affairs_store_1.useAffairsStore)();
+        const data = (0, store_1.useDataStore)();
+        const journalTab = (0, vue_3.ref)('线索');
+        const selectedClues = (0, vue_3.ref)([]);
+        const guess = (0, vue_3.ref)('');
+        const cleanupId = (0, vue_3.ref)('');
+        (0, vue_3.watch)([() => journeys.currentId, () => data.viewedMessageId], () => {
+            selectedClues.value = [];
+            guess.value = '';
+            cleanupId.value = '';
+        });
+        const saveGuess = async () => {
+            if (await journeys.addGuess(guess.value, selectedClues.value)) {
+                guess.value = '';
+                selectedClues.value = [];
+            }
+        };
+        const clearSavedJourney = async (id) => {
+            if (await journeys.removeJourney(id))
+                cleanupId.value = '';
+        };
+        return (_ctx, _cache) => {
+            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("section", {
+                class: "journey-panel",
+                "data-affairs-section": "journeys",
+                "data-affairs-id": (0, vue_2.unref)(journeys).currentId,
+                tabindex: "-1"
+            }, [
+                (0, vue_2.createElementVNode)("header", _hoisted_2, [
+                    _cache[16] || (_cache[16] = (0, vue_2.createElementVNode)("div", null, [
+                        (0, vue_2.createElementVNode)("span", { class: "eyebrow" }, "山河未尽，去处由心"),
+                        (0, vue_2.createElementVNode)("h2", null, [
+                            (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-compass" }),
+                            (0, vue_2.createTextVNode)("寻途与行旅")
+                        ])
+                    ], -1 /* CACHED */)),
+                    (0, vue_2.createElementVNode)("button", {
+                        type: "button",
+                        class: "quiet-button",
+                        disabled: (0, vue_2.unref)(journeys).disabled,
+                        onClick: _cache[0] || (_cache[0] = ($event) => ((0, vue_2.unref)(journeys).panelOpen = !(0, vue_2.unref)(journeys).panelOpen))
+                    }, [
+                        _cache[15] || (_cache[15] = (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-feather-pointed" }, null, -1 /* CACHED */)),
+                        (0, vue_2.createTextVNode)((0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).panelOpen ? '收起寻途' : '寻一段远途'), 1 /* TEXT */)
+                    ], 8 /* PROPS */, _hoisted_3)
+                ]),
+                (!(0, vue_2.unref)(journeys).current && !(0, vue_2.unref)(journeys).panelOpen)
+                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_4, " 山河还长，挑一段想走的路，也可写下心里的念头。 "))
+                    : (0, vue_2.createCommentVNode)("v-if", true),
+                ((0, vue_2.unref)(journeys).error)
+                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_5, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).error), 1 /* TEXT */))
+                    : (0, vue_2.createCommentVNode)("v-if", true),
+                ((0, vue_2.unref)(journeys).panelOpen)
+                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", _hoisted_6, [
+                        (0, vue_2.createElementVNode)("nav", _hoisted_7, [
+                            (0, vue_2.createElementVNode)("button", {
+                                type: "button",
+                                "aria-pressed": pickerTab.value === 'free',
+                                onClick: _cache[1] || (_cache[1] = ($event) => (pickerTab.value = 'free'))
+                            }, "随心寻途", 8 /* PROPS */, _hoisted_8),
+                            (0, vue_2.createElementVNode)("button", {
+                                type: "button",
+                                "aria-pressed": pickerTab.value === 'cloud',
+                                onClick: _cache[2] || (_cache[2] = ($event) => (pickerTab.value = 'cloud'))
+                            }, "云端故事", 8 /* PROPS */, _hoisted_9)
+                        ]),
+                        (pickerTab.value === 'free')
+                            ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", _hoisted_10, [
+                                (0, vue_2.createElementVNode)("label", _hoisted_11, [
+                                    _cache[17] || (_cache[17] = (0, vue_2.createTextVNode)("想往何处，想经历什么 ", -1 /* CACHED */)),
+                                    (0, vue_2.withDirectives)((0, vue_2.createElementVNode)("textarea", {
+                                        "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => (((0, vue_2.unref)(journeys).preference) = $event)),
+                                        rows: "2",
+                                        maxlength: "600",
+                                        disabled: (0, vue_2.unref)(journeys).seeking,
+                                        placeholder: "例如：想去远海走走，或陪某位故人了却一桩旧愿……"
+                                    }, null, 8 /* PROPS */, _hoisted_12), [
+                                        [vue_2.vModelText, (0, vue_2.unref)(journeys).preference]
+                                    ])
+                                ]),
+                                (0, vue_2.createVNode)(JourneyContextPicker_vue_1.default),
+                                (0, vue_2.createElementVNode)("div", _hoisted_13, [
+                                    (0, vue_2.createElementVNode)("label", null, [
+                                        _cache[19] || (_cache[19] = (0, vue_2.createTextVNode)("取意", -1 /* CACHED */)),
+                                        (0, vue_2.withDirectives)((0, vue_2.createElementVNode)("select", {
+                                            "onUpdate:modelValue": _cache[4] || (_cache[4] = ($event) => (((0, vue_2.unref)(journeys).inspiration) = $event)),
+                                            disabled: (0, vue_2.unref)(journeys).seeking
+                                        }, [
+                                            _cache[18] || (_cache[18] = (0, vue_2.createElementVNode)("option", { value: "" }, "自由构想", -1 /* CACHED */)),
+                                            ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(['远游', '问道', '立业', '旧愿'], (kind) => {
+                                                return (0, vue_2.createElementVNode)("option", {
+                                                    key: kind,
+                                                    value: kind
+                                                }, (0, vue_2.toDisplayString)(kind), 9 /* TEXT, PROPS */, _hoisted_15);
+                                            }), 64 /* STABLE_FRAGMENT */))
+                                        ], 8 /* PROPS */, _hoisted_14), [
+                                            [vue_2.vModelSelect, (0, vue_2.unref)(journeys).inspiration]
+                                        ])
+                                    ]),
+                                    ((0, vue_2.unref)(journeys).seeking)
+                                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("button", {
+                                            key: 0,
+                                            type: "button",
+                                            class: "quiet-button",
+                                            onClick: _cache[5] || (_cache[5] =
+                                                //@ts-ignore
+                                                (...args) => ((0, vue_2.unref)(journeys).cancel && (0, vue_2.unref)(journeys).cancel(...args)))
+                                        }, "停止寻途"))
+                                        : ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("button", {
+                                            key: 1,
+                                            type: "button",
+                                            class: "journey-button",
+                                            disabled: (0, vue_2.unref)(journeys).disabled || (0, vue_2.unref)(journeys).contextLoading || !(0, vue_2.unref)(journeys).contextReady || !(0, vue_2.unref)(journeys).selectedHistory.length,
+                                            onClick: _cache[6] || (_cache[6] =
+                                                //@ts-ignore
+                                                (...args) => ((0, vue_2.unref)(journeys).seek && (0, vue_2.unref)(journeys).seek(...args)))
+                                        }, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).proposals.length ? '再寻三条去路' : '看看远方'), 9 /* TEXT, PROPS */, _hoisted_16))
+                                ]),
+                                ((0, vue_2.unref)(journeys).seeking)
+                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_17, [...(_cache[20] || (_cache[20] = [
+                                            (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-circle-notch fa-spin" }, null, -1 /* CACHED */),
+                                            (0, vue_2.createTextVNode)("正替你寻三条去路…… ", -1 /* CACHED */)
+                                        ]))]))
+                                    : (0, vue_2.createCommentVNode)("v-if", true),
+                                ((0, vue_2.unref)(journeys).proposalsStale)
+                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_18, "这是先前寻得的去路，眼下已有变化，重新寻一回再挑吧。"))
+                                    : (0, vue_2.createCommentVNode)("v-if", true),
+                                ((0, vue_2.unref)(journeys).proposals.length)
+                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", _hoisted_19, [
+                                        ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)((0, vue_2.unref)(journeys).proposals, (proposal) => {
+                                            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("article", {
+                                                key: proposal.name,
+                                                class: "proposal"
+                                            }, [
+                                                _cache[24] || (_cache[24] = (0, vue_2.createElementVNode)("span", { class: "eyebrow" }, "风传一处去路", -1 /* CACHED */)),
+                                                (0, vue_2.createElementVNode)("h3", null, (0, vue_2.toDisplayString)(proposal.name), 1 /* TEXT */),
+                                                (0, vue_2.createElementVNode)("p", null, (0, vue_2.toDisplayString)(proposal.lead), 1 /* TEXT */),
+                                                (0, vue_2.createElementVNode)("p", _hoisted_20, [
+                                                    _cache[21] || (_cache[21] = (0, vue_2.createElementVNode)("span", null, "远望", -1 /* CACHED */)),
+                                                    (0, vue_2.createTextVNode)((0, vue_2.toDisplayString)(proposal.goal), 1 /* TEXT */)
+                                                ]),
+                                                (0, vue_2.createElementVNode)("p", null, [
+                                                    _cache[22] || (_cache[22] = (0, vue_2.createElementVNode)("span", { class: "field-caption" }, "入手", -1 /* CACHED */)),
+                                                    (0, vue_2.createTextVNode)((0, vue_2.toDisplayString)(proposal.step), 1 /* TEXT */)
+                                                ]),
+                                                (0, vue_2.createElementVNode)("button", {
+                                                    type: "button",
+                                                    class: "journey-button",
+                                                    disabled: (0, vue_2.unref)(journeys).disabled || (0, vue_2.unref)(journeys).proposalsStale,
+                                                    onClick: ($event) => ((0, vue_2.unref)(journeys).choose(proposal))
+                                                }, [...(_cache[23] || (_cache[23] = [
+                                                        (0, vue_2.createTextVNode)(" 由此启程", -1 /* CACHED */),
+                                                        (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-angle-right" }, null, -1 /* CACHED */)
+                                                    ]))], 8 /* PROPS */, _hoisted_21)
+                                            ]));
+                                        }), 128 /* KEYED_FRAGMENT */))
+                                    ]))
+                                    : (0, vue_2.createCommentVNode)("v-if", true)
+                            ]))
+                            : ((0, vue_2.openBlock)(), (0, vue_2.createBlock)(CloudStoriesPanel_vue_1.default, { key: 1 }))
+                    ]))
+                    : (0, vue_2.createCommentVNode)("v-if", true),
+                ((0, vue_2.unref)(journeys).current)
+                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("article", _hoisted_22, [
+                        (0, vue_2.createElementVNode)("header", _hoisted_23, [
+                            (0, vue_2.createElementVNode)("div", null, [
+                                (0, vue_2.createElementVNode)("span", _hoisted_24, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.篇章), 1 /* TEXT */),
+                                (0, vue_2.createElementVNode)("h3", null, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.名称), 1 /* TEXT */)
+                            ]),
+                            (0, vue_2.createElementVNode)("span", _hoisted_25, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.状态), 1 /* TEXT */)
+                        ]),
+                        (0, vue_2.createElementVNode)("p", _hoisted_26, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.所求), 1 /* TEXT */),
+                        (0, vue_2.createElementVNode)("details", _hoisted_27, [
+                            _cache[25] || (_cache[25] = (0, vue_2.createElementVNode)("summary", null, "此行缘起", -1 /* CACHED */)),
+                            (0, vue_2.createElementVNode)("p", null, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.缘起), 1 /* TEXT */)
+                        ]),
+                        ((0, vue_2.unref)(journeys).current.进展)
+                            ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_28, [
+                                _cache[26] || (_cache[26] = (0, vue_2.createElementVNode)("span", { class: "journey-field-label" }, "近来所得", -1 /* CACHED */)),
+                                (0, vue_2.createElementVNode)("span", _hoisted_29, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.进展), 1 /* TEXT */)
+                            ]))
+                            : (0, vue_2.createCommentVNode)("v-if", true),
+                        ((0, vue_2.unref)(journeys).current.下一步)
+                            ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_30, [
+                                _cache[27] || (_cache[27] = (0, vue_2.createElementVNode)("span", { class: "journey-field-label" }, "可循去处", -1 /* CACHED */)),
+                                (0, vue_2.createElementVNode)("span", _hoisted_31, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.下一步), 1 /* TEXT */)
+                            ]))
+                            : (0, vue_2.createCommentVNode)("v-if", true),
+                        (0, vue_2.createElementVNode)("div", _hoisted_32, [
+                            ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)((0, vue_2.unref)(journeys).current.关联任务.filter(id => (0, vue_2.unref)(data).任务列表[id] || (0, vue_2.unref)(data).rawData?._近期任务结果[id]), (id) => {
+                                return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("button", {
+                                    key: id,
+                                    type: "button",
+                                    onClick: ($event) => ((0, vue_2.unref)(affairs).navigate('task', id))
+                                }, " 任务 · " + (0, vue_2.toDisplayString)((0, vue_2.unref)(data).任务列表[id]?.名称 || (0, vue_2.unref)(data).rawData?._近期任务结果[id]?.名称), 9 /* TEXT, PROPS */, _hoisted_33));
+                            }), 128 /* KEYED_FRAGMENT */)),
+                            ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)((0, vue_2.unref)(journeys).current.关联世闻.filter(id => (0, vue_2.unref)(data).世界图志[id]), (id) => {
+                                return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("button", {
+                                    key: id,
+                                    type: "button",
+                                    onClick: ($event) => ((0, vue_2.unref)(affairs).navigate('event', id))
+                                }, " 世闻 · " + (0, vue_2.toDisplayString)(id), 9 /* TEXT, PROPS */, _hoisted_34));
+                            }), 128 /* KEYED_FRAGMENT */))
+                        ]),
+                        (0, vue_2.createElementVNode)("div", _hoisted_35, [
+                            ((0, vue_2.unref)(journeys).current.状态 !== '已落幕')
+                                ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("button", {
+                                    key: 0,
+                                    type: "button",
+                                    class: "journey-button",
+                                    disabled: (0, vue_2.unref)(journeys).disabled,
+                                    onClick: _cache[7] || (_cache[7] =
+                                        //@ts-ignore
+                                        (...args) => ((0, vue_2.unref)(journeys).resume && (0, vue_2.unref)(journeys).resume(...args)))
+                                }, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.状态 === '暂歇' ? '重拾此行' : (0, vue_2.unref)(journeys).current.状态 === '待启程' ? '就此启程' : '循线前行'), 9 /* TEXT, PROPS */, _hoisted_36))
+                                : (0, vue_2.createCommentVNode)("v-if", true),
+                            ((0, vue_2.unref)(journeys).current.状态 === '进行中' || (0, vue_2.unref)(journeys).current.状态 === '待启程')
+                                ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("button", {
+                                    key: 1,
+                                    type: "button",
+                                    class: "quiet-button",
+                                    disabled: (0, vue_2.unref)(journeys).disabled,
+                                    onClick: _cache[8] || (_cache[8] =
+                                        //@ts-ignore
+                                        (...args) => ((0, vue_2.unref)(journeys).pause && (0, vue_2.unref)(journeys).pause(...args)))
+                                }, " 暂歇此行 ", 8 /* PROPS */, _hoisted_37))
+                                : (0, vue_2.createCommentVNode)("v-if", true),
+                            (0, vue_2.createElementVNode)("button", {
+                                type: "button",
+                                class: "quiet-button",
+                                disabled: (0, vue_2.unref)(journeys).disabled,
+                                onClick: _cache[9] || (_cache[9] =
+                                    //@ts-ignore
+                                    (...args) => ((0, vue_2.unref)(journeys).untrack && (0, vue_2.unref)(journeys).untrack(...args)))
+                            }, " 结束追踪 ", 8 /* PROPS */, _hoisted_38)
+                        ]),
+                        (0, vue_2.createElementVNode)("div", _hoisted_39, [
+                            (0, vue_2.createElementVNode)("nav", _hoisted_40, [
+                                ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(['线索', '纪事', '猜想'], (tab) => {
+                                    return (0, vue_2.createElementVNode)("button", {
+                                        key: tab,
+                                        type: "button",
+                                        "aria-pressed": journalTab.value === tab,
+                                        onClick: ($event) => (journalTab.value = tab)
+                                    }, [
+                                        (0, vue_2.createTextVNode)((0, vue_2.toDisplayString)(tab), 1 /* TEXT */),
+                                        (0, vue_2.createElementVNode)("span", null, (0, vue_2.toDisplayString)(Object.keys((0, vue_2.unref)(journeys).current[tab]).length), 1 /* TEXT */)
+                                    ], 8 /* PROPS */, _hoisted_41);
+                                }), 64 /* STABLE_FRAGMENT */))
+                            ]),
+                            (journalTab.value === '线索')
+                                ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", _hoisted_42, [
+                                    ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(Object.entries((0, vue_2.unref)(journeys).current.线索), ([id, entry]) => {
+                                        return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("article", {
+                                            key: id,
+                                            class: "journal-entry"
+                                        }, [
+                                            (0, vue_2.createElementVNode)("label", _hoisted_43, [
+                                                (0, vue_2.withDirectives)((0, vue_2.createElementVNode)("input", {
+                                                    "onUpdate:modelValue": _cache[10] || (_cache[10] = ($event) => ((selectedClues).value = $event)),
+                                                    type: "checkbox",
+                                                    value: id
+                                                }, null, 8 /* PROPS */, _hoisted_44), [
+                                                    [vue_2.vModelCheckbox, selectedClues.value]
+                                                ]),
+                                                (0, vue_2.createElementVNode)("strong", null, (0, vue_2.toDisplayString)(id), 1 /* TEXT */)
+                                            ]),
+                                            (0, vue_2.createElementVNode)("p", null, (0, vue_2.toDisplayString)(entry.内容), 1 /* TEXT */),
+                                            (entry.依据 || entry.时地)
+                                                ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("details", _hoisted_45, [
+                                                    _cache[28] || (_cache[28] = (0, vue_2.createElementVNode)("summary", null, "回看依据", -1 /* CACHED */)),
+                                                    (0, vue_2.createElementVNode)("p", null, (0, vue_2.toDisplayString)(entry.依据), 1 /* TEXT */),
+                                                    (0, vue_2.createElementVNode)("small", null, (0, vue_2.toDisplayString)(entry.时地), 1 /* TEXT */)
+                                                ]))
+                                                : (0, vue_2.createCommentVNode)("v-if", true)
+                                        ]));
+                                    }), 128 /* KEYED_FRAGMENT */)),
+                                    (!Object.keys((0, vue_2.unref)(journeys).current.线索).length)
+                                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_46, " 沿途看见、问清的事，会记在这里。 "))
+                                        : (0, vue_2.createCommentVNode)("v-if", true),
+                                    (selectedClues.value.length)
+                                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("button", {
+                                            key: 1,
+                                            type: "button",
+                                            class: "quiet-button",
+                                            onClick: _cache[11] || (_cache[11] = ($event) => (journalTab.value = '猜想'))
+                                        }, " 带着 " + (0, vue_2.toDisplayString)(selectedClues.value.length) + " 条线索记一笔 ", 1 /* TEXT */))
+                                        : (0, vue_2.createCommentVNode)("v-if", true)
+                                ]))
+                                : (journalTab.value === '纪事')
+                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", _hoisted_47, [
+                                        ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(Object.entries((0, vue_2.unref)(journeys).current.纪事), ([id, entry]) => {
+                                            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("article", {
+                                                key: id,
+                                                class: "journal-entry memory-entry"
+                                            }, [
+                                                (0, vue_2.createElementVNode)("strong", null, (0, vue_2.toDisplayString)(id), 1 /* TEXT */),
+                                                (0, vue_2.createElementVNode)("p", null, (0, vue_2.toDisplayString)(entry.内容), 1 /* TEXT */),
+                                                (0, vue_2.createElementVNode)("small", null, (0, vue_2.toDisplayString)(entry.时地), 1 /* TEXT */),
+                                                (entry.依据)
+                                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_48, (0, vue_2.toDisplayString)(entry.依据), 1 /* TEXT */))
+                                                    : (0, vue_2.createCommentVNode)("v-if", true)
+                                            ]));
+                                        }), 128 /* KEYED_FRAGMENT */)),
+                                        (!Object.keys((0, vue_2.unref)(journeys).current.纪事).length)
+                                            ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_49, " 重要的抉择、成果与重逢，留在这段行旅里。 "))
+                                            : (0, vue_2.createCommentVNode)("v-if", true)
+                                    ]))
+                                    : ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", _hoisted_50, [
+                                        (0, vue_2.createElementVNode)("form", {
+                                            class: "guess-form",
+                                            onSubmit: (0, vue_2.withModifiers)(saveGuess, ["prevent"])
+                                        }, [
+                                            (0, vue_2.createElementVNode)("label", _hoisted_51, [
+                                                _cache[29] || (_cache[29] = (0, vue_2.createTextVNode)("我的想法", -1 /* CACHED */)),
+                                                (0, vue_2.withDirectives)((0, vue_2.createElementVNode)("textarea", {
+                                                    "onUpdate:modelValue": _cache[12] || (_cache[12] = ($event) => ((guess).value = $event)),
+                                                    maxlength: "600",
+                                                    rows: "2",
+                                                    disabled: (0, vue_2.unref)(journeys).disabled,
+                                                    placeholder: "记下心头的猜测，待日后寻机印证……"
+                                                }, null, 8 /* PROPS */, _hoisted_52), [
+                                                    [vue_2.vModelText, guess.value]
+                                                ])
+                                            ]),
+                                            (selectedClues.value.length)
+                                                ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("span", _hoisted_53, "关联：" + (0, vue_2.toDisplayString)(selectedClues.value.join('、')), 1 /* TEXT */))
+                                                : (0, vue_2.createCommentVNode)("v-if", true),
+                                            (0, vue_2.createElementVNode)("button", {
+                                                type: "submit",
+                                                class: "quiet-button",
+                                                disabled: (0, vue_2.unref)(journeys).disabled || !guess.value.trim()
+                                            }, "记入手札", 8 /* PROPS */, _hoisted_54)
+                                        ], 32 /* NEED_HYDRATION */),
+                                        ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(Object.entries((0, vue_2.unref)(journeys).current.猜想), ([id, entry]) => {
+                                            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("article", {
+                                                key: id,
+                                                class: "journal-entry"
+                                            }, [
+                                                (0, vue_2.createElementVNode)("span", _hoisted_55, (0, vue_2.toDisplayString)(entry.状态), 1 /* TEXT */),
+                                                (0, vue_2.createElementVNode)("p", null, (0, vue_2.toDisplayString)(entry.内容), 1 /* TEXT */),
+                                                (entry.关联线索.length)
+                                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", _hoisted_56, [
+                                                        ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(entry.关联线索, (clue) => {
+                                                            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("span", { key: clue }, (0, vue_2.toDisplayString)(clue), 1 /* TEXT */));
+                                                        }), 128 /* KEYED_FRAGMENT */))
+                                                    ]))
+                                                    : (0, vue_2.createCommentVNode)("v-if", true),
+                                                (entry.依据)
+                                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_57, (0, vue_2.toDisplayString)(entry.依据), 1 /* TEXT */))
+                                                    : (0, vue_2.createCommentVNode)("v-if", true),
+                                                (0, vue_2.createElementVNode)("button", {
+                                                    type: "button",
+                                                    class: "quiet-button",
+                                                    disabled: (0, vue_2.unref)(journeys).disabled,
+                                                    onClick: ($event) => ((0, vue_2.unref)(journeys).verifyGuess(id))
+                                                }, " 循此核实 ", 8 /* PROPS */, _hoisted_58)
+                                            ]));
+                                        }), 128 /* KEYED_FRAGMENT */))
+                                    ]))
+                        ])
+                    ]))
+                    : (0, vue_2.createCommentVNode)("v-if", true),
+                (Object.keys((0, vue_2.unref)(journeys).archive.旅程).length)
+                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("details", {
+                        key: 4,
+                        class: "saved-journeys",
+                        open: !(0, vue_2.unref)(journeys).current
+                    }, [
+                        (0, vue_2.createElementVNode)("summary", null, "走过与未竟的行旅 · " + (0, vue_2.toDisplayString)(Object.keys((0, vue_2.unref)(journeys).archive.旅程).length), 1 /* TEXT */),
+                        _cache[31] || (_cache[31] = (0, vue_2.createElementVNode)("p", { class: "saved-hint" }, "结束追踪会保留记录，可在这里翻看或清理。", -1 /* CACHED */)),
+                        ((0, vue_2.openBlock)(true), (0, vue_2.createElementBlock)(vue_2.Fragment, null, (0, vue_2.renderList)(Object.entries((0, vue_2.unref)(journeys).archive.旅程).reverse(), ([id, entry]) => {
+                            return ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", {
+                                key: id,
+                                class: "saved-journey"
+                            }, [
+                                (0, vue_2.createElementVNode)("div", _hoisted_60, [
+                                    (0, vue_2.createElementVNode)("span", null, [
+                                        (0, vue_2.createElementVNode)("strong", null, (0, vue_2.toDisplayString)(entry.名称), 1 /* TEXT */),
+                                        (0, vue_2.createElementVNode)("small", null, (0, vue_2.toDisplayString)(entry.状态), 1 /* TEXT */)
+                                    ]),
+                                    (0, vue_2.createElementVNode)("div", _hoisted_61, [
+                                        (0, vue_2.createElementVNode)("button", {
+                                            type: "button",
+                                            class: "quiet-button",
+                                            disabled: (0, vue_2.unref)(journeys).disabled || id === (0, vue_2.unref)(journeys).currentId,
+                                            onClick: ($event) => ((0, vue_2.unref)(journeys).track(id))
+                                        }, (0, vue_2.toDisplayString)(id === (0, vue_2.unref)(journeys).currentId ? '当前追踪' : '翻开此行'), 9 /* TEXT, PROPS */, _hoisted_62),
+                                        (0, vue_2.createElementVNode)("button", {
+                                            type: "button",
+                                            class: "quiet-button clear-record",
+                                            disabled: (0, vue_2.unref)(journeys).disabled,
+                                            "aria-expanded": cleanupId.value === id,
+                                            onClick: ($event) => (cleanupId.value = cleanupId.value === id ? '' : id)
+                                        }, " 清理记录 ", 8 /* PROPS */, _hoisted_63)
+                                    ])
+                                ]),
+                                (cleanupId.value === id)
+                                    ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("div", {
+                                        key: 0,
+                                        class: "cleanup-confirm",
+                                        role: "group",
+                                        "aria-label": "清理行旅确认",
+                                        onKeydown: _cache[14] || (_cache[14] = (0, vue_2.withKeys)(($event) => (cleanupId.value = ''), ["esc"]))
+                                    }, [
+                                        (0, vue_2.createElementVNode)("p", null, "确认清理「" + (0, vue_2.toDisplayString)(entry.名称) + "」？这段行旅、线索、纪事、猜想与剧情构思会从当前存档移除。", 1 /* TEXT */),
+                                        _cache[30] || (_cache[30] = (0, vue_2.createElementVNode)("p", null, "既有正文、任务与世闻继续保留；回看旧楼层仍可见当时的行旅记录。", -1 /* CACHED */)),
+                                        (0, vue_2.createElementVNode)("div", _hoisted_64, [
+                                            (0, vue_2.createElementVNode)("button", {
+                                                type: "button",
+                                                class: "quiet-button clear-record",
+                                                disabled: (0, vue_2.unref)(journeys).disabled,
+                                                onClick: ($event) => (clearSavedJourney(id))
+                                            }, " 确认清理 ", 8 /* PROPS */, _hoisted_65),
+                                            (0, vue_2.createElementVNode)("button", {
+                                                type: "button",
+                                                class: "quiet-button",
+                                                disabled: (0, vue_2.unref)(journeys).saving,
+                                                onClick: _cache[13] || (_cache[13] = ($event) => (cleanupId.value = ''))
+                                            }, " 保留记录 ", 8 /* PROPS */, _hoisted_66)
+                                        ])
+                                    ], 32 /* NEED_HYDRATION */))
+                                    : (0, vue_2.createCommentVNode)("v-if", true)
+                            ]));
+                        }), 128 /* KEYED_FRAGMENT */))
+                    ], 8 /* PROPS */, _hoisted_59))
+                    : (0, vue_2.createCommentVNode)("v-if", true)
+            ], 8 /* PROPS */, _hoisted_1));
+        };
+    }
+});
+})(JourneyPanel.exports,dependency);JourneyPanel.exports.default.__scopeId="data-v-preview-journeypanel";
+const JourneyTrail = {exports:{}}; ((exports,require)=>{"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const vue_1 = require("vue");
+const vue_2 = require("vue");
+const _hoisted_1 = {
+    key: 0,
+    class: "journey-trail",
+    "aria-label": "当前行旅"
+};
+const _hoisted_2 = { key: 0 };
+const _hoisted_3 = { key: 1 };
+const _hoisted_4 = { key: 2 };
+const _hoisted_5 = {
+    key: 1,
+    class: "journey-trail",
+    "aria-label": "主动寻途"
+};
+const journey_store_1 = require("../stores/journey-store");
+const affairs_store_1 = require("../stores/affairs-store");
+exports.default = (0, vue_1.defineComponent)({
+    __name: 'JourneyTrail',
+    setup(__props) {
+        const journeys = (0, journey_store_1.useJourneyStore)();
+        const affairs = (0, affairs_store_1.useAffairsStore)();
+        return (_ctx, _cache) => {
+            return ((0, vue_2.unref)(journeys).current)
+                ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("section", _hoisted_1, [
+                    (0, vue_2.createElementVNode)("button", {
+                        type: "button",
+                        class: "trail-heading",
+                        onClick: _cache[0] || (_cache[0] = ($event) => ((0, vue_2.unref)(affairs).navigate('journey', (0, vue_2.unref)(journeys).currentId)))
+                    }, [
+                        _cache[2] || (_cache[2] = (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-book-open" }, null, -1 /* CACHED */)),
+                        (0, vue_2.createElementVNode)("span", null, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.名称), 1 /* TEXT */),
+                        (0, vue_2.createElementVNode)("small", null, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.篇章) + " · " + (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.状态), 1 /* TEXT */),
+                        _cache[3] || (_cache[3] = (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-angle-right" }, null, -1 /* CACHED */))
+                    ]),
+                    (['待启程', '进行中'].includes((0, vue_2.unref)(journeys).current.状态) && (0, vue_2.unref)(journeys).current.下一步)
+                        ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_2, (0, vue_2.toDisplayString)((0, vue_2.unref)(journeys).current.下一步), 1 /* TEXT */))
+                        : ((0, vue_2.unref)(journeys).current.状态 === '暂歇')
+                            ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_3, "此行暂歇，牵挂与所得留在手札中。"))
+                            : ((0, vue_2.unref)(journeys).current.状态 === '已落幕')
+                                ? ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("p", _hoisted_4, "此行已有归处，沿途所得留在手札中。"))
+                                : (0, vue_2.createCommentVNode)("v-if", true)
+                ]))
+                : ((0, vue_2.openBlock)(), (0, vue_2.createElementBlock)("section", _hoisted_5, [
+                    (0, vue_2.createElementVNode)("button", {
+                        type: "button",
+                        class: "trail-heading",
+                        onClick: _cache[1] || (_cache[1] = ($event) => {
+                            (0, vue_2.unref)(journeys).panelOpen = true;
+                            (0, vue_2.unref)(affairs).navigate('journey', '');
+                        })
+                    }, [...(_cache[4] || (_cache[4] = [
+                            (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-compass" }, null, -1 /* CACHED */),
+                            (0, vue_2.createElementVNode)("span", null, "寻一段远途", -1 /* CACHED */),
+                            (0, vue_2.createElementVNode)("small", null, "看看眼前之外，还有什么值得追寻", -1 /* CACHED */),
+                            (0, vue_2.createElementVNode)("i", { class: "fa-solid fa-angle-right" }, null, -1 /* CACHED */)
+                        ]))])
+                ]));
+        };
+    }
+});
+})(JourneyTrail.exports,dependency);JourneyTrail.exports.default.__scopeId="data-v-preview-journeytrail";
+    createApp(JourneyTrail.exports.default).mount('#trail');createApp(JourneyPanel.exports.default).mount('#panel');window.journeyPreview=state;window.selectJourneyScene=selectScene;
+    const sceneNav=document.createElement('nav');sceneNav.setAttribute('aria-label','剧情参考样稿');sceneNav.style.cssText='display:flex;flex-wrap:wrap;gap:12px;margin:18px 0';scenes.forEach((scene,index)=>{const button=document.createElement('button');button.textContent=scene.title;button.onclick=()=>selectScene(index);button.style.cssText='padding:10px;background:var(--surface);color:var(--gold);border:1px solid var(--line-subtle);cursor:pointer';sceneNav.append(button)});document.getElementById('panel').before(sceneNav);</script></html>

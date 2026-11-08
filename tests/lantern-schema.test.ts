@@ -55,7 +55,7 @@ function parse(input: unknown = {}): any {
   return Schema.parse(input);
 }
 
-test('默认值采用盛法时代与 v6 变量结构', () => {
+test('默认值采用盛法时代与 v7 变量结构', () => {
   const data = parse();
   assert.equal(data.世界时钟.纪元, '盛法时代');
   assert.equal(data._系统设置.变量结构版本, CURRENT_SCHEMA_VERSION);
@@ -448,7 +448,7 @@ test('NaN、无穷值、负数量和重复行动可保守归一化', () => {
   assert.equal(data.世界时钟.日期, 30);
   assert.equal(data.本尊.等级, 1);
   assert.equal(data.本尊.修为, 0);
-  assert.equal(data.本尊.灵石, 0);
+  assert.equal(data.本尊.灵石.下品灵石, 0);
   assert.equal(data.本尊.背包.空瓶, undefined);
   assert.equal(data.本尊.背包.丹药.数量, 2);
   assert.equal(data.$可参与机遇.length, 1);
@@ -456,12 +456,12 @@ test('NaN、无穷值、负数量和重复行动可保守归一化', () => {
   assert.deepEqual(parse(data), data);
 });
 
-test('旧式分级灵石账本迁移为标量且保持幂等', () => {
+test('旧式分级灵石账本补齐四品且保持幂等', () => {
   const directLedger = parse({ 本尊: { 灵石: { 下品灵石: 120 } } });
   const itemLedger = parse({ 本尊: { 灵石: { 下品灵石: { 数量: '80' } } } });
 
-  assert.equal(directLedger.本尊.灵石, 120);
-  assert.equal(itemLedger.本尊.灵石, 80);
+  assert.equal(directLedger.本尊.灵石.下品灵石, 120);
+  assert.equal(itemLedger.本尊.灵石.下品灵石, 80);
   assert.deepEqual(parse(directLedger), directLedger);
   assert.deepEqual(parse(itemLedger), itemLedger);
 });

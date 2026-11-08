@@ -62,7 +62,7 @@
           :disabled="pseudo.isGenerating || journeys.seeking || journeys.saving"
           :placeholder="
             journeys.seeking
-              ? '正在寻途，稍后起念……'
+              ? '正替你寻路，稍候片刻……'
               : pseudo.isGenerating
                 ? pseudo.generationWaitingText
                 : '写下此刻想做的事……'

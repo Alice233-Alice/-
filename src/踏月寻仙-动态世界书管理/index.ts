@@ -914,6 +914,12 @@ const FAVOR_STAGE_ALIASES: Record<string, FavorStageName> = {
   疏离期: '陌生期',
   留意期: '好感期',
   情定期: '确认期',
+  // 婵织烟的暮烟五阶段，与通用好感区间对应。
+  观局期: '陌生期',
+  闲弈期: '好感期',
+  作茧期: '心动期',
+  抵账期: '确认期',
+  缠丝期: '深爱期',
 };
 
 function normalizeFavorStageLabel(stageLabel: string | undefined): FavorStageName | null {

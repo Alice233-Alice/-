@@ -1,15 +1,31 @@
 <template>
-  <header class="stage-header" :class="`reading-${readingMode}`">
-    <div class="turn-cluster">
+  <header
+    class="stage-header"
+    :class="[`reading-${readingMode}`, { 'native-status-header': detached, 'status-summary-bar': isStatusSummary }]"
+  >
+    <button
+      v-if="isStatusSummary"
+      class="status-summary"
+      type="button"
+      :title="summaryTitle"
+      @click="$emit('toggle-status')"
+    >
+      <strong>{{ pseudo.messageId }}层</strong>
+      <span class="summary-realm">{{ data.本尊.境界描述 }}</span>
+      <span class="summary-location"><i class="fa-solid fa-location-dot"></i>{{ compactLocation }}</span>
+      <span :title="worldTimeTooltip"><i :class="timeIconClass"></i>{{ dayNightLabel }}</span>
+      <span :style="{ color: dangerColor }">险{{ data.本尊.行踪.危险度 ?? 10 }}</span>
+    </button>
+    <div v-if="!isStatusSummary" class="turn-cluster">
       <img class="crane-mark" src="https://pub-4d14ab94aa29488b977bc5be9f2a06ef.r2.dev/picgo/仙鹤.png" alt="" />
       <div class="turn-copy">
         <span>灯火阑珊</span>
         <strong :title="stageTitle">{{ stageTitle }}</strong>
-        <small v-if="pseudo.view.tokenCount !== undefined" class="turn-token-count" title="本层回复 Token">
+        <small v-if="!detached && pseudo.view.tokenCount !== undefined" class="turn-token-count" title="本层回复 Token">
           {{ pseudo.view.tokenCount }}t
         </small>
       </div>
-      <div v-if="readingMode === 'paged'" class="turn-navigation">
+      <div v-if="!detached && readingMode === 'paged'" class="turn-navigation">
         <button
           type="button"
           :disabled="history.previousMessageId === undefined || pseudo.isGenerating"
@@ -36,7 +52,7 @@
           <i class="fa-solid fa-forward-step"></i>
         </button>
       </div>
-      <div class="reading-mode-switch" role="group" aria-label="阅读模式">
+      <div v-if="!detached" class="reading-mode-switch" role="group" aria-label="阅读模式">
         <button
           type="button"
           :class="{ active: readingMode === 'paged' }"
@@ -56,30 +72,65 @@
       </div>
     </div>
 
-    <button
-      class="scene-location"
-      type="button"
-      :title="`当前位置：${currentLocation}（打开行踪地图）`"
-      @click="$emit('open-map')"
-    >
-      <span class="scene-kicker">此刻所在</span>
-      <strong class="scene-location-full">
-        <i class="fa-solid fa-location-dot"></i>
-        <template v-if="showParent"
-          ><span>{{ parentRegion }}</span
-          ><b>·</b></template
-        >
-        {{ currentLocation }}
-      </strong>
-      <strong class="scene-location-compact" :title="currentLocation">
-        <i class="fa-solid fa-location-dot"></i>
-        <span>{{ compactLocation }}</span>
-      </strong>
-    </button>
+    <div v-if="!isStatusSummary" class="scene-hud">
+      <button
+        class="scene-location"
+        type="button"
+        :title="`当前位置：${currentLocation}（打开行踪地图）`"
+        @click="$emit('open-map')"
+      >
+        <span class="scene-kicker">此刻所在</span>
+        <strong class="scene-location-full">
+          <i class="fa-solid fa-location-dot"></i>
+          <template v-if="showParent"
+            ><span>{{ parentRegion }}</span
+            ><b>·</b></template
+          >
+          {{ currentLocation }}
+        </strong>
+        <strong class="scene-location-compact" :title="currentLocation">
+          <i class="fa-solid fa-location-dot"></i>
+          <span>{{ compactLocation }}</span>
+        </strong>
+      </button>
+      <span class="world-time-pill" :title="worldTimeTooltip">
+        <i :class="timeIconClass"></i>
+        <span>{{ eraLabel }}·第{{ data.世界时钟.年份 }}年·{{ dayNightLabel }}</span>
+      </span>
+    </div>
 
     <div class="stage-utilities">
-      <span class="danger-badge" :style="{ '--danger-color': dangerColor }">险 {{ data.本尊.行踪.危险度 ?? 10 }}</span>
-      <template v-if="readingMode === 'paged'">
+      <div v-if="!isStatusSummary" class="hud-badges">
+        <span class="danger-badge" :style="{ '--danger-color': dangerColor }"
+          >险 {{ data.本尊.行踪.危险度 ?? 10 }}</span
+        >
+        <span
+          class="heaven-posture-badge"
+          :class="[`sense-${data.难度感应}`, `tier-${data.难度档位}`]"
+          tabindex="0"
+          :aria-label="`天道态势：${data.难度感应} · ${data.难度档位}`"
+          :aria-describedby="postureTooltipId"
+        >
+          <span class="posture-sense">{{ data.难度感应 }}</span>
+          <b aria-hidden="true">·</b>
+          <span class="posture-tier">{{ data.难度档位 }}</span>
+          <i
+            v-if="data.难度趋势 === 'up'"
+            class="fa-solid fa-arrow-trend-up posture-trend is-up"
+            aria-hidden="true"
+          ></i>
+          <i
+            v-else-if="data.难度趋势 === 'down'"
+            class="fa-solid fa-arrow-trend-down posture-trend is-down"
+            aria-hidden="true"
+          ></i>
+          <span :id="postureTooltipId" class="posture-tooltip" role="tooltip">
+            <strong>天道态势 · {{ data.难度感应 }}（{{ data.难度档位 }}）</strong>
+            <span>{{ data.难度警告 }}</span>
+          </span>
+        </span>
+      </div>
+      <template v-if="!detached && readingMode === 'paged'">
         <button
           class="edit-button"
           type="button"
@@ -108,37 +159,58 @@
           <i class="fa-solid fa-rotate-right"></i>
         </button>
       </template>
-      <button
-        class="greeting-index-button"
-        type="button"
-        title="开场白索引"
-        @click="$emit('open-greeting-index')"
-      >
+      <button class="greeting-index-button" type="button" title="开场白索引" @click="$emit('open-greeting-index')">
         <i class="fa-solid fa-list-ol"></i>
       </button>
-      <button class="preset-button" type="button" title="开局预设" @click="$emit('open-preset')">
+      <button
+        v-if="!isStatusSummary"
+        class="preset-button"
+        type="button"
+        title="开局预设"
+        @click="$emit('open-preset')"
+      >
         <i class="fa-solid fa-sliders"></i>
       </button>
-      <button class="map-button" type="button" title="打开地图" @click="$emit('open-map')">
+      <button v-if="!isStatusSummary" class="map-button" type="button" title="打开地图" @click="$emit('open-map')">
         <i class="fa-solid fa-map-location-dot"></i>
       </button>
       <button class="appearance-button" type="button" title="外观设置" @click="$emit('open-settings')">
         <i class="fa-solid fa-font"></i>
       </button>
+      <button
+        class="mode-toggle-button"
+        type="button"
+        :title="detached ? '开启伪同层模式' : '切换为原生楼层模式'"
+        :disabled="pseudo.isGenerating || pseudo.isDeleting || pseudo.isUpdatingMessage"
+        @click="pseudo.setDetached(!detached)"
+      >
+        <i class="fa-solid" :class="detached ? 'fa-layer-group' : 'fa-list'"></i>
+      </button>
+      <button
+        v-if="detached"
+        class="status-toggle-button"
+        type="button"
+        :title="statusCollapsed ? '展开状态栏' : '收起状态栏'"
+        :aria-expanded="!statusCollapsed"
+        @click="$emit('toggle-status')"
+      >
+        <i class="fa-solid" :class="statusCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+      </button>
       <div ref="mobileToolGroup" class="mobile-tool-group">
         <button
           class="mobile-tool-trigger"
           type="button"
-          title="阅读与设置"
+          title="更多设置"
           aria-haspopup="menu"
           :aria-expanded="mobileToolsOpen"
           @click.stop="mobileToolsOpen = !mobileToolsOpen"
         >
-          <i class="fa-solid" :class="mobileToolsOpen ? 'fa-xmark' : 'fa-ellipsis-vertical'"></i>
+          <i class="fa-solid" :class="mobileToolsOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </button>
         <Transition name="mobile-tool-menu">
-          <div v-if="mobileToolsOpen" class="mobile-tool-menu" role="menu" aria-label="阅读、预设与外观">
+          <div v-if="mobileToolsOpen" class="mobile-tool-menu" role="menu" aria-label="界面与设置">
             <button
+              v-if="!detached"
               type="button"
               role="menuitemradio"
               class="mobile-reading-mode"
@@ -150,6 +222,7 @@
               <span>翻页阅读</span>
             </button>
             <button
+              v-if="!detached"
               type="button"
               role="menuitemradio"
               class="mobile-reading-mode"
@@ -160,7 +233,7 @@
               <i class="fa-solid fa-scroll"></i>
               <span>翻滚长卷</span>
             </button>
-            <span class="mobile-tool-divider" role="separator"></span>
+            <span v-if="!detached" class="mobile-tool-divider" role="separator"></span>
             <button type="button" role="menuitem" @click="openGreetingIndex">
               <i class="fa-solid fa-list-ol"></i>
               <span>开场白索引</span>
@@ -173,10 +246,82 @@
               <i class="fa-solid fa-font"></i>
               <span>外观设置</span>
             </button>
+            <template v-if="!detached && readingMode === 'paged'">
+              <button
+                type="button"
+                role="menuitem"
+                :disabled="!pseudo.canEditMessage"
+                @click="
+                  mobileToolsOpen = false;
+                  $emit('open-editor');
+                "
+              >
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>编辑当前楼层</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                :disabled="!pseudo.canDelete"
+                @click="
+                  mobileToolsOpen = false;
+                  deleteDialogOpen = true;
+                "
+              >
+                <i class="fa-solid fa-trash-can"></i>
+                <span>删除本回</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                :disabled="!pseudo.canReroll"
+                @click="
+                  mobileToolsOpen = false;
+                  pseudo.reroll();
+                "
+              >
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>重生成本回</span>
+              </button>
+            </template>
+            <button
+              v-if="!detached"
+              type="button"
+              role="menuitem"
+              @click="
+                mobileToolsOpen = false;
+                $emit('toggle-immersive');
+              "
+            >
+              <i class="fa-solid" :class="immersive ? 'fa-compress' : 'fa-expand'"></i>
+              <span>{{ immersive ? '退出沉浸阅读' : '沉浸阅读' }}</span>
+            </button>
+            <span class="mobile-tool-divider" role="separator"></span>
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              :aria-checked="!detached"
+              :disabled="pseudo.isGenerating || pseudo.isDeleting || pseudo.isUpdatingMessage"
+              @click="toggleMobileMode"
+            >
+              <i class="fa-solid fa-layer-group"></i>
+              <span>伪同层控制</span>
+              <i class="fa-solid mode-switch-icon" :class="detached ? 'fa-toggle-off' : 'fa-toggle-on'"></i>
+            </button>
+            <button v-if="detached" type="button" role="menuitem" @click="toggleMobileStatus">
+              <i class="fa-solid" :class="statusCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+              <span>{{ statusCollapsed ? '展开状态栏' : '收起状态栏' }}</span>
+            </button>
           </div>
         </Transition>
       </div>
-      <button type="button" :title="immersive ? '退出沉浸阅读' : '进入沉浸阅读'" @click="$emit('toggle-immersive')">
+      <button
+        v-if="!detached"
+        class="immersion-button"
+        type="button"
+        :title="immersive ? '退出沉浸阅读' : '进入沉浸阅读'"
+        @click="$emit('toggle-immersive')"
+      >
         <i class="fa-solid" :class="immersive ? 'fa-compress' : 'fa-expand'"></i>
       </button>
     </div>
@@ -218,6 +363,8 @@ const props = defineProps<{
   parentRegion: string;
   dangerColor: string;
   readingMode: ReadingMode;
+  detached: boolean;
+  statusCollapsed: boolean;
 }>();
 const emit = defineEmits<{
   (event: 'open-map'): void;
@@ -226,11 +373,14 @@ const emit = defineEmits<{
   (event: 'open-settings'): void;
   (event: 'open-editor'): void;
   (event: 'toggle-immersive'): void;
+  (event: 'toggle-status'): void;
   (event: 'set-reading-mode', mode: ReadingMode): void;
 }>();
 
 const data = useDataStore();
 const pseudo = usePseudoLayerStore();
+const isStatusSummary = computed(() => props.detached && props.statusCollapsed);
+const postureTooltipId = `heaven-posture-${pseudo.messageId}`;
 const deleteDialogOpen = ref(false);
 const mobileToolsOpen = ref(false);
 const mobileToolGroup = ref<HTMLElement | null>(null);
@@ -253,6 +403,7 @@ const history = computed(
     },
 );
 const stageTitle = computed(() => {
+  if (props.detached) return `第 ${pseudo.messageId} 层 · ${data.本尊.境界描述}`;
   if (props.readingMode === 'scroll' && props.activeView === 'timeline') {
     return `历程 · ${pseudo.view.total || 1} 段`;
   }
@@ -284,6 +435,32 @@ const compactLocation = computed(() => {
     .filter(Boolean);
   return segments.at(-1) ?? currentLocation.value;
 });
+const eraLabel = computed(() => {
+  const era = String(data.世界时钟.纪元 || '').trim();
+  return era === '末法时代' ? '盛法时代' : era || '盛法时代';
+});
+const dayNightLabel = computed(() => {
+  const shichen = String(data.世界时钟.时辰 || '');
+  if (!shichen) return '夜';
+  if (shichen.includes('夜') || shichen.includes('晚')) return '夜';
+  if (shichen.includes('日') || shichen.includes('昼')) return '昼';
+  const nightShichen = ['子', '丑', '寅', '卯', '酉', '戌', '亥'];
+  if (nightShichen.some(token => shichen.includes(token))) return '夜';
+  const dayShichen = ['辰', '巳', '午', '未', '申'];
+  if (dayShichen.some(token => shichen.includes(token))) return '昼';
+  return shichen;
+});
+const timeIconClass = computed(() =>
+  dayNightLabel.value === '昼' ? 'fa-solid fa-sun is-day' : 'fa-solid fa-moon is-night',
+);
+const worldTimeTooltip = computed(() => {
+  const clock = data.世界时钟;
+  return `${eraLabel.value} · 第${clock.年份}年${clock.月份 ? `${clock.月份}月` : ''}${clock.日期 ? `${clock.日期}日` : ''} · ${clock.时辰 || dayNightLabel.value}`;
+});
+const summaryTitle = computed(
+  () =>
+    `第 ${pseudo.messageId} 层 · ${data.本尊.境界描述} · ${currentLocation.value} · ${worldTimeTooltip.value} · 险${data.本尊.行踪.危险度 ?? 10}（展开状态栏）`,
+);
 const confirmDelete = () => {
   if (!pseudo.canDelete) return;
   pseudo.deleteCurrent();
@@ -303,6 +480,14 @@ const openAppearance = () => {
 const selectReadingMode = (mode: ReadingMode) => {
   mobileToolsOpen.value = false;
   emit('set-reading-mode', mode);
+};
+const toggleMobileMode = () => {
+  mobileToolsOpen.value = false;
+  pseudo.setDetached(!props.detached);
+};
+const toggleMobileStatus = () => {
+  mobileToolsOpen.value = false;
+  emit('toggle-status');
 };
 const handleMobileToolPointerDown = (event: PointerEvent) => {
   if (!mobileToolsOpen.value || mobileToolGroup.value?.contains(event.target as Node)) return;
@@ -348,7 +533,8 @@ const showParent = computed(() => {
   box-shadow:
     inset 0 -1px 0 color-mix(in srgb, var(--gold) 12%, transparent),
     0 8px 26px color-mix(in srgb, var(--stage-shadow) 54%, transparent);
-  overflow: hidden;
+  overflow: visible;
+  z-index: 15;
 }
 
 .stage-header::before {
@@ -483,21 +669,39 @@ const showParent = computed(() => {
   background: var(--button-active);
 }
 
+.scene-hud {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 .scene-location {
   min-width: 0;
   display: grid;
   justify-items: center;
-  gap: 3px;
-  padding: 6px 10px;
-  border: 0;
+  gap: 2px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
   color: var(--text-primary);
   background: transparent;
   cursor: pointer;
   text-shadow: 0 1px 10px var(--stage-shadow);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+
+  &:hover {
+    border-color: var(--line-subtle);
+    background: color-mix(in srgb, var(--surface-inset) 56%, transparent);
+  }
 }
 .scene-kicker {
   color: var(--text-secondary);
   font-size: 9px;
+  letter-spacing: 0.08em;
 }
 .scene-location strong {
   max-width: 100%;
@@ -525,16 +729,44 @@ const showParent = computed(() => {
   font-weight: 400;
 }
 
+.world-time-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 999px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--surface-inset) 68%, transparent);
+  font-size: 11px;
+  white-space: nowrap;
+
+  i.is-night {
+    color: var(--gold);
+    filter: drop-shadow(0 0 5px var(--accent-glow));
+  }
+  i.is-day {
+    color: var(--semantic-warning);
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--semantic-warning) 45%, transparent));
+  }
+}
+
 .stage-utilities {
   min-width: 0;
   justify-content: flex-end;
   gap: 5px;
 }
+.hud-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 3px;
+}
 .mobile-tool-group {
   display: none;
 }
 .danger-badge {
-  margin-right: 4px;
   padding: 4px 8px;
   border: 1px solid color-mix(in srgb, var(--danger-color) 60%, transparent);
   border-radius: 999px;
@@ -542,6 +774,94 @@ const showParent = computed(() => {
   background: color-mix(in srgb, var(--danger-color) 10%, transparent);
   font-size: 10px;
   white-space: nowrap;
+}
+.heaven-posture-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 999px;
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: help;
+
+  b {
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+  &.sense-顺遂 .posture-sense {
+    color: var(--semantic-success);
+  }
+  &.sense-平稳 .posture-sense {
+    color: var(--text-accent);
+  }
+  &.sense-受挫 .posture-sense {
+    color: var(--semantic-warning);
+  }
+  &.tier-低压 .posture-tier {
+    color: var(--jade);
+  }
+  &.tier-常态 .posture-tier {
+    color: var(--text-secondary);
+  }
+  &.tier-高压 .posture-tier {
+    color: var(--gold);
+  }
+  &.tier-极压 .posture-tier {
+    color: var(--semantic-danger);
+  }
+  .posture-trend {
+    font-size: 9px;
+    &.is-up {
+      color: var(--semantic-danger);
+    }
+    &.is-down {
+      color: var(--jade);
+    }
+  }
+  .posture-tooltip {
+    position: absolute;
+    z-index: 45;
+    top: calc(100% + 8px);
+    right: 0;
+    width: max-content;
+    max-width: 240px;
+    padding: 8px 11px;
+    display: grid;
+    gap: 3px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--surface-raised) 97%, transparent);
+    box-shadow: 0 12px 28px var(--stage-shadow);
+    font-size: 10px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-3px);
+    transition:
+      opacity 0.16s ease,
+      transform 0.16s ease;
+
+    strong {
+      color: var(--gold);
+      font-size: 11px;
+    }
+    span {
+      color: var(--text-secondary);
+    }
+  }
+  &:hover .posture-tooltip,
+  &:focus-visible .posture-tooltip {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .delete-button:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--semantic-danger) 56%, var(--line-strong)) !important;
@@ -629,11 +949,26 @@ const showParent = computed(() => {
 @media screen and (max-width: 760px) {
   .stage-header {
     min-height: 58px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
     gap: 6px;
     padding: 6px 8px;
     z-index: 40 !important;
     overflow: visible;
+  }
+  .scene-hud {
+    grid-column: 2;
+    gap: 5px;
+    min-width: 0;
+    justify-content: center;
+  }
+  .world-time-pill,
+  .hud-badges,
+  .crane-mark,
+  .turn-copy {
+    display: none;
+  }
+  .native-status-header .turn-cluster {
+    display: none;
   }
   .scene-location {
     min-width: 0;
@@ -652,7 +987,7 @@ const showParent = computed(() => {
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .scene-location-compact i {
     margin-right: 0;
@@ -678,11 +1013,18 @@ const showParent = computed(() => {
     display: none;
   }
   .stage-utilities {
+    grid-column: 3;
     gap: 3px;
   }
   .stage-utilities .preset-button,
   .stage-utilities .greeting-index-button,
-  .stage-utilities .appearance-button {
+  .stage-utilities .appearance-button,
+  .stage-utilities .mode-toggle-button,
+  .stage-utilities .status-toggle-button,
+  .stage-utilities .edit-button,
+  .stage-utilities .delete-button,
+  .stage-utilities .reroll-button,
+  .stage-utilities .immersion-button {
     display: none;
   }
   .reading-mode-switch {
@@ -697,8 +1039,8 @@ const showParent = computed(() => {
     position: absolute;
     z-index: 30;
     top: calc(100% + 13px);
-    right: -38px;
-    width: 148px;
+    right: 0;
+    width: 176px;
     padding: 5px;
     display: grid;
     gap: 3px;
@@ -713,7 +1055,7 @@ const showParent = computed(() => {
     content: '';
     position: absolute;
     top: -5px;
-    right: 50px;
+    right: 12px;
     width: 8px;
     height: 8px;
     border-top: 1px solid var(--line-strong);
@@ -736,6 +1078,10 @@ const showParent = computed(() => {
     width: 16px;
     color: var(--gold);
     text-align: center;
+  }
+  .mobile-tool-menu button .mode-switch-icon {
+    margin-left: auto;
+    font-size: 16px;
   }
   .mobile-tool-menu button.active {
     border-color: color-mix(in srgb, var(--gold) 46%, var(--line-subtle));
@@ -778,7 +1124,7 @@ const showParent = computed(() => {
 @media screen and (max-width: 520px) {
   .stage-header {
     min-height: 58px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
     grid-template-rows: none;
     align-content: normal;
     gap: 4px;
@@ -821,7 +1167,93 @@ const showParent = computed(() => {
   }
   .scene-location-compact {
     gap: 3px;
-    font-size: 10px;
+    font-size: 13px;
+  }
+}
+.stage-header.status-summary-bar {
+  display: flex;
+  min-height: 42px;
+  gap: 6px;
+  padding: 4px 8px;
+
+  .stage-utilities {
+    flex: none;
+    gap: 3px;
+  }
+  .stage-utilities > button,
+  .stage-utilities .mobile-tool-trigger {
+    width: 28px;
+    height: 28px;
+  }
+}
+.status-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 0;
+  border: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+
+  strong {
+    color: var(--gold);
+  }
+  > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  i {
+    margin-right: 3px;
+  }
+  .summary-realm {
+    max-width: 85px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--jade);
+  }
+  .summary-location {
+    flex: 1 1 50px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media screen and (max-width: 760px) {
+  .stage-header.status-summary-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+    align-items: flex-start;
+  }
+  .status-summary-bar .status-summary {
+    grid-column: 2;
+  }
+  .status-summary > :not(.summary-location) {
+    display: none;
+  }
+  .status-summary .summary-location {
+    padding-top: 4px;
+    color: var(--gold);
+    font-size: 13px;
+    text-align: center;
+  }
+  .status-summary-bar .mobile-tool-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  // 折叠楼层让菜单撑开自身高度，避免弹层被短 iframe 裁切。
+  .status-summary-bar .mobile-tool-menu {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-top: 8px;
   }
 }
 </style>

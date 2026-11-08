@@ -1,0 +1,34 @@
+﻿[
+    {
+        "path":  "src/灯火阑珊-变量结构/extra-analysis-prompt.ts",
+        "sha256":  "3DCAD0D5C1F10F618153107CA6F08EA80C1FDF2DAFB22258D7199DFA3A15DE2B"
+    },
+    {
+        "path":  "tests/lantern-extra-analysis-prompt.test.ts",
+        "sha256":  "29A7B216440475160405214ED0C89525690424E8676D6E4B8D3F33F5F9F2DF06"
+    },
+    {
+        "path":  "src/灯火阑珊-变量结构/index.ts",
+        "sha256":  "CEDEE7F6132A97EFEEF81746FCB4F2F3A8F6861DB7DB965E13B1A8DEB266946C"
+    },
+    {
+        "path":  "src/踏月寻仙-变量结构/index.ts",
+        "sha256":  "2098E5718F1F4361E2497A358FB3584E05B17B0262035AEDE5646E5B8E33A5AA"
+    },
+    {
+        "path":  "src/灯火阑珊/灯火阑珊-世界书/变量更新规则\u0026变量输出格式/[mvu_update]变量更新规则.yaml",
+        "sha256":  "445F585A97A666215F7EE95809CD8E3B282C3E19AF9744858F0BD8A23B5082BB"
+    },
+    {
+        "path":  "src/灯火阑珊/灯火阑珊-世界书/变量更新规则\u0026变量输出格式/[mvu_update]变量输出格式.yaml",
+        "sha256":  "A543AFAC8ABF98733E45E9A2554A6A2A37CD34C0013369CEBC11F02DCDA32C03"
+    },
+    {
+        "path":  "dist/灯火阑珊-变量结构/index.js",
+        "sha256":  "B89BEFB02AD7D88872E830E34FF2FC1842D86D77E0B130597C80E3BAAA3A9DDC"
+    },
+    {
+        "path":  "dist/踏月寻仙-变量结构/index.js",
+        "sha256":  "C6AD7BF15DA9A561671B5D094CCAAA20B2CAD6A6C56E8BB4FCD3498C8DC0C38D"
+    }
+]

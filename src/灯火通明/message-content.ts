@@ -850,7 +850,9 @@ export const summarizeVariableDiagnostics = (
   const scored: Array<{ score: number; label: string }> = [];
 
   for (const operation of diagnostics.operations) {
-    const op = String(operation.op ?? '').trim().toLowerCase();
+    const op = String(operation.op ?? '')
+      .trim()
+      .toLowerCase();
     const segments = String(operation.path ?? '')
       .replaceAll('／', '/')
       .split('/')
@@ -886,11 +888,22 @@ export const summarizeVariableDiagnostics = (
       scored.push({ score: 90, label: `${sub}·${val.trim().slice(0, 6)}` });
       continue;
     }
-    if (root === '本尊' && sub === '灵石') {
-      scored.push({
-        score: 88,
-        label: op === 'delta' ? `灵石 ${formatDelta(val)}` : `灵石 ${String(val ?? '')}`,
-      });
+    if ((root === '本尊' && sub === '灵石') || (root === '红颜' && third === '灵石')) {
+      const prefix = root === '红颜' ? `${sub}·` : '';
+      const grade = segments[root === '红颜' ? 3 : 2];
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        for (const [name, amount] of Object.entries(val)) {
+          if (/^(下品|中品|上品|极品)灵石$/u.test(name)) {
+            scored.push({ score: 88, label: `${prefix}${name} ${String(amount ?? 0)}` });
+          }
+        }
+      } else {
+        const name = /^(下品|中品|上品|极品)灵石$/u.test(grade ?? '') ? grade : '下品灵石';
+        scored.push({
+          score: 88,
+          label: `${prefix}${name} ${op === 'delta' ? formatDelta(val) : op === 'remove' ? '0' : String(val ?? '')}`,
+        });
+      }
       continue;
     }
     if (root === '本尊' && sub === '行踪' && third === '当前区域' && typeof val === 'string' && val.trim()) {

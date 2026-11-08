@@ -197,7 +197,7 @@
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 
-import { getRealmColor, getRootColor } from '../schema';
+import { getRealmColor, getRootColor, getSpiritStoneTotal } from '../schema';
 import { useDataStore, usePseudoLayerStore } from '../store';
 
 interface FoundationItem {
@@ -294,8 +294,8 @@ const rightFoundation = computed<FoundationItem[]>(() => {
       icon: 'fa-solid fa-khanda',
     },
     {
-      label: '灵石',
-      title: formatNumber(store.本尊.灵石),
+      label: '灵石（折合下品）',
+      title: formatNumber(getSpiritStoneTotal(store.本尊.灵石)),
       detail: '',
       icon: 'fa-solid fa-gem',
       toneClass: 'gold-tone',

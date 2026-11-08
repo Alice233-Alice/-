@@ -6,6 +6,9 @@ import * as childProcess from 'node:child_process';
 import {EventEmitter} from 'node:events';
 import type * as VSCode from 'vscode';
 import {isolateNativeName,restoreNativeName} from './native-names.ts';
+import {readDescriptor,buildNativeInvocation} from './native-runtime.ts';
+import {verifyEngine} from './engine.ts';
+import {migrateSelectedHistory} from './native-history.ts';
 
 export interface NativeHostOptions {nativeRoot:string;launcherPath:string;descriptorPath:string;}
 type Any=Record<string,any>;
@@ -78,7 +81,7 @@ export function createNativeFacade(api:typeof VSCode|Any,context:VSCode.Extensio
     const key=(value:string)=>section===OLD||mappedSection===PREFIX?value:nativeIdentifier(value);
     const cli=(value:string)=>((mappedSection===PREFIX&&value==='cliExecutable')||(!mappedSection&&value===`${OLD}.cliExecutable`)||(!mappedSection&&value===`${PREFIX}.cliExecutable`));
     return overlay(actual,{
-      get(name:string,fallback?:unknown){return cli(name)?options.launcherPath:actual.get(key(name),fallback);},
+      get(name:string,fallback?:unknown){return cli(name)?options.launcherPath:decodeMessage(actual.get(key(name),mapValue(fallback,true)));},
       has(name:string){return cli(name)||actual.has(key(name));},
       inspect(name:string){if(cli(name))return {key:section===OLD?'chatgpt.cliExecutable':name,defaultValue:null,globalValue:options.launcherPath};const result=actual.inspect(key(name));return result?{...result,key:originalIdentifier(result.key)}:result;},
       update(name:string,value:any,target?:any,override?:any){if(cli(name))return Promise.resolve();return actual.update(key(name),value,target,override);},
@@ -131,7 +134,12 @@ export function createNativeFacade(api:typeof VSCode|Any,context:VSCode.Extensio
   });
   const nativeUri=real.Uri.file(options.nativeRoot),manifest=JSON.parse(fs.readFileSync(path.join(options.nativeRoot,'package.json'),'utf8'));
   const extension=overlay(owner.extension||{}, {id:ID,extensionPath:options.nativeRoot,extensionUri:nativeUri,packageJSON:manifest});
-  const nativeContext=overlay(owner,{extensionPath:options.nativeRoot,extensionUri:nativeUri,extension,subscriptions,asAbsolutePath:(relative:string)=>path.join(options.nativeRoot,relative)});
+  const memento=(value:any)=>value&&overlay(value,{
+    get(name:string,fallback?:unknown){return decodeMessage(value.get(name,mapValue(fallback,true)));},
+    update(name:string,next:any){return value.update(name,mapValue(next,true));},
+    keys(){return decodeMessage(value.keys());},
+  });
+  const nativeContext=overlay(owner,{extensionPath:options.nativeRoot,extensionUri:nativeUri,extension,subscriptions,...(owner.globalState?{globalState:memento(owner.globalState)}:{}),...(owner.workspaceState?{workspaceState:memento(owner.workspaceState)}:{}),asAbsolutePath:(relative:string)=>path.join(options.nativeRoot,relative)});
   const extensions=real.extensions?overlay(real.extensions,{getExtension:(id:string)=>id==='openai.chatgpt'||id===ID?extension:real.extensions.getExtension(id)}):undefined;
   const env=real.env?overlay(real.env,{
     isTelemetryEnabled:false,
@@ -179,6 +187,11 @@ export function loadNativeBundle(options:NativeHostOptions,scoped:{api:any;conte
   const nativeRequire=createRequire(path.join(options.nativeRoot,'package.json'));
   const builtins=new Map<string,any>(),modules=new Map<string,{exports:any}>();
   const sandbox:Any={Buffer,process:scoped.process,console,setTimeout,clearTimeout,setInterval,clearInterval,setImmediate,clearImmediate,queueMicrotask,URL,URLSearchParams,TextEncoder,TextDecoder,AbortController,AbortSignal,DOMException,fetch:createNativeFetch(),Headers,Request,Response,ReadableStream,WritableStream,TransformStream,structuredClone,performance,atob,btoa};
+  sandbox.__apeiriaMigrateSelectedHistory=async(threadId:string)=>{
+    const descriptor=readDescriptor(options.descriptorPath);await verifyEngine(descriptor.cliPath,descriptor.manifestPath);
+    const invocation=await buildNativeInvocation(descriptor,[]);
+    return migrateSelectedHistory({threadId,cliPath:descriptor.cliPath,home:descriptor.home,argsPrefix:invocation.args,env:invocation.env,token:descriptor.token});
+  };
   // Preserve the standard Node web globals expected by the native HTTP client.
   // The process and extension API remain explicitly scoped above.
   for(const name of ['Blob','File','FormData','crypto','MessageChannel','MessagePort','BroadcastChannel','CompressionStream','DecompressionStream','CountQueuingStrategy','ByteLengthQueuingStrategy','ReadableStreamDefaultReader','WritableStreamDefaultWriter'])if(name in globalThis)sandbox[name]=(globalThis as Any)[name];

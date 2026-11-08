@@ -1,0 +1,46 @@
+{
+  "frontend": [
+    {
+      "id": "946457d1-1683-4094-9179-06909767b009",
+      "script_name": "灯火阑珊-伪同层前端",
+      "enabled": false,
+      "find_regex": "/(?:<visual_cards>[\\s\\S]*?<\\/visual_cards>(?:\\s*<pseudo_layer>\\s*(?:灯火阑珊|灯火通明)\\s*<\\/pseudo_layer>)?|<pseudo_layer>\\s*(?:灯火阑珊|灯火通明)\\s*<\\/pseudo_layer>)/gsi",
+      "trim_strings": [],
+      "replace_string": "```\n<body>\n<script>\n$('body').load('https://cdn.jsdelivr.net/gh/Alice233-Alice/Apeiria@main/灯火通明/index.html')\n</script>\n</body>\n```",
+      "source": {
+        "user_input": false,
+        "ai_output": true,
+        "slash_command": false,
+        "world_info": false,
+        "reasoning": false
+      },
+      "destination": {
+        "display": true,
+        "prompt": false
+      },
+      "run_on_edit": true,
+      "min_depth": null,
+      "max_depth": null
+    }
+  ],
+  "controller": [
+    {
+      "type": "script",
+      "enabled": false,
+      "name": "灯火阑珊-伪同层控制器",
+      "id": "d87f294a-6dec-4dec-bc23-c2623dbc8f8d",
+      "content": "import 'https://cdn.jsdelivr.net/gh/Alice233-Alice/Apeiria@main/灯火通明-伪同层控制器/index.js'",
+      "info": "为灯火阑珊伪同层前端提供生成、流式传输、停止与楼层写入能力。",
+      "button": {
+        "enabled": false,
+        "buttons": []
+      },
+      "data": {},
+      "export_with": {
+        "data": true,
+        "button": false
+      }
+    }
+  ],
+  "activeLoader": "<body>\n  <script>\n    $('body').load('http://127.0.0.1:5501/dist/灯火通明/index.html?_=' + Date.now())\n  </script>\n</body>\n"
+}

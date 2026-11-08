@@ -10,6 +10,7 @@
     "test:lantern-schema": "ts-node --files --project tsconfig.schema-test.json tests/lantern-schema.test.ts",
     "test:bright-message-content": "ts-node --files --project tsconfig.schema-test.json tests/bright-message-content.test.ts",
     "test:bright-dialogue-engine": "ts-node --files --project tsconfig.schema-test.json tests/bright-dialogue-engine.test.ts",
+    "test:bright-generation": "ts-node --files --project tsconfig.schema-test.json tests/bright-generation-lifecycle.test.ts",
     "test:lantern-mvu": "pnpm run test:lantern-schema && ts-node --files --project tsconfig.schema-test.json tests/lantern-mvu-replay.test.ts",
     "test:lantern-mvu:fuzz": "ts-node --files --project tsconfig.schema-test.json tests/lantern-mvu-fuzz.test.ts",
     "sync": "node tavern_sync.mjs"
@@ -62,6 +63,7 @@
     "sass-loader": "^17.0.0",
     "socket.io": "^4.8.3",
     "style-loader": "^4.0.0",
+    "svgo": "^4.1.0",
     "tailwindcss": "^4.3.2",
     "terser-webpack-plugin": "^5.6.1",
     "ts-loader": "^9.6.2",

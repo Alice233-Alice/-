@@ -594,7 +594,7 @@
         "功法": "无",
         "本命兵器": "无",
         "神通列表": {},
-        "灵石": 0,
+        "灵石": {},
         "已活岁月": 0,
         "修炼状态": {},
         "行踪": {
@@ -691,15 +691,14 @@
           "$ref": "#/$defs/__schema1"
         },
         "灵石": {
-          "default": 0,
-          "type": "number"
+          "$ref": "#/$defs/__schema2"
         },
         "已活岁月": {
           "default": 0,
           "type": "number"
         },
         "修炼状态": {
-          "$ref": "#/$defs/__schema2"
+          "$ref": "#/$defs/__schema3"
         },
         "行踪": {
           "default": {
@@ -764,13 +763,13 @@
           "type": "string"
         },
         "背包": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "法宝": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "杂物袋": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "战斗状态": {
           "default": {
@@ -1295,7 +1294,7 @@
           "功法": "无",
           "本命兵器": "无",
           "神通列表": {},
-          "灵石": 0,
+          "灵石": {},
           "已活岁月": 0,
           "修炼状态": {},
           "好感度": 0,
@@ -1333,15 +1332,14 @@
             "$ref": "#/$defs/__schema1"
           },
           "灵石": {
-            "default": 0,
-            "type": "number"
+            "$ref": "#/$defs/__schema2"
           },
           "已活岁月": {
             "default": 0,
             "type": "number"
           },
           "修炼状态": {
-            "$ref": "#/$defs/__schema2"
+            "$ref": "#/$defs/__schema3"
           },
           "好感度": {
             "default": 0,
@@ -1547,10 +1545,10 @@
             }
           },
           "创建时间": {
-            "default": 1794047089700,
+            "default": 1794155332659,
             "anyOf": [
               {
-                "default": 1794047089656,
+                "default": 1794155332612,
                 "type": "number"
               },
               {
@@ -1677,7 +1675,7 @@
                   "description": "线索名"
                 },
                 "additionalProperties": {
-                  "$ref": "#/$defs/__schema4"
+                  "$ref": "#/$defs/__schema5"
                 }
               },
               "纪事": {
@@ -1688,7 +1686,7 @@
                   "description": "纪事名"
                 },
                 "additionalProperties": {
-                  "$ref": "#/$defs/__schema4"
+                  "$ref": "#/$defs/__schema5"
                 }
               },
               "猜想": {
@@ -1764,7 +1762,7 @@
             "type": "string"
           },
           "更新时间": {
-            "default": 1794047089700,
+            "default": 1794155332659,
             "type": "number"
           }
         }
@@ -2002,7 +2000,7 @@
           "type": "number"
         },
         "变量结构版本": {
-          "default": 6,
+          "default": 7,
           "type": "number"
         },
         "_临时状态手动覆盖签名": {
@@ -2075,13 +2073,35 @@
             "type": "string"
           },
           "领悟时间": {
-            "default": 1794047089698,
+            "default": 1794155332658,
             "type": "number"
           }
         }
       }
     },
     "__schema2": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "下品灵石": {
+          "default": 0,
+          "type": "number"
+        },
+        "中品灵石": {
+          "default": 0,
+          "type": "number"
+        },
+        "上品灵石": {
+          "default": 0,
+          "type": "number"
+        },
+        "极品灵石": {
+          "default": 0,
+          "type": "number"
+        }
+      }
+    },
+    "__schema3": {
       "default": {},
       "type": "object",
       "properties": {
@@ -2149,7 +2169,7 @@
         }
       }
     },
-    "__schema3": {
+    "__schema4": {
       "default": {},
       "type": "object",
       "propertyNames": {
@@ -2178,7 +2198,7 @@
         }
       }
     },
-    "__schema4": {
+    "__schema5": {
       "type": "object",
       "properties": {
         "内容": {

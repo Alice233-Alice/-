@@ -5,6 +5,7 @@
     - '摘要与字段描述用简体中文，人名沿用中文原名；摘要80字以内，只列实际patch与正文依据，不含英文句子、Y/N清单、格式讨论或思考过程。英文键名与标签保持原样。'
     - 'JSONPatch为合法JSON数组，只用replace/delta/insert/remove，每项仅含op、path和所需value；path以/开头，直接指向stat_data内字段。同路径每轮仅结算一次，父子路径不重叠；新对象一次insert完整值，子字段并入对象。禁用整棵变量树、派生字段、空键、额外属性、注释、尾逗号或代码围栏。'
     - 'replace写完整新值；delta的value必须为JSON数值净增减量，不能填总值、数字字符串或百分比；remove省略value。等级仅用 replace 写绝对整数。可选字段首次出现用insert，已有字段用replace，value保持原字段类型。'
+    - '灵石增减指向具体币种，如{"op":"delta","path":"/本尊/灵石/上品灵石","value":18}；红颜使用/红颜/{角色名}/灵石/{品级}。整个灵石字段始终保持四品对象。'
   format: |-
     <UpdateVariable>
     <Analysis>修为增加30点；丹香异变建档；处境与机遇更新</Analysis>

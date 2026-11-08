@@ -334,10 +334,11 @@ for (const frontend of ['灯火通明', '灯火通明-测试版']) {
       host,
     );
     host.presetTest.loadCurrentData();
+    host.presetTest.formData.value.灵石 = { 下品灵石: 200, 中品灵石: 5, 上品灵石: 18, 极品灵石: 1 };
     const draft = host.presetTest.formData.value.红颜.白清弦;
     Object.assign(draft, {
       等级: 35, 修为: 12345.5, 灵根: '自定灵根', 体质: '自定道体', 功法: '自定功法',
-      本命兵器: '自定神兵', 灵石: 54321, 已活岁月: 2401,
+      本命兵器: '自定神兵', 灵石: { 下品灵石: 54321, 中品灵石: 12, 上品灵石: 3, 极品灵石: 1 }, 已活岁月: 2401,
     });
     draft.修炼状态.阶段 = '压境中';
     draft.修炼状态.方式 = '温养剑骨';
@@ -349,6 +350,7 @@ for (const frontend of ['灯火通明', '灯火通明-测试版']) {
     assert.equal(host.presetTest.formData.value.红颜.自定义道友.已活岁月, 766);
     host.presetTest.exportPreset();
     assert.deepEqual(exported.preset.基础属性.修炼状态, original.本尊.修炼状态);
+    assert.deepEqual(exported.preset.基础属性.灵石, { 下品灵石: 200, 中品灵石: 5, 上品灵石: 18, 极品灵石: 1 });
     assert.deepEqual(exported.preset.红颜.白清弦, expectedCompanion);
     host.presetTest.formData.value.修炼状态 = schemaModule.ProtagonistSchema.parse({}).修炼状态;
     host.presetTest.formData.value.红颜 = {};
@@ -363,6 +365,28 @@ for (const frontend of ['灯火通明', '灯火通明-测试版']) {
     );
     assert.equal(schemaModule.CompanionSchema.parse(companion).境界描述, '渡劫后期');
     assert.equal(companion.修炼状态.最近突破.消耗修为, getRealmThreshold(33));
+    assert.deepEqual(companion.灵石, expectedCompanion.灵石);
+    const legacy = { preset: {
+      基础属性: { 灵石: 200 },
+      背包: { 上品灵石: { 名称: '上品灵石', 数量: 18, 品阶: '玄' }, 青玉丹: { 数量: 2 } },
+      杂物袋: {}, 法宝: {},
+    } };
+    for (let repeat = 0; repeat < 2; repeat += 1) {
+      host.presetTest.importPreset({ target: { files: [{ content: JSON.stringify(legacy) }], value: 'legacy.json' } });
+      assert.deepEqual(host.presetTest.formData.value.灵石, { 下品灵石: 200, 中品灵石: 0, 上品灵石: 18, 极品灵石: 0 });
+      assert.equal(host.presetTest.formData.value.背包.上品灵石, undefined);
+      host.presetTest.exportPreset();
+      assert.deepEqual(exported.preset.基础属性.灵石, host.presetTest.formData.value.灵石);
+    }
+    const currencyOnly = { preset: { 法宝: {
+      极品灵石: { 名称: '极品灵石', 数量: 2 },
+      上品灵石: { 名称: '上品灵石', 数量: 0 },
+    } } };
+    for (let repeat = 0; repeat < 2; repeat += 1) {
+      host.presetTest.importPreset({ target: { files: [{ content: JSON.stringify(currencyOnly) }], value: 'currency.json' } });
+      assert.deepEqual(host.presetTest.formData.value.灵石, { 下品灵石: 0, 中品灵石: 0, 上品灵石: 0, 极品灵石: 2 });
+      assert.equal(host.presetTest.formData.value.法宝.极品灵石, undefined);
+    }
   });
 }
 

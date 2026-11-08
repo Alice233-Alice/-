@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>灯火阑珊 · 前端方案预览</title>
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview.js" defer></script>
+</head>
+<body>
+  <div id="app"></div>
+  <dialog id="detail-dialog" class="detail-dialog"><div class="dialog-top"><span id="dialog-kicker">卷中一页</span><button type="button" class="close-dialog" aria-label="关闭">×</button></div><div id="dialog-content"></div></dialog>
+  <dialog id="news-dialog" class="news-dialog"><div class="dialog-top"><span>风来有信</span><button type="button" class="close-dialog" aria-label="关闭">×</button></div><h2>世闻与行动</h2><p class="dialog-subtitle">听世间风声，择眼前去路。</p><div class="news-tabs" role="tablist"><button type="button" class="active" role="tab" aria-selected="true" data-news-tab="actions">行动提案 <b>3</b></button><button type="button" role="tab" aria-selected="false" data-news-tab="news">世间见闻 <b>2</b></button></div><div id="news-content"></div></dialog>
+  <dialog id="chat-dialog" class="chat-dialog"><div class="dialog-top"><span>当面交谈</span><button type="button" class="close-dialog" aria-label="关闭交谈">×</button></div><header class="chat-header"><img src="assets/portrait-2.png" alt="白清弦"><div><h2>白清弦</h2><p>抱雪峰亲传师尊 · 此刻在场</p></div><span class="relation-badge">师 徒</span></header><div class="chat-messages" id="chat-messages"><div class="chat-message received"><small>白清弦</small><p>“可是行气时还有何处不适？慢慢说，为师听着。”</p></div></div><form id="chat-form" class="chat-form"><label class="sr-only" for="chat-input">与白清弦交谈</label><input id="chat-input" placeholder="想对她说些什么……" autocomplete="off"><button type="submit" aria-label="发送交谈">↗</button></form></dialog>
+  <dialog id="portrait-dialog" class="portrait-dialog"><button type="button" class="close-dialog" aria-label="关闭大图">×</button><img id="large-portrait" src="assets/portrait-2.png" alt="白清弦立绘大图"></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

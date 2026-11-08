@@ -10,6 +10,7 @@ require('ts-node').register({ project: 'tsconfig.schema-test.json', transpileOnl
 const protocol = require('../src/灯火通明-测试版/pseudo-layer-protocol');
 const content = require('../src/灯火通明-测试版/message-content');
 const playerInput = require('../src/灯火通明-测试版/player-input');
+const { clearReadingPosition } = require('../src/灯火通明-测试版/reading-position');
 const compile = source =>
   ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -291,6 +292,7 @@ function controllerHarness() {
   const classes = new Set(['dhl-pseudo-layer-active', 'dhl-pseudo-stage-root-active', 'dhl-native-input-collapsed']);
   const operations = [],
     persisted = new Map();
+  const readingPositions = new Map([['dhl-reading-position:test-chat', 'previous-position']]);
   const host = {
     console: { info() {} },
     controllerDisposed: false,
@@ -323,12 +325,19 @@ function controllerHarness() {
     installFrameObserver: () => operations.push('observe'),
     parkLatestStageFrame: () => operations.push('park'),
     clearDialogueCarryoverPrompt: () => operations.push('clear-prompt'),
+    rememberStageReadingPosition: () => operations.push('remember-reading'),
+    clearReadingPosition,
+    tavernWindow: { sessionStorage: { removeItem: key => readingPositions.delete(key) } },
+    SillyTavern: { getCurrentChatId: () => 'test-chat' },
     broadcastView: () => operations.push('view'),
     send: (_, response) => operations.push(response.type),
     toastr: { info: () => operations.push('notice') },
   };
-  vm.runInNewContext(controllerDeclarations(['setDetachedMode']) + '\nglobalThis.switchMode = setDetachedMode;', host);
-  return { host, operations, persisted, classes };
+  vm.runInNewContext(
+    controllerDeclarations(['getCurrentChatId', 'setDetachedMode']) + '\nglobalThis.switchMode = setDetachedMode;',
+    host,
+  );
+  return { host, operations, persisted, classes, readingPositions };
 }
 
 test('控制器进入待命时释放舞台、输入限制和停放任务，恢复时重新接管', () => {
@@ -342,6 +351,7 @@ test('控制器进入待命时释放舞台、输入限制和停放任务，恢�
   assert.ok(h.operations.includes('disconnect') && h.operations.includes('release') && h.operations.includes('scroll'));
   h.host.switchMode(false);
   assert.equal(h.host.detachedMode, false);
+  assert.equal(h.readingPositions.size, 0);
   assert.equal(h.persisted.get(protocol.PSEUDO_LAYER_DETACHED_STORAGE_KEY), 'false');
   assert.ok(h.operations.includes('observe') && h.operations.includes('park'));
 });
@@ -418,6 +428,7 @@ function appHarness(detached = false, latest = true, viewportWidth = 1200, reloa
       if (id === './store')
         return { useDataStore: () => data, usePseudoLayerStore: () => pseudo, useThemeStore: () => theme };
       if (id === './moving-panel-fit') return { createMovingPanelFit: () => ({ sync() {}, dispose() {} }) };
+      if (id === './reading-position') return require('../src/灯火通明-测试版/reading-position');
       if (id === './stores/affairs-store') return { useAffairsStore: () => vue.reactive({ navigation: null }) };
       if (id === './affairs') return { readingViewForMode: mode => (mode === 'scroll' ? 'timeline' : 'story') };
       if (id === './schema') return { getDangerColor: () => '#999' };
