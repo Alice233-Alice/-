@@ -14,6 +14,7 @@ global._ = lodash;
 const { Schema } = require('../src/灯火通明-测试版/schema');
 const journeys = require('../src/灯火通明-测试版/journey');
 const journeyContext = require('../src/灯火通明-测试版/journey-context');
+const journeyDraft = require('../src/灯火通明-测试版/journey-draft');
 const { ensureSentence } = require('../src/灯火通明-测试版/action-text');
 const { buildQuestAction, buildFallbackActions } = require('../src/灯火通明-测试版/action-feed');
 const cloudStories = require('../src/灯火通明-测试版/cloud-stories');
@@ -32,31 +33,34 @@ const response = JSON.stringify({ proposals });
 function harness(options = {}) {
   const p = pinia.createPinia();
   const initial = Schema.parse(options.state || {});
-  const records = new Map([[2, { stat_data: lodash.cloneDeep(initial), display_data: { preserved: true } }]]);
+  const records =
+    options.records ?? new Map([[2, { stat_data: lodash.cloneDeep(initial), display_data: { preserved: true } }]]);
   const data = vue.reactive({
-    rawData: lodash.cloneDeep(initial),
-    viewedMessageId: 2,
+    rawData: lodash.cloneDeep(records.get(2)?.stat_data ?? initial),
+    viewedMessageId: options.messageId ?? 2,
     viewMessage(id) {
       data.rawData = lodash.cloneDeep(records.get(id).stat_data);
     },
   });
   const pseudo = vue.reactive({
-    isDetachedMode: false,
-    isNativeLatest: true,
-    isStoryHistoryLatest: true,
+    isDetachedMode: Boolean(options.detached),
+    isNativeLatest: options.latest ?? true,
+    isStoryHistoryLatest: options.latest ?? true,
     isGenerating: false,
     performAction: (...args) => {
       actions.push(args);
       return true;
     },
   });
-  let chat = 'current-chat';
+  let chat = options.chat ?? 'current-chat';
   let resolveResponse;
   const writes = [];
   const requests = [];
   const actions = [];
   const stopped = [];
   const bookReads = [];
+  const chatVariables = options.chatVariables ?? new Map();
+  const draftWrites = [];
   const listeners = new Map();
   const messages = lodash.cloneDeep(
     options.messages ?? [
@@ -104,6 +108,15 @@ function harness(options = {}) {
     crypto: require('node:crypto').webcrypto,
     SillyTavern: { getCurrentChatId: () => chat },
     waitGlobalInitialized: async () => {},
+    getVariables: () => lodash.cloneDeep(chatVariables.get(chat) ?? {}),
+    updateVariablesWith: (updater, target) => {
+      assert.equal(target.type, 'chat');
+      if (options.draftWriteError) throw new Error(options.draftWriteError);
+      const next = updater(lodash.cloneDeep(chatVariables.get(chat) ?? {}));
+      chatVariables.set(chat, lodash.cloneDeep(next));
+      draftWrites.push({ chat, next: lodash.cloneDeep(next) });
+      return next;
+    },
     Mvu: {
       getMvuData: ({ message_id }) => lodash.cloneDeep(records.get(message_id)),
       replaceMvuData: async (next, target) => {
@@ -147,6 +160,7 @@ function harness(options = {}) {
       if (id === '../action-preferences') return { useActionPreferences: () => ({ submitMode }) };
       if (id === '../journey') return journeys;
       if (id === '../journey-context') return journeyContext;
+      if (id === '../journey-draft') return journeyDraft;
       if (id === '../cloud-stories') return cloudStories;
       if (id === '../../灯火阑珊/schema/journeys') return require('../src/灯火阑珊/schema/journeys');
       if (id === '../schema') return { Schema };
@@ -172,6 +186,8 @@ function harness(options = {}) {
     messages,
     books,
     bookReads,
+    chatVariables,
+    draftWrites,
     failedBooks,
     emit(event) {
       for (const listener of listeners.get(event) ?? []) listener();
@@ -488,6 +504,179 @@ test('每次寻途重新读取红颜蓝灯状态，动态管理切换人设后�
     assert.equal(h.store.worldEntryCount, 1);
   } finally {
     h.close();
+  }
+});
+
+test('寻途草稿跨伪同层与原生实例恢复，保留候选、偏好、取意与楼层选择，选定后不再恢复候选', async () => {
+  const chatVariables = new Map([['current-chat', { 其他前端记录: { 保留: true } }]]);
+  const first = harness({ chatVariables });
+  let native;
+  let returned;
+  let afterChoose;
+  try {
+    first.store.preference = '与故人游历五湖四海';
+    first.store.inspiration = '远游';
+    first.store.rangeStart = 0;
+    first.store.rangeEnd = 2;
+    first.store.applyHistoryRange();
+    first.store.toggleHistoryMessage(1);
+    await first.store.seek();
+    const expected = lodash.cloneDeep(first.store.proposals);
+    const saved = chatVariables.get('current-chat')[journeyDraft.JOURNEY_DRAFT_KEY];
+    assert.equal(saved.proposals[0].plan, proposals[0].plan);
+    assert.ok(saved.source.historyFingerprint.length < 50);
+    assert.doesNotMatch(JSON.stringify(saved), /可远游的修仙世界|观月台随白清弦晨课/u);
+    first.close();
+
+    native = harness({ chatVariables, records: first.records, messages: first.messages, detached: true });
+    await native.store.refreshContext();
+    assert.deepEqual(lodash.cloneDeep(native.store.proposals), expected);
+    assert.equal(native.store.preference, '与故人游历五湖四海');
+    assert.equal(native.store.inspiration, '远游');
+    assert.equal(native.store.panelOpen, true);
+    assert.equal(native.store.historyMode, 'manual');
+    assert.deepEqual(Array.from(native.store.selectedMessageIds), [0, 2]);
+    assert.equal(native.store.proposalsStale, false);
+    assert.equal(native.requests.length, 0);
+    native.store.preference = '陪故人走完这一程';
+    native.close();
+
+    returned = harness({ chatVariables, records: first.records, messages: first.messages });
+    assert.deepEqual(lodash.cloneDeep(returned.store.proposals), expected);
+    assert.equal(returned.store.preference, '陪故人走完这一程');
+    assert.equal(returned.store.proposalsStale, false);
+    assert.equal(await returned.store.choose(returned.store.proposals[0]), true);
+    assert.equal(chatVariables.get('current-chat')[journeyDraft.JOURNEY_DRAFT_KEY].proposals.length, 0);
+    assert.equal(chatVariables.get('current-chat')[journeyDraft.JOURNEY_DRAFT_KEY].source, null);
+    returned.close();
+
+    afterChoose = harness({ chatVariables, records: first.records, messages: first.messages, detached: true });
+    assert.equal(afterChoose.store.proposals.length, 0);
+    assert.equal(afterChoose.store.current.名称, proposals[0].name);
+    assert.equal(afterChoose.store.preference, '陪故人走完这一程');
+    assert.deepEqual(chatVariables.get('current-chat').其他前端记录, { 保留: true });
+  } finally {
+    first.close();
+    native?.close();
+    returned?.close();
+    afterChoose?.close();
+  }
+});
+
+test('未生成前的填写也立即保存，聊天草稿相互隔离，返回原聊天恢复原来的候选', async () => {
+  const h = harness();
+  let restored;
+  try {
+    h.store.preference = '先沿河走走';
+    assert.equal(h.chatVariables.get('current-chat')[journeyDraft.JOURNEY_DRAFT_KEY].preference, '先沿河走走');
+    await h.store.seek();
+    const first = lodash.cloneDeep(h.chatVariables.get('current-chat'));
+    h.setChat('second-chat');
+    h.emit('CHAT_CHANGED');
+    assert.equal(h.store.preference, '');
+    assert.equal(h.store.proposals.length, 0);
+    h.store.preference = '另一局只想留在山中';
+    assert.deepEqual(h.chatVariables.get('current-chat'), first);
+    assert.equal(h.chatVariables.get('second-chat')[journeyDraft.JOURNEY_DRAFT_KEY].preference, '另一局只想留在山中');
+    h.setChat('current-chat');
+    h.emit('CHAT_CHANGED');
+    assert.equal(h.store.preference, '先沿河走走');
+    assert.equal(h.store.proposals.length, 3);
+    assert.equal(h.store.proposalsStale, false);
+    restored = harness({ chatVariables: h.chatVariables, chat: 'second-chat', detached: true });
+    assert.equal(restored.store.preference, '另一局只想留在山中');
+    assert.equal(restored.store.proposals.length, 0);
+    assert.equal(restored.requests.length, 0);
+  } finally {
+    h.close();
+    restored?.close();
+  }
+});
+
+test('历史原生楼层不能覆盖最新寻途草稿', async () => {
+  const latest = harness();
+  let history;
+  try {
+    latest.store.preference = '最新楼层的愿望';
+    await latest.store.seek();
+    const before = lodash.cloneDeep(latest.chatVariables.get('current-chat'));
+    latest.close();
+    history = harness({
+      chatVariables: latest.chatVariables,
+      messages: latest.messages,
+      detached: true,
+      latest: false,
+      messageId: 0,
+    });
+    history.store.preference = '旧楼层里的临时输入';
+    history.store.panelOpen = !history.store.panelOpen;
+    history.store.toggleHistoryMessage(1);
+    history.emit('MESSAGE_UPDATED');
+    assert.equal(history.store.proposalsStale, true);
+    assert.equal(history.draftWrites.length, 0);
+    assert.deepEqual(latest.chatVariables.get('current-chat'), before);
+  } finally {
+    latest.close();
+    history?.close();
+  }
+});
+
+test('重挂载时发现正文编辑或楼层删除会保留候选并标为过期，改回原文也不会重新启用', async () => {
+  for (const mode of ['edit', 'delete']) {
+    const first = harness();
+    let next;
+    let reverted;
+    try {
+      await first.store.seek();
+      const original = lodash.cloneDeep(first.messages);
+      first.close();
+      const changed = lodash.cloneDeep(original);
+      if (mode === 'edit') changed[0].message = '<正文>已经编辑过的开局。</正文>';
+      else changed.splice(0, 1);
+      next = harness({ chatVariables: first.chatVariables, messages: changed, detached: true });
+      assert.equal(next.store.proposals.length, 3);
+      assert.equal(next.store.proposalsStale, true);
+      assert.equal(await next.store.choose(next.store.proposals[0]), false);
+      assert.equal(next.writes.length, 0);
+      next.close();
+      reverted = harness({ chatVariables: first.chatVariables, messages: original });
+      assert.equal(reverted.store.proposalsStale, true);
+    } finally {
+      first.close();
+      next?.close();
+      reverted?.close();
+    }
+  }
+});
+
+test('损坏或属于其他聊天的草稿不载入，保存失败明确提示且不改MVU', async () => {
+  const first = harness();
+  try {
+    await first.store.seek();
+    const draft = first.chatVariables.get('current-chat')[journeyDraft.JOURNEY_DRAFT_KEY];
+    assert.equal(journeyDraft.readJourneyDraft({ ...draft, chatId: 'other-chat' }, 'current-chat'), undefined);
+    assert.equal(journeyDraft.readJourneyDraft({ ...draft, version: 99 }, 'current-chat'), undefined);
+    assert.equal(journeyDraft.readJourneyDraft({ ...draft, proposals: [{}] }, 'current-chat'), undefined);
+  } finally {
+    first.close();
+  }
+  const options = { draftWriteError: '存档暂时不可写' };
+  const failed = harness(options);
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    failed.store.preference = '保存失败时仍在当前界面保留';
+    assert.match(failed.store.error, /草稿暂未保存成功/u);
+    assert.equal(failed.writes.length, 0);
+    options.draftWriteError = '';
+    failed.store.preference += '。';
+    assert.equal(
+      failed.chatVariables.get('current-chat')[journeyDraft.JOURNEY_DRAFT_KEY].preference,
+      failed.store.preference,
+    );
+  } finally {
+    console.warn = warn;
+    failed.close();
   }
 });
 
