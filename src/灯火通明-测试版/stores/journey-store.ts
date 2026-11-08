@@ -4,11 +4,18 @@ import { klona } from 'klona';
 import { useActionPreferences } from '../action-preferences';
 import { CloudStorySchema, cloudJourneyId, createStorySnapshot, type CloudStory } from '../cloud-stories';
 import {
+  buildJourneyProposalPrompts,
+  collectJourneyWorldbookBindings,
+  journeyHistorySignature,
+  loadJourneyWorldbooks,
+  readJourneyHistory,
+  type JourneyHistoryRow,
+  type JourneyWorldbook,
+} from '../journey-context';
+import {
   buildJourneyAction,
   createJourney,
   JOURNEY_GENERATION_PREFIX,
-  JOURNEY_INSPIRATIONS,
-  JOURNEY_PROPOSAL_PROMPT,
   parseJourneyProposals,
   type JourneyProposal,
 } from '../journey';
@@ -32,18 +39,181 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
   const inspiration = ref('');
   const proposals = ref<JourneyProposal[]>([]);
   const panelOpen = ref(false);
+  const historyRows = ref<JourneyHistoryRow[]>([]);
+  const selectedMessageIds = ref<number[]>([]);
+  const historyMode = ref<'all' | 'manual'>('all');
+  const rangeStart = ref(0);
+  const rangeEnd = ref(0);
+  const historyLastMessageId = ref(-1);
+  const worldbooks = ref<JourneyWorldbook[]>([]);
+  const contextLoading = ref(false);
+  const contextError = ref('');
+  const worldReady = ref(false);
+  const historyReady = ref(false);
+  const proposalsInvalidated = ref(false);
   let generationId = '';
   let proposalChatId = '';
   let proposalMessageId = -1;
+  let proposalLastMessageId = -1;
+  let proposalHistorySignature = '';
+  let contextChatId: string | undefined;
+  let contextRevision = 0;
+  let pendingContext: { origin: string; promise: Promise<boolean> } | undefined;
   const chatId = () => String(SillyTavern.getCurrentChatId() ?? '');
   const atLatest = computed(() => (pseudo.isDetachedMode ? pseudo.isNativeLatest : pseudo.isStoryHistoryLatest));
   const disabled = computed(() => !atLatest.value || pseudo.isGenerating || seeking.value || saving.value);
+  const selectedHistory = computed(() => {
+    const ids = new Set(selectedMessageIds.value);
+    return historyRows.value.filter(row => ids.has(row.id));
+  });
+  const historySignature = computed(() => journeyHistorySignature(selectedHistory.value));
+  const referencePrompts = computed(() =>
+    data.rawData
+      ? buildJourneyProposalPrompts(
+          worldbooks.value,
+          selectedHistory.value,
+          data.rawData,
+          preference.value,
+          inspiration.value,
+        )
+      : [],
+  );
+  const referenceCharacters = computed(() =>
+    referencePrompts.value.reduce((total, prompt) => total + prompt.content.length, 0),
+  );
+  const worldEntryCount = computed(() => worldbooks.value.reduce((total, book) => total + book.entries.length, 0));
+  const contextReady = computed(() => historyReady.value && worldReady.value && !contextError.value);
   const proposalsStale = computed(
     () =>
-      proposals.value.length > 0 && (proposalChatId !== chatId() || proposalMessageId !== Number(data.viewedMessageId)),
+      proposals.value.length > 0 &&
+      (proposalsInvalidated.value ||
+        proposalChatId !== chatId() ||
+        proposalMessageId !== Number(data.viewedMessageId) ||
+        proposalLastMessageId !== historyLastMessageId.value ||
+        !historyReady.value ||
+        proposalHistorySignature !== historySignature.value),
   );
   const fail = (cause: unknown) => {
     error.value = cause instanceof Error ? cause.message : String(cause);
+  };
+
+  const refreshHistory = () => {
+    const origin = chatId();
+    if (contextChatId !== origin) {
+      contextChatId = origin;
+      contextRevision += 1;
+      pendingContext = undefined;
+      contextLoading.value = false;
+      contextError.value = '';
+      worldReady.value = false;
+      worldbooks.value = [];
+      historyMode.value = 'all';
+      rangeStart.value = 0;
+    }
+    historyReady.value = false;
+    const rows = readJourneyHistory(getChatMessages('0-{{lastMessageId}}', { include_swipes: false }));
+    historyRows.value = rows;
+    historyLastMessageId.value = getLastMessageId();
+    if (historyMode.value === 'all') {
+      selectedMessageIds.value = rows.filter(row => row.defaultSelected).map(row => row.id);
+      rangeEnd.value = Math.max(0, historyLastMessageId.value);
+    } else {
+      const existing = new Set(rows.map(row => row.id));
+      selectedMessageIds.value = selectedMessageIds.value.filter(id => existing.has(id));
+    }
+    historyReady.value = true;
+    if (
+      proposals.value.length &&
+      (proposalChatId !== origin ||
+        proposalLastMessageId !== historyLastMessageId.value ||
+        proposalHistorySignature !== historySignature.value)
+    )
+      proposalsInvalidated.value = true;
+  };
+  const refreshContext = async (): Promise<boolean> => {
+    try {
+      refreshHistory();
+    } catch (cause) {
+      contextError.value = `剧情历史读取失败：${cause instanceof Error ? cause.message : String(cause)}`;
+      return false;
+    }
+    const origin = chatId();
+    if (pendingContext?.origin === origin) return pendingContext.promise;
+    const revision = ++contextRevision;
+    contextLoading.value = true;
+    contextError.value = '';
+    worldReady.value = false;
+    const promise = (async () => {
+      try {
+        const bindings = collectJourneyWorldbookBindings(
+          getGlobalWorldbookNames(),
+          getCharWorldbookNames('current'),
+          getChatWorldbookName('current'),
+        );
+        const loaded = await loadJourneyWorldbooks(
+          bindings,
+          name => getWorldbook(name),
+          text => substitudeMacros(text),
+        );
+        if (revision !== contextRevision || chatId() !== origin) return false;
+        worldbooks.value = loaded;
+        worldReady.value = true;
+        return true;
+      } catch (cause) {
+        if (revision === contextRevision && chatId() === origin) {
+          contextError.value = cause instanceof Error ? cause.message : String(cause);
+        }
+        return false;
+      } finally {
+        if (revision === contextRevision) {
+          contextLoading.value = false;
+          pendingContext = undefined;
+        }
+      }
+    })();
+    pendingContext = { origin, promise };
+    return promise;
+  };
+  const selectAllHistory = () => {
+    if (seeking.value) return;
+    historyMode.value = 'all';
+    rangeStart.value = 0;
+    try {
+      refreshHistory();
+    } catch (cause) {
+      contextError.value = `剧情历史读取失败：${cause instanceof Error ? cause.message : String(cause)}`;
+    }
+  };
+  const applyHistoryRange = () => {
+    if (seeking.value) return;
+    const start = rangeStart.value;
+    const end = rangeEnd.value;
+    if (
+      !Number.isInteger(start) ||
+      !Number.isInteger(end) ||
+      start < 0 ||
+      end < start ||
+      end > historyLastMessageId.value
+    ) {
+      error.value = '请填写有效的起止楼层，结束楼层须在当前历史范围内。';
+      return;
+    }
+    historyMode.value = 'manual';
+    selectedMessageIds.value = historyRows.value
+      .filter(row => row.id >= start && row.id <= end && row.defaultSelected)
+      .map(row => row.id);
+    if (proposals.value.length && proposalHistorySignature !== historySignature.value)
+      proposalsInvalidated.value = true;
+    error.value = '';
+  };
+  const toggleHistoryMessage = (id: number) => {
+    if (seeking.value || !historyRows.value.some(row => row.id === id)) return;
+    historyMode.value = 'manual';
+    const ids = new Set(selectedMessageIds.value);
+    if (ids.has(id)) ids.delete(id);
+    else ids.add(id);
+    selectedMessageIds.value = [...ids].sort((left, right) => left - right);
+    if (proposals.value.length) proposalsInvalidated.value = true;
   };
 
   const write = async (change: (state: SchemaType) => void) => {
@@ -85,55 +255,47 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     error.value = '';
     panelOpen.value = true;
     try {
+      if (!(await refreshContext())) throw new Error(contextError.value || '当前场景已变化，请重新寻途。');
+      if (generationId !== requestId) return;
+      if (chatId() !== origin || Number(data.viewedMessageId) !== target) {
+        throw new Error('场景已经变化，请在最新正文重新寻途。');
+      }
+      if (!selectedHistory.value.length) throw new Error('请至少选中一条剧情或玩家输入，再开始寻途。');
+      const selectedSignature = historySignature.value;
+      const latestMessageId = historyLastMessageId.value;
       const snapshot = Schema.parse(klona(data.rawData));
-      const primary = getCharWorldbookNames('current').primary;
-      const world = primary
-        ? (await getWorldbook(primary))
-            .filter(entry => entry.enabled && /世界观|空间结构|修仙法则|大能约束|宗门势力概览/u.test(entry.name))
-            .map(entry => `${entry.name}\n${entry.content.slice(0, 5000)}`)
-            .join('\n\n')
-            .slice(0, 18000)
-        : '';
-      if (generationId !== requestId || chatId() !== origin) return;
-      const context = {
-        偏好: preference.value.trim(),
-        取意: JOURNEY_INSPIRATIONS[inspiration.value] ?? JOURNEY_INSPIRATIONS[''],
-        处境: snapshot.当前处境,
-        本尊: {
-          等级: snapshot.本尊.等级,
-          境界: snapshot.本尊.境界描述,
-          身份: snapshot.本尊.身份,
-          行踪: snapshot.本尊.行踪,
-        },
-        已知目标: snapshot.任务列表,
-        近期世闻: snapshot.世界图志,
-        相识之人: Object.fromEntries(
-          Object.entries(snapshot.红颜).map(([name, person]) => [name, { 关系: person.关系, 近况: person.关系上下文 }]),
-        ),
-        已有行旅: Object.values(snapshot.行旅.旅程).map(journey => ({
-          名称: journey.名称,
-          所求: journey.所求,
-          状态: journey.状态,
-        })),
-      };
       const response = await generateRaw({
         generation_id: requestId,
         should_stream: false,
         should_silence: true,
         max_chat_history: 0,
         overrides: { chat_history: { prompts: [], with_depth_entries: false } },
-        ordered_prompts: [
-          { role: 'system', content: `${JOURNEY_PROPOSAL_PROMPT}\n\n世界依据：\n${world}` },
-          { role: 'user', content: `请依以下当前情况构思三种未发生的行旅提案：\n${JSON.stringify(context)}` },
-        ],
+        // History is explicitly included below, so native history and depth entries stay off to avoid duplicates.
+        ordered_prompts: buildJourneyProposalPrompts(
+          worldbooks.value,
+          selectedHistory.value,
+          snapshot,
+          preference.value,
+          inspiration.value,
+        ),
       });
       if (generationId !== requestId) return;
-      if (chatId() !== origin || Number(data.viewedMessageId) !== target) {
+      refreshHistory();
+      if (
+        chatId() !== origin ||
+        Number(data.viewedMessageId) !== target ||
+        latestMessageId !== historyLastMessageId.value ||
+        selectedSignature !== historySignature.value
+      ) {
         throw new Error('场景已经变化，提案未写入；请在最新正文重新寻途。');
       }
-      proposals.value = parseJourneyProposals(response);
+      const parsed = parseJourneyProposals(response);
       proposalChatId = origin;
       proposalMessageId = target;
+      proposalLastMessageId = latestMessageId;
+      proposalHistorySignature = selectedSignature;
+      proposalsInvalidated.value = false;
+      proposals.value = parsed;
     } catch (cause) {
       if (generationId === requestId) fail(cause);
     } finally {
@@ -158,6 +320,12 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     );
   };
   const choose = async (proposal: JourneyProposal) => {
+    try {
+      refreshHistory();
+    } catch (cause) {
+      fail(cause);
+      return false;
+    }
     if (proposalsStale.value) {
       error.value = '提案来自先前场景，请重寻后再选。';
       return false;
@@ -249,7 +417,30 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     });
   };
   const verifyGuess = (id: string) => (current.value ? perform(current.value, id) : false);
-  onScopeDispose(cancel);
+  const historyListeners = [
+    tavern_events.MESSAGE_SENT,
+    tavern_events.MESSAGE_RECEIVED,
+    tavern_events.MESSAGE_EDITED,
+    tavern_events.MESSAGE_UPDATED,
+    tavern_events.MESSAGE_DELETED,
+    tavern_events.MESSAGE_SWIPED,
+    tavern_events.CHAT_CHANGED,
+  ].map(event =>
+    eventOn(event, () => {
+      try {
+        if (event === tavern_events.CHAT_CHANGED) cancel();
+        refreshHistory();
+        if (event === tavern_events.CHAT_CHANGED && panelOpen.value) void refreshContext();
+      } catch (cause) {
+        contextError.value = `剧情历史读取失败：${cause instanceof Error ? cause.message : String(cause)}`;
+      }
+    }),
+  );
+  onScopeDispose(() => {
+    cancel();
+    contextRevision += 1;
+    historyListeners.forEach(listener => listener.stop());
+  });
   return {
     archive,
     currentId,
@@ -263,6 +454,23 @@ export const useJourneyStore = defineStore('bright-test-journeys', () => {
     panelOpen,
     disabled,
     proposalsStale,
+    historyRows,
+    selectedMessageIds,
+    selectedHistory,
+    historyMode,
+    rangeStart,
+    rangeEnd,
+    historyLastMessageId,
+    worldbooks,
+    worldEntryCount,
+    referenceCharacters,
+    contextLoading,
+    contextError,
+    contextReady,
+    refreshContext,
+    selectAllHistory,
+    applyHistoryRange,
+    toggleHistoryMessage,
     seek,
     cancel,
     choose,

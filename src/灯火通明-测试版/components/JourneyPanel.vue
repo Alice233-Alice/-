@@ -35,6 +35,7 @@
             placeholder="例如：想去远海走走，或陪某位故人了却一桩旧愿……"
           ></textarea>
         </label>
+        <JourneyContextPicker />
         <div class="seeking-controls">
           <label
             >取意<select v-model="journeys.inspiration" :disabled="journeys.seeking">
@@ -43,7 +44,15 @@
             </select></label
           >
           <button v-if="journeys.seeking" type="button" class="quiet-button" @click="journeys.cancel">停止寻途</button>
-          <button v-else type="button" class="journey-button" :disabled="journeys.disabled" @click="journeys.seek">
+          <button
+            v-else
+            type="button"
+            class="journey-button"
+            :disabled="
+              journeys.disabled || journeys.contextLoading || !journeys.contextReady || !journeys.selectedHistory.length
+            "
+            @click="journeys.seek"
+          >
             {{ journeys.proposals.length ? '再寻三条去路' : '看看远方' }}
           </button>
         </div>
@@ -272,6 +281,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import CloudStoriesPanel from './CloudStoriesPanel.vue';
+import JourneyContextPicker from './JourneyContextPicker.vue';
 import { useJourneyStore } from '../stores/journey-store';
 import { useAffairsStore } from '../stores/affairs-store';
 import { useDataStore } from '../store';
