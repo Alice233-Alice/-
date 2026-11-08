@@ -3,7 +3,7 @@
     <p class="reference-counts" aria-live="polite">
       <span v-if="journeys.contextLoading"><i class="fa-solid fa-circle-notch fa-spin"></i>正在读取设定与剧情</span>
       <template v-else-if="journeys.contextReady">
-        <span>{{ journeys.worldbooks.length }} 本世界书 · {{ journeys.worldEntryCount }} 条开启设定</span>
+        <span>{{ journeys.worldbooks.length }} 本世界书 · {{ journeys.worldEntryCount }} 条载入设定</span>
         <span
           >已选 {{ journeys.selectedHistory.length }} 楼 · 待发送
           {{ journeys.referenceCharacters.toLocaleString() }} 字符</span
@@ -17,6 +17,7 @@
         <span><i class="fa-solid fa-book-open"></i>剧情参考</span>
         <span class="reference-mode">{{ journeys.historyMode === 'all' ? '全部历史' : '手动选择' }}</span>
       </summary>
+      <p class="reference-hint">红颜人设仅随蓝灯载入，其余设定按开启状态载入。</p>
       <p class="reference-hint">按区间载入，再逐楼取舍。已归档的幕间交谈一并承接，普通隐藏楼层可自行勾选。</p>
       <div class="reference-range">
         <label

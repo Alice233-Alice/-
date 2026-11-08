@@ -46,7 +46,10 @@ export async function loadJourneyWorldbooks(
         return {
           ...binding,
           entries: entries
-            .filter(entry => entry.enabled)
+            // Character profiles and relationship stages follow the dynamic worldbook manager's blue lights.
+            .filter(
+              entry => entry.enabled && (!/^\[角色\]/u.test(entry.name.trim()) || entry.strategy.type === 'constant'),
+            )
             .map(entry => ({ uid: entry.uid, name: entry.name, content: substitute(entry.content) })),
         };
       } catch (cause) {

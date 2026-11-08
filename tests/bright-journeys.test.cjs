@@ -364,7 +364,13 @@ test('选择保存到当前MVU快照且保留现有数据，按原行动偏好�
 });
 
 test('全部绑定世界书按书名去重，每条开启设定及其末尾完整发送，宏按当前聊天展开', async () => {
-  const entry = (uid, name, content, enabled = true) => ({ uid, name, content, enabled });
+  const entry = (uid, name, content, enabled = true, type = 'selective') => ({
+    uid,
+    name,
+    content,
+    enabled,
+    strategy: { type, keys: [] },
+  });
   const h = harness({
     globalBooks: ['共用', '主书'],
     characterBooks: { primary: '主书', additional: ['附加', '共用'] },
@@ -375,7 +381,7 @@ test('全部绑定世界书按书名去重，每条开启设定及其末尾完�
         entry(1, '归墟地图', '地图全文'.repeat(2000) + '主书末尾{{user}}'),
         entry(2, '关闭设定', '绝不发送的关闭条目', false),
       ],
-      附加: [entry(1, '白清弦人设', '附加资料{{char}}末尾')],
+      附加: [entry(1, '[角色] 白清弦', '附加资料{{char}}末尾', true, 'constant')],
       聊天书: [entry(1, '当前旧约', '聊天设定末尾')],
     },
   });
@@ -393,6 +399,93 @@ test('全部绑定世界书按书名去重，每条开启设定及其末尾完�
       h.store.referenceCharacters,
       h.requests[0].ordered_prompts.reduce((sum, prompt) => sum + prompt.content.length, 0),
     );
+  } finally {
+    h.close();
+  }
+});
+
+test('红颜主人设、阶段和别名只发送蓝灯条目，其余开启设定继续完整发送', async () => {
+  const entry = (uid, name, content, type = 'selective', enabled = true) => ({
+    uid,
+    name,
+    content,
+    enabled,
+    strategy: { type, keys: [] },
+  });
+  const h = harness({
+    books: {
+      world: [
+        entry(1, '[角色] 白清弦', '蓝灯师尊主人设', 'constant'),
+        entry(2, '[角色] 白清弦-陌生期', '蓝灯师尊陌生期', 'constant'),
+        entry(3, '[角色] 许听雨', '绿灯人物主人设'),
+        entry(4, '[角色] 白清弦-深爱期', '绿灯未来阶段'),
+        entry(5, '[角色] 泠泠', '绿灯人物别名'),
+        entry(6, '[角色] 梦杳泠', '向量人物人设', 'vectorized'),
+        entry(7, '[角色] 晚棠', '已禁用的蓝灯人设', 'constant', false),
+        entry(8, '[地图] 许听雨旧居', '绿灯地图仍完整带入'.repeat(1000)),
+        entry(9, '世界观', '绿灯世界观仍然带入'),
+        entry(10, '[红颜索引]', '蓝灯索引仍然带入', 'constant'),
+        entry(11, '[地图] 旧稿', '关闭地图不发送', 'constant', false),
+      ],
+    },
+  });
+  try {
+    const before = lodash.cloneDeep(h.books);
+    await h.store.seek();
+    const text = h.requests[0].ordered_prompts[0].content;
+    assert.equal(h.store.worldEntryCount, 5);
+    assert.deepEqual(
+      Array.from(h.store.worldbooks[0].entries, row => row.uid),
+      [1, 2, 8, 9, 10],
+    );
+    for (const word of [
+      '蓝灯师尊主人设',
+      '蓝灯师尊陌生期',
+      h.books.world[7].content,
+      '绿灯世界观仍然带入',
+      '蓝灯索引仍然带入',
+    ]) {
+      assert.ok(text.includes(word));
+    }
+    assert.doesNotMatch(text, /绿灯人物主人设|绿灯未来阶段|绿灯人物别名|向量人物人设|已禁用的蓝灯人设|关闭地图不发送/u);
+    assert.deepEqual(h.books, before);
+    assert.equal(h.writes.length, 0);
+  } finally {
+    h.close();
+  }
+});
+
+test('每次寻途重新读取红颜蓝灯状态，动态管理切换人设后采用当前蓝灯', async () => {
+  const h = harness({
+    books: {
+      world: [
+        {
+          uid: 1,
+          enabled: true,
+          name: '[角色] 白清弦',
+          content: '上一位蓝灯人物',
+          strategy: { type: 'constant', keys: [] },
+        },
+        {
+          uid: 2,
+          enabled: true,
+          name: '[角色] 许听雨',
+          content: '当前新亮蓝灯人物',
+          strategy: { type: 'selective', keys: [] },
+        },
+      ],
+    },
+  });
+  try {
+    await h.store.seek();
+    assert.match(h.requests[0].ordered_prompts[0].content, /上一位蓝灯人物/u);
+    assert.doesNotMatch(h.requests[0].ordered_prompts[0].content, /当前新亮蓝灯人物/u);
+    h.books.world[0].strategy.type = 'selective';
+    h.books.world[1].strategy.type = 'constant';
+    await h.store.seek();
+    assert.doesNotMatch(h.requests[1].ordered_prompts[0].content, /上一位蓝灯人物/u);
+    assert.match(h.requests[1].ordered_prompts[0].content, /当前新亮蓝灯人物/u);
+    assert.equal(h.store.worldEntryCount, 1);
   } finally {
     h.close();
   }
