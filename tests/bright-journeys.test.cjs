@@ -281,7 +281,7 @@ test('选择保存到当前MVU快照且保留现有数据，按原行动偏好�
     assert.match(id, /^行旅_/);
     assert.equal(saved.stat_data.行旅.旅程[id].名称, proposals[0].name);
     assert.equal(saved.stat_data.$行旅蓝图[id], proposals[0].plan);
-    assert.equal(saved.stat_data.本尊.灵石, 543);
+    assert.equal(saved.stat_data.本尊.灵石.下品灵石, 543);
     assert.equal(saved.display_data.preserved, true);
     assert.equal(h.writes[0].target.type, 'message');
     assert.equal(h.writes[0].target.message_id, 2);

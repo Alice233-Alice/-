@@ -86,8 +86,14 @@
         <summary>此行缘起</summary>
         <p>{{ journeys.current.缘起 }}</p>
       </details>
-      <p v-if="journeys.current.进展" class="journey-progress"><span>近来所得</span>{{ journeys.current.进展 }}</p>
-      <p v-if="journeys.current.下一步" class="journey-next"><span>可循去处</span>{{ journeys.current.下一步 }}</p>
+      <p v-if="journeys.current.进展" class="journey-progress">
+        <span class="journey-field-label">近来所得</span
+        ><span class="journey-field-copy">{{ journeys.current.进展 }}</span>
+      </p>
+      <p v-if="journeys.current.下一步" class="journey-next">
+        <span class="journey-field-label">可循去处</span
+        ><span class="journey-field-copy">{{ journeys.current.下一步 }}</span>
+      </p>
       <div class="journey-links">
         <button
           v-for="id in journeys.current.关联任务.filter(id => data.任务列表[id] || data.rawData?._近期任务结果[id])"
@@ -296,9 +302,14 @@ const clearSavedJourney = async (id: string) => {
 <style scoped lang="scss">
 .journey-panel {
   margin: 0 0 28px;
-  padding: 20px 0;
-  border-block: 1px solid var(--line-subtle);
+  padding: 4px 0 24px;
+  border-bottom: 1px solid var(--line-subtle);
   color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.journey-heading {
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--line-subtle);
 }
 .journey-picker {
   margin-top: 16px;
@@ -310,12 +321,13 @@ const clearSavedJourney = async (id: string) => {
   border-bottom: 1px solid var(--line-subtle);
 }
 .picker-tabs button {
-  padding: 10px 2px;
+  padding: 10px 4px;
   border: 0;
   border-bottom: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
+  font-family: 'Noto Serif SC', 'Songti SC', STSong, serif;
   cursor: pointer;
 }
 .picker-tabs button[aria-pressed='true'] {
@@ -343,22 +355,23 @@ h2 {
   gap: 10px;
   margin-top: 7px;
   font:
-    600 20px 'Noto Serif SC',
+    600 18px 'Noto Serif SC',
     STSong,
     serif;
 }
 h2 i,
 .eyebrow,
 .field-caption,
-.journey-progress > span,
-.journey-next > span {
+.journey-field-label {
   color: var(--gold-soft);
 }
 h3 {
   font:
-    600 19px 'Noto Serif SC',
+    600 17px 'Noto Serif SC',
     STSong,
     serif;
+  line-height: 1.6;
+  letter-spacing: 0.035em;
 }
 .eyebrow {
   font-size: 12px;
@@ -392,25 +405,32 @@ button:disabled {
   gap: 8px;
   padding: 9px 13px;
   border: 1px solid var(--line-subtle);
-  border-radius: 5px;
+  border-radius: 3px;
   background: transparent;
   font-size: 12px;
   line-height: 1.5;
 }
 .journey-button {
-  border-color: var(--line-strong);
-  background: var(--button-bg);
+  border-color: color-mix(in srgb, var(--gold) 40%, var(--line-subtle));
+  background: color-mix(in srgb, var(--gold) 4%, transparent);
   color: var(--gold);
 }
 button:hover:not(:disabled) {
   background: var(--button-hover);
+}
+button:focus-visible,
+summary:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 .seeking-surface {
   margin-top: 18px;
   padding: 18px;
   border: 1px solid var(--line-subtle);
   border-radius: 6px;
-  background: var(--surface-inset);
+  background: color-mix(in srgb, var(--surface-inset) 65%, transparent);
 }
 .field-label {
   display: grid;
@@ -469,7 +489,7 @@ select {
   padding: 18px 14px;
   border: 1px solid var(--line-subtle);
   border-radius: 5px;
-  background: var(--surface);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--surface-inset) 65%, transparent), transparent);
   overflow-wrap: anywhere;
 }
 .proposal .eyebrow {
@@ -494,25 +514,39 @@ select {
 .current-journey {
   margin-top: 20px;
   padding: 22px 18px;
-  background: linear-gradient(120deg, color-mix(in srgb, var(--gold) 4%, var(--surface)), var(--surface-inset));
-  border: 1px solid var(--line-subtle);
-  border-radius: 7px;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--gold) 4%, var(--surface-inset)),
+    color-mix(in srgb, var(--surface-inset) 55%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, var(--line-subtle));
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 8%, transparent);
 }
 .current-heading h3 {
   margin-top: 7px;
+  color: var(--gold);
+  font-size: 21px;
 }
 .journey-state,
 .guess-state {
   font-size: 12px;
   color: var(--gold);
 }
+.journey-state {
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--gold) 25%, transparent);
+  border-radius: 2px;
+}
 .longing {
   margin-top: 16px;
   line-height: 1.9;
-  font-size: 15px;
+  font-size: 14px;
 }
 .origin {
   margin-top: 12px;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.9;
@@ -525,14 +559,26 @@ summary {
 }
 .journey-progress,
 .journey-next {
+  display: grid;
+  grid-template-columns: 4em minmax(0, 1fr);
+  gap: 12px;
   margin-top: 14px;
   font-size: 13px;
   line-height: 1.9;
 }
-.journey-progress > span,
-.journey-next > span {
-  margin-right: 10px;
+.journey-field-label {
   font-size: 12px;
+  white-space: nowrap;
+}
+.journey-field-copy {
+  min-width: 0;
+}
+.journey-next {
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--gold) 35%, transparent);
+}
+.journey-progress {
+  color: var(--text-secondary);
 }
 .journey-controls,
 .journey-links,
@@ -541,6 +587,10 @@ summary {
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 14px;
+}
+.journey-controls {
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line-subtle) 60%, transparent);
 }
 .journey-links button {
   border: 0;
@@ -565,6 +615,7 @@ summary {
   background: transparent;
   color: var(--text-secondary);
   font-size: 13px;
+  font-family: 'Noto Serif SC', 'Songti SC', STSong, serif;
 }
 .journal-tabs button[aria-pressed='true'] {
   color: var(--gold);
@@ -623,14 +674,22 @@ input[type='checkbox'] {
   font-size: 12px;
   color: var(--text-secondary);
 }
+.saved-journeys > summary {
+  padding: 8px 0;
+  color: var(--text-primary);
+  font-family: 'Noto Serif SC', 'Songti SC', STSong, serif;
+}
 .saved-journey {
   margin-top: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line-subtle);
+  padding: 12px;
+  border-left: 1px solid var(--line-subtle);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--surface-inset) 40%, transparent), transparent);
 }
 .saved-journey strong {
   color: var(--text-primary);
   font-weight: 500;
+  font-family: 'Noto Serif SC', 'Songti SC', STSong, serif;
+  font-size: 14px;
 }
 .saved-journey small {
   margin-left: 10px;

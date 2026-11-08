@@ -57,6 +57,7 @@ async function main() {
     },
   ];
   const current = createJourney(proposals[0]);
+  const archived = createJourney(proposals[1]);
   Object.assign(current, {
     状态: '进行中',
     篇章: '第一章 · 渡口问潮',
@@ -91,8 +92,9 @@ async function main() {
     .join(';');
   const runtime = fs.readFileSync(require.resolve('vue/dist/vue.global.prod.js'), 'utf8');
   const script = `const {reactive,createApp}=Vue;
-    const state=reactive({archive:{当前追踪:'样稿甲',旅程:{样稿甲:${JSON.stringify(current)}}},get currentId(){return this.archive.当前追踪},get current(){return this.archive.旅程[this.currentId]},disabled:false,seeking:false,saving:false,error:'',panelOpen:false,preference:'',inspiration:'',proposals:[],proposalsStale:false,
+    const state=reactive({archive:{当前追踪:'样稿甲',旅程:{样稿甲:${JSON.stringify(current)},样稿乙:${JSON.stringify(archived)}}},get currentId(){return this.archive.当前追踪},get current(){return this.archive.旅程[this.currentId]},disabled:false,seeking:false,saving:false,error:'',panelOpen:false,preference:'',inspiration:'',proposals:[],proposalsStale:false,
       seek(){this.proposals=${JSON.stringify(proposals)}},cancel(){this.seeking=false},choose(p){this.proposals=[];this.panelOpen=false;showAction(p.step)},track(id){this.archive.当前追踪=id},pause(){this.current.状态='暂歇'},resume(){this.current.状态='进行中';showAction(this.current.下一步)},untrack(){this.archive.当前追踪=''},addGuess(content,clues){this.current.猜想['手记'+Date.now()]={内容:content,关联线索:clues,状态:'待核实',依据:''};return Promise.resolve(true)},verifyGuess(id){showAction('核实：'+this.current.猜想[id].内容)}});
+    state.removeJourney=async id=>{delete state.archive.旅程[id];if(state.currentId===id)state.archive.当前追踪='';return true};
     function showAction(text){document.getElementById('action').textContent=text}
     const affairs={navigate:(kind,id)=>showAction('前往 '+kind+'：'+id)};
     const data={任务列表:{渡口访舟:{名称:'渡口访舟'}},世界图志:{旧渡重开:{}},rawData:{_近期任务结果:{}}};
